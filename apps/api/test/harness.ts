@@ -23,11 +23,11 @@ export const catalog = [
 ]
 
 /** A browser stand-in: keeps cookies, sends the app's Origin. */
-function browser(baseUrl: string, path: string, origin: string) {
+function browser(baseUrl: string, path: string, origin: string, ip: string) {
     const jar = new Map<string, string>()
     const link = new RPCLink({
         url: `${baseUrl}${path}`,
-        headers: () => ({ origin, ...(jar.size && { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; ") }) }),
+        headers: () => ({ origin, "x-forwarded-for": ip, ...(jar.size && { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; ") }) }),
         fetch: async (request, init) => {
             const response = await fetch(request, init)
             for (const header of response.headers.getSetCookie()) {
@@ -66,12 +66,14 @@ export async function startApi() {
     await app.listen({ host: "127.0.0.1", port: 0 })
     const baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`
 
-    const client = (origin = CLIENT_ORIGIN) => {
-        const { jar, link } = browser(baseUrl, "/rpc", origin)
+    // Each browser gets its own IP unless a test pins one, so per-IP limits don't couple unrelated tests.
+    const freshIp = () => `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${1 + Math.floor(Math.random() * 254)}`
+    const client = (origin = CLIENT_ORIGIN, ip = freshIp()) => {
+        const { jar, link } = browser(baseUrl, "/rpc", origin, ip)
         return { api: createORPCClient<ClientApi>(link), jar }
     }
-    const admin = (origin = ADMIN_ORIGIN) => {
-        const { jar, link } = browser(baseUrl, "/admin/rpc", origin)
+    const admin = (origin = ADMIN_ORIGIN, ip = freshIp()) => {
+        const { jar, link } = browser(baseUrl, "/admin/rpc", origin, ip)
         return { api: createORPCClient<AdminApi>(link), jar }
     }
 

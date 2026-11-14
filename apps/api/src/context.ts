@@ -10,8 +10,8 @@ export type Ctx = {
     env: Env
     req: FastifyRequest
     reply: FastifyReply
-    /** Login and signup attempts: generous per IP (shared NATs), strict per username. `email` caps mail sent to one address. */
-    limits: { ip: RateLimiter; user: RateLimiter; email: RateLimiter }
+    /** Login and signup attempts: generous per IP (shared NATs), strict per username. `email` caps mail sent to one address; `signup` caps new accounts per IP. */
+    limits: { ip: RateLimiter; user: RateLimiter; email: RateLimiter; signup: RateLimiter }
     mailer: Mailer
     /** Emits "event" with each RawBotEvent the runner announces. */
     botEvents: EventEmitter

@@ -30,6 +30,7 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
         user: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
         email: createRateLimiter({ max: 3, windowMs: 15 * 60_000 }),
+        signup: createRateLimiter({ max: 5, windowMs: 60 * 60_000 }),
     }
     // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.
     const logServerError = (error: unknown) => {

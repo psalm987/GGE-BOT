@@ -81,7 +81,7 @@ export async function logout(ctx: Ctx, audience: Audience) {
 }
 
 export async function signup(ctx: Ctx, input: { username: string; email: string; password: string }) {
-    if (!ctx.limits.ip.hit(ctx.req.ip))
+    if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.signup.hit(ctx.req.ip))
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
 
     const passwordHash = await hashPassword(input.password)

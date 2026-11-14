@@ -155,3 +155,16 @@ describe("boundaries between the apps", () => {
         expect((await fetch(`${api.baseUrl}/healthz`)).status).toBe(200)
     })
 })
+
+describe("signup rate limit", () => {
+    const from = (ip: string) => api.client(undefined, ip).api.auth
+    const attempt = (ip: string, name: string) => codeOf(from(ip).signup({ username: name, email: `${name}@example.test`, password: PASSWORD }))
+
+    test("the 6th signup from one IP within the hour is refused, while other IPs are unaffected", async () => {
+        const codes = []
+        for (let i = 0; i < 6; i++)
+            codes.push(await attempt("203.0.113.7", `flood${i}`))
+        expect(codes).toEqual(["ok", "ok", "ok", "ok", "ok", "TOO_MANY_REQUESTS"])
+        expect(await attempt("203.0.113.8", "bystander")).toBe("ok")
+    })
+})
