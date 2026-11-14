@@ -26,6 +26,7 @@ cmd_setup() {
   mkdir -p "$PW_DIR"
   [[ -f "$PW_DIR/package.json" ]] || echo '{"private":true}' > "$PW_DIR/package.json"
   [[ -d "$PW_DIR/node_modules/playwright" ]] || (cd "$PW_DIR" && npm i --no-audit --no-fund "playwright@$PW_VERSION")
+  [[ -d "$PW_DIR/node_modules/axe-core" ]] || (cd "$PW_DIR" && npm i --no-audit --no-fund "axe-core@4")
   (cd "$PW_DIR" && npx playwright install chromium >/dev/null)
   echo "setup ok: repo deps, website/build, playwright@$PW_VERSION in $PW_DIR"
 }
