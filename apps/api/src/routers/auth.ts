@@ -94,7 +94,7 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
         .then(([created]) => created!, error => {
             if (isUniqueViolation(error, "users_username_lower"))
                 throw new ORPCError("CONFLICT", { message: "That username is taken" })
-            if (isUniqueViolation(error, "users_email_lower"))
+            if (isUniqueViolation(error, "users_email_canonical"))
                 throw new ORPCError("CONFLICT", { message: "That email is already in use" })
             throw error
         })
@@ -109,10 +109,11 @@ export async function requestPasswordReset(ctx: Ctx, input: { email: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.email.hit(`reset:${input.email}`))
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
     const [user] = await ctx.db.select().from(users)
-        .where(and(eq(sql`lower(${users.email})`, input.email), eq(users.status, "active"), isNotNull(users.emailVerifiedAt)))
-    // Detached so a verified address answers as fast as an unknown one.
-    if (user)
-        void sendResetLink(ctx, user.id, input.email).catch(error => ctx.req.log.error({ err: error }, "password reset request failed"))
+        .where(and(eq(users.emailCanonical, sql`canonical_email(${input.email})`), eq(users.status, "active"), isNotNull(users.emailVerifiedAt)))
+    // Detached so a verified address answers as fast as an unknown one. A lookalike address
+    // (a+x@ for a@) matches the account, but the link only ever goes to the stored address.
+    if (user?.email)
+        void sendResetLink(ctx, user.id, user.email).catch(error => ctx.req.log.error({ err: error }, "password reset request failed"))
     return { ok: true as const }
 }
 
@@ -128,7 +129,7 @@ export async function resetPassword(ctx: Ctx, input: { token: string; password: 
         if (!claimed)
             throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
         const [user] = await tx.select().from(users).where(and(eq(users.id, claimed.userId), eq(users.status, "active")))
-        if (user?.email?.toLowerCase() !== claimed.email)
+        if (user?.email?.toLowerCase() !== claimed.email.toLowerCase())
             throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
         await storePassword(tx, user.id, input.password)
         await revokeUserSessions(tx, user.id)

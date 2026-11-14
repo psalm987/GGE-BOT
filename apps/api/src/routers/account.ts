@@ -28,7 +28,7 @@ export async function addEmail(ctx: Ctx, user: SessionUser, input: { email: stri
         .where(and(eq(users.id, user.id), isNull(users.email)))
         .returning({ id: users.id })
         .catch(error => {
-            if (isUniqueViolation(error, "users_email_lower"))
+            if (isUniqueViolation(error, "users_email_canonical"))
                 throw new ORPCError("CONFLICT", { message: "That email is already in use" })
             throw error
         })

@@ -33,6 +33,8 @@ export const users = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
     username: text("username").notNull(),
     email: text("email"),
+    /** canonical_email(email): one value per real mailbox, so a+1@ and a.b@gmail.com can't register twice. Defined in migration 0007. */
+    emailCanonical: text("email_canonical").generatedAlwaysAs(sql`canonical_email(email)`),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     passwordHash: text("password_hash").notNull(),
     /** Only for imported PBKDF2 hashes; cleared when the hash is upgraded. */
@@ -48,7 +50,7 @@ export const users = pgTable("users", {
     updatedAt: updatedAt(),
 }, t => [
     uniqueIndex("users_username_lower").on(sql`lower(${t.username})`),
-    uniqueIndex("users_email_lower").on(sql`lower(${t.email})`),
+    uniqueIndex("users_email_canonical").on(t.emailCanonical),
 ])
 
 export const sessions = pgTable("sessions", {

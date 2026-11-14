@@ -39,6 +39,26 @@ The legacy bot is the single `main.js` process with its panel, `user.db` and `gg
 
 The importer can run again safely: rows already imported (matched by their legacy ids) are left alone.
 
+## Before upgrading a stack that already has users
+
+Migration `0007_canonical_email` makes one mailbox one account: `a.b+x@gmail.com` and `ab@googlemail.com` are the same address. It fails if two existing users already collide under that rule. Run this on the production database first and resolve every row it returns (clear or change one of the emails):
+
+```sql
+-- canonical_email() only exists after the migration, so this repeats its rules for gmail and lowercase; the migration is the authority.
+select lower(btrim(email)) as email, count(*) from users
+where email is not null group by 1 having count(*) > 1;
+```
+
+If the migration reports `could not create unique index "users_email_canonical"`, find the clashing rows with:
+
+```sql
+select id, username, email from users
+where email is not null and canonical_email(email) in (
+    select canonical_email(email) from users where email is not null group by 1 having count(*) > 1);
+```
+
+Players imported from the legacy bot start with a limit of one bot (`users.max_bots`). Imported players who already own more keep them; they just can't add more. Raise a limit on the admin Users page.
+
 ## What does not move
 
 - `ggeConfig.json`: its settings are now environment variables ([env.md](env.md)). `signupToken` is gone; anyone can sign up, and must confirm an email before running bots.
