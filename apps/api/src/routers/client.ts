@@ -10,7 +10,8 @@ import {
     createAccount, getOwnedAccount, listOwnedAccounts, loadCatalog, ownedBy, removeAccounts, setDesiredState, updateAccount,
 } from "../services/accounts.ts"
 import type { RawBotEvent } from "../services/bot-events.ts"
-import { currentUser, login, logout, signup } from "./auth.ts"
+import { addEmail, changePassword, resendVerification } from "./account.ts"
+import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
 
 const os = implement(clientContract).$context<Ctx>()
 
@@ -27,6 +28,14 @@ export const clientRouter = os.router({
         login: os.auth.login.handler(({ context, input }) => login(context, "client", input)),
         logout: os.auth.logout.handler(({ context }) => logout(context, "client")),
         me: os.auth.me.handler(async ({ context }) => await currentUser(context, "client")),
+        requestPasswordReset: os.auth.requestPasswordReset.handler(({ context, input }) => requestPasswordReset(context, input)),
+        resetPassword: os.auth.resetPassword.handler(({ context, input }) => resetPassword(context, input)),
+        verifyEmail: os.auth.verifyEmail.handler(({ context, input }) => verifyEmail(context, input)),
+    },
+    account: {
+        resendVerification: os.account.resendVerification.use(authed).handler(({ context }) => resendVerification(context, context.user)),
+        addEmail: os.account.addEmail.use(authed).handler(({ context, input }) => addEmail(context, context.user, input)),
+        changePassword: os.account.changePassword.use(authed).handler(({ context, input }) => changePassword(context, context.user, input)),
     },
     accounts: {
         list: os.accounts.list.use(authed).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),

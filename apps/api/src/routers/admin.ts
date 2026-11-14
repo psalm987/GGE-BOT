@@ -6,6 +6,7 @@ import { adminContract } from "@gge/contracts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
+import { clientLink, sendEmail } from "../services/email.ts"
 import { listAccounts, setDesiredState } from "../services/accounts.ts"
 import { currentUser, hashInviteCode, login, logout } from "./auth.ts"
 
@@ -23,6 +24,7 @@ const admin = os.middleware(async ({ context, next }) => {
 const inviteColumns = {
     id: invites.id,
     role: invites.role,
+    email: invites.email,
     createdAt: invites.createdAt,
     expiresAt: invites.expiresAt,
     usedAt: invites.usedAt,
@@ -68,7 +70,8 @@ export const adminRouter = os.router({
     users: {
         list: os.users.list.use(admin).handler(({ context: { db }, input }) =>
             db.select({
-                id: users.id, username: users.username, role: users.role, status: users.status, createdAt: users.createdAt,
+                id: users.id, username: users.username, role: users.role, email: users.email,
+                emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, status: users.status, createdAt: users.createdAt,
                 accountCount: count(gameAccounts.id),
             }).from(users)
                 .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
@@ -102,15 +105,19 @@ export const adminRouter = os.router({
     invites: {
         list: os.invites.list.use(admin).handler(({ context: { db } }) =>
             db.select(inviteColumns).from(invites).leftJoin(users, eq(users.id, invites.usedBy)).orderBy(desc(invites.createdAt))),
-        create: os.invites.create.use(admin).handler(async ({ context: { db, user }, input }) => {
+        create: os.invites.create.use(admin).handler(async ({ context, input }) => {
+            const { db, user } = context
             const code = randomBytes(18).toString("base64url")
             const [created] = await db.insert(invites).values({
                 codeHash: hashInviteCode(code),
                 role: input.role,
+                email: input.email,
                 createdBy: user.id,
                 expiresAt: new Date(Date.now() + input.expiresInHours * 3600_000),
             }).returning({ id: invites.id })
             await audit(db, { actorId: user.id, action: "invite.create", targetType: "invite", targetId: created!.id, meta: { role: input.role } })
+            if (input.email && await sendEmail(context, "invite", input.email, { link: clientLink(context, "/signup", { invite: code, email: input.email }) }, user.id))
+                await audit(db, { actorId: user.id, action: "invite.emailed", targetType: "invite", targetId: created!.id })
             const [invite] = await db.select(inviteColumns).from(invites).leftJoin(users, eq(users.id, invites.usedBy)).where(eq(invites.id, created!.id))
             return { invite: invite!, code }
         }),

@@ -52,7 +52,14 @@ export async function startApi() {
     await db.insert(pluginCatalog).values(catalog)
     const keys = generateSealKeyPair()
     const sent: MailMessage[] = []
-    const mailer: Mailer = { send: async message => { sent.push(message) } }
+    let mailFailing = false
+    const mailer: Mailer = {
+        send: async message => {
+            if (mailFailing)
+                throw new Error("mail provider down")
+            sent.push(message)
+        },
+    }
     const app = await buildServer({
         db, logger: false, mailer,
         env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, CLIENT_URL: "https://app.test" },
@@ -75,21 +82,29 @@ export async function startApi() {
     }
 
     /** A signed-in player with a fresh account. */
-    async function player(username = `p${Math.random().toString(36).slice(2, 10)}`) {
+    async function player(username = `p${Math.random().toString(36).slice(2, 10)}`, email = `${username.toLowerCase()}@example.test`) {
         const c = client()
-        await c.api.auth.signup({ inviteCode: await invite(), username, password: PASSWORD })
-        return c
+        await c.api.auth.signup({ inviteCode: await invite(), username, email, password: PASSWORD })
+        return { ...c, email }
     }
+
+    /** The link in the latest email sent to an address. */
+    const lastLink = (to: string) => {
+        const message = sent.findLast(m => m.to === to)
+        const url = message?.text.match(/https?:\/\/\S+/)?.[0]
+        return url ? new URL(url) : undefined
+    }
+    const lastToken = (to: string) => lastLink(to)?.searchParams.get("token") ?? undefined
 
     async function signedInAdmin() {
         await db.insert(users).values({ username: "boss", passwordHash: await hashPassword(PASSWORD), role: "admin" })
         const a = admin()
-        await a.api.auth.login({ username: "boss", password: PASSWORD })
+        await a.api.auth.login({ login: "boss", password: PASSWORD })
         return a
     }
 
     return {
-        db, keys, baseUrl, app, client, admin, invite, player, signedInAdmin,
+        db, keys, baseUrl, app, client, admin, invite, player, signedInAdmin, sent, lastLink, lastToken, failMail: (failing: boolean) => { mailFailing = failing },
         close: async () => { await app.close(); await db.$pool.end() },
         accountRows: () => db.select().from(gameAccounts),
     }

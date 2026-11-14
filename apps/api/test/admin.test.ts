@@ -17,7 +17,7 @@ describe("invites", () => {
         const { invite, code } = await admin.api.invites.create({ role: "user", expiresInHours: 24 })
         expect(allStrings(await admin.api.invites.list())).not.toContain(code)
 
-        await api.client().api.auth.signup({ inviteCode: code, username: "invited", password: PASSWORD })
+        await api.client().api.auth.signup({ inviteCode: code, username: "invited", email: "invited@example.test", password: PASSWORD })
         const listed = (await admin.api.invites.list()).find(i => i.id === invite.id)!
         expect(listed.usedBy).toBe("invited")
         expect(listed.usedAt).toBeInstanceOf(Date)
@@ -26,7 +26,7 @@ describe("invites", () => {
     test("a revoked invite no longer works", async () => {
         const { invite, code } = await admin.api.invites.create({ role: "user", expiresInHours: 24 })
         await admin.api.invites.revoke({ id: invite.id })
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "late", password: PASSWORD }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "late", email: "late@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
     })
 })
 
@@ -61,7 +61,7 @@ describe("managing users", () => {
     test("promoting a player lets them into the admin app", async () => {
         await api.player("promoted")
         await admin.api.users.setRole({ id: await userId("promoted"), role: "admin" })
-        expect(await codeOf(api.admin().api.auth.login({ username: "promoted", password: PASSWORD }))).toBe("ok")
+        expect(await codeOf(api.admin().api.auth.login({ login: "promoted", password: PASSWORD }))).toBe("ok")
     })
 
     test("force stop works on any player's account and the admin view shows no passwords", async () => {
