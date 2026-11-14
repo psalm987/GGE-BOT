@@ -11,7 +11,7 @@ const TTL_MS: Record<EmailTokenPurpose, number> = {
 }
 
 /** Stores a fresh token and returns the raw value to email. Older unused tokens of the same purpose, and expired rows, are removed. */
-export async function issueToken(db: Db, input: { userId: string; purpose: EmailTokenPurpose; email: string }) {
+export async function issueToken(db: Pick<Db, "transaction">, input: { userId: string; purpose: EmailTokenPurpose; email: string }) {
     const token = randomBytes(32).toString("base64url")
     await db.transaction(async tx => {
         await tx.delete(emailTokens).where(or(

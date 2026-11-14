@@ -21,6 +21,12 @@ export function createRateLimiter({ max, windowMs }: { max: number; windowMs: nu
         reset(key: string) {
             hits.delete(key)
         },
+        /** Takes back one counted attempt, for callers that count up front and keep only the ones that fail. */
+        refund(key: string) {
+            const entry = hits.get(key)
+            if (entry && entry.count > 0)
+                entry.count--
+        },
     }
 }
 

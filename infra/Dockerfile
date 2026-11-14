@@ -59,4 +59,6 @@ COPY infra/grafana/provisioning /etc/grafana/provisioning
 COPY infra/grafana/dashboards /var/lib/grafana/dashboards
 
 FROM postgres:17-bookworm AS backup
-COPY infra/backup/backup-loop.sh /backup/backup-loop.sh
+# rclone's image ships a static binary; it copies the dumps to Google Drive.
+COPY --from=rclone/rclone:1.75.2 /usr/local/bin/rclone /usr/local/bin/rclone
+COPY infra/backup/ /backup/

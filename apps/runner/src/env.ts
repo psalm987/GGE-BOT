@@ -1,5 +1,8 @@
 import * as z from "zod"
 
+/** Compose passes unset optional variables as empty strings. */
+const optional = z.string().transform(s => s || undefined).optional()
+
 const Env = z.object({
     DATABASE_URL: z.string().min(1),
     /** @gge/crypto private key; only the runner can open stored game passwords. */
@@ -7,16 +10,18 @@ const Env = z.object({
     MAX_ACCOUNTS: z.coerce.number().int().positive().default(50),
     /** Gap between two bot logins, so a restart doesn't log every account in at once. */
     START_GAP_MS: z.coerce.number().int().nonnegative().default(2000),
-    GAME_CLIENT_VERSION: z.coerce.number().int().optional(),
+    GAME_CLIENT_VERSION: optional.pipe(z.coerce.number<string>().int().positive().optional()),
     TIMEOUT_MULTIPLIER: z.coerce.number().positive().default(1),
-    DISCORD_TOKEN: z.string().optional(),
-    DISCORD_CLIENT_ID: z.string().optional(),
-    FONT_PATH: z.string().optional(),
+    DISCORD_TOKEN: optional,
+    DISCORD_CLIENT_ID: optional,
+    FONT_PATH: optional,
     DEBUG: z.stringbool().default(false),
     /** Download items, language and server list at boot; off only for offline development. */
     REFRESH_GAME_DATA: z.stringbool().default(true),
     /** Prometheus scrape port, internal network only. */
     METRICS_PORT: z.coerce.number().int().default(9464),
+    /** V8 old-space cap per bot worker; a leaking bot dies alone instead of taking the runner with it. */
+    WORKER_MAX_OLD_MB: z.coerce.number().int().positive().default(512),
 })
 
 export type Env = z.infer<typeof Env>

@@ -15,6 +15,7 @@ const ActionType = require("./actions.json")
 const err = require("./err.json")
 const metrics = require("./metrics.js")
 
+const timeoutMultiplier = ggeConfig.timeoutMultiplier ?? 1
 const limiter = new RateLimiter({ tokensPerInterval: 5, interval: "sec" })
 const events = new EventEmitter()
 const xtHandler = new EventEmitter()
@@ -74,9 +75,26 @@ async function sendXT(cmdName, paramObj) {
 let importantErrors = 0
 let timedOut = 0
 
-/** Tells the host why this bot is stopping: "banned", "auth_failed" or "error". */
-const reportState = (state, reason, extra) =>
+let stopReason
+/**
+ * Tells the host why this bot is stopping: "banned", "auth_failed" or "error".
+ * Only the first report is sent: whatever fails after it (the socket closing
+ * after a ban, say) is a consequence and would hide the real reason.
+ */
+const reportState = (state, reason, extra) => {
+    if (stopReason)
+        return
+    stopReason = reason
     parentPort.postMessage([ActionType.BotState, { state, reason, ...extra }])
+}
+
+function exitWorker(reason) {
+    if (!stopReason)
+        console.error("closedReason", reason)
+    reportState("error", reason)
+    events.emit("unload")
+    process.exit(0)
+}
 
 function fatal(reason) {
     console.error("closedReason", reason)
@@ -118,16 +136,13 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
             const msg = (result == undefined || result == 0) ? "TIMED_OUT" : !err[result] ? result : err[result]
             result = -1
 
-            if(msg == "TIMED_OUT") {
-                if(timedOut++ == 5) {
-                    process.exit(0)
-                }
-            }
+            if (msg == "TIMED_OUT" && timedOut++ == 5)
+                exitWorker("TOO_MANY_TIMEOUTS")
             
             console.warn(key, msg)
 
             reject(msg)
-        }, timeout * (ggeConfig.timeoutMultiplier ?? 1) * 5)
+        }, timeout * timeoutMultiplier * 5)
     }
 
     const helperFunction = (data, _result) => {
@@ -226,27 +241,33 @@ webSocket.onmessage = ({data : message}) => {
     }
 
     else if (message[0] == "<") {
-        switch (message) {
-            case "<msg t='sys'><body action='apiOK' r='0'></body></msg>":
+        switch (message.match(/action='(\w+)'/)?.[1]) {
+            case "apiOK":
                 webSocket.send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[undefined%en%0]]></pword></login></body></msg>`)
                 break
-            case "<msg t='sys'><body action='joinOK' r='1'><pid id='0'/><vars /><uLs r='1'></uLs></body></msg>":
+            case "apiKO":
+                exitWorker("CLIENT_VERSION_REJECTED")
+                break
+            case "joinOK":
                 webSocket.send('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
                 sendXT("vck", `undefined%web-html5%<RoundHouseKick>%${(Math.random() * Number.MAX_VALUE).toFixed()}`)
                 break
-            case "<msg t='sys'><body action='roundTripRes' r='1'></body></msg>":
+            case "roundTripRes":
                 break
+            default:
+                console.debug("unknown system message", message)
         }
     }
 }
-webSocket.onerror = () => {
-    events.emit("unload")
-    process.exit(0)
+webSocket.onerror = event => exitWorker(`SOCKET_ERROR:${event.error?.code ?? event.message}`)
+webSocket.onclose = event => exitWorker(`SOCKET_ERROR:${event.code}`)
+
+const loginTimedOut = () => {
+    // A ban or rejected login already reported why, and exits on its own schedule.
+    if (!stopReason)
+        exitWorker("LOGIN_TIMEOUT")
 }
-webSocket.onclose = () => {
-    events.emit("unload")
-    process.exit(0)
-}
+let loginWatchdog = setTimeout(loginTimedOut, 90 * 1000 * timeoutMultiplier)
 
 events.on("configModified", () => console.log("botConfigReloaded"))
 
@@ -345,43 +366,23 @@ async function retry() {
     if (botConfig.externalEvent) {
         sendXT("tlep", JSON.stringify({ TLT: botConfig.tempServerData.glt.TLT }))
     }
-    if (botConfig.lt) {
-        sendXT("lli", JSON.stringify({
-            "CONM": 350,
-            "RTM": 57,
-            "ID": 0,
-            "PL": 1,
-            "NOM": botConfig.name,
-            "LT": botConfig.lt,
-            "LANG": "en",
-            "DID": "0",
-            "AID": "17254677223212351",
-            "KID": "",
-            "REF": "https://empire.goodgamestudios.com",
-            "GCI": "",
-            "SID": 9,
-            "PLFID": 1
-        }))
-    }
-    else {
-        sendXT("lli", JSON.stringify({
-            CONM: 212,
-            RTM: 25,
-            ID: 0,
-            PL: 1,
-            NOM: botConfig.name,
-            PW: botConfig.pass,
-            LT: null,
-            LANG: "en",
-            DID: "0",
-            AID: "1745592024940879420",
-            KID: "",
-            REF: "https://empire.goodgamestudios.com",
-            GCI: "",
-            SID: 9,
-            PLFID: 1
-        }))
-    }
+    sendXT("lli", JSON.stringify({
+        CONM: 212,
+        RTM: 25,
+        ID: 0,
+        PL: 1,
+        NOM: botConfig.name,
+        PW: botConfig.pass,
+        LT: null,
+        LANG: "en",
+        DID: "0",
+        AID: "1745592024940879420",
+        KID: "",
+        REF: "https://empire.goodgamestudios.com",
+        GCI: "",
+        SID: 9,
+        PLFID: 1
+    }))
     events.emit("sentLLI")
 }
 xtHandler.on("vck", retry)
@@ -391,6 +392,8 @@ xtHandler.on("lli", async (obj, r) => {
     if (r == 453) {
         console.log("retryLogin", obj.CD, "retryLoginSeconds")
         setTimeout(retry, obj.CD * 1000)
+        clearTimeout(loginWatchdog)
+        loginWatchdog = setTimeout(loginTimedOut, obj.CD * 1000 + 60 * 1000 * timeoutMultiplier)
         return
     }
 
@@ -404,6 +407,7 @@ xtHandler.on("lli", async (obj, r) => {
     }
 
     if (r == 0) {
+        clearTimeout(loginWatchdog)
         let started = false
         const start = loadDelay => {
             if (started)
@@ -418,7 +422,7 @@ xtHandler.on("lli", async (obj, r) => {
             console.warn("loggedIn", "loggedInWithoutEventData")
             console.warn("featuresMightNotWork")
             start(0)
-        }, 30 * 1000 * (ggeConfig.timeoutMultiplier ?? 1))
+        }, 30 * 1000 * timeoutMultiplier)
 
         xtHandler.once("sei", () => {
             console.log("loggedIn")
@@ -429,10 +433,9 @@ xtHandler.on("lli", async (obj, r) => {
         return
     }
 
-    if (r == err["INVALID_LOGIN_TOKEN"]) {
-        loginAttempts++
-        if (loginAttempts < 30)
-            return retry()
+    if (err[r] === "INVALID_LOGIN_TOKEN" && loginAttempts++ < 3) {
+        setTimeout(retry, 5 * 1000 * timeoutMultiplier)
+        return
     }
     if (botConfig.internalWorker)
         process.exit(0)

@@ -39,14 +39,31 @@ describe("against the database", () => {
 
     test("only one runner can hold the lock, and it frees on release", async () => {
         const other = new pg.Pool({ connectionString: inject("databaseUrl") })
-        const first = await acquireRunnerLock(db.$pool)
+        const onLost = () => { throw new Error("lock reported lost") }
+        const first = await acquireRunnerLock(db.$pool, { onLost })
         expect(first).not.toBeNull()
-        expect(await acquireRunnerLock(other)).toBeNull()
+        expect(await acquireRunnerLock(other, { onLost })).toBeNull()
         await first!.release()
-        const second = await acquireRunnerLock(other)
+        const second = await acquireRunnerLock(other, { onLost })
         expect(second).not.toBeNull()
         await second!.release()
         await other.end()
+    })
+
+    test("a killed lock connection is reported lost and frees the lock for another runner", async () => {
+        const mine = new pg.Pool({ connectionString: inject("databaseUrl") })
+        const lost: unknown[] = []
+        const lock = await acquireRunnerLock(mine, { onLost: error => lost.push(error) })
+        const { rows } = await lock!.client.query<{ pid: number }>("select pg_backend_pid() as pid")
+        await db.$pool.query("select pg_terminate_backend($1)", [rows[0]!.pid])
+        for (let i = 0; i < 100 && !lost.length; i++)
+            await new Promise(r => setTimeout(r, 20))
+        expect(lost).toHaveLength(1)
+        const next = await acquireRunnerLock(db.$pool, { onLost: () => {} })
+        expect(next).not.toBeNull()
+        await next!.release()
+        await lock!.release()
+        await mine.end()
     })
 
     test("changing an account, its settings or its owner's status notifies the runner", async () => {

@@ -8,7 +8,7 @@ export type AuditEvent = {
     meta?: unknown
 }
 
-export async function audit(db: Db, event: AuditEvent) {
+export async function audit(db: Pick<Db, "insert">, event: AuditEvent) {
     await db.insert(auditLog).values({
         actorId: event.actorId,
         action: event.action,

@@ -17,7 +17,7 @@ export interface WorkerLike {
     getHeapStatistics?(): Promise<{ used_heap_size: number }>
 }
 
-export type EndReason = "stopped" | "restart" | "crash" | "error" | "banned" | "auth_failed" | "shutoff" | "deploy"
+export type EndReason = "stopped" | "restart" | "crash" | "error" | "banned" | "auth_failed" | "shutoff" | "deploy" | "runner_lost"
 
 type Terminal = { state: "banned" | "auth_failed"; reason: string; bannedUntil?: number }
 
@@ -79,6 +79,10 @@ export class Supervisor {
     readonly bots = new Map<string, Bot>()
     private queue: string[] = []
     private draining: Promise<void> | undefined
+    /** Wanted accounts left unstarted for lack of room, told so once. */
+    private readonly atCapacity = new Set<string>()
+    /** Set by stopAll: a reconcile still in flight must not start bots during shutdown. */
+    private closed = false
     private readonly endReasons = new WeakMap<WorkerLike, EndReason>()
     /** Store writes and stops started from events, so shutdown can wait for them. */
     private readonly inFlight = new Set<Promise<unknown>>()
@@ -105,18 +109,24 @@ export class Supervisor {
     }
 
     reconcile(specs: Map<string, BotSpec>) {
+        if (this.closed)
+            return
         for (const [id, bot] of this.bots)
             if (!specs.has(id)) {
                 this.bots.delete(id)
                 this.track(this.stop(bot, "stopped"))
             }
+        for (const id of this.atCapacity)
+            if (!specs.has(id))
+                this.atCapacity.delete(id)
         for (const spec of specs.values()) {
             const bot = this.bots.get(spec.accountId)
             if (!bot) {
                 if (this.bots.size >= this.deps.maxAccounts) {
-                    this.track(this.deps.store.setStatus(spec.accountId, { actualState: "error", lastError: "The runner is at capacity" }))
+                    this.tellAtCapacity(spec.accountId)
                     continue
                 }
+                this.atCapacity.delete(spec.accountId)
                 this.bots.set(spec.accountId, { spec, attempt: 0 })
                 this.enqueue(spec.accountId)
             } else if (bot.spec.restartKey !== spec.restartKey) {
@@ -132,7 +142,18 @@ export class Supervisor {
         }
     }
 
+    private tellAtCapacity(id: string) {
+        if (this.atCapacity.has(id))
+            return
+        this.atCapacity.add(id)
+        this.track(this.deps.store.setStatus(id, { actualState: "error", lastError: "The runner is at capacity" }).catch(error => {
+            this.atCapacity.delete(id)
+            throw error
+        }))
+    }
+
     async stopAll(reason: EndReason) {
+        this.closed = true
         const bots = [...this.bots.values()]
         this.bots.clear()
         this.queue = []
@@ -223,7 +244,12 @@ export class Supervisor {
         bot.fatal = undefined
         const runId = this.deps.store.openRun(id)
         worker.on("message", message => this.onMessage(bot, message))
-        worker.on("error", error => this.log.error(`worker ${spec.name} failed`, error))
+        worker.on("error", error => {
+            // Emitted before "exit", so onExit records it as the run's error.
+            if ((error as NodeJS.ErrnoException).code === "ERR_WORKER_OUT_OF_MEMORY")
+                bot.fatal = "The bot ran out of memory"
+            this.log.error(`worker ${spec.name} failed`, error)
+        })
         bot.exited = new Promise(resolve => worker.once("exit", () =>
             void this.onExit(bot, worker, runId).catch(error => this.log.error("exit handling failed", error)).finally(resolve)))
     }
@@ -316,7 +342,8 @@ export class Supervisor {
      */
     private async findEventServer(bot: Bot, workerData: Record<string, unknown>) {
         const twin = [...this.bots.values()].find(b =>
-            b !== bot && !b.spec.externalEvent && b.worker && b.spec.name.toLowerCase() === bot.spec.name.toLowerCase())
+            b !== bot && !b.spec.externalEvent && b.worker && b.spec.serverId === bot.spec.serverId
+            && b.spec.name.toLowerCase() === bot.spec.name.toLowerCase())
         let data: EventData
         if (twin?.worker) {
             data = await this.requestEventData(twin.worker, false)

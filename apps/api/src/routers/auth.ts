@@ -35,7 +35,11 @@ async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
 
 export async function sendVerification(ctx: Ctx, user: { id: string }, email: string) {
     const token = await issueToken(ctx.db, { userId: user.id, purpose: "verify_email", email })
-    await sendEmail(ctx, "verify_email", email, { link: clientLink(ctx, "/verify-email", { token }) }, user.id)
+    await mailVerification(ctx, user.id, email, token)
+}
+
+function mailVerification(ctx: Ctx, userId: string, email: string, token: string) {
+    return sendEmail(ctx, "verify_email", email, { link: clientLink(ctx, "/verify-email", { token }) }, userId)
 }
 
 /** Stores a new password (always argon2id, so it also upgrades legacy hashes). */
@@ -51,17 +55,29 @@ export async function currentUser(ctx: Ctx, audience: Audience) {
 }
 
 export async function login(ctx: Ctx, audience: Audience, input: { login: string; password: string }) {
+    const tooMany = () => new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+    if (!ctx.limits.ip.hit(ctx.req.ip))
+        throw tooMany()
     const name = input.login.toLowerCase()
-    if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.user.hit(name))
-        throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+    const [user] = await ctx.db.select().from(users).where(name.includes("@")
+        ? eq(users.emailCanonical, sql`canonical_email(${name})`)
+        : eq(sql`lower(${users.username})`, name))
 
-    const column = name.includes("@") ? users.email : users.username
-    const [user] = await ctx.db.select().from(users).where(eq(sql`lower(${column})`, name))
+    // Keyed by the account, so every spelling of its email shares one allowance. Attempts are
+    // counted up front, so concurrent guesses can't all slip past the check, and handed back once
+    // the password proves right. The strict cap is per IP too, so a stranger's guesses can't lock
+    // the owner out; the looser total still caps guesses spread over many IPs.
+    const target = user?.id ?? name
+    const strictKey = `${target}|${ctx.req.ip}`
+    if (!ctx.limits.user.hit(strictKey) || !ctx.limits.userTotal.hit(target))
+        throw tooMany()
     if (!user || !await verifyPassword(user, input.password)) {
         if (!user)
             await verifyNobody(input.password)
         throw new ORPCError("UNAUTHORIZED", { message: WRONG_CREDENTIALS })
     }
+    ctx.limits.user.reset(strictKey)
+    ctx.limits.userTotal.refund(target)
     if (user.status !== "active")
         throw new ORPCError("FORBIDDEN", { message: "This account is disabled" })
     if (audience === "admin" && user.role !== "admin")
@@ -70,7 +86,6 @@ export async function login(ctx: Ctx, audience: Audience, input: { login: string
     if (user.passwordAlgo === "pbkdf2-legacy")
         await storePassword(ctx.db, user.id, input.password)
 
-    ctx.limits.user.reset(name)
     await audit(ctx.db, { actorId: user.id, action: `auth.login.${audience}` })
     return startSession(ctx, audience, publicUser(user))
 }
@@ -92,18 +107,24 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
         throw new ORPCError("BAD_REQUEST", { message: DISPOSABLE_MESSAGE })
 
     const passwordHash = await hashPassword(input.password)
-    const user = await ctx.db.insert(users)
-        .values({ username: input.username, email: input.email, passwordHash })
-        .returning()
-        .then(([created]) => created!, error => {
-            if (isUniqueViolation(error, "users_username_lower"))
-                throw new ORPCError("CONFLICT", { message: "That username is taken" })
-            if (isUniqueViolation(error, "users_email_canonical"))
-                throw new ORPCError("CONFLICT", { message: "That email is already in use" })
-            throw error
-        })
-    await audit(ctx.db, { actorId: user.id, action: "auth.signup", meta: { ip: ctx.req.ip, emailCanonical: user.emailCanonical } })
-    await sendVerification(ctx, user, input.email)
+    // One transaction, so a failure after the insert can't leave an account nobody can sign in
+    // to whose username then reads as taken.
+    const { user, token } = await ctx.db.transaction(async tx => {
+        const user = await tx.insert(users)
+            .values({ username: input.username, email: input.email, passwordHash })
+            .returning()
+            .then(([created]) => created!, error => {
+                if (isUniqueViolation(error, "users_username_lower"))
+                    throw new ORPCError("CONFLICT", { message: "That username is taken" })
+                if (isUniqueViolation(error, "users_email_canonical"))
+                    throw new ORPCError("CONFLICT", { message: "That email is already in use" })
+                throw error
+            })
+        await audit(tx, { actorId: user.id, action: "auth.signup", meta: { ip: ctx.req.ip, emailCanonical: user.emailCanonical } })
+        const token = await issueToken(tx, { userId: user.id, purpose: "verify_email", email: input.email })
+        return { user, token }
+    })
+    await mailVerification(ctx, user.id, input.email, token)
     return startSession(ctx, "client", publicUser(user))
 }
 

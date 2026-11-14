@@ -36,6 +36,11 @@ switch (mode) {
     case "banned":
         later(10, () => post([20, { state: "banned", reason: "IS_BANNED", bannedUntil: Date.parse("2030-01-01T00:00:00Z") }]))
         break
+    case "oom": {
+        const hoard = []
+        later(10, () => { for (;;) hoard.push(new Array(1e5).fill(Math.random())) })
+        break
+    }
     case "shutoff":
         later(10, () => post([14]))
         later(40, () => post([19]))

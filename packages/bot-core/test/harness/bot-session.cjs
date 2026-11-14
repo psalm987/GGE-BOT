@@ -36,6 +36,8 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
         exited: false,
         waits: new Map(),
         frame: data => port1.postMessage({ type: "frame", data }),
+        serverClose: code => port1.postMessage({ type: "serverClose", code }),
+        socketError: (message, code) => port1.postMessage({ type: "socketError", message, code }),
         xt: (cmd, result, obj = {}) => session.frame(`%xt%${cmd}%1%${result}%${JSON.stringify(obj)}%`),
         sentXT: cmd => session.sent.filter(m => m.startsWith("%xt%") && m.split("%")[3] === cmd),
         until: async (predicate, ms = 2000) => {

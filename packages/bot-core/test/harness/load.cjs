@@ -46,8 +46,9 @@ function loadModule(relPath, { bot = fakeBot(), items = {}, extra = {}, mainThre
         const item = request.match(/\/items\/([^/]+)\.json$/)
         if (item)
             return items[item[1]] ?? []
+        // The module under test is required by absolute path and must never be the stand-in.
         for (const [pattern, value] of Object.entries(extra))
-            if (request.endsWith(pattern))
+            if (request.endsWith(pattern) && !path.isAbsolute(request))
                 return value
         return originalLoad.call(this, request, parent, isMain)
     }

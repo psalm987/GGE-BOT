@@ -51,7 +51,14 @@ GAME_CLIENT_VERSION=
 DISCORD_TOKEN=
 DISCORD_CLIENT_ID=
 BACKUP_KEEP_DAYS=14
+GDRIVE_CLIENT_ID=
+GDRIVE_CLIENT_SECRET=
+GDRIVE_TOKEN=
+BACKUP_PASSPHRASE=
+BACKUP_KEEP_MONTHS=12
 ```
+
+The `GDRIVE_*` and `BACKUP_PASSPHRASE` lines turn on encrypted copies to Google Drive; leave them empty to start, and follow [backup-restore.md](backup-restore.md#off-site-copies-on-google-drive) to fill them.
 
 Generate the two passwords with `openssl rand -hex 32`. Every variable is explained in [env.md](env.md); `ACME_EMAIL` is not needed here because Dokploy handles certificates.
 
@@ -97,7 +104,7 @@ Sign in at `https://admin.<domain>`. Players sign up themselves at `https://app.
 
 - **Upgrades:** push to the branch and press Deploy (or turn on Auto Deploy). `migrate` runs first; the runner gets 60 seconds to stop its bots, and the new one starts them again spaced `START_GAP_MS` apart. Take a dump first when a release adds migrations ([operations.md](operations.md)).
 - **One runner only.** Don't add replicas to `runner`; a second copy exits on purpose.
-- **Backups:** the `backup` service writes nightly dumps to the `backups` volume. Copy them off the server, for example with a Dokploy Volume Backup of that volume to S3. Restore steps are in [backup-restore.md](backup-restore.md); run them from the `backup` container's terminal.
+- **Backups:** the `backup` service writes nightly dumps to the `backups` volume and, once the `GDRIVE_*` variables are set, copies each one, encrypted, to Google Drive ([backup-restore.md](backup-restore.md#off-site-copies-on-google-drive)). Restore steps are in [backup-restore.md](backup-restore.md); run them from the `backup` container's terminal.
 - **Moving from the legacy bot:** [migration-from-legacy.md](migration-from-legacy.md). Copy `user.db` into the `api` container (or mount it) and run the importer from its terminal with `node tools/import-sqlite/cli.ts --db /path/to/user.db`.
 
 ## When something's wrong

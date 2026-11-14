@@ -42,7 +42,7 @@ export async function addEmail(ctx: Ctx, user: SessionUser, input: { email: stri
 }
 
 export async function changePassword(ctx: Ctx, user: SessionUser, input: { current: string; next: string }) {
-    const bucket = user.username.toLowerCase()
+    const bucket = `pwchange:${user.id}`
     if (!ctx.limits.user.hit(bucket))
         throw tooMany()
     const [row] = await ctx.db.select().from(users).where(eq(users.id, user.id))

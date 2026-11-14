@@ -134,6 +134,19 @@ services:
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      # Off-site copies to Google Drive (docs/deployment/backup-restore.md).
+      # Empty GDRIVE_TOKEN keeps dumps on this host only.
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-12}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:-}
+      RCLONE_CONFIG_GDRIVE_TYPE: drive
+      RCLONE_CONFIG_GDRIVE_SCOPE: drive.file
+      RCLONE_CONFIG_GDRIVE_CLIENT_ID: ${GDRIVE_CLIENT_ID:-}
+      RCLONE_CONFIG_GDRIVE_CLIENT_SECRET: ${GDRIVE_CLIENT_SECRET:-}
+      RCLONE_CONFIG_GDRIVE_TOKEN: ${GDRIVE_TOKEN:-}
+      RCLONE_CONFIG_OFFSITE_TYPE: crypt
+      RCLONE_CONFIG_OFFSITE_REMOTE: gdrive:gge-backups
+      RCLONE_CONFIG_OFFSITE_FILENAME_ENCRYPTION: "off"
+      RCLONE_CONFIG_OFFSITE_DIRECTORY_NAME_ENCRYPTION: "false"
     entrypoint: ["/bin/bash", "/backup/backup-loop.sh"]
     volumes: [backups:/backups]
     depends_on:

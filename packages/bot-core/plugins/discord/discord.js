@@ -61,6 +61,8 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 })
 async function refreshCommands() {
+    if (!botConfig.discordData?.discordGuildId)
+        return
     await clientPromise
     const rest = new REST().setToken(ggeConfig.discordToken)
     if (commands.size == 0)

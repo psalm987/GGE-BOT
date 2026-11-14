@@ -8,7 +8,8 @@ export * from "./schema.ts"
 export { schema }
 
 export function createDb(connectionString: string) {
-    const pool = new pg.Pool({ connectionString })
+    // TCP keepalive lets a long-lived connection (the runner's lock) notice a dead peer.
+    const pool = new pg.Pool({ connectionString, keepAlive: true })
     return Object.assign(drizzle(pool, { schema }), { $pool: pool })
 }
 

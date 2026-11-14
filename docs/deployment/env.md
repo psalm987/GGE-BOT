@@ -20,7 +20,12 @@
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
 | `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |
 | `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app at build time. Empty hides the widget, so leave both unset or set both. |
-| `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep on the host. Default 14. |
+| `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep, on the host and in Google Drive's `daily/`. Default 14. |
+| `GDRIVE_CLIENT_ID` | backup | no | Google OAuth client ID (Desktop app) for off-site copies ([backup-restore.md](backup-restore.md#off-site-copies-on-google-drive)). |
+| `GDRIVE_CLIENT_SECRET` | backup | no | Secret of that OAuth client. |
+| `GDRIVE_TOKEN` | backup | no | The `token` JSON from `rclone config show gdrive`, in single quotes. Empty keeps dumps on the host only. |
+| `BACKUP_PASSPHRASE` | backup | with `GDRIVE_TOKEN` | Encrypts the copies on Drive. Required when `GDRIVE_TOKEN` is set; the backup service refuses to start without it. Keep it in your password manager: without it the Drive copies can't be read. |
+| `BACKUP_KEEP_MONTHS` | backup | no | Months to keep the first dump of each month in Drive's `monthly/`. Default 12. |
 | `SENTRY_DSN` | api, runner | no | DSN of the `gge-bot-server` Sentry project. Empty turns server-side Sentry off. |
 | `VITE_SENTRY_DSN` | web (build) | no | DSN of the `gge-bot-frontend` Sentry project, baked into both apps at build time. Empty turns browser Sentry off. |
 | `SENTRY_AUTH_TOKEN` | web (build secret) | no | Sentry organization token. The web build uploads source maps with it so production stack traces stay readable, then deletes them. Empty skips the upload and builds no source maps. |

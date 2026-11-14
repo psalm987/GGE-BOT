@@ -20,28 +20,12 @@ const VERSION = process.env.GGE_VERSION ?? "dev"
 
 const env = parseEnv()
 const db = createDb(env.DATABASE_URL)
-const lock = await acquireRunnerLock(db.$pool)
-if (!lock) {
-    console.error("Another runner holds the lock; exiting so no account logs in twice.")
-    await db.$pool.end()
-    process.exit(1)
-}
-
 const store = createStore(db)
-await store.recoverFromLastRun()
-
-if (env.REFRESH_GAME_DATA)
-    await refreshGameData(paths.data)
-for (const server of await readServers(paths.data))
-    await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
-
 const ggeConfig = workerConfig(env)
-const registry = readPluginRegistry(ggeConfig)
-await publishCatalog(db, registry.catalog)
 
 let applyMetrics: (batch: MetricBatch) => void = () => {}
 const supervisor = new Supervisor({
-    spawn: workerData => new Worker(ggeBotPath, { workerData }),
+    spawn: workerData => new Worker(ggeBotPath, { workerData, resourceLimits: { maxOldGenerationSizeMb: env.WORKER_MAX_OLD_MB } }),
     onMetrics: (batch: MetricBatch) => applyMetrics(batch),
     store,
     openPassword: sealed => openSealed(env.SEAL_PRIVATE_KEY, sealed),
@@ -50,6 +34,33 @@ const supervisor = new Supervisor({
     startGapMs: env.START_GAP_MS,
     maxAccounts: env.MAX_ACCOUNTS,
 })
+
+const lock = await acquireRunnerLock(db.$pool, {
+    onLost: async error => {
+        // Postgres has already freed the lock and another runner may log these accounts in, so stop ours first.
+        console.error("Lost the runner lock's connection; stopping every bot and exiting.", error)
+        await Promise.race([
+            supervisor.stopAll("runner_lost").then(() => store.flushLogs()).catch(e => console.error("stopping the bots failed", e)),
+            new Promise(resolve => setTimeout(resolve, 20_000)),
+        ])
+        process.exit(1)
+    },
+})
+if (!lock) {
+    console.error("Another runner holds the lock; exiting so no account logs in twice.")
+    await db.$pool.end()
+    process.exit(1)
+}
+
+await store.recoverFromLastRun()
+
+if (env.REFRESH_GAME_DATA)
+    await refreshGameData(paths.data)
+for (const server of await readServers(paths.data))
+    await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
+
+const registry = readPluginRegistry(ggeConfig)
+await publishCatalog(db, registry.catalog)
 
 const metrics = createMetrics({ db, heapSizes: () => supervisor.heapSizes() })
 applyMetrics = metrics.apply

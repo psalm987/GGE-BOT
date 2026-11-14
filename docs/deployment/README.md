@@ -1,6 +1,6 @@
 # Deploying GGE Command
 
-One Linux host running Docker Compose: Caddy (HTTPS), the API, the runner, Postgres, Prometheus, Grafana and a nightly backup job.
+One Linux host running Docker Compose: Caddy (HTTPS), the API, the runner, Postgres, Prometheus, Grafana and a nightly backup job (optionally copied, encrypted, to Google Drive).
 
 Running [Dokploy](https://dokploy.com) on the server? Follow [dokploy.md](dokploy.md) instead; it uses `infra/docker-compose.dokploy.yml`.
 

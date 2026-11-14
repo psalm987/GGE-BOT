@@ -1,5 +1,5 @@
 import { pbkdf2Sync, randomBytes } from "node:crypto"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { auditLog, users } from "@gge/db"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
@@ -95,7 +95,7 @@ describe("login and sessions", () => {
         expect(await codeOf(api.client().api.auth.login({ login: "hank", password: PASSWORD }))).toBe("FORBIDDEN")
     })
 
-    test("repeated failures for one username are throttled", async () => {
+    test("repeated failures for one username from one IP are throttled", async () => {
         await api.player("ivan")
         const attacker = api.client()
         const codes = []
@@ -103,6 +103,49 @@ describe("login and sessions", () => {
             codes.push(await codeOf(attacker.api.auth.login({ login: "ivan", password: `guess ${i} wrong` })))
         expect(codes.slice(0, 10).every(c => c === "UNAUTHORIZED")).toBe(true)
         expect(codes[10]).toBe("TOO_MANY_REQUESTS")
+    })
+
+    test("an attacker running out of attempts doesn't lock the owner out from their own IP", async () => {
+        await api.player("ines")
+        const attacker = api.client(undefined, "198.18.1.1")
+        for (let i = 0; i < 10; i++)
+            await attacker.api.auth.login({ login: "ines", password: `guess ${i} wrong` }).catch(() => {})
+        expect(await codeOf(attacker.api.auth.login({ login: "ines", password: PASSWORD }))).toBe("TOO_MANY_REQUESTS")
+        expect(await codeOf(api.client(undefined, "198.18.1.2").api.auth.login({ login: "ines", password: PASSWORD }))).toBe("ok")
+    })
+
+    test("successful sign-ins don't use up attempts", async () => {
+        await api.player("jules")
+        const owner = api.client(undefined, "198.18.2.1")
+        for (let i = 0; i < 12; i++)
+            expect(await codeOf(owner.api.auth.login({ login: "jules", password: PASSWORD }))).toBe("ok")
+    })
+
+    test("failures spread over many IPs still trip the per-username cap", async () => {
+        await api.player("kurt")
+        await failFromManyIps("kurt")
+        expect(await codeOf(api.client(undefined, "198.18.3.99").api.auth.login({ login: "kurt", password: PASSWORD }))).toBe("TOO_MANY_REQUESTS")
+    })
+
+    test("signing in by email matches the address the way signup's uniqueness does", async () => {
+        await api.player("lena", "lena.marsh@gmail.com")
+        for (const login of ["lena.marsh@gmail.com", "Lena.Marsh@Gmail.com", "lenamarsh+bots@googlemail.com"])
+            expect(await codeOf(api.client().api.auth.login({ login, password: PASSWORD })), login).toBe("ok")
+        expect(await codeOf(api.client().api.auth.login({ login: "lena.marsh@yahoo.com", password: PASSWORD }))).toBe("UNAUTHORIZED")
+    })
+
+    test("spelling the email differently doesn't buy more attempts", async () => {
+        await api.player("nora", "nora.vale@gmail.com")
+        const attacker = api.client(undefined, "198.18.4.1")
+        for (let i = 0; i < 10; i++)
+            await attacker.api.auth.login({ login: `nora.vale+${i}@gmail.com`, password: `guess ${i} wrong` }).catch(() => {})
+        expect(await codeOf(attacker.api.auth.login({ login: "noravale@googlemail.com", password: PASSWORD }))).toBe("TOO_MANY_REQUESTS")
+    })
+
+    test("running out of sign-in attempts doesn't block the owner's password change", async () => {
+        const owner = await api.player("milo")
+        await failFromManyIps("milo")
+        expect(await codeOf(owner.api.account.changePassword({ current: PASSWORD, next: "a brand new passphrase" }))).toBe("ok")
     })
 
     test("an imported PBKDF2 password logs in once and is upgraded to argon2id", async () => {
@@ -121,6 +164,15 @@ describe("login and sessions", () => {
         expect(await codeOf(api.client().api.auth.login({ login: "legacy", password: "old secret pw" }))).toBe("ok")
     })
 })
+
+/** 50 failed sign-ins for one username: 10 each from 5 IPs, so no single IP hits its own cap first. */
+async function failFromManyIps(username: string) {
+    await Promise.all(Array.from({ length: 5 }, async (_, n) => {
+        const attacker = api.client(undefined, `198.18.${100 + n}.1`)
+        for (let i = 0; i < 10; i++)
+            expect(await codeOf(attacker.api.auth.login({ login: username, password: `guess ${i} wrong` }))).toBe("UNAUTHORIZED")
+    }))
+}
 
 describe("boundaries between the apps", () => {
     test("a player can't sign in to the admin app", async () => {
@@ -174,5 +226,24 @@ describe("signup forensics", () => {
         await api.client(undefined, "198.51.100.23").api.auth.signup({ username: "traced", email: "T.raced+1@googlemail.com", password: PASSWORD })
         const entries = await api.db.select().from(auditLog).where(eq(auditLog.action, "auth.signup"))
         expect(entries.map(e => e.meta)).toContainEqual({ ip: "198.51.100.23", emailCanonical: "traced@gmail.com" })
+    })
+})
+
+describe("signup atomicity", () => {
+    test("a failure after the account row is written leaves no account behind, so a retry succeeds", async () => {
+        await api.db.execute(sql.raw(`
+            create function test_refuse_token() returns trigger language plpgsql as $$ begin raise exception 'token store down'; end $$;
+            create trigger test_refuse_token before insert on email_tokens for each row when (new.email = 'orphan@example.test') execute function test_refuse_token();
+        `))
+        const signup = () => api.client().api.auth.signup({ username: "orphan", email: "orphan@example.test", password: PASSWORD })
+        try {
+            expect(await codeOf(signup())).toBe("INTERNAL_SERVER_ERROR")
+        } finally {
+            await api.db.execute(sql.raw("drop trigger test_refuse_token on email_tokens; drop function test_refuse_token()"))
+        }
+        expect(await api.db.select().from(users).where(eq(users.username, "orphan"))).toEqual([])
+        expect(await api.db.select().from(auditLog).where(eq(auditLog.action, "auth.signup"))).not.toContainEqual(expect.objectContaining({ meta: expect.objectContaining({ emailCanonical: "orphan@example.test" }) }))
+        expect(await codeOf(signup())).toBe("ok")
+        expect(api.sent.filter(m => m.to === "orphan@example.test")).toHaveLength(1)
     })
 })

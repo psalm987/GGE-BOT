@@ -10,8 +10,12 @@ export type Ctx = {
     env: Env
     req: FastifyRequest
     reply: FastifyReply
-    /** Login and signup attempts: generous per IP (shared NATs), strict per username. `email` caps mail sent to one address; `signup` caps new accounts per IP. */
-    limits: { ip: RateLimiter; user: RateLimiter; email: RateLimiter; signup: RateLimiter }
+    /**
+     * `ip` caps every login and signup attempt per IP, generously (shared NATs). Failed password
+     * checks are capped strictly per username and IP in `user`, and per username across all IPs in
+     * `userTotal`. `email` caps mail sent to one address; `signup` caps new accounts per IP.
+     */
+    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter }
     mailer: Mailer
     /** Emits "event" with each RawBotEvent the runner announces. */
     botEvents: EventEmitter

@@ -29,6 +29,7 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
     const limits = {
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
         user: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
+        userTotal: createRateLimiter({ max: 50, windowMs: 15 * 60_000 }),
         email: createRateLimiter({ max: 3, windowMs: 15 * 60_000 }),
         signup: createRateLimiter({ max: 5, windowMs: 60 * 60_000 }),
     }

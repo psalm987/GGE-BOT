@@ -27,7 +27,10 @@ let metricBatches: unknown[]
 
 beforeAll(async () => {
     db = createDb(inject("databaseUrl"))
-    await db.insert(servers).values({ id: 26, label: "India 1", wsHost: "in1.test", zone: "EmpireEx_26" }).onConflictDoNothing()
+    await db.insert(servers).values([
+        { id: 26, label: "India 1", wsHost: "in1.test", zone: "EmpireEx_26" },
+        { id: 27, label: "India 2", wsHost: "in2.test", zone: "EmpireEx_27" },
+    ]).onConflictDoNothing()
 })
 afterAll(() => db.$pool.end())
 
@@ -68,9 +71,9 @@ afterEach(async () => {
     await db.delete(users).where(eq(users.id, ownerId))
 })
 
-async function addAccount(name: string, { running = true, externalEvent = false } = {}) {
+async function addAccount(name: string, { running = true, externalEvent = false, serverId = 26 } = {}) {
     const [account] = await db.insert(gameAccounts).values({
-        ownerId, name, serverId: 26, externalEvent,
+        ownerId, name, serverId, externalEvent,
         passwordSealed: sealFor(keys.publicKey, `pw-${name}`),
         desiredState: running ? "running" : "stopped",
     }).returning()
@@ -154,6 +157,38 @@ describe("starting and stopping", () => {
         await until(async () => (await status(first))?.actualState === "running")
         expect(await status(second)).toMatchObject({ actualState: "error", lastError: "The runner is at capacity" })
     })
+
+    test("the capacity status is written once, and the account starts when room frees up", async () => {
+        const capacityWrites: string[] = []
+        const setStatus = store.setStatus
+        supervisor = makeSupervisor({
+            maxAccounts: 1,
+            store: { ...store, setStatus: (id, patch) => {
+                if (patch.lastError === "The runner is at capacity")
+                    capacityWrites.push(id)
+                return setStatus(id, patch)
+            } },
+        })
+        const first = await addAccount("ok-room")
+        const second = await addAccount("ok-waiting")
+        await reconcile()
+        await until(async () => (await status(first))?.actualState === "running")
+        await reconcile()
+        await reconcile()
+        expect(capacityWrites).toEqual([second])
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, first))
+        await reconcile()
+        await until(async () => (await status(second))?.actualState === "running")
+    })
+
+    test("after stopAll a late reconcile starts nothing", async () => {
+        await addAccount("ok-late")
+        await supervisor.stopAll("runner_lost")
+        await reconcile()
+        await new Promise(r => setTimeout(r, 200))
+        expect(spawned).toHaveLength(0)
+    })
 })
 
 describe("settings changes", () => {
@@ -190,6 +225,16 @@ describe("when a bot ends on its own", () => {
         await reconcile()
         await until(async () => (await runs(id)).filter(r => r.endReason === "crash").length >= 2)
         expect((await status(id))?.lastError).toMatch(/stopped unexpectedly; retrying in \d+s/)
+    })
+
+    test("a worker that runs out of memory is recorded as such and retried", async () => {
+        supervisor = makeSupervisor({
+            spawn: workerData => new Worker(fakeBot, { workerData, resourceLimits: { maxOldGenerationSizeMb: 16 } }),
+        })
+        const id = await addAccount("oom-x")
+        await reconcile()
+        await until(async () => (await runs(id)).some(r => r.endReason === "error" && r.error === "The bot ran out of memory"), 10_000)
+        await until(async () => (await status(id))?.lastError?.startsWith("The bot ran out of memory; retrying in"))
     })
 
     test("a fatal error is recorded and retried", async () => {
@@ -247,5 +292,17 @@ describe("external events", () => {
         await reconcile()
         await until(() => spawned.length === 2)
         expect(spawned[1]).toMatchObject({ gameURL: "event-host.test", externalEvent: true })
+    })
+
+    test("a same-name account on another server is not taken for the twin", async () => {
+        await addAccount("event-elsewhere", { serverId: 27 })
+        await reconcile()
+        await until(() => supervisor.running === 1)
+
+        await addAccount("event-elsewhere", { externalEvent: true })
+        await reconcile()
+        await until(() => spawned.length === 3)
+        expect(spawned[1]).toMatchObject({ gameURL: "in1.test", externalEvent: false, plugins: {} })
+        expect(spawned[2]).toMatchObject({ gameURL: "event-host.test", externalEvent: true })
     })
 })
