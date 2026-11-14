@@ -11,7 +11,8 @@
     "test:formal": "turbo run test:formal",
     "lint": "eslint .",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:formal",
-    "outdated": "npm-check-updates"
+    "outdated": "npm-check-updates",
+    "dev": "pnpm --filter @gge/dev dev"
   },
   "dependencies": {
     "body-parser": "^2.4.0",

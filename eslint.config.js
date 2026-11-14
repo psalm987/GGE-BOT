@@ -11,7 +11,9 @@ module.exports = [
             ".verify-evidence/**",
             ".claude/**",
             ".context-mem/**",
-            "verification/**/out/**",
+            "**/verification/**/out/**",
+            "**/dist/**",
+            "**/.turbo/**",
         ],
     },
     {

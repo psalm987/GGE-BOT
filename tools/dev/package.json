@@ -1,0 +1,17 @@
+{
+  "name": "@gge/dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gge/api": "workspace:*",
+    "@gge/crypto": "workspace:*",
+    "@gge/db": "workspace:*",
+    "@gge/runner": "workspace:*",
+    "@opentelemetry/api": "1.10.0",
+    "drizzle-orm": "^0.45.4"
+  }
+}

@@ -1,3 +1,4 @@
+import type {} from "@fastify/cookie"
 import { createHash } from "node:crypto"
 import { ORPCError } from "@orpc/server"
 import { and, eq, gt, isNull, sql } from "drizzle-orm"

@@ -21,3 +21,4 @@ screenshots/
 .verify-evidence/
 data/
 .turbo/
+dist/

@@ -1,0 +1,72 @@
+@import "@fontsource/cinzel/600.css";
+@import "@fontsource/cinzel/700.css";
+@import "@fontsource/alegreya-sans/400.css";
+@import "@fontsource/alegreya-sans/500.css";
+@import "@fontsource/alegreya-sans/700.css";
+
+:root {
+    --gge-ink: #15110E;
+    --gge-gold: #E0A526;
+    --gge-crimson: #D7263D;
+    --gge-parchment: #F3E7C9;
+    --gge-rule: #4A3B26;
+    /* Faint noise so large grounds read as cloth, not flat black. */
+    --gge-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.6 0 0 0 .045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+html, body, #root { min-height: 100%; }
+
+body {
+    margin: 0;
+    background: var(--gge-ink) var(--gge-grain);
+    color: var(--gge-parchment);
+    font-variant-numeric: tabular-nums;
+}
+
+.gge-display {
+    font-family: "Cinzel", Georgia, serif;
+    letter-spacing: 0.04em;
+}
+
+/* Gilded edge with a soft inner bevel; ornament on chrome, never on data. */
+.gge-gilded {
+    border: 1px solid var(--gge-rule) !important;
+    box-shadow: inset 0 1px 0 rgba(243, 231, 201, 0.04), inset 0 0 0 1px rgba(224, 165, 38, 0.06), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.gge-rule {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, transparent, var(--gge-gold) 20%, var(--gge-gold) 80%, transparent);
+    opacity: 0.45;
+    margin: 0;
+}
+
+/* Text fields get antd's own focus ring; everything else gets a gold one. */
+:focus-visible:not(input):not(textarea) {
+    outline: 2px solid var(--gge-gold) !important;
+    outline-offset: 2px;
+}
+
+.gge-press:active { transform: scale(0.98); }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Heraldic field for the sign-in side panel: quartered lozenges in crimson and ink. */
+.gge-heraldry {
+    background-color: #2A0D12;
+    background-image:
+        linear-gradient(135deg, rgba(215, 38, 61, 0.35) 25%, transparent 25%),
+        linear-gradient(225deg, rgba(215, 38, 61, 0.35) 25%, transparent 25%),
+        linear-gradient(45deg, rgba(215, 38, 61, 0.35) 25%, transparent 25%),
+        linear-gradient(315deg, rgba(215, 38, 61, 0.35) 25%, rgba(21, 17, 14, 0.6) 25%);
+    background-size: 56px 56px;
+    background-position: 28px 0, 28px 0, 0 0, 0 0;
+}
