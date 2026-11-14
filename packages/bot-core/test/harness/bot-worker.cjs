@@ -13,6 +13,7 @@ class FakeWebSocket {
     }
     send(msg) { control.postMessage({ type: "sent", msg }) }
     pause() { control.postMessage({ type: "paused" }) }
+    close() { control.postMessage({ type: "closed" }); this.onclose?.() }
 }
 
 const originalLoad = Module._load

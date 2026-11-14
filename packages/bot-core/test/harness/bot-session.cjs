@@ -8,12 +8,12 @@ const SERVER = {
 }
 
 /** Runs the real ggeBot.js in a worker against a scripted fake game socket. */
-function startBot({ timeoutMultiplier = 0.01 } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
             control: port2,
-            ggeConfig: { timeoutMultiplier },
+            ggeConfig: { timeoutMultiplier, exitOnFatal },
             name: "tester",
             pass: "pw",
             gameURL: "fake.invalid",
@@ -30,6 +30,8 @@ function startBot({ timeoutMultiplier = 0.01 } = {}) {
         toParent: [],
         loads: 0,
         paused: false,
+        closed: false,
+        botStates: () => session.toParent.filter(m => m[0] === 20).map(m => m[1]),
         exited: false,
         waits: new Map(),
         frame: data => port1.postMessage({ type: "frame", data }),
@@ -65,6 +67,7 @@ function startBot({ timeoutMultiplier = 0.01 } = {}) {
         if (m.type === "sent") session.sent.push(m.msg)
         if (m.type === "load") session.loads++
         if (m.type === "paused") session.paused = true
+        if (m.type === "closed") session.closed = true
         if (m.type === "listening") session.waits.get(m.id)?.listening({ done: session.waits.get(m.id).done })
         if (m.type === "waited") session.waits.get(m.id)?.resolve(m)
     })

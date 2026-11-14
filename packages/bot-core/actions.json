@@ -10,13 +10,14 @@
     "Unknown": 8,
     "GetThreadID": 9,
     "GetMap": 10,
-    "AddFortress" : 11,
-    "AddAquaIsland" : 12,
-    "AddAquaTower" : 13,
-    "Started" : 14,
-    "CAPTCHA" : 15,
-    "GetExternalEvent" : 16,
-    "SetPluginOptions" : 17,
-    "GetChannels" : 18,
-    "KillBot" : 19
+    "AddFortress": 11,
+    "AddAquaIsland": 12,
+    "AddAquaTower": 13,
+    "Started": 14,
+    "CAPTCHA": 15,
+    "GetExternalEvent": 16,
+    "SetPluginOptions": 17,
+    "GetChannels": 18,
+    "KillBot": 19,
+    "BotState": 20
 }

@@ -14,7 +14,7 @@ module.exports = {
     lang: path.join(data, "lang"),
     assetCache: path.join(data, "assets"),
     extraPlugins,
-    locales: fromEnv("GGE_LOCALES_DIR", path.join(root, "website", "public", "locales")),
+    locales: fromEnv("GGE_LOCALES_DIR", path.join(__dirname, "locales")),
     loadItem: name => require(path.join(data, "items", `${name}.json`)),
     extraPlugin: file => path.join(extraPlugins, file),
 }

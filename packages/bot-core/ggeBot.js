@@ -71,6 +71,17 @@ async function sendXT(cmdName, paramObj) {
 
 let importantErrors = 0
 let timedOut = 0
+
+/** Tells the host why this bot is stopping: "banned", "auth_failed" or "error". */
+const reportState = (state, reason, extra) =>
+    parentPort.postMessage([ActionType.BotState, { state, reason, ...extra }])
+
+function fatal(reason) {
+    console.error("closedReason", reason)
+    reportState("error", reason)
+    // The runner restarts with backoff; the legacy host would restart every few seconds.
+    return ggeConfig.exitOnFatal ? webSocket.close() : webSocket.pause()
+}
 /**
  * 
  * @param {string} key 
@@ -89,18 +100,12 @@ const waitForResult = (key, timeout, func) => new Promise((resolve, reject) => {
     const checkForIssues = () => {
         if (["LORD_IS_USED", "ATTACK_TOO_MANY_UNITS", "ATTACK_TOO_MANY_UNITS", "MISSING_UNITS"].includes(err[result]))
             importantErrors++
-        if (importantErrors == 8) {
-            console.error("closedReason", "tooManyImportantErrors")
-            return webSocket.pause()
-        }
-        if (err[result] == "MOVEMENT_HAS_NO_UNITS") {
-            console.error("closedReason", "MOVEMENT_HAS_NO_UNITS")
-            return webSocket.pause()
-        }
-        if (err[result] == "CANT_START_NEW_ARMIES") {
-            console.error("closedReason", "CANT_START_NEW_ARMIES")
-            return webSocket.pause()
-        }
+        if (importantErrors == 8)
+            return fatal("tooManyImportantErrors")
+        if (err[result] == "MOVEMENT_HAS_NO_UNITS")
+            return fatal("MOVEMENT_HAS_NO_UNITS")
+        if (err[result] == "CANT_START_NEW_ARMIES")
+            return fatal("CANT_START_NEW_ARMIES")
     }
 
     if (timeout > 0) {
@@ -384,6 +389,7 @@ xtHandler.on("lli", async (obj, r) => {
 
     if (err[r] == "IS_BANNED") {
         console.error("IS_BANNED", (obj.RS / 60 / 60).toFixed(2), "retryLoginHours")
+        reportState("banned", "IS_BANNED", { bannedUntil: Date.now() + Number(obj.RS) * 1000 })
         status.hasError = true
         parentPort.postMessage([ActionType.StatusUser, status])
         setTimeout(() => parentPort.postMessage([ActionType.KillBot]), 1000 * 8)
@@ -427,6 +433,7 @@ xtHandler.on("lli", async (obj, r) => {
     status.hasError = true
     parentPort.postMessage([ActionType.StatusUser, status])
     console.error(err[r])
+    reportState("auth_failed", err[r] ?? String(r))
     setTimeout(() => parentPort.postMessage([ActionType.KillBot]), 1000 * 8)
 })
 

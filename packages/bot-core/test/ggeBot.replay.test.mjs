@@ -46,6 +46,30 @@ describe("login", () => {
 
         expect(bot.sentXT("lli")).toHaveLength(1)
     }, 15000)
+
+    test("a ban is reported as banned, with when it ends", async () => {
+        bot = startBot()
+        await bot.login()
+        const before = Date.now()
+        bot.xt("lli", code("IS_BANNED"), { CD: 0, RS: 3600 })
+        await bot.until(() => bot.botStates().length > 0)
+
+        const [state] = bot.botStates()
+        expect(state).toMatchObject({ state: "banned", reason: "IS_BANNED" })
+        expect(state.bannedUntil).toBeGreaterThanOrEqual(before + 3600_000)
+        expect(state.bannedUntil).toBeLessThan(Date.now() + 3600_000 + 1000)
+    }, 15000)
+
+    test("a rejected password is reported as auth_failed and never retried", async () => {
+        bot = startBot()
+        await bot.login()
+        bot.xt("lli", code("INVALID_PASSWORD"))
+        await bot.until(() => bot.botStates().length > 0)
+        await sleep(300)
+
+        expect(bot.botStates()).toEqual([{ state: "auth_failed", reason: "INVALID_PASSWORD" }])
+        expect(bot.sentXT("lli")).toHaveLength(1)
+    }, 15000)
 })
 
 describe("important error counter", () => {
@@ -63,6 +87,18 @@ describe("important error counter", () => {
         for (let i = 0; i < 8; i++) await fail()
         await sleep(50)
         expect(bot.paused).toBe(true)
+        expect(bot.botStates()).toEqual([{ state: "error", reason: "tooManyImportantErrors" }])
+    }, 15000)
+
+    test("with exitOnFatal the worker closes the connection and exits instead of pausing", async () => {
+        bot = startBot({ exitOnFatal: true })
+        await bot.login()
+        for (let i = 0; i < 7; i++) await fail()
+        await bot.startWaitForResult("tst", 1000)
+        bot.xt("tst", code("LORD_IS_USED"))
+        await bot.until(() => bot.exited, 2000)
+        expect(bot.closed).toBe(true)
+        expect(bot.paused).toBe(false)
     }, 15000)
 
     test("a success resets the count, so scattered errors never pause (ggeBot.js:89-104)", async () => {
