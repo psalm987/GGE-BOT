@@ -6,6 +6,7 @@ import type { AdminApi, ClientApi } from "@gge/contracts"
 import { createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
 import { generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
+import type { Env } from "../src/env.ts"
 import type { Mailer, MailMessage } from "../src/services/mailer.ts"
 import { buildServer } from "../src/server.ts"
 
@@ -41,7 +42,7 @@ function browser(baseUrl: string, path: string, origin: string, ip: string) {
     return { jar, link }
 }
 
-export async function startApi() {
+export async function startApi(env: Partial<Env> = {}) {
     const db: Db = createDb(inject("databaseUrl"))
     await db.execute(sql`truncate ${users}, ${servers}, ${pluginCatalog} restart identity cascade`)
     await db.insert(servers).values([
@@ -61,7 +62,7 @@ export async function startApi() {
     }
     const app = await buildServer({
         db, logger: false, mailer,
-        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false },
+        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
     const baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`

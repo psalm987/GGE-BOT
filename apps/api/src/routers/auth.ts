@@ -9,6 +9,7 @@ import { COOKIE_NAME, SESSION_TTL_MS, createSession, deleteSession, findSessionU
 import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { clientLink, sendEmail } from "../services/email.ts"
+import { verifyTurnstile } from "../services/turnstile.ts"
 
 const WRONG_CREDENTIALS = "Wrong username or password"
 
@@ -80,9 +81,11 @@ export async function logout(ctx: Ctx, audience: Audience) {
     ctx.reply.clearCookie(COOKIE_NAME[audience], { path: "/" })
 }
 
-export async function signup(ctx: Ctx, input: { username: string; email: string; password: string }) {
+export async function signup(ctx: Ctx, input: { username: string; email: string; password: string; turnstileToken?: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.signup.hit(ctx.req.ip))
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+    if (!await verifyTurnstile(ctx.env.TURNSTILE_SECRET_KEY, input.turnstileToken, ctx.req.ip))
+        throw new ORPCError("BAD_REQUEST", { message: "Captcha failed, please retry" })
 
     const passwordHash = await hashPassword(input.password)
     const user = await ctx.db.insert(users)

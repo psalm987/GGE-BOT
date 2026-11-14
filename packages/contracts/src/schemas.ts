@@ -13,7 +13,7 @@ const LoginPassword = z.string().min(1).max(200)
 
 /** `login` is a username or an email; usernames can't contain "@", so the two never collide. */
 export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })
-export const Signup = z.object({ username: Username, email: Email, password: NewPassword })
+export const Signup = z.object({ username: Username, email: Email, password: NewPassword, turnstileToken: z.string().max(2048).optional() })
 
 export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int() })
 export type PublicUser = z.infer<typeof PublicUser>

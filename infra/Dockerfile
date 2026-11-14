@@ -24,6 +24,7 @@ COPY . .
 ARG VITE_CLIENT_URL
 ARG VITE_GRAFANA_URL
 ARG VITE_SENTRY_DSN
+ARG VITE_TURNSTILE_SITE_KEY
 ARG VITE_GGE_VERSION
 # The Sentry token is a build secret, so it never lands in an image layer.
 RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN,required=false \

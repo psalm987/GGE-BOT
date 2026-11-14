@@ -18,6 +18,8 @@
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
+| `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |
+| `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app at build time. Empty hides the widget, so leave both unset or set both. |
 | `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep on the host. Default 14. |
 | `SENTRY_DSN` | api, runner | no | DSN of the `gge-bot-server` Sentry project. Empty turns server-side Sentry off. |
 | `VITE_SENTRY_DSN` | web (build) | no | DSN of the `gge-bot-frontend` Sentry project, baked into both apps at build time. Empty turns browser Sentry off. |

@@ -18,6 +18,8 @@ const Env = z.object({
     COOKIE_SECURE: z.stringbool().default(true),
     /** Without a key, emails are logged instead of sent. */
     RESEND_API_KEY: optional,
+    /** Cloudflare Turnstile secret. Without it, signup asks for no captcha. */
+    TURNSTILE_SECRET_KEY: optional,
     /** Sender, e.g. "GGE Bot <noreply@example.com>"; the domain must be verified in Resend. */
     EMAIL_FROM: optional,
 }).refine(env => !env.RESEND_API_KEY || env.EMAIL_FROM, { path: ["EMAIL_FROM"], message: "required when RESEND_API_KEY is set" })
