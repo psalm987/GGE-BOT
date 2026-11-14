@@ -15,7 +15,7 @@ import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
 export async function buildServer({ db, env, logger = true, mailer }: { db: Db; env: Env; logger?: boolean; mailer?: Mailer }): Promise<FastifyInstance> {
-    // Caddy terminates TLS in front of us; trust its X-Forwarded-For for req.ip.
+    // Caddy sits in front of us (the edge, or behind Dokploy's Traefik with trusted_proxies set); trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
     Sentry.setupFastifyErrorHandler(app)
     await app.register(cookie)
