@@ -49,7 +49,6 @@ services:
       SEAL_PUBLIC_KEY: ${SEAL_PUBLIC_KEY:?set SEAL_PUBLIC_KEY in infra/.env}
       CLIENT_ORIGINS: https://app.${DOMAIN}
       ADMIN_ORIGINS: https://admin.${DOMAIN}
-      CLIENT_URL: https://app.${DOMAIN}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       PORT: "3000"

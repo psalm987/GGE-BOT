@@ -2,9 +2,9 @@ import type { Ctx } from "../context.ts"
 import { templates, type EmailKind, type TemplateData } from "../emails/templates.ts"
 import { audit } from "./audit.ts"
 
-/** Public client URL plus a path and query, for links in emails. */
+/** The client app's URL plus a path and query, for links in emails. */
 export function clientLink(ctx: Pick<Ctx, "env">, path: string, params: Record<string, string>) {
-    const url = new URL(path, ctx.env.CLIENT_URL)
+    const url = new URL(path, ctx.env.CLIENT_ORIGINS[0])
     for (const [key, value] of Object.entries(params))
         url.searchParams.set(key, value)
     return url.toString()

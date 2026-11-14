@@ -92,7 +92,6 @@ const env = {
     PORT: String(API_PORT),
     HOST: "127.0.0.1",
     COOKIE_SECURE: "false",
-    CLIENT_URL: "http://localhost:5173",
     ...(dataDir && { GGE_DATA_DIR: dataDir, REFRESH_GAME_DATA: "false" }),
 }
 

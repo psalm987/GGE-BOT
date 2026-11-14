@@ -25,8 +25,7 @@
 | Variable | Service | Value |
 |---|---|---|
 | `DATABASE_URL` | api, runner, migrate | `postgres://gge@postgres:5432/gge`, with the password passed separately as `PGPASSWORD` so any characters work |
-| `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. |
-| `CLIENT_URL` | api | `https://app.<DOMAIN>`. Emailed links point here. |
+| `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. Emailed links point at the first client origin. |
 | `PORT` | api | 3000 (internal) |
 | `METRICS_PORT` | runner | 9464 (internal) |
 | `GGE_DATA_DIR` | runner | `/data`, the `gamedata` volume with items, language and server list |
