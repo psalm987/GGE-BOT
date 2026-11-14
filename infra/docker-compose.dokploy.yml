@@ -9,7 +9,9 @@ x-node: &node
   image: gge-node:${GGE_VERSION:-latest}
   restart: unless-stopped
   environment: &node-env
-    DATABASE_URL: postgres://gge:${POSTGRES_PASSWORD}@postgres:5432/gge
+    # pg reads PGPASSWORD; inside the URL, a "/", "#" or "?" in it breaks parsing.
+    DATABASE_URL: postgres://gge@postgres:5432/gge
+    PGPASSWORD: ${POSTGRES_PASSWORD}
     GGE_VERSION: ${GGE_VERSION:-latest}
   depends_on:
     migrate: { condition: service_completed_successfully }
@@ -34,7 +36,9 @@ services:
     image: gge-node:${GGE_VERSION:-latest}
     command: ["node", "apps/api/src/cli/migrate.ts"]
     environment:
-      DATABASE_URL: postgres://gge:${POSTGRES_PASSWORD}@postgres:5432/gge
+      # pg reads PGPASSWORD; inside the URL, a "/", "#" or "?" in it breaks parsing.
+      DATABASE_URL: postgres://gge@postgres:5432/gge
+      PGPASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"

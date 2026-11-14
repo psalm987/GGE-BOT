@@ -22,7 +22,7 @@
 
 | Variable | Service | Value |
 |---|---|---|
-| `DATABASE_URL` | api, runner, migrate | `postgres://gge:…@postgres:5432/gge` |
+| `DATABASE_URL` | api, runner, migrate | `postgres://gge@postgres:5432/gge`, with the password passed separately as `PGPASSWORD` so any characters work |
 | `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. |
 | `PORT` | api | 3000 (internal) |
 | `METRICS_PORT` | runner | 9464 (internal) |
