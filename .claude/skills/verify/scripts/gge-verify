@@ -16,7 +16,7 @@ inst_dir() { [[ "${1:-}" =~ ^[a-z0-9-]+$ ]] || die "instance name must match [a-
 pid_alive() { [[ -n "${1:-}" ]] && kill -0 "$1" 2>/dev/null; }
 
 cmd_setup() {
-  [[ -d "$REPO/node_modules" ]] || (cd "$REPO" && npm i --no-audit --no-fund)
+  [[ -d "$REPO/node_modules" ]] || (cd "$REPO" && pnpm install --frozen-lockfile)
   if [[ ! -d "$REPO/website" ]]; then
     git clone https://github.com/darrenthebozz/GGE-BOT-Website.git "$REPO/website"
   fi

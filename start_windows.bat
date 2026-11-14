@@ -60,6 +60,6 @@ cd ..
 goto start
 :update
 echo. 2> "update"
-call npm i
+call npx --yes pnpm@11.9.0 install --frozen-lockfile
 del /f /q "update"
 goto start

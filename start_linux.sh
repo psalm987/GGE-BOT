@@ -50,7 +50,7 @@ if [ ! -f website/build/index.html ] || [ -f website/needsRebuild ]; then
 fi
 
 if test -f update || [ ! -d "node_modules" ]; then
-  npm i
+  npx --yes pnpm@11.9.0 install --frozen-lockfile
   rm -f update
 fi
  

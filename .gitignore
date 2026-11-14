@@ -3,7 +3,6 @@ node_modules
 ggeConfig.json
 user.db
 user.db*
-package-lock.json
 assets/itemassets
 items
 ItemsVersion.properties

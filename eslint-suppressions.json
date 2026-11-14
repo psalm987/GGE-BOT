@@ -1,0 +1,17 @@
+{
+  "plugins/attack/attack.js": {
+    "no-undef": {
+      "count": 3
+    }
+  },
+  "plugins/discord/incomingAttacks.js": {
+    "no-undef": {
+      "count": 1
+    }
+  },
+  "protocols.js": {
+    "no-undef": {
+      "count": 1
+    }
+  }
+}
