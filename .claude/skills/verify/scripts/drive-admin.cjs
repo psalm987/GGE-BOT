@@ -24,14 +24,14 @@ async function restoreIronhold() {
         const res = await fetch(`${API_URL}/rpc/${path}`, { method: "POST", headers: { origin: CLIENT_URL, "content-type": "application/json", ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
         return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
     }
-    const { cookie } = await call("auth/login", { username: "demo", password: "demo-password" })
+    const { cookie } = await call("auth/login", { login: "demo", password: "demo-password" })
     const list = (await call("accounts/list", {}, cookie)).json
     await call("accounts/setDesiredState", { ids: [list.find(a => a.name === "Ironhold").id], state: "running" }, cookie)
 }
 
 async function signIn(page, username) {
     await page.goto(`${base}/login`)
-    await page.getByLabel("Username").fill(username)
+    await page.getByLabel("Username or email").fill(username)
     await page.getByLabel("Password").fill("demo-password")
     await page.getByRole("button", { name: "Sign in" }).click()
 }

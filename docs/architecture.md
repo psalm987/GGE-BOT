@@ -12,7 +12,7 @@ GGE Command runs Goodgame Empire bots for many players from one server. Players 
 
 | Path | Role |
 |---|---|
-| `apps/api` | Fastify + oRPC. The player contract at `/rpc`, the admin contract at `/admin/rpc`. Sign-in, sessions, accounts, invites, audit. Streams bot status and logs to players. |
+| `apps/api` | Fastify + oRPC. The player contract at `/rpc`, the admin contract at `/admin/rpc`. Sign-in, sessions, email verification and password reset (Resend), accounts, invites, audit. Streams bot status and logs to players. |
 | `apps/runner` | Supervises bot workers. Reads which accounts should run from Postgres, starts and stops workers, records status, logs and runs. Exactly one runs at a time (a Postgres advisory lock). |
 | `apps/client` | The player app (Vite, React, Ant Design). |
 | `apps/admin` | The admin app. |
@@ -51,4 +51,4 @@ Every worker start is a `bot_runs` row, closed with the reason it ended.
 
 ## Secrets
 
-Game passwords are sealed (X25519 + AES-256-GCM) with a public key the API holds. Only the runner holds the private key, so the API, its database rows, its logs and its admins can store a game password but never read it. Panel passwords are argon2id hashes; imported legacy hashes are PBKDF2 and are upgraded at the next sign-in. Sessions are random tokens in HttpOnly cookies; only their SHA-256 is stored.
+Game passwords are sealed (X25519 + AES-256-GCM) with a public key the API holds. Only the runner holds the private key, so the API, its database rows, its logs and its admins can store a game password but never read it. Panel passwords are argon2id hashes; imported legacy hashes are PBKDF2 and are upgraded at the next sign-in. Sessions are random tokens in HttpOnly cookies; only their SHA-256 is stored. Email verification and password reset links use the same pattern: a random token in the email, its SHA-256 in `email_tokens`, claimed with one atomic update.

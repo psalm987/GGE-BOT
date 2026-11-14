@@ -7,6 +7,7 @@ const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:3000"
+const DEV_LOG = process.env.DEV_LOG ?? "/tmp/gge-dev.log"
 const out = process.argv[2] ?? path.join(__dirname, "../../../../.verify-evidence", `${new Date().toISOString().replace(/[:.]/g, "-")}-client`)
 require("fs").mkdirSync(out, { recursive: true })
 const assert = (ok, what) => { if (!ok) throw new Error("FAILED: " + what); console.log("ok:", what) }
@@ -15,6 +16,18 @@ async function axe(page, name) {
     await page.addScriptTag({ content: axeSource })
     const result = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map(v => `${v.id} (${v.impact}): ${v.nodes.length} node(s) e.g. ${v.nodes[0].target.join(" ")}`))
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
+}
+
+/** The link in the newest email the dev API logged for an address (the log mailer prints every message). */
+function emailedLink(address) {
+    const lines = require("fs").readFileSync(DEV_LOG, "utf8").split("\n").reverse()
+    for (const line of lines) {
+        try {
+            const entry = JSON.parse(line)
+            if (entry.to === address) return entry.text.match(/https?:\/\/\S+/)[0]
+        } catch {}
+    }
+    throw new Error(`no email logged for ${address}; start the stack with its output in ${DEV_LOG}`)
 }
 
 async function freshInvite() {
@@ -26,7 +39,7 @@ async function freshInvite() {
         })
         return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
     }
-    const { cookie } = await call("auth/login", { username: "admin", password: "demo-password" })
+    const { cookie } = await call("auth/login", { login: "admin", password: "demo-password" })
     return (await call("invites/create", { role: "user", expiresInHours: 1 }, cookie)).json.code
 }
 
@@ -40,12 +53,60 @@ async function freshInvite() {
     await axe(page, "signup")
     assert(await page.getByLabel("Invite code").inputValue() === invite, "invite code prefilled from the link")
     await page.getByLabel("Username").fill(name)
+    await page.getByLabel("Email").fill(`${name}@example.test`)
     await page.getByLabel("Password", { exact: true }).fill("a-strong-password")
     await page.getByLabel("Confirm password").fill("a-strong-password")
     await page.getByRole("button", { name: "Create account" }).click()
     await page.getByText("No accounts yet").waitFor()
     assert(true, "signup lands on an empty roster with a call to action")
     await axe(page, "empty dashboard")
+
+    await page.getByText("Check your inbox").waitFor()
+    assert(true, "an unverified player sees the verification banner")
+    const verifyPage = await browser.newPage()
+    await verifyPage.goto(emailedLink(`${name}@example.test`))
+    await verifyPage.getByText("Email verified").waitFor()
+    await verifyPage.close()
+    await page.reload()
+    await page.getByText("No accounts yet").waitFor()
+    assert(await page.getByText("Check your inbox").count() === 0, "the banner is gone once the emailed link is opened")
+
+    await page.getByRole("menuitem", { name: "Settings" }).click()
+    await page.getByRole("heading", { name: "Change password" }).waitFor().catch(() => {})
+    await page.getByLabel("Current password").fill("a-strong-password")
+    await page.getByLabel("New password", { exact: true }).fill("another-strong-password")
+    await page.getByLabel("Confirm new password").fill("another-strong-password")
+    await page.getByRole("button", { name: "Change password" }).click()
+    await page.getByText("Password changed").waitFor()
+    await axe(page, "settings")
+    assert(true, "Settings changes the password")
+    await page.getByRole("menuitem", { name: "Accounts" }).click()
+
+    const resetPage = await browser.newPage()
+    await resetPage.goto(`${CLIENT_URL}/forgot-password`)
+    await resetPage.getByLabel("Email").fill(`${name}@example.test`)
+    await resetPage.getByRole("button", { name: "Send reset link" }).click()
+    await resetPage.getByText("a reset link is on its way").waitFor()
+    await resetPage.goto(emailedLink(`${name}@example.test`))
+    await resetPage.getByLabel("New password", { exact: true }).fill("third-strong-password")
+    await resetPage.getByLabel("Confirm password").fill("third-strong-password")
+    await resetPage.getByRole("button", { name: "Change password" }).click()
+    await resetPage.getByText("Password changed").first().waitFor()
+    await resetPage.goto(`${CLIENT_URL}/login`)
+    await resetPage.getByLabel("Username or email").fill(`${name}@example.test`)
+    await resetPage.getByLabel("Password").fill("third-strong-password")
+    await resetPage.getByRole("button", { name: "Sign in" }).click()
+    await resetPage.getByText("No accounts yet").waitFor()
+    assert(true, "forgot password, reset link, then sign in by email with the new password")
+    await resetPage.close()
+    await page.reload()
+    await page.getByRole("heading", { name: "Sign in" }).waitFor()
+    assert(true, "the reset signed the first browser out")
+    await page.goto(`${CLIENT_URL}/login`)
+    await page.getByLabel("Username or email").fill(name)
+    await page.getByLabel("Password").fill("third-strong-password")
+    await page.getByRole("button", { name: "Sign in" }).click()
+    await page.getByText("No accounts yet").waitFor()
 
     await page.getByRole("button", { name: "Add your first account" }).click()
     await page.getByLabel("Game account name").fill(`Storm${name}`)

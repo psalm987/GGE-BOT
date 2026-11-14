@@ -17,7 +17,11 @@ Game passwords are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). 
 - Two separate apps on separate origins (`app.` and `admin.`), with separate session cookies (`gge_session`, `gge_admin`). A player session never authenticates an admin call.
 - Cookies are `HttpOnly`, `Secure`, `SameSite=Lax`. Every RPC call must carry an `Origin` from the allowlist (`CLIENT_ORIGINS` or `ADMIN_ORIGINS`) or it gets 403.
 - Sign-in answers a wrong password and an unknown user identically, in the same time, and is throttled per IP (100 per 15 minutes) and per username (10 per 15 minutes).
-- Sign-up needs a single-use invite; invite codes are stored hashed and shown once.
+- Sign-in accepts a username or an email; usernames can't contain `@`, so the two never collide.
+- Sign-up needs a single-use invite and an email; invite codes are stored hashed and shown once. An invite an admin emailed to an address only signs up with that address, and that address counts as verified. Other addresses must be verified by link, but an unverified player keeps full access.
+- Email links carry a random 32-byte token. Only its SHA-256 is stored, a token works once, a new request replaces older ones, and it dies if the account's email changed after it was issued. Verification links last 24 hours, reset links 1 hour.
+- Password reset is offered only for verified addresses and answers the same for every address. Requests are throttled per IP and per address (3 per 15 minutes). A reset, or a password change in Settings, ends sessions (all of them for a reset, all but the current one for a change) and sends a notice email. Admins reset through the player app's forgot-password page.
+- Users can add an email only while they have none and can't change it afterwards.
 - Every account query is scoped to the signed-in owner; the live event stream filters by ownership. Integration tests break the ownership filter and the Origin check on purpose to prove they are enforced.
 - Input is validated by the contract's Zod schemas; output is shaped by them too, so fields the contract doesn't declare are never sent.
 - Disabling a user or changing their role ends their sessions at once; disabling also stops their bots.
