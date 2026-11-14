@@ -25,7 +25,9 @@ ARG VITE_GRAFANA_URL
 RUN pnpm --filter @gge/client build && pnpm --filter @gge/admin build
 
 FROM caddy:2.10-alpine AS web
-COPY infra/Caddyfile /etc/caddy/Caddyfile
+# infra/Caddyfile terminates TLS itself; infra/Caddyfile.dokploy serves plain HTTP behind Dokploy's Traefik.
+ARG CADDYFILE=infra/Caddyfile
+COPY ${CADDYFILE} /etc/caddy/Caddyfile
 COPY --from=web-build /app/apps/client/dist /srv/client
 COPY --from=web-build /app/apps/admin/dist /srv/admin
 
@@ -40,3 +42,15 @@ ENV NODE_ENV=production \
     GGE_DATA_DIR=/data \
     FONT_PATH=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 USER node
+
+# Monitoring and backup images carry their config, so nothing is bind-mounted
+# from the checkout (a platform that re-clones on deploy would pull it away).
+FROM prom/prometheus:v3.5.0 AS prometheus
+COPY infra/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
+
+FROM grafana/grafana:12.1.0 AS grafana
+COPY infra/grafana/provisioning /etc/grafana/provisioning
+COPY infra/grafana/dashboards /var/lib/grafana/dashboards
+
+FROM postgres:17-bookworm AS backup
+COPY infra/backup/backup-loop.sh /backup/backup-loop.sh

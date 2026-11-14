@@ -7,6 +7,7 @@ Run Goodgame Empire bots for many players from one server. Players manage their 
 | Read | For |
 |---|---|
 | [docs/deployment/README.md](docs/deployment/README.md) | Deploying with Docker Compose on one host |
+| [docs/deployment/dokploy.md](docs/deployment/dokploy.md) | Deploying on a server that runs Dokploy |
 | [docs/deployment/migration-from-legacy.md](docs/deployment/migration-from-legacy.md) | Moving from the old single-process bot and its `user.db` |
 | [docs/architecture.md](docs/architecture.md) | How the API, runner, apps and bot fit together |
 | [docs/development.md](docs/development.md) | Working on the code: `pnpm dev`, tests, conventions |

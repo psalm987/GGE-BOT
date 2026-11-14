@@ -87,17 +87,17 @@ services:
       api: { condition: service_healthy }
 
   prometheus:
-    image: prom/prometheus:v3.5.0
+    build: { context: .., dockerfile: infra/Dockerfile, target: prometheus }
+    image: gge-prometheus:${GGE_VERSION:-latest}
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=15d
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus:/prometheus
+    volumes: [prometheus:/prometheus]
 
   grafana:
-    image: grafana/grafana:12.1.0
+    build: { context: .., dockerfile: infra/Dockerfile, target: grafana }
+    image: gge-grafana:${GGE_VERSION:-latest}
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -106,22 +106,18 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GGE_DB_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana:/var/lib/grafana
+    volumes: [grafana:/var/lib/grafana]
     depends_on: [prometheus]
 
   backup:
-    image: postgres:17-bookworm
+    build: { context: .., dockerfile: infra/Dockerfile, target: backup }
+    image: gge-backup:${GGE_VERSION:-latest}
     restart: unless-stopped
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
     entrypoint: ["/bin/bash", "/backup/backup-loop.sh"]
-    volumes:
-      - ./backup:/backup:ro
-      - backups:/backups
+    volumes: [backups:/backups]
     depends_on:
       postgres: { condition: service_healthy }
 

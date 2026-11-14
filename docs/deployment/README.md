@@ -2,6 +2,8 @@
 
 One Linux host running Docker Compose: Caddy (HTTPS), the API, the runner, Postgres, Prometheus, Grafana and a nightly backup job.
 
+Running [Dokploy](https://dokploy.com) on the server? Follow [dokploy.md](dokploy.md) instead; it uses `infra/docker-compose.dokploy.yml`.
+
 Before you start, know that running bots against Goodgame Empire breaks its terms of service and can get game accounts banned, and that whoever runs this server holds other people's game passwords (sealed; see [security.md](security.md)).
 
 ## What you need
