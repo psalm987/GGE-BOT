@@ -20,3 +20,4 @@ credentials/
 screenshots/
 .verify-evidence/
 data/
+.turbo/

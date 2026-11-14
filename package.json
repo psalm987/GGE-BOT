@@ -3,13 +3,14 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "engines": {
-    "node": ">=22.5"
+    "node": ">=22.18"
   },
   "scripts": {
-    "test": "pnpm -r test",
-    "test:formal": "pnpm --filter @gge/bot-core test:formal",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "test:formal": "turbo run test:formal",
     "lint": "eslint .",
-    "check": "pnpm lint && pnpm test && pnpm test:formal",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:formal",
     "outdated": "npm-check-updates"
   },
   "dependencies": {
@@ -25,9 +26,12 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "npm-check-updates": "^23.1.1",
+    "turbo": "^2.11.11",
+    "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }
 }
