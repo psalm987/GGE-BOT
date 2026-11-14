@@ -13,8 +13,6 @@
     "outdated": "npm-check-updates"
   },
   "dependencies": {
-    "@orpc/client": "^1.14.8",
-    "@orpc/server": "^1.14.8",
     "body-parser": "^2.4.0",
     "bufferutil": "^4.1.0",
     "dayjs": "^1.11.21",

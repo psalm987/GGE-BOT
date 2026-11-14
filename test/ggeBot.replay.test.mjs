@@ -49,18 +49,13 @@ describe("login", () => {
 })
 
 describe("important error counter", () => {
-    const fail = async () => {
-        const waited = bot.callWaitForResult("tst", 1000)
-        await sleep(20)
-        bot.xt("tst", code("LORD_IS_USED"))
-        await waited
+    const reply = async result => {
+        const { done } = await bot.startWaitForResult("tst", 1000)
+        bot.xt("tst", result)
+        expect((await done).error).toBeUndefined()
     }
-    const succeed = async () => {
-        const waited = bot.callWaitForResult("tst", 1000)
-        await sleep(20)
-        bot.xt("tst", 0)
-        await waited
-    }
+    const fail = () => reply(code("LORD_IS_USED"))
+    const succeed = () => reply(0)
 
     test("eight LORD_IS_USED errors in a row pause the connection", async () => {
         bot = startBot()

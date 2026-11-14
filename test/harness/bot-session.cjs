@@ -43,9 +43,11 @@ function startBot({ timeoutMultiplier = 0.01 } = {}) {
                 await new Promise(r => setTimeout(r, 10))
             }
         },
-        callWaitForResult: (key, timeout) => new Promise(resolve => {
+        /** Starts a waitForResult in the bot. Resolves to `{ done }` once its listener is registered. */
+        startWaitForResult: (key, timeout) => new Promise(listening => {
             const id = Math.random()
-            session.waits.set(id, resolve)
+            const done = new Promise(resolve => session.waits.set(id, { listening, resolve }))
+            session.waits.get(id).done = done
             port1.postMessage({ type: "wait", key, timeout, id })
         }),
         async login() {
@@ -63,7 +65,8 @@ function startBot({ timeoutMultiplier = 0.01 } = {}) {
         if (m.type === "sent") session.sent.push(m.msg)
         if (m.type === "load") session.loads++
         if (m.type === "paused") session.paused = true
-        if (m.type === "waited") session.waits.get(m.id)?.(m)
+        if (m.type === "listening") session.waits.get(m.id)?.listening({ done: session.waits.get(m.id).done })
+        if (m.type === "waited") session.waits.get(m.id)?.resolve(m)
     })
     worker.on("message", m => session.toParent.push(m))
     worker.on("exit", () => { session.exited = true })

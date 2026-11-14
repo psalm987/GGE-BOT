@@ -34,8 +34,10 @@ bot.events.on("load", () => control.postMessage({ type: "load" }))
 control.on("message", m => {
     if (m.type === "frame")
         FakeWebSocket.instance.onmessage({ data: m.data })
-    if (m.type === "wait")
+    if (m.type === "wait") {
         bot.waitForResult(m.key, m.timeout).then(
             ([, result]) => control.postMessage({ type: "waited", id: m.id, result }),
             error => control.postMessage({ type: "waited", id: m.id, error: String(error) }))
+        control.postMessage({ type: "listening", id: m.id })
+    }
 })

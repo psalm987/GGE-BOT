@@ -20,8 +20,6 @@ const KNOWN_UNDECLARED = {
 const plugins = execSync("git ls-files plugins", { cwd: repo })
     .toString().trim().split("\n")
     .filter(f => !f.endsWith("plugins/index.js"))
-    // Requires main.js in the main thread, which boots a second server. Deleted in Phase 1.
-    .filter(f => !f.endsWith("plugins/intervalTimer.js"))
 
 function optionKeysRead(source) {
     const code = source.split("\n").filter(line => !line.trim().startsWith("//")).join("\n")

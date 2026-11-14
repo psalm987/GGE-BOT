@@ -9,7 +9,7 @@ From a game account's **Settings** dialog, the user turns plugins on or off and 
 - `plug-option-kinds` option widgets: `Text` text field, `Checkbox`, `Select` (Khan, Nomads), `Label` (section headings), `Time`, slider, and a Discord channel select (only with Discord configured).
 - `plug-defaults` empty options are filled with the plugin's defaults when a bot starts, not when saving.
 - `plug-column` the users table **Plugins** column lists enabled, non-forced plugins by label.
-- `plug-hidden` hidden plugins (`commander`, `intervalTimer`, `misc`, `resourceSendStorm`) never appear in the list.
+- `plug-hidden` hidden plugins (`commander`, `misc`, `resourceSendStorm`) never appear in the list.
 
 Plugins loaded with no Discord and no `plugins-extra`: Feast, Help requests, meadReplaceStorm, Sell stored equipment, Shutoff timer, Attack barrons (Burning Sands / Ever Winter Glacier / Fire Peaks / Great Empire), Berimond invasion, Fortresses (Burning Sands / Ever Winter Glacier / Fire Peaks), Khan, Nomads, Samurai, Storm forts, plus forced skips and attack.
 
@@ -30,7 +30,6 @@ Preconditions:
 
 ## Gotchas
 
-- Read the plugin list from the panel or the GetUsers frame in `ws-frames.log`, not with `node -e "require('./plugins')"`: `plugins/intervalTimer.js` requires `../main.js`, so loading the plugins boots a second server in that directory (it dies on `EADDRINUSE` if the instance is up, or binds the port if not).
 - The toggle writes into the dialog's copy of the account before **Save**. Assert on `user.db` after saving, not on what a reopened dialog shows.
 - An option left at its default is not written on save; it is filled in by `main.js` when the bot starts. A saved account showing `{"state":true}` with no option keys is correct.
 - `plugins/attack/attackStormForts.js` logs an `ENOENT ... ./plugins-extra/upgradeStormCargo.js` stack at startup without `plugins-extra`. It still loads; the trace in `server.log` is expected, not a launch failure.
