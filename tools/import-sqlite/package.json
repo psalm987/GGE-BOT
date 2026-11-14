@@ -1,0 +1,22 @@
+{
+  "name": "@gge/import-sqlite",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import": "node cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gge/contracts": "workspace:*",
+    "@gge/crypto": "workspace:*",
+    "@gge/db": "workspace:*",
+    "@gge/runner": "workspace:*",
+    "@opentelemetry/api": "1.10.0",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@gge/api": "workspace:*",
+    "vitest": "^5.1.0"
+  }
+}
