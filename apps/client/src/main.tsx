@@ -8,8 +8,12 @@ import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { useLanguage } from "./i18n.ts"
 import { Dashboard } from "./pages/Dashboard.tsx"
+import { ForgotPassword } from "./pages/ForgotPassword.tsx"
 import { Login } from "./pages/Login.tsx"
+import { ResetPassword } from "./pages/ResetPassword.tsx"
+import { Settings } from "./pages/Settings.tsx"
 import { Signup } from "./pages/Signup.tsx"
+import { VerifyEmail } from "./pages/VerifyEmail.tsx"
 
 function Root() {
     const language = useLanguage()
@@ -20,6 +24,10 @@ function Root() {
                     <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/verify-email" element={<VerifyEmail />} />
+                        <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                         <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

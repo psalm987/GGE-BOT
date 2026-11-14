@@ -19,12 +19,13 @@ export function Login() {
             footer={<span style={{ color: "#BFAE8A" }}>Have an invite? <Link to="/signup">Create your account</Link></span>}>
             {login.error && <Alert type="error" showIcon title={messageOf(login.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form layout="vertical" requiredMark={false} onFinish={values => login.mutate(values)} disabled={login.isPending}>
-                <Form.Item label="Username" name="username" rules={[{ required: true, message: "Enter your username" }]}>
+                <Form.Item label="Username or email" name="login" rules={[{ required: true, message: "Enter your username or email" }]}>
                     <Input prefix={<UserOutlined />} autoComplete="username" autoFocus size="large" />
                 </Form.Item>
                 <Form.Item label="Password" name="password" rules={[{ required: true, message: "Enter your password" }]}>
                     <Input.Password prefix={<LockOutlined />} autoComplete="current-password" size="large" />
                 </Form.Item>
+                <div style={{ marginBottom: 16, textAlign: "end" }}><Link to="/forgot-password">Forgot password?</Link></div>
                 <Button type="primary" htmlType="submit" block size="large" loading={login.isPending} className="gge-press">Sign in</Button>
             </Form>
         </AuthShell>

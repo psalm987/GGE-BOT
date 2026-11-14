@@ -1,4 +1,4 @@
-import { KeyOutlined, LockOutlined, UserOutlined } from "@ant-design/icons"
+import { KeyOutlined, LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input } from "antd"
 import { Link, useNavigate, useSearchParams } from "react-router"
@@ -8,6 +8,7 @@ import { messageOf, orpc, queryClient } from "../api.ts"
 export function Signup() {
     const navigate = useNavigate()
     const [params] = useSearchParams()
+    const invitedEmail = params.get("email")
     const signup = useMutation(orpc.auth.signup.mutationOptions({
         onSuccess: user => {
             queryClient.setQueryData(orpc.auth.me.queryKey(), user)
@@ -18,14 +19,18 @@ export function Signup() {
         <AuthShell title="Join the campaign" subtitle="Accounts are by invitation. Paste the code you were given."
             footer={<span style={{ color: "#BFAE8A" }}>Already enlisted? <Link to="/login">Sign in</Link></span>}>
             {signup.error && <Alert type="error" showIcon title={messageOf(signup.error)} style={{ marginBottom: 16 }} role="alert" />}
-            <Form layout="vertical" requiredMark={false} initialValues={{ inviteCode: params.get("invite") ?? "" }}
-                onFinish={({ inviteCode, username, password }) => signup.mutate({ inviteCode, username, password })} disabled={signup.isPending}>
+            <Form layout="vertical" requiredMark={false} initialValues={{ inviteCode: params.get("invite") ?? "", email: invitedEmail ?? "" }}
+                onFinish={({ inviteCode, username, email, password }) => signup.mutate({ inviteCode, username, email, password })} disabled={signup.isPending}>
                 <Form.Item label="Invite code" name="inviteCode" rules={[{ required: true, message: "Paste your invite code" }]}>
                     <Input prefix={<KeyOutlined />} autoComplete="off" size="large" />
                 </Form.Item>
                 <Form.Item label="Username" name="username" extra="3–32 characters: letters, digits, _ . -"
                     rules={[{ required: true, message: "Choose a username" }, { pattern: /^[A-Za-z0-9_.-]{3,32}$/, message: "3–32 letters, digits, _ . or -" }]}>
                     <Input prefix={<UserOutlined />} autoComplete="username" size="large" />
+                </Form.Item>
+                <Form.Item label="Email" name="email" extra={invitedEmail ? "Your invite was sent to this address." : "We'll send a link to confirm it."}
+                    rules={[{ required: true, type: "email", message: "Enter a valid email" }]}>
+                    <Input prefix={<MailOutlined />} type="email" autoComplete="email" size="large" readOnly={Boolean(invitedEmail)} />
                 </Form.Item>
                 <Form.Item label="Password" name="password" extra="At least 10 characters"
                     rules={[{ required: true, message: "Choose a password" }, { min: 10, message: "At least 10 characters" }]}>
