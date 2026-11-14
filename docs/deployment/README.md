@@ -22,7 +22,7 @@ Before you start, know that running bots against Goodgame Empire breaks its term
 2. Create the settings file and fill it in ([env.md](env.md) explains each line).
    ```sh
    cp infra/.env.example infra/.env
-   openssl rand -base64 32   # use one for POSTGRES_PASSWORD, another for GRAFANA_ADMIN_PASSWORD
+   openssl rand -hex 32   # use one for POSTGRES_PASSWORD, another for GRAFANA_ADMIN_PASSWORD
    ```
 3. Generate the game-password key pair and paste both lines into `infra/.env`.
    ```sh

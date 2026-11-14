@@ -53,7 +53,7 @@ DISCORD_CLIENT_ID=
 BACKUP_KEEP_DAYS=14
 ```
 
-Generate the two passwords with `openssl rand -base64 32`. Every variable is explained in [env.md](env.md); `ACME_EMAIL` is not needed here because Dokploy handles certificates.
+Generate the two passwords with `openssl rand -hex 32`. Every variable is explained in [env.md](env.md); `ACME_EMAIL` is not needed here because Dokploy handles certificates.
 
 ## 4. Domains
 

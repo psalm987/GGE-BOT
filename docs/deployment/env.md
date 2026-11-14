@@ -7,7 +7,7 @@
 | `DOMAIN` | web, api, grafana | yes | Base domain. The apps live at `app.`, `admin.` and `grafana.` under it. |
 | `ACME_EMAIL` | web | yes | Email for Let's Encrypt certificate notices. |
 | `GGE_VERSION` | all | no | Image tag and the version the runner reports. Default `latest`. |
-| `POSTGRES_PASSWORD` | postgres, api, runner, migrate, grafana, backup | yes | Database password. `openssl rand -base64 32`. |
+| `POSTGRES_PASSWORD` | postgres, api, runner, migrate, grafana, backup | yes | Database password. `openssl rand -hex 32`. |
 | `SEAL_PUBLIC_KEY` | api | yes | Seals game passwords on write. From `tools/dev/keygen.ts`. |
 | `SEAL_PRIVATE_KEY` | runner | yes | Opens game passwords to log bots in. Only the runner gets it. Back it up apart from the database. |
 | `GRAFANA_ADMIN_PASSWORD` | grafana | yes | Grafana's `admin` login. |
