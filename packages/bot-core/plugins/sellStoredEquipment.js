@@ -2,7 +2,7 @@ if (require('node:worker_threads').isMainThread)
     return module.exports = {}
 
 const { events, xtHandler, sendXT } = require('../ggeBot')
-const gems = require("../items/gems.json")
+const gems = require("../paths.js").loadItem("gems")
 const sellGems = e => {
     let gemsSold = 0
     Array.from(e.GEM).forEach(([id, amount]) => {

@@ -1,15 +1,15 @@
 {
-  "plugins/attack/attack.js": {
+  "packages/bot-core/plugins/attack/attack.js": {
     "no-undef": {
       "count": 3
     }
   },
-  "plugins/discord/incomingAttacks.js": {
+  "packages/bot-core/plugins/discord/incomingAttacks.js": {
     "no-undef": {
       "count": 1
     }
   },
-  "protocols.js": {
+  "packages/bot-core/protocols.js": {
     "no-undef": {
       "count": 1
     }

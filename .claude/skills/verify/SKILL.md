@@ -1,14 +1,14 @@
 ---
 name: verify
-description: Launch an isolated GGE-BOT instance (Node server + React web panel) and drive its web UI with Playwright the way a user does — sign up, add game accounts, toggle plugins, remove accounts, start a bot — capturing screenshots, WebSocket frames and user.db state as proof. Use to prove any change to main.js, ggeBot.js, plugins/, or the website/ panel works in the real app, not just in tests.
+description: Launch an isolated GGE-BOT instance (Node server + React web panel) and drive its web UI with Playwright the way a user does — sign up, add game accounts, toggle plugins, remove accounts, start a bot — capturing screenshots, WebSocket frames and user.db state as proof. Use to prove any change to main.js, packages/bot-core (ggeBot.js, plugins/), or the website/ panel works in the real app, not just in tests.
 ---
 
 # verify — drive GGE-BOT for real
 
-GGE-BOT is a Node server ([main.js](../../../main.js)) that serves a React control panel (the separate `GGE-BOT-Website` repo, cloned into `website/` and built to `website/build`) and runs one worker thread ([ggeBot.js](../../../ggeBot.js)) per game account. Users touch it only through the panel:
+GGE-BOT is a Node server ([main.js](../../../main.js)) that serves a React control panel (the separate `GGE-BOT-Website` repo, cloned into `website/` and built to `website/build`) and runs one worker thread ([ggeBot.js](../../../packages/bot-core/ggeBot.js)) per game account. Users touch it only through the panel:
 
 - `signup.html` / `signin.html`: static forms that POST to `/api` (`id:1` signup, `id:0` login) and set a `uuid` cookie.
-- `index.html`: the React users table. Everything after login goes over one WebSocket on the same port, as `[ErrorType, ActionType, payload]` JSON frames (codes in [actions.json](../../../actions.json) and [errors.json](../../../errors.json)).
+- `index.html`: the React users table. Everything after login goes over one WebSocket on the same port, as `[ErrorType, ActionType, payload]` JSON frames (codes in [actions.json](../../../packages/bot-core/actions.json) and [errors.json](../../../errors.json)).
 - State lives in `user.db` (SQLite): `Users` = panel logins, `SubUsers` = game accounts, with `state` (0 stopped, 1 running) and a `plugins` JSON blob.
 
 Secondary surfaces, not driven here: the Discord bot (needs `discordToken`/`discordClientId`; with them unset, `plugins/discord/*` are not even loaded) and the game itself (each started account's worker opens a websocket to the live Goodgame Empire servers).
@@ -34,10 +34,10 @@ Start an instance (NAME is `[a-z0-9-]+`, PORT optional; default is the first fre
 
 What `up` does, and why:
 
-- Copies the working tree (minus `.git`, `node_modules`, `website`, `user.db*`, `ggeConfig.json`, `credentials/`, caches) to `~/.cache/gge-bot-verify/instances/NAME/app`, symlinking `node_modules` and `website`. A copy is required: `main.js` keeps `user.db`/`ggeConfig.json` in cwd, but `ggeBot.js` and `plugins/index.js` `require("./ggeConfig.json")` relative to their own file, so a different cwd alone would read the repo's config.
+- Copies the working tree (minus `.git`, `node_modules`, `website`, `user.db*`, `ggeConfig.json`, `credentials/`, caches) to `~/.cache/gge-bot-verify/instances/NAME/app`, symlinking `node_modules` (the root's and each `packages/*`'s) and `website`. A copy is required: `main.js` keeps `user.db`/`ggeConfig.json` in cwd, but bot-core resolves its game data (`data/`) relative to its own files, so a different cwd alone would share the repo's data.
 - Writes a fresh `ggeConfig.json`: the chosen `webPort`, `signupToken: "verify"`, no Discord, no TLS.
 - Starts `node --no-warnings main.js` with output in `instances/NAME/server.log`, pid in `instances/NAME/pid`.
-- **Ready** = the log has the line `Started.` (printed after the HTTP server is listening) **and** `GET /signin.html` returns 200. Startup creates the `user.db` tables (empty data dir is fine) and downloads `items/`, `lang/en.json` and `1.xml` from `empire-html5.goodgamestudios.com`. The first `up` on a machine caches them in `~/.cache/gge-bot-verify/seed/` and later instances copy them, but startup still fetches `ItemsVersion.properties` every time, so **the network to goodgamestudios.com is required**: offline, `main.js` crashes before `Started.`.
+- **Ready** = the log has the line `Started.` (printed after the HTTP server is listening) **and** `GET /signin.html` returns 200. Startup creates the `user.db` tables (empty data dir is fine) and downloads `data/items/`, `data/lang/en.json` and `data/1.xml` from `empire-html5.goodgamestudios.com`. The first `up` on a machine caches them in `~/.cache/gge-bot-verify/seed/` and later instances copy them, but startup still fetches `ItemsVersion.properties` every time, so **the network to goodgamestudios.com is required**: offline, `main.js` crashes before `Started.`.
 - **The instance is a snapshot.** Edits made after `up` are not in it. After changing code, `down` and `up` again.
 
 Isolation: instances with different NAMEs run side by side (own dir, own port, own DB). `up` refuses a NAME that is still running and a PORT that is taken. Never point the driver at the user's own bot on 3001.

@@ -4,7 +4,7 @@ if (require('node:worker_threads').isMainThread)
     }
 
 const { Client, Events, GatewayIntentBits, Collection, REST, Routes } = require('discord.js')
-const ggeConfig = require("../../ggeConfig.json")
+const ggeConfig = require("../../config.js")
 const { events, botConfig } = require('../../ggeBot')
 
 const client = new Client({

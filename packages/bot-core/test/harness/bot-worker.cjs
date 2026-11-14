@@ -2,7 +2,7 @@ const path = require("node:path")
 const Module = require("node:module")
 const { workerData } = require("node:worker_threads")
 
-const { control, ggeConfig } = workerData
+const { control } = workerData
 const repo = path.resolve(__dirname, "..", "..")
 
 class FakeWebSocket {
@@ -19,8 +19,6 @@ const originalLoad = Module._load
 Module._load = function (request, parent, isMain) {
     if (request === "ws")
         return FakeWebSocket
-    if (/ggeConfig\.json$/.test(request))
-        return ggeConfig
     if (/(^|\/)protocols(\.js)?$/.test(request))
         return { KingdomID: {}, castles: [] }
     if (/plugins\/misc\.js$/.test(request))

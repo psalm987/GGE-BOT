@@ -3,7 +3,7 @@ const PImage = require("pureimage")
 const fs = require("fs")
 
 const { getAsset } = require("./units.js")
-const ggeConfig = require("./ggeConfig.json")
+const ggeConfig = require("./config.js")
 
 let wavePattern = {
   leftFlank: {
@@ -43,7 +43,7 @@ let createLayout = (left, middle, right, courtyard) => {
 
     await PImage.registerFont(ggeConfig.fontPath, "arial").load()
 
-    const img = await PImage.decodePNGFromStream(fs.createReadStream("./assets/asset.png"))
+    const img = await PImage.decodePNGFromStream(fs.createReadStream(require("node:path").join(__dirname, "assets", "asset.png")))
     const ctx = img.getContext("2d")
 
     const displayAttack = (attack, attackSection) =>

@@ -13,7 +13,9 @@ const { DatabaseSync } = require('node:sqlite')
 const { Worker } = require('node:worker_threads')
 const { Client, Events, GatewayIntentBits, PermissionFlagsBits } = require('discord.js')
 const ErrorType = require('./errors.json')
-const ActionType = require('./actions.json')
+const botCore = path.join(__dirname, 'packages', 'bot-core')
+const paths = require('./packages/bot-core/paths.js')
+const ActionType = require('./packages/bot-core/actions.json')
 const { I18n } = require('i18n')
 const { EventEmitter } = require('node:stream')
 // if(process.platform === "win32")
@@ -218,27 +220,27 @@ async function start() {
 
     let str2 = undefined
     try {
-      str2 = (await fs.readFile('./ItemsVersion.properties')).toString()
+      str2 = (await fs.readFile(path.join(paths.data, 'ItemsVersion.properties'))).toString()
     }
     catch { }
 
     let needItems = needLang = str != str2
     try {
-      await fs.access('./items')
+      await fs.access(paths.items)
     }
     catch {
       needItems = true
-      await fs.mkdir('./items')
+      await fs.mkdir(paths.items, { recursive: true })
     }
     if (needItems) {
-      await fs.writeFile('./ItemsVersion.properties', str)
+      await fs.writeFile(path.join(paths.data, 'ItemsVersion.properties'), str)
 
       const response = await fetch(`https://empire-html5.goodgamestudios.com/default/items/items_v${str.match(new RegExp(/(?!.*=).*/))[0]}.json`)
       for (const [key, value] of Object.entries(await response.json())) {
         if (!/^[A-Za-z\_]+$/.test(key))
           continue
 
-        await fs.writeFile(`./items/${key}.json`, JSON.stringify(value))
+        await fs.writeFile(path.join(paths.items, `${key}.json`), JSON.stringify(value))
       }
     }
   }
@@ -246,11 +248,11 @@ async function start() {
   async function getLangJSON() {
     try {
       try {
-        await fs.access("./lang")
+        await fs.access(paths.lang)
       } catch {
-        await fs.mkdir("./lang")
+        await fs.mkdir(paths.lang, { recursive: true })
       }
-      await fs.access(`./lang/${i18n.getLocale()}.json`)
+      await fs.access(path.join(paths.lang, `${i18n.getLocale()}.json`))
     }
     catch {
       needLang = true
@@ -262,12 +264,12 @@ async function start() {
       })
       const str = await response.text()
 
-      await fs.writeFile(`./lang/${i18n.getLocale()}.json`, str)
+      await fs.writeFile(path.join(paths.lang, `${i18n.getLocale()}.json`), str)
     }
   }
   async function getServerXML() {
     try {
-      await fs.access('./1.xml')
+      await fs.access(path.join(paths.data, '1.xml'))
     }
     catch {
       needLang = true
@@ -276,7 +278,7 @@ async function start() {
       const response = await fetch('https://empire-html5.goodgamestudios.com/config/network/1.xml')
       const str = await response.text()
 
-      await fs.writeFile('./1.xml', str)
+      await fs.writeFile(path.join(paths.data, '1.xml'), str)
     }
   }
 
@@ -285,7 +287,7 @@ async function start() {
   await getServerXML()
 
   const instances = []
-  const json = await parseStringPromise((await fs.readFile('./1.xml')).toString())
+  const json = await parseStringPromise((await fs.readFile(path.join(paths.data, '1.xml'))).toString())
 
   json.network.instances[0].instance.forEach(e =>
     instances.push({
@@ -300,7 +302,8 @@ async function start() {
     gameID: 100 + 3
   })
 
-  let pluginData = require('./plugins')
+  Object.assign(require('./packages/bot-core/config.js'), ggeConfig)
+  let pluginData = require('./packages/bot-core/plugins')
 
   try {
     pluginData.push(...require('./plugins-extra'))
@@ -333,12 +336,12 @@ async function start() {
   app.get('/1.xml', (_, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Content-Type', 'application/xml')
-    res.sendFile('1.xml', { root: "." })
+    res.sendFile('1.xml', { root: paths.data })
   })
   app.get('/assets.json', (_, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Content-Type', 'application/json')
-    res.sendFile('assets.json', { root: "." })
+    res.sendFile('assets.json', { root: botCore })
   })
   app.post('/api', bodyParser.json(), async (req, res) => {
     let json = req.body
@@ -532,7 +535,7 @@ async function start() {
         data2.gameServer ??= instance.gameServer
         data2.gameID ??= instance.gameID
 
-        const worker = new Worker('./ggeBot.js', { workerData: { ...data2, discordData } })
+        const worker = new Worker(path.join(botCore, 'ggeBot.js'), { workerData: { ...data2, discordData, ggeConfig } })
         worker.messageBuffer = messageBuffer
         worker.messageBufferCount = messageBufferCount
         worker.on('message', async obj => {
@@ -578,7 +581,7 @@ async function start() {
       }
     }
 
-    const worker = new Worker('./ggeBot.js', { workerData: { ...data, discordData } })
+    const worker = new Worker(path.join(botCore, 'ggeBot.js'), { workerData: { ...data, discordData, ggeConfig } })
 
     worker.messageBuffer = messageBuffer
     worker.messageBufferCount = messageBufferCount

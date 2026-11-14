@@ -14,15 +14,9 @@ importers:
       bufferutil:
         specifier: ^4.1.0
         version: 4.2.0
-      dayjs:
-        specifier: ^1.11.21
-        version: 1.11.23
       discord.js:
         specifier: ^14.27.0
         version: 14.28.1(bufferutil@4.2.0)
-      emoji-dictionary:
-        specifier: ^1.0.12
-        version: 1.0.12
       express:
         specifier: ^5.2.1
         version: 5.3.0
@@ -32,24 +26,6 @@ importers:
       i18n:
         specifier: ^0.15.3
         version: 0.15.4
-      limiter:
-        specifier: ^3.0.0
-        version: 3.0.0
-      node-cache:
-        specifier: ^5.1.2
-        version: 5.1.2
-      pretty-time:
-        specifier: ^1.1.0
-        version: 1.1.0
-      pureimage:
-        specifier: ^0.4.20
-        version: 0.4.20
-      sharp:
-        specifier: ^0.35.3
-        version: 0.35.5(@types/node@26.6.6)
-      turl:
-        specifier: ^1.1.2
-        version: 1.1.2
       undici:
         specifier: ^8.7.0
         version: 8.12.4
@@ -72,6 +48,46 @@ importers:
       npm-check-updates:
         specifier: ^23.1.1
         version: 23.1.1
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
+
+  packages/bot-core:
+    dependencies:
+      bufferutil:
+        specifier: ^4.2.0
+        version: 4.2.0
+      discord.js:
+        specifier: ^14.28.1
+        version: 14.28.1(bufferutil@4.2.0)
+      emoji-dictionary:
+        specifier: ^1.0.12
+        version: 1.0.12
+      i18n:
+        specifier: ^0.15.4
+        version: 0.15.4
+      limiter:
+        specifier: ^3.0.0
+        version: 3.0.0
+      node-cache:
+        specifier: ^5.1.2
+        version: 5.1.2
+      pretty-time:
+        specifier: ^1.1.0
+        version: 1.1.0
+      pureimage:
+        specifier: ^0.4.20
+        version: 0.4.20
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.6)
+      turl:
+        specifier: ^1.1.2
+        version: 1.1.2
+      ws:
+        specifier: ^8.23.0
+        version: 8.23.0(bufferutil@4.2.0)
+    devDependencies:
       vitest:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6))
@@ -630,9 +646,6 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
-
-  dayjs@1.11.23:
-    resolution: {integrity: sha512-QDTCU0M0MxR3hQfnlDJfwekQiaanm1ubOD231u73WBckQ/fsamwRLiE2GBz6D3a/xF1NgfiDLJjXBa1hYOYTtQ==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1945,8 +1958,6 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
-
-  dayjs@1.11.23: {}
 
   debug@4.4.3:
     dependencies:

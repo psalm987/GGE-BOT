@@ -10,7 +10,7 @@ const path = require("node:path")
 const { RateLimiter } = require("limiter")
 const WebSocket = require("ws")
 const { I18n } = require("i18n")
-const ggeConfig = require("./ggeConfig.json")
+const ggeConfig = require("./config.js")
 const ActionType = require("./actions.json")
 const err = require("./err.json")
 
@@ -19,7 +19,7 @@ const events = new EventEmitter()
 const xtHandler = new EventEmitter()
 const i18n = new I18n({
     locales: ['en', 'de', 'ar', 'fi', 'he', 'hu', 'pl', 'ro', 'tr', 'cs', 'nl', 'fr'],
-    directory: path.join(__dirname, "website", "public", 'locales'),
+    directory: require("./paths.js").locales,
     updateFiles: false
 })
 const _console = console
@@ -431,7 +431,8 @@ for (const [, val] of Object.entries(botConfig.plugins)) {
     if (!val.state)
         continue
     try {
-        require(`./${val.filename}`)
+        // plugins-extra and plugins-personal live beside the host, not in this package.
+        require(val.filename.startsWith("plugins/") ? `./${val.filename}` : path.join(require("./paths.js").root, val.filename))
     }
     catch (e) {
         console.warn(e)

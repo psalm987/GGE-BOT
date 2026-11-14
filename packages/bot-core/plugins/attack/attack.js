@@ -23,7 +23,7 @@ if (require('node:worker_threads').isMainThread) {
 const { RateLimiter } = require('limiter')
 const { resources } = require('../../protocols')
 const { botConfig, playerInfo, xtHandler } = require('../../ggeBot')
-const stables = require('../../items/horses.json')
+const stables = require("../../paths.js").loadItem("horses")
 
 const getTotalAmountTools = (e, t, n) =>
     1 === e ? t < 11 ? 10 :

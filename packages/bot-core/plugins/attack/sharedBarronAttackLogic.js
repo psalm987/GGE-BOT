@@ -20,7 +20,7 @@ const minTroopCount = 80
 const troopBlackList = [277]
 
 try {
-    var { recruitTroops } = require("../../plugins-extra/externalEventHelper.js")
+    var { recruitTroops } = require(require("../../paths.js").extraPlugin("externalEventHelper.js"))
 }
 catch (e) {
     console.debug(e)

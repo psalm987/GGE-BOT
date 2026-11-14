@@ -30,7 +30,7 @@ if (require('node:worker_threads').isMainThread) {
         ]
     }
     try {
-        fs.accessSync("./plugins-extra/upgradeStormCargo.js")
+        fs.accessSync(require("../../paths.js").extraPlugin("upgradeStormCargo.js"))
         module.exports.pluginOptions.push({
             type: "Checkbox",
             key: "upgradeStormForts"
@@ -62,7 +62,7 @@ const pluginOptions =
 
 if (pluginOptions.upgradeStormForts) {
     try {
-        require("../../plugins-extra/upgradeStormCargo.js")
+        require(require("../../paths.js").extraPlugin("upgradeStormCargo.js"))
     }
     catch (e) {
         console.warn(e)

@@ -5,6 +5,8 @@ description: Formal check (TLA+ model plus a conformance run of the real code) t
 
 # Commander pool verification
 
+The code and the harness live in `packages/bot-core/`. Paths below are relative to that folder unless they start with `packages/`.
+
 ## What it checks
 
 Every attack plugin borrows commanders from one pool in `plugins/commander.js`. The check proves four rules for every order in which the plugins' steps can interleave, within the bounds below:
@@ -19,7 +21,7 @@ Every attack plugin borrows commanders from one pool in `plugins/commander.js`. 
 ## Run it
 
 ```sh
-verification/commander-pool/check.sh
+pnpm test:formal   # from the repo root; runs packages/bot-core/verification/commander-pool/check.sh
 ```
 
 The check needs Java 11+ and Node. The first run downloads `tla2tools.jar` 1.7.4 to `~/.cache/gge-bot-tla/` and checks its SHA-256. The script reads `TLA2TOOLS_JAR` if the jar is somewhere else. A full run takes about 40 s.
@@ -68,7 +70,8 @@ These files and functions were last confirmed to match the model at sync commit 
 To see what changed since the sync commit:
 
 ```sh
-git diff 1bf623d63252576f05233bac46d74a1ddb35ed38 -- plugins/commander.js plugins/attack/ protocols.js ggeBot.js
+git diff -M 1bf623d63252576f05233bac46d74a1ddb35ed38 -- plugins/commander.js plugins/attack/ protocols.js ggeBot.js \
+  packages/bot-core/plugins/commander.js packages/bot-core/plugins/attack/ packages/bot-core/protocols.js packages/bot-core/ggeBot.js
 ```
 
 A new attack plugin that borrows commanders is covered code too. Add it to the table under the shape it uses.

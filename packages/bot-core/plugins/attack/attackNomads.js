@@ -21,9 +21,8 @@ if (require('node:worker_threads').isMainThread)
                 default: "4"
             },
             {
-                type: "Text",
-                key: "commanderWhiteList",
-                default: "1-99"
+                type: "Checkbox",
+                key: "eventWallToolsFirst"
             },
             {
                 type: "Checkbox",
@@ -47,8 +46,18 @@ if (require('node:worker_threads').isMainThread)
             },
             {
                 type: "Checkbox",
+                key: "useFood",
+                default: true
+            },
+            {
+                type: "Checkbox",
                 key: "foodTroopsOnly",
                 default: false
+            },
+            {
+                type: "Text",
+                key: "commanderWhiteList",
+                default: "1-99"
             },
             {
                 type: "Text",
@@ -57,25 +66,26 @@ if (require('node:worker_threads').isMainThread)
         ]
 
     }
+
 const pretty = require('pretty-time')
+const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
-const { movementEvents, ClassTypes, castles, AreaType, KingdomID, ClientCommands } = require('../../protocols')
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave } = require("./attack")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
+const { movementEvents, AreaType, KingdomID, castles, ClientCommands } = require("../../protocols.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave } = require("./attack.js")
+const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 
-const eventsDifficulties = require("../../items/eventAutoScalingDifficulties.json")
-const ggeConfig = require("../../ggeConfig.json")
-const samuraiCampsClassic = require("../../items/samuraiCamps.json")
-const eventAutoScalingCamps = require("../../items/eventAutoScalingCamps.json")
-
+const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
+const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
+const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
+const ggeConfig = require("../../config.js")
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
-const err = require('../../err.json')
+
 const kingdomID = KingdomID.greatEmpire
-const type = AreaType.samCamp
+const type = AreaType.nomadCamp
 const minTroopCount = 100
-const eventID = 80
-let samsPoints = 0
+const eventID = 72
+let nomadsPoints = 0
 
 const skipTarget = async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
@@ -102,25 +112,25 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
 })
 
 let quit = false
-xtHandler.on("pep", obj => {
-    if (pluginOptions.scoreShutoff <= 0)
-        pluginOptions.scoreShutoff = Infinity
 
+xtHandler.on("pep", obj => {
     if (obj.EID != eventID)
         return
-    samsPoints = Number(obj.OP[0])
 
-    if (quit)
-        return
+    if (pluginOptions.nomadsScoreShutoff <= 0)
+        pluginOptions.nomadsScoreShutoff = Infinity
 
-    if (samsPoints >= pluginOptions.scoreShutoff) {
-        console.log("shuttingDownEvent", "ScoreReached")
+    nomadsPoints = Number(obj.OP[0])
+    if (nomadsPoints >= pluginOptions.nomadsScoreShutoff) {
+        console.log("shuttingDownEvent", "scoreReached")
         quit = true
     }
 })
+
 events.on("eventStop", eventInfo => {
     if (eventInfo.EID != eventID)
         return
+
     if (quit)
         return
 
@@ -143,14 +153,14 @@ events.on("eventStart", async eventInfo => {
         eventInfo.EDID = eventDifficultyID
     }
     let classic = false
-    if ([0, -1].includes(eventInfo.EDID))
+    if ([-1, 0].includes(eventInfo.EDID))
         classic = true
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
     const areas = (await ClientCommands.getAreaInfo(kingdomID,
-                castle.areaInfo.x - 50, castle.areaInfo.y - 50,
-                castle.areaInfo.x + 50, castle.areaInfo.y + 50)).areaInfo.filter(ai => ai.type == type)
+        castle.areaInfo.x - 50, castle.areaInfo.y - 50,
+        castle.areaInfo.x + 50, castle.areaInfo.y + 50)).areaInfo.filter(ai => ai.type == type)
         .sort((a, b) =>
             (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
             (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
@@ -168,17 +178,17 @@ events.on("eventStart", async eventInfo => {
 
                 await skipTarget(areaInfo)
 
-                const campInfo = classic ? samuraiCampsClassic.find(obj => (areaInfo.extraData[1] + 1) == Number(obj.countVictory)) :
+                const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
 
-                const level = Number(classic ? (80 + Number(campInfo.countVictory)) : campInfo.camplevel)
+                const level = Number(classic ? (80 + campInfo.countVictory) : campInfo.camplevel)
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
-                const attackerSamuraiTools = []
-                const attackerWallSamuraiTools = []
-                const attackerGateSamuraiTools = []
-                const attackerShieldSamuraiTools = []
+                const attackerNomadTools = []
+                const attackerWallNomadTools = []
+                const attackerGateNomadTools = []
+                const attackerShieldNomadTools = []
                 const attackerWallTools = []
                 const attackerShieldTools = []
 
@@ -190,15 +200,15 @@ events.on("eventStart", async eventInfo => {
                     if (unit.unitInfo.wodID == 277)
                         continue
 
-                    else if (unit.unitInfo.samuraiTokenBooster != undefined) {
+                    else if (unit.unitInfo.khanTabletBooster != undefined && unit.unitInfo.ragePointBonus == undefined) {
                         if (unit.unitInfo.gateBonus)
-                            attackerGateSamuraiTools.push(unit)
+                            attackerGateNomadTools.push(unit)
                         else if (unit.unitInfo.wallBonus)
-                            attackerWallSamuraiTools.push(unit)
+                            attackerWallNomadTools.push(unit)
                         else if (unit.unitInfo.defRangeBonus)
-                            attackerShieldSamuraiTools.push(unit)
+                            attackerShieldNomadTools.push(unit)
                         else
-                            attackerSamuraiTools.push(unit)
+                            attackerNomadTools.push(unit)
                     }
                     else if (
                         unit.unitInfo.toolCategory &&
@@ -212,8 +222,10 @@ events.on("eventStart", async eventInfo => {
                         else if (unit.unitInfo.defRangeBonus)
                             attackerShieldTools.push(unit)
                     }
-                    else if (unit.unitInfo.fightType == 0) {
+                    else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
                         if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
+                            continue
+                        if (unit.unitInfo.foodSupply && !pluginOptions.useFood)
                             continue
                         if (unit.unitInfo.role == "melee")
                             attackerMeleeTroops.push(unit)
@@ -230,20 +242,20 @@ events.on("eventStart", async eventInfo => {
                 if (allTroopCount < minTroopCount)
                     throw "NO_MORE_TROOPS"
 
-                attackerSamuraiTools.sort((a, b) =>
-                    Number(b.unitInfo.samuraiTokenBooster) - Number(a.unitInfo.samuraiTokenBooster))
-                attackerGateSamuraiTools.sort((a, b) =>
-                    Number(b.unitInfo.samuraiTokenBooster) - Number(a.unitInfo.samuraiTokenBooster))
-                attackerWallSamuraiTools.sort((a, b) =>
-                    Number(b.unitInfo.samuraiTokenBooster) - Number(a.unitInfo.samuraiTokenBooster))
-                attackerShieldSamuraiTools.sort((a, b) =>
-                    Number(b.unitInfo.samuraiTokenBooster) - Number(a.unitInfo.samuraiTokenBooster))
+                attackerNomadTools.sort((a, b) =>
+                    Number(b.unitInfo.khanTabletBooster) - Number(a.unitInfo.khanTabletBooster))
+                attackerGateNomadTools.sort((a, b) =>
+                    Number(b.unitInfo.khanTabletBooster) - Number(a.unitInfo.khanTabletBooster))
+                attackerWallNomadTools.sort((a, b) =>
+                    Number(b.unitInfo.khanTabletBooster) - Number(a.unitInfo.khanTabletBooster))
+                attackerShieldNomadTools.sort((a, b) =>
+                    Number(b.unitInfo.khanTabletBooster) - Number(a.unitInfo.khanTabletBooster))
 
                 if (pluginOptions.lowValueChests) {
-                    attackerSamuraiTools.reverse()
-                    attackerGateSamuraiTools.reverse()
-                    attackerWallSamuraiTools.reverse()
-                    attackerShieldSamuraiTools.reverse()
+                    attackerNomadTools.reverse()
+                    attackerGateNomadTools.reverse()
+                    attackerWallNomadTools.reverse()
+                    attackerShieldNomadTools.reverse()
                 }
 
                 attackerWallTools.sort((a, b) =>
@@ -252,33 +264,33 @@ events.on("eventStart", async eventInfo => {
                 attackerShieldTools.sort((a, b) =>
                     Number(a.unitInfo.defRangeBonus) - Number(b.unitInfo.defRangeBonus))
 
-                attackerWallSamuraiTools.push(...attackerWallTools)
-                attackerShieldSamuraiTools.push(...attackerShieldTools)
+                attackerWallNomadTools.push(...attackerWallTools)
+                attackerShieldNomadTools.push(...attackerShieldTools)
 
-                const commanderStats = commander.getEffects()
-                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, commanderStats.additionalWaves)
                 const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                 const maxToolsFront = getTotalAmountToolsFront(level)
+                const commanderStats = commander.getEffects()
+                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, commanderStats.additionalWaves)
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                 const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
-                const desiredToolCount = attackerSamuraiTools.length == 0 || !attackerSamuraiTools[0]?.unitInfo?.samuraiTokenBooster ? 20 : 10
+                const desiredToolCount = attackerNomadTools.length == 0 ? 40 : 10
 
                 attackInfo.A.forEach((wave, index) => {
                     let maxTools = maxToolsFlank
                     if (index == 0) {
                         wave.L.T.forEach((unitSlot, i) =>
                             maxTools -= assignUnit(unitSlot, i == 0 ?
-                                attackerWallSamuraiTools : attackerShieldSamuraiTools, Math.min(maxTools, desiredToolCount)))
+                                attackerWallNomadTools : attackerShieldNomadTools, Math.min(maxTools / 2, desiredToolCount)))
 
                         maxTools = maxToolsFlank
                         wave.R.T.forEach((unitSlot, i) =>
                             maxTools -= assignUnit(unitSlot, i == 0 ?
-                                attackerWallSamuraiTools : attackerShieldSamuraiTools, Math.min(maxTools, desiredToolCount)))
+                                attackerWallNomadTools : attackerShieldNomadTools, Math.min(maxTools / 2, desiredToolCount)))
 
                         maxTools = maxToolsFront
                         wave.M.T.forEach((unitSlot, i) =>
-                            maxTools -= assignUnit(unitSlot, i == 0 ? attackerWallSamuraiTools :
-                                i == 1 ? attackerGateSamuraiTools : attackerShieldSamuraiTools, Math.min(maxTools, desiredToolCount)))
+                            maxTools -= assignUnit(unitSlot, i == 0 ? attackerWallNomadTools :
+                                i == 1 ? attackerGateNomadTools : attackerShieldNomadTools, Math.min(maxTools / 3, desiredToolCount)))
 
                         let maxTroops = maxTroopFlank
 
@@ -293,33 +305,32 @@ events.on("eventStart", async eventInfo => {
                         wave.M.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                 attackerMeleeTroops : attackerRangeTroops, maxTroops))
-
                         attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
                         attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
                         return
                     }
                     else if (!pluginOptions.noChests) {
                         const selectTool = i => {
-                            let tools = attackerSamuraiTools
-                            if (tools.length == 0 || !tools[0]?.unitInfo?.samuraiTokenBooster) {
+                            let tools = pluginOptions.eventWallToolsFirst ? [] : attackerNomadTools
+                            if (tools.length == 0 || !tools[0]?.unitInfo.khanTabletBooster) {
                                 if (i == 0) {
-                                    tools = attackerWallSamuraiTools
-                                    if (tools.length == 0 || !tools[0]?.unitInfo?.samuraiTokenBooster)
-                                        tools = attackerShieldSamuraiTools
+                                    tools = attackerWallNomadTools
+                                    if (tools.length == 0 || !tools[0]?.unitInfo.khanTabletBooster)
+                                        tools = attackerShieldNomadTools
                                 }
                                 else if (i == 1) {
-                                    tools = attackerShieldSamuraiTools
-                                    if (tools.length == 0 || !tools[0]?.unitInfo?.samuraiTokenBooster)
-                                        tools = attackerWallSamuraiTools
+                                    tools = attackerShieldNomadTools
+                                    if (tools.length == 0 || !tools[0]?.unitInfo.khanTabletBooster)
+                                        tools = attackerWallNomadTools
                                 }
                                 if (i == 2) {
-                                    tools = attackerGateSamuraiTools
-                                    if (tools.length == 0 || !tools[0]?.unitInfo?.samuraiTokenBooster)
-                                        tools = attackerWallSamuraiTools
-                                    if (tools.length == 0 || !tools[0]?.unitInfo?.samuraiTokenBooster)
-                                        tools = attackerShieldSamuraiTools
+                                    tools = attackerGateNomadTools
+                                    if (tools.length == 0 || !tools[0]?.unitInfo.khanTabletBooster)
+                                        tools = attackerWallNomadTools
+                                    if (tools.length == 0 || !tools[0]?.unitInfo.khanTabletBooster)
+                                        tools = attackerShieldNomadTools
                                 }
-                                if (!tools[0]?.unitInfo?.samuraiTokenBooster)
+                                if (!tools[0]?.unitInfo.khanTabletBooster)
                                     tools = []
                             }
 
@@ -384,6 +395,7 @@ events.on("eventStart", async eventInfo => {
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
             freeCommander(commander.lordID)
+            console.warn(e)
             switch (e) {
                 case "NO_MORE_TROOPS":
                     await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {

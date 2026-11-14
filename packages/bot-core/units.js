@@ -1,6 +1,8 @@
 const fs = require("fs")
 const sharp = require('sharp')
 const { Readable } = require('stream')
+const path = require('node:path')
+const { assetCache } = require('./paths.js')
 const assets = require('./assets.json')
 
 let getAsset = (key, hardFail) => new Promise(async (resolve, reject) => {
@@ -8,7 +10,7 @@ let getAsset = (key, hardFail) => new Promise(async (resolve, reject) => {
         return resolve(await getAsset(`Unknown_Unit_Soldiers`, true))
 
     try {
-        const data = fs.createReadStream(`./assets/${assets[key]}.png`)
+        const data = fs.createReadStream(path.join(assetCache, `${assets[key]}.png`))
         data.on("error", async err => {
             console.debug(err)
             try {
@@ -37,8 +39,8 @@ let getAsset = (key, hardFail) => new Promise(async (resolve, reject) => {
                     return resolve(await getAsset(`Unknown_Unit_Soldiers`, true))
                 }
 
-                fs.mkdirSync(`./assets/${assets[key].replace(/\/[^\/]+\/?$/, '')}`, { recursive: true })
-                await convertedImage.toFile(`./assets/${assets[key]}.png`)
+                fs.mkdirSync(path.dirname(path.join(assetCache, assets[key])), { recursive: true })
+                await convertedImage.toFile(path.join(assetCache, `${assets[key]}.png`))
                 resolve(Readable.from(convertedImageBuffer))
             }
             catch (e) {

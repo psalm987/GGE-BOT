@@ -6,8 +6,8 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "test": "vitest run",
-    "test:formal": "verification/commander-pool/check.sh",
+    "test": "pnpm -r test",
+    "test:formal": "pnpm --filter @gge/bot-core test:formal",
     "lint": "eslint .",
     "check": "pnpm lint && pnpm test && pnpm test:formal",
     "outdated": "npm-check-updates"
@@ -15,18 +15,10 @@
   "dependencies": {
     "body-parser": "^2.4.0",
     "bufferutil": "^4.1.0",
-    "dayjs": "^1.11.21",
     "discord.js": "^14.27.0",
-    "emoji-dictionary": "^1.0.12",
     "express": "^5.2.1",
     "http-proxy-middleware": "^4.2.0",
     "i18n": "^0.15.3",
-    "limiter": "^3.0.0",
-    "node-cache": "^5.1.2",
-    "pretty-time": "^1.1.0",
-    "pureimage": "^0.4.20",
-    "sharp": "^0.35.3",
-    "turl": "^1.1.2",
     "undici": "^8.7.0",
     "ws": "^8.21.1",
     "xml2js": "^0.6.2"

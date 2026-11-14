@@ -5,7 +5,7 @@ const { SlashCommandBuilder, Interaction } = require('discord.js')
 const { commands } = require("./discord.js")
 const { xtHandler, sendXT, waitForResult, events, botConfig, playerInfo } = require("../../ggeBot.js")
 const { ClientCommands, HighscoreType, AreaType } = require("../../protocols.js")
-const ggeConfig = require("../../ggeConfig.json")
+const ggeConfig = require("../../config.js")
 
 let playerids = []
 async function getStormRanks(i) {
@@ -636,7 +636,7 @@ let getAllianceQuestPointCount = async (interaction) => {
 module.exports = { genericAutoComplete }
 
 try {
-    require('../../plugins-extra/discord/extraSlashCommands.js')
+    require(require("../../paths.js").extraPlugin("discord/extraSlashCommands.js"))
 }
 catch(e) {
     console.debug(e)

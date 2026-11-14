@@ -46,8 +46,6 @@ function loadModule(relPath, { bot = fakeBot(), items = {}, extra = {}, mainThre
         const item = request.match(/\/items\/([^/]+)\.json$/)
         if (item)
             return items[item[1]] ?? []
-        if (/ggeConfig\.json$/.test(request))
-            return {}
         for (const [pattern, value] of Object.entries(extra))
             if (request.endsWith(pattern))
                 return value

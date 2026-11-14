@@ -44,20 +44,25 @@ cmd_up() {
   fi
   rm -rf "$dir"; mkdir -p "$dir/app"
 
-  # Private copy of the working tree: main.js keeps state in cwd, while ggeBot.js and
-  # plugins/index.js require ../ggeConfig.json relative to their own file.
+  # Private copy of the working tree: main.js keeps user.db and ggeConfig.json in cwd,
+  # and bot-core puts game data in <root>/data relative to its own files.
   rsync -a \
     --exclude .git --exclude node_modules --exclude website --exclude 'user.db*' \
-    --exclude ggeConfig.json --exclude items --exclude lang --exclude 1.xml \
+    --exclude ggeConfig.json --exclude /data \
     --exclude ItemsVersion.properties --exclude credentials --exclude credentials.json \
     --exclude screenshots --exclude verification --exclude .claude --exclude .context-mem \
     --exclude .cursor --exclude .verify-evidence \
     "$REPO/" "$dir/app/"
   ln -s "$REPO/node_modules" "$dir/app/node_modules"
+  for pkg in "$REPO"/packages/*; do
+    if [[ -d "$pkg/node_modules" ]]; then
+      ln -s "$pkg/node_modules" "$dir/app/packages/$(basename "$pkg")/node_modules"
+    fi
+  done
   ln -s "$REPO/website" "$dir/app/website"
   if [[ -d "$SEED/items" ]]; then
-    cp -R "$SEED/items" "$SEED/lang" "$dir/app/"
-    cp "$SEED/1.xml" "$SEED/ItemsVersion.properties" "$dir/app/"
+    mkdir -p "$dir/app/data"
+    cp -R "$SEED/items" "$SEED/lang" "$SEED/1.xml" "$SEED/ItemsVersion.properties" "$dir/app/data/"
   fi
   cat > "$dir/app/ggeConfig.json" <<JSON
 {
@@ -88,10 +93,9 @@ JSON
     pid_alive "$pid" || { tail -30 "$dir/server.log" >&2; die "server exited during startup"; }
     if grep -q '^Started\.$' "$dir/server.log" \
       && curl -fsS "http://127.0.0.1:$port/signin.html" >/dev/null 2>&1; then
-      if [[ ! -d "$SEED/items" && -d "$dir/app/items" ]]; then
+      if [[ ! -d "$SEED/items" && -d "$dir/app/data/items" ]]; then
         mkdir -p "$SEED"
-        cp -R "$dir/app/items" "$dir/app/lang" "$SEED/"
-        cp "$dir/app/1.xml" "$dir/app/ItemsVersion.properties" "$SEED/"
+        cp -R "$dir/app/data/items" "$dir/app/data/lang" "$dir/app/data/1.xml" "$dir/app/data/ItemsVersion.properties" "$SEED/"
       fi
       echo "ready: name=$name pid=$pid url=http://127.0.0.1:$port signupToken=$SIGNUP_TOKEN dir=$dir"
       return 0
