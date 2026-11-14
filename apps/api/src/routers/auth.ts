@@ -116,7 +116,9 @@ export async function requestPasswordReset(ctx: Ctx, input: { email: string }) {
         .where(and(eq(users.emailCanonical, sql`canonical_email(${input.email})`), eq(users.status, "active"), isNotNull(users.emailVerifiedAt)))
     // Detached so a verified address answers as fast as an unknown one. A lookalike address
     // (a+x@ for a@) matches the account, but the link only ever goes to the stored address.
-    if (user?.email)
+    // The per-account cap stops variants each spending their own per-address allowance on
+    // one inbox; going over it skips the send silently so the reply never reveals the account.
+    if (user?.email && ctx.limits.email.hit(`reset-account:${user.id}`))
         void sendResetLink(ctx, user.id, user.email).catch(error => ctx.req.log.error({ err: error }, "password reset request failed"))
     return { ok: true as const }
 }

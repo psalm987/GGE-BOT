@@ -70,4 +70,16 @@ describe("one mailbox, one account", () => {
         const token = new URL(mails[0]!.text.match(/https?:\/\/\S+/)![0]).searchParams.get("token")!
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: "a brand new password" }))).toBe("ok")
     })
+
+    test("address variants share one reset allowance per account", async () => {
+        await api.player("flooded", "flooded@gmail.com")
+        const before = api.sent.filter(m => m.to === "flooded@gmail.com" && m.tag === "reset_password").length
+        for (let i = 0; i < 6; i++)
+            expect(await api.client().api.auth.requestPasswordReset({ email: `flooded+${i}@gmail.com` })).toEqual({ ok: true })
+        await vi.waitFor(() => {
+            if (api.sent.filter(m => m.to === "flooded@gmail.com" && m.tag === "reset_password").length < before + 3) throw new Error("waiting for mail")
+        })
+        await new Promise(resolve => setTimeout(resolve, 200))
+        expect(api.sent.filter(m => m.to === "flooded@gmail.com" && m.tag === "reset_password").length).toBe(before + 3)
+    })
 })
