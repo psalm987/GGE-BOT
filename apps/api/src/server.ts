@@ -1,5 +1,6 @@
 import cookie from "@fastify/cookie"
 import { onError } from "@orpc/server"
+import * as Sentry from "@sentry/node"
 import { RPCHandler } from "@orpc/server/fastify"
 import { sql } from "drizzle-orm"
 import Fastify, { type FastifyInstance } from "fastify"
@@ -15,6 +16,7 @@ import { createRateLimiter } from "./services/rate-limit.ts"
 export async function buildServer({ db, env, logger = true }: { db: Db; env: Env; logger?: boolean }): Promise<FastifyInstance> {
     // Caddy terminates TLS in front of us; trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
+    Sentry.setupFastifyErrorHandler(app)
     await app.register(cookie)
     // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc and /healthz.
     await app.register(metricsPlugin.default, { endpoint: "/metrics", routeMetrics: { routeBlacklist: ["/metrics", "/healthz"] } })
@@ -27,10 +29,13 @@ export async function buildServer({ db, env, logger = true }: { db: Db; env: Env
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
         user: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
     }
+    // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.
     const logServerError = (error: unknown) => {
         const status = (error as { status?: number })?.status
-        if (status === undefined || status >= 500)
+        if (status === undefined || status >= 500) {
             app.log.error(error)
+            Sentry.captureException(error)
+        }
     }
 
     const mount = (prefix: string, handler: RPCHandler<Ctx>, origins: string[]) =>

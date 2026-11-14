@@ -1,4 +1,6 @@
+import "./instrument.ts"
 import "@gge/ui/styles.css"
+import * as Sentry from "@sentry/react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
@@ -15,7 +17,11 @@ import { Users } from "./pages/Users.tsx"
 
 const guarded = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root")!, {
+    onUncaughtError: Sentry.reactErrorHandler(),
+    onCaughtError: Sentry.reactErrorHandler(),
+    onRecoverableError: Sentry.reactErrorHandler(),
+}).render(
     <StrictMode>
         <CampaignProvider>
             <QueryClientProvider client={queryClient}>

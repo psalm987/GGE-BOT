@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # One image definition, three targets: node (api, runner, migrate, tools) and web (Caddy with both apps).
 # The TypeScript services run from source with Node's type stripping, so there is no build step for them.
 
@@ -22,7 +23,11 @@ FROM deps AS web-build
 COPY . .
 ARG VITE_CLIENT_URL
 ARG VITE_GRAFANA_URL
-RUN pnpm --filter @gge/client build && pnpm --filter @gge/admin build
+ARG VITE_SENTRY_DSN
+ARG VITE_GGE_VERSION
+# The Sentry token is a build secret, so it never lands in an image layer.
+RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN,required=false \
+    pnpm --filter @gge/client build && pnpm --filter @gge/admin build
 
 FROM caddy:2.10-alpine AS web
 # infra/Caddyfile terminates TLS itself; infra/Caddyfile.dokploy serves plain HTTP behind Dokploy's Traefik.

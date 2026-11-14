@@ -101,12 +101,12 @@ const run = (name: string, cmd: string, args: string[], cwd: string) => {
     child.on("exit", code => code && console.error(`${name} exited with ${code}`))
     children.push(child)
 }
-run("api", "node", ["src/main.ts"], path.join(root, "apps/api"))
+run("api", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/api"))
 run("client", "pnpm", ["exec", "vite", "--port", "5173", "--strictPort"], path.join(root, "apps/client"))
 if (existsSync(path.join(root, "apps/admin/package.json")))
     run("admin", "pnpm", ["exec", "vite", "--port", "5174", "--strictPort"], path.join(root, "apps/admin"))
 if (withRunner)
-    run("runner", "node", ["src/main.ts"], path.join(root, "apps/runner"))
+    run("runner", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/runner"))
 
 console.log(`
   Player app   http://localhost:5173   demo / demo-password

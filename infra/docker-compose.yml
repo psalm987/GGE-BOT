@@ -11,6 +11,7 @@ x-node: &node
     DATABASE_URL: postgres://gge@postgres:5432/gge
     PGPASSWORD: ${POSTGRES_PASSWORD}
     GGE_VERSION: ${GGE_VERSION:-latest}
+    SENTRY_DSN: ${SENTRY_DSN:-}
   depends_on:
     migrate: { condition: service_completed_successfully }
 
@@ -43,7 +44,7 @@ services:
 
   api:
     <<: *node
-    command: ["node", "apps/api/src/main.ts"]
+    command: ["node", "--import", "./apps/api/src/instrument.ts", "apps/api/src/main.ts"]
     environment:
       <<: *node-env
       SEAL_PUBLIC_KEY: ${SEAL_PUBLIC_KEY:?set SEAL_PUBLIC_KEY in infra/.env}
@@ -58,7 +59,7 @@ services:
 
   runner:
     <<: *node
-    command: ["node", "apps/runner/src/main.ts"]
+    command: ["node", "--import", "./apps/runner/src/instrument.ts", "apps/runner/src/main.ts"]
     # The runner holds an advisory lock; a second copy exits. Keep one replica.
     stop_grace_period: 60s
     environment:
@@ -80,6 +81,9 @@ services:
       args:
         VITE_CLIENT_URL: https://app.${DOMAIN}
         VITE_GRAFANA_URL: https://grafana.${DOMAIN}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_GGE_VERSION: ${GGE_VERSION:-latest}
+      secrets: [sentry_auth_token]
     image: gge-web:${GGE_VERSION:-latest}
     restart: unless-stopped
     environment:
@@ -133,3 +137,8 @@ volumes:
   prometheus:
   grafana:
   backups:
+
+secrets:
+  # Uploads frontend source maps at build time; unset skips the upload.
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN

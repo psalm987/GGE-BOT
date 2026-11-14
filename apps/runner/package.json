@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/main.ts",
+    "start": "node --import ./src/instrument.ts src/main.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -13,6 +13,7 @@
     "@gge/crypto": "workspace:*",
     "@gge/db": "workspace:*",
     "@opentelemetry/api": "1.10.0",
+    "@sentry/node": "11.10.0",
     "drizzle-orm": "^0.45.4",
     "fast-xml-parser": "^5.12.1",
     "i18n": "^0.15.4",

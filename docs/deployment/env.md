@@ -17,6 +17,9 @@
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep on the host. Default 14. |
+| `SENTRY_DSN` | api, runner | no | DSN of the `gge-bot-server` Sentry project. Empty turns server-side Sentry off. |
+| `VITE_SENTRY_DSN` | web (build) | no | DSN of the `gge-bot-frontend` Sentry project, baked into both apps at build time. Empty turns browser Sentry off. |
+| `SENTRY_AUTH_TOKEN` | web (build secret) | no | Sentry organization token. The web build uploads source maps with it so production stack traces stay readable, then deletes them. Empty skips the upload and builds no source maps. |
 
 ## Set inside the compose file (no need to touch)
 
