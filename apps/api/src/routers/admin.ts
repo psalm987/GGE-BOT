@@ -69,9 +69,11 @@ export const adminRouter = os.router({
         list: os.users.list.use(admin).handler(({ context: { db }, input }) =>
             db.select({
                 id: users.id, username: users.username, role: users.role, status: users.status, createdAt: users.createdAt,
-                accountCount: sql<number>`(select count(*)::int from ${gameAccounts} where ${gameAccounts.ownerId} = ${users.id})`,
+                accountCount: count(gameAccounts.id),
             }).from(users)
+                .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
                 .where(input.search ? ilike(users.username, `%${input.search.replace(/[%_\\]/g, "\\$&")}%`) : undefined)
+                .groupBy(users.id)
                 .orderBy(users.createdAt)),
         setStatus: os.users.setStatus.use(admin).handler(async ({ context: { db, user }, input }) => {
             notSelf(user.id, input.id, "You can't disable yourself")

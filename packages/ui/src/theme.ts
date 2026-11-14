@@ -13,6 +13,10 @@ export const palette = {
     crimson: "#D7263D",
     azure: "#3D7FE0",
     emerald: "#2E9A5B",
+    // Lighter twins for text: the brand colours pass 3:1 for icons and borders, not 4.5:1 for words.
+    crimsonText: "#FF7B8A",
+    azureText: "#6FA3F0",
+    emeraldText: "#4CC07F",
     amber: "#F08C2E",
     rule: "#4A3B26",
 } as const
@@ -21,7 +25,7 @@ export const campaignTheme: ThemeConfig = {
     algorithm: theme.darkAlgorithm,
     token: {
         colorPrimary: palette.gold,
-        colorError: palette.crimson,
+        colorError: palette.crimsonText,
         colorInfo: palette.azure,
         colorSuccess: palette.emerald,
         colorWarning: palette.amber,
@@ -54,7 +58,7 @@ export const campaignTheme: ThemeConfig = {
             darkItemSelectedColor: palette.gold,
             itemHeight: 44,
         },
-        Button: { primaryColor: "#1A130D", fontWeight: 600, primaryShadow: "0 2px 0 rgba(0, 0, 0, 0.35)" },
+        Button: { primaryColor: "#1A130D", dangerColor: "#1A130D", fontWeight: 600, primaryShadow: "0 2px 0 rgba(0, 0, 0, 0.35)" },
         Card: { headerBg: "transparent", headerFontSize: 17 },
         Table: { headerBg: palette.raised, headerColor: palette.muted, rowHoverBg: "rgba(224, 165, 38, 0.06)", rowSelectedBg: "rgba(224, 165, 38, 0.10)", rowSelectedHoverBg: "rgba(224, 165, 38, 0.14)" },
         Drawer: { colorBgElevated: palette.surface },

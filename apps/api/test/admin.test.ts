@@ -43,6 +43,14 @@ describe("managing users", () => {
         expect(all.find(a => a.id === id)).toMatchObject({ owner: "rowdy", desiredState: "stopped" })
     })
 
+    test("the user list counts each player's game accounts", async () => {
+        const p = await api.player("counted")
+        await p.api.accounts.create({ name: "C1", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
+        await p.api.accounts.create({ name: "C2", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
+        const [row] = await admin.api.users.list({ search: "counted" })
+        expect(row).toMatchObject({ username: "counted", accountCount: 2 })
+    })
+
     test("an admin can't disable or demote themselves", async () => {
         const me = await userId("boss")
         expect(await codeOf(admin.api.users.setStatus({ id: me, status: "disabled" }))).toBe("BAD_REQUEST")

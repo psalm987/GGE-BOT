@@ -13,20 +13,25 @@ const contrast = (a: string, b: string) => {
 
 const grounds = { ink: palette.ink, surface: palette.surface, raised: palette.raised, sider: palette.sider }
 
-// WCAG AA: 4.5:1 for body text, 3:1 for large text and UI glyphs such as status sigils.
+// WCAG AA: 4.5:1 for text (status labels and error messages are small text),
+// 3:1 for icons and borders.
 test.each([
     ["body text", palette.parchment, 4.5],
     ["secondary text", palette.muted, 4.5],
     ["gold links and selected nav", palette.gold, 4.5],
-    ["emerald status", palette.emerald, 3],
-    ["azure status", palette.azure, 3],
-    ["amber status", palette.amber, 3],
-    ["crimson status and danger text", palette.crimson, 3],
+    ["running label", palette.emeraldText, 4.5],
+    ["starting label", palette.azureText, 4.5],
+    ["wrong-password label", palette.amber, 4.5],
+    ["error, banned and danger text", palette.crimsonText, 4.5],
+    ["status icons and borders: emerald", palette.emerald, 3],
+    ["status icons and borders: azure", palette.azure, 3],
+    ["status icons and borders: crimson", palette.crimson, 3],
 ])("%s is readable on every ground", (_, color, minimum) => {
     for (const [name, ground] of Object.entries(grounds))
         expect(contrast(color, ground), `${color} on ${name}`).toBeGreaterThanOrEqual(minimum)
 })
 
-test("primary button text is readable on gold", () => {
+test("text on filled buttons is readable: primary on gold, danger on crimson", () => {
     expect(contrast("#1A130D", palette.gold)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast("#1A130D", palette.crimsonText)).toBeGreaterThanOrEqual(4.5)
 })

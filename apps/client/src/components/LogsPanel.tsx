@@ -12,7 +12,7 @@ type Line = { id: number; ts: Date; level: number; message: string; parts?: (str
 const LEVELS = [
     { label: "Info", color: "#BFAE8A", icon: <InfoCircleFilled /> },
     { label: "Warning", color: "#F08C2E", icon: <WarningFilled /> },
-    { label: "Error", color: "#D7263D", icon: <CloseCircleFilled /> },
+    { label: "Error", color: "#FF7B8A", icon: <CloseCircleFilled /> },
 ]
 
 /** Newest first: live lines on top, history below, older pages on demand. */

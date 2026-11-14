@@ -6,7 +6,7 @@ import relativeTime from "dayjs/plugin/relativeTime"
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import type { PublicAccount } from "@gge/contracts"
-import { CampaignLayout, CrestEmpty, ParchmentCard, SigilStatus } from "@gge/ui"
+import { CampaignLayout, CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
 import { useLogout, useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
@@ -88,8 +88,8 @@ export function Dashboard() {
             }>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                 <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={list.length} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Running now" value={running} styles={{ content: { color: "#2E9A5B" } }} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Need attention" value={attention} styles={{ content: { color: attention ? "#D7263D" : undefined } }} /></ParchmentCard></Col>
+                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Running now" value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
+                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Need attention" value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
             </Row>
 
             <ParchmentCard
