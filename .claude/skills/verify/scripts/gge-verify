@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# Launch, inspect and tear down isolated GGE-BOT instances for verification.
+# Usage: gge-verify setup | up NAME [PORT] | doctor NAME | db NAME [OUTFILE] | logs NAME | down NAME | list
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")/../../../.." && pwd)"
+HOME_DIR="${GGE_VERIFY_HOME:-$HOME/.cache/gge-bot-verify}"
+INSTANCES="$HOME_DIR/instances"
+SEED="$HOME_DIR/seed"
+PW_DIR="$HOME_DIR/pw"
+PW_VERSION="1.57.0"
+SIGNUP_TOKEN="verify"
+
+die() { echo "gge-verify: $*" >&2; exit 1; }
+inst_dir() { [[ "${1:-}" =~ ^[a-z0-9-]+$ ]] || die "instance name must match [a-z0-9-]+"; echo "$INSTANCES/$1"; }
+pid_alive() { [[ -n "${1:-}" ]] && kill -0 "$1" 2>/dev/null; }
+
+cmd_setup() {
+  [[ -d "$REPO/node_modules" ]] || (cd "$REPO" && npm i --no-audit --no-fund)
+  if [[ ! -d "$REPO/website" ]]; then
+    git clone https://github.com/darrenthebozz/GGE-BOT-Website.git "$REPO/website"
+  fi
+  if [[ ! -f "$REPO/website/build/index.html" ]]; then
+    (cd "$REPO/website" && npm i --no-audit --no-fund && npm run build)
+  fi
+  mkdir -p "$PW_DIR"
+  [[ -f "$PW_DIR/package.json" ]] || echo '{"private":true}' > "$PW_DIR/package.json"
+  [[ -d "$PW_DIR/node_modules/playwright" ]] || (cd "$PW_DIR" && npm i --no-audit --no-fund "playwright@$PW_VERSION")
+  (cd "$PW_DIR" && npx playwright install chromium >/dev/null)
+  echo "setup ok: repo deps, website/build, playwright@$PW_VERSION in $PW_DIR"
+}
+
+cmd_up() {
+  local name="$1" port="${2:-}" dir; dir="$(inst_dir "$name")"
+  [[ -f "$REPO/website/build/index.html" ]] || die "website/build missing; run: gge-verify setup"
+  if [[ -f "$dir/pid" ]] && pid_alive "$(cat "$dir/pid")"; then
+    die "instance '$name' already running (pid $(cat "$dir/pid")); use another name or 'down' it"
+  fi
+  if [[ -z "$port" ]]; then
+    port=3101
+    while lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; do port=$((port + 1)); done
+  elif lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+    die "port $port already in use"
+  fi
+  rm -rf "$dir"; mkdir -p "$dir/app"
+
+  # Private copy of the working tree: main.js keeps state in cwd, while ggeBot.js and
+  # plugins/index.js require ../ggeConfig.json relative to their own file.
+  rsync -a \
+    --exclude .git --exclude node_modules --exclude website --exclude 'user.db*' \
+    --exclude ggeConfig.json --exclude items --exclude lang --exclude 1.xml \
+    --exclude ItemsVersion.properties --exclude credentials --exclude credentials.json \
+    --exclude screenshots --exclude verification --exclude .claude --exclude .context-mem \
+    --exclude .cursor --exclude .verify-evidence \
+    "$REPO/" "$dir/app/"
+  ln -s "$REPO/node_modules" "$dir/app/node_modules"
+  ln -s "$REPO/website" "$dir/app/website"
+  if [[ -d "$SEED/items" ]]; then
+    cp -R "$SEED/items" "$SEED/lang" "$dir/app/"
+    cp "$SEED/1.xml" "$SEED/ItemsVersion.properties" "$dir/app/"
+  fi
+  cat > "$dir/app/ggeConfig.json" <<JSON
+{
+    "webPort" : "$port",
+    "fontPath" : "",
+    "privateKey" : "",
+    "cert" : "",
+    "signupToken" : "$SIGNUP_TOKEN",
+    "discordToken" : "",
+    "discordClientId" : "",
+    "discordClientSecret" : "",
+    "timeoutMultiplier" : 5,
+    "secondsTillRestartBot": 10,
+    "debug" : false
+}
+JSON
+  echo "$port" > "$dir/port"
+  git -C "$REPO" rev-parse --short HEAD > "$dir/rev"
+  git -C "$REPO" status --porcelain --untracked-files=no | wc -l | tr -d ' ' > "$dir/dirty_files"
+
+  # exec so the recorded pid is node itself, not a wrapper shell.
+  (cd "$dir/app" && exec nohup node --no-warnings main.js) > "$dir/server.log" 2>&1 &
+  local pid=$!
+  echo "$pid" > "$dir/pid"
+
+  local i
+  for i in $(seq 1 120); do
+    pid_alive "$pid" || { tail -30 "$dir/server.log" >&2; die "server exited during startup"; }
+    if grep -q '^Started\.$' "$dir/server.log" \
+      && curl -fsS "http://127.0.0.1:$port/signin.html" >/dev/null 2>&1; then
+      if [[ ! -d "$SEED/items" && -d "$dir/app/items" ]]; then
+        mkdir -p "$SEED"
+        cp -R "$dir/app/items" "$dir/app/lang" "$SEED/"
+        cp "$dir/app/1.xml" "$dir/app/ItemsVersion.properties" "$SEED/"
+      fi
+      echo "ready: name=$name pid=$pid url=http://127.0.0.1:$port signupToken=$SIGNUP_TOKEN dir=$dir"
+      return 0
+    fi
+    sleep 1
+  done
+  tail -30 "$dir/server.log" >&2
+  die "not ready after 120s (still pid $pid; run 'down $name')"
+}
+
+cmd_doctor() {
+  local name="$1" dir ok=1; dir="$(inst_dir "$name")"
+  [[ -d "$dir" ]] || die "no instance '$name' (see: gge-verify list)"
+  local pid port; pid="$(cat "$dir/pid" 2>/dev/null || true)"; port="$(cat "$dir/port")"
+  check() { if eval "$2"; then echo "ok   $1"; else echo "FAIL $1"; ok=0; fi; }
+  check "process $pid alive" "pid_alive '$pid'"
+  check "port $port owned by pid $pid" "lsof -nP -a -p '$pid' -iTCP:'$port' -sTCP:LISTEN >/dev/null 2>&1"
+  check "log says Started." "grep -q '^Started\.\$' '$dir/server.log'"
+  check "GET /signin.html 200" "curl -fsS -o /dev/null http://127.0.0.1:$port/signin.html"
+  check "GET /index.html serves React bundle" "curl -fsS http://127.0.0.1:$port/index.html | grep -q 'static/js/main'"
+  check "POST /api reachable" "curl -fsS -H 'content-type: application/json' -d '{\"id\":0,\"email_name\":\"__doctor__\",\"password\":\"x\"}' http://127.0.0.1:$port/api | grep -q 'Invalid login'"
+  check "user.db present" "[[ -f '$dir/app/user.db' ]]"
+  local now; now="$(git -C "$REPO" rev-parse --short HEAD)"
+  check "built from HEAD ($(cat "$dir/rev") vs $now)" "[[ '$(cat "$dir/rev")' == '$now' ]]"
+  echo "info source snapshot taken with $(cat "$dir/dirty_files") modified tracked file(s); edits since 'up' are NOT in this instance"
+  [[ $ok == 1 ]] && echo "doctor: healthy" || { echo "doctor: unhealthy"; return 1; }
+}
+
+cmd_db() {
+  local name="$1" out="${2:-/dev/stdout}" dir; dir="$(inst_dir "$name")"
+  node -e '
+    const { DatabaseSync } = require("node:sqlite")
+    const db = new DatabaseSync(process.argv[1], { readOnly: true })
+    const users = db.prepare("SELECT username, uuid, privilege, discordUserId, discordGuildId FROM Users").all()
+    const sub = db.prepare("SELECT id, uuid, name, state, externalEvent, server, plugins FROM SubUsers").all()
+      .map(r => ({ ...r, plugins: JSON.parse(r.plugins ?? "{}") }))
+    console.log(JSON.stringify({ Users: users, SubUsers: sub }, null, 2))
+  ' "$dir/app/user.db" > "$out"
+}
+
+cmd_logs() { local dir; dir="$(inst_dir "$1")"; tail -n 100 "$dir/server.log"; }
+
+cmd_down() {
+  local name="$1" dir; dir="$(inst_dir "$name")"
+  [[ -d "$dir" ]] || { echo "no instance '$name'"; return 0; }
+  local pid; pid="$(cat "$dir/pid" 2>/dev/null || true)"
+  if pid_alive "$pid"; then
+    # Only kill the pid we recorded, and only if it is still our main.js.
+    if ps -o command= -p "$pid" | grep -q 'main.js'; then
+      kill "$pid"; for _ in $(seq 1 10); do pid_alive "$pid" || break; sleep 0.5; done
+      pid_alive "$pid" && kill -9 "$pid"
+    else
+      echo "pid $pid is no longer main.js; not killing it" >&2
+    fi
+  fi
+  rm -rf "$dir"
+  echo "down: $name removed (evidence in $REPO/.verify-evidence is kept)"
+}
+
+cmd_list() {
+  local d found=0
+  for d in "$INSTANCES"/*/; do
+    [[ -d "$d" ]] || continue
+    found=1
+    local p; p="$(cat "$d/pid" 2>/dev/null || true)"
+    printf '%-16s port=%-5s pid=%-7s %s\n' "$(basename "$d")" "$(cat "$d/port" 2>/dev/null)" "$p" "$(pid_alive "$p" && echo running || echo dead)"
+  done
+  [[ $found == 1 ]] || echo "(none)"
+}
+
+case "${1:-}" in
+  setup) cmd_setup ;;
+  up) [[ $# -ge 2 ]] || die "usage: up NAME [PORT]"; cmd_up "$2" "${3:-}" ;;
+  doctor) [[ $# -ge 2 ]] || die "usage: doctor NAME"; cmd_doctor "$2" ;;
+  db) [[ $# -ge 2 ]] || die "usage: db NAME [OUTFILE]"; cmd_db "$2" "${3:-}" ;;
+  logs) [[ $# -ge 2 ]] || die "usage: logs NAME"; cmd_logs "$2" ;;
+  down) [[ $# -ge 2 ]] || die "usage: down NAME"; cmd_down "$2" ;;
+  list) cmd_list ;;
+  *) sed -n '2,3p' "$0"; exit 2 ;;
+esac

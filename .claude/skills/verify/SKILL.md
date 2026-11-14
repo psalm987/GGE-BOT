@@ -1,0 +1,111 @@
+---
+name: verify
+description: Launch an isolated GGE-BOT instance (Node server + React web panel) and drive its web UI with Playwright the way a user does — sign up, add game accounts, toggle plugins, remove accounts, start a bot — capturing screenshots, WebSocket frames and user.db state as proof. Use to prove any change to main.js, ggeBot.js, plugins/, or the website/ panel works in the real app, not just in tests.
+---
+
+# verify — drive GGE-BOT for real
+
+GGE-BOT is a Node server ([main.js](../../../main.js)) that serves a React control panel (the separate `GGE-BOT-Website` repo, cloned into `website/` and built to `website/build`) and runs one worker thread ([ggeBot.js](../../../ggeBot.js)) per game account. Users touch it only through the panel:
+
+- `signup.html` / `signin.html`: static forms that POST to `/api` (`id:1` signup, `id:0` login) and set a `uuid` cookie.
+- `index.html`: the React users table. Everything after login goes over one WebSocket on the same port, as `[ErrorType, ActionType, payload]` JSON frames (codes in [actions.json](../../../actions.json) and [errors.json](../../../errors.json)).
+- State lives in `user.db` (SQLite): `Users` = panel logins, `SubUsers` = game accounts, with `state` (0 stopped, 1 running) and a `plugins` JSON blob.
+
+Secondary surfaces, not driven here: the Discord bot (needs `discordToken`/`discordClientId`; with them unset, `plugins/discord/*` are not even loaded) and the game itself (each started account's worker opens a websocket to the live Goodgame Empire servers).
+
+All commands below run from the repo root.
+
+## Launch
+
+One-time per machine (idempotent; skips what exists):
+
+```bash
+.claude/skills/verify/scripts/gge-verify setup
+```
+
+It runs `npm i` in the repo, clones `GGE-BOT-Website` into `website/` and builds it (`website/` and `node_modules/` are gitignored, same as `start_linux.sh` does), and installs `playwright@1.57.0` into `~/.cache/gge-bot-verify/pw` (matches the cached Chromium 143 build). It never touches `ggeConfig.json` or `user.db` in the repo.
+
+Start an instance (NAME is `[a-z0-9-]+`, PORT optional; default is the first free port from 3101, so it never collides with a user's own bot on 3001):
+
+```bash
+.claude/skills/verify/scripts/gge-verify up v1
+# ready: name=v1 pid=12345 url=http://127.0.0.1:3101 signupToken=verify dir=~/.cache/gge-bot-verify/instances/v1
+```
+
+What `up` does, and why:
+
+- Copies the working tree (minus `.git`, `node_modules`, `website`, `user.db*`, `ggeConfig.json`, `credentials/`, caches) to `~/.cache/gge-bot-verify/instances/NAME/app`, symlinking `node_modules` and `website`. A copy is required: `main.js` keeps `user.db`/`ggeConfig.json` in cwd, but `ggeBot.js` and `plugins/index.js` `require("./ggeConfig.json")` relative to their own file, so a different cwd alone would read the repo's config.
+- Writes a fresh `ggeConfig.json`: the chosen `webPort`, `signupToken: "verify"`, no Discord, no TLS.
+- Starts `node --no-warnings main.js` with output in `instances/NAME/server.log`, pid in `instances/NAME/pid`.
+- **Ready** = the log has the line `Started.` (printed after the HTTP server is listening) **and** `GET /signin.html` returns 200. Startup creates the `user.db` tables (empty data dir is fine) and downloads `items/`, `lang/en.json` and `1.xml` from `empire-html5.goodgamestudios.com`. The first `up` on a machine caches them in `~/.cache/gge-bot-verify/seed/` and later instances copy them, but startup still fetches `ItemsVersion.properties` every time, so **the network to goodgamestudios.com is required**: offline, `main.js` crashes before `Started.`.
+- **The instance is a snapshot.** Edits made after `up` are not in it. After changing code, `down` and `up` again.
+
+Isolation: instances with different NAMEs run side by side (own dir, own port, own DB). `up` refuses a NAME that is still running and a PORT that is taken. Never point the driver at the user's own bot on 3001.
+
+## Doctor
+
+Read-only. Run it first, and whenever anything looks off:
+
+```bash
+.claude/skills/verify/scripts/gge-verify doctor v1
+```
+
+Checks: recorded pid alive; that pid (not some other process) listens on the port; `Started.` logged; `/signin.html` 200; `/index.html` serves the React bundle (`static/js/main.*`, i.e. `website/build` exists); `/api` answers a bogus login with `Invalid login details.`; `user.db` exists; instance was built from the current `HEAD`. It also prints how many tracked files were modified when the snapshot was taken. Exit 1 if any check fails. `gge-verify logs v1` tails the server log; `gge-verify list` shows all instances.
+
+## Drive
+
+```bash
+node .claude/skills/verify/scripts/drive.js v1 signup add-account edit-plugins remove-account
+```
+
+Steps run in order in one headless Chromium context (`--headed` to watch). Any step that needs a logged-in panel signs up a fresh web user first (`verify-HHMMSS`, token `verify`), and steps that need a game-account row add one first (`dummy-HHMMSS` with a fake password; it is never started). Each step asserts on both the UI and `user.db`.
+
+| Step | What a user does | Proof asserted |
+|---|---|---|
+| `signup` | `/signup.html`: fill `#username`, `#password`, `#token`, click **Signup** | lands on `/index.html` with the users table; `Users` row whose `uuid` equals the cookie |
+| `signin` | clears cookies; `/index.html` must bounce to `/signin.html`; wrong password shows `Invalid login details.` in `#login-info-banner`; right one lands on the table | same `uuid` cookie as signup |
+| `add-account` | **+** button, fill **Username** / **Password** labels, optional server (`--server ID`, the `value` attribute of an `<instance>` in `1.xml`), **Save** | row with the name appears; exactly one `SubUsers` row, `state = 0` |
+| `edit-plugins` | row's **Settings**, click the first plugin with an enabled **Start** in the plugins table, toggle it, **Save** | plugin button flips to **Stop**; exactly one plugin newly `state:true` in `SubUsers.plugins`; account still `state = 0`; Plugins column shows it |
+| `remove-account` | tick the row checkbox, **Remove** | row detaches; `SubUsers` row gone |
+| `start-bot` | row's **Start**, wait, open **Logs**, then **Stop** | `SubUsers.state` 1 then 0; logs and status screenshots |
+
+Handles used (stable ones from the panel source; keep them current): form ids `#username #password #token #email_name #login-info-banner`; ARIA names `Name` (column header), `+`, `Save`, `Settings`, `Logs`, `Start`/`Stop`, `Remove`; the plugins table's `aria-label="plugins table"`; the server dropdown `#simple-select` with `li[data-value=ID]`; account rows found by their row-header cell text.
+
+**`start-bot` logs into the live Goodgame Empire servers with a real account.** It refuses to run without `--live --game-name N --game-pass P --server ID`. Only run it when the user has asked for that run; a bot login can get the account flagged. Real accounts are in `credentials/credentials.json` (gitignored; never copy its contents into evidence, logs, or messages). Its `server` field is a display name like `india 1`; map it to the instance `value` in the instance's `1.xml`.
+
+For anything the step list does not cover, write a one-off Playwright script the same way: require `~/.cache/gge-bot-verify/pw/node_modules/playwright`, read the port from `~/.cache/gge-bot-verify/instances/NAME/port`, record `page.on('websocket')` frames, and assert on `gge-verify db NAME`.
+
+## Evidence
+
+Every `drive.js` run writes `.verify-evidence/<UTC timestamp>-<steps>/` in the repo (gitignored), and prints the path:
+
+- `NN-<step>-<moment>.png`: full-page screenshots before the action, after it, and on failure (`<step>-failure.png`).
+- `ws-frames.log`: every panel WebSocket frame, `>` sent / `<` received, so the action (`[0,4,{...}]` AddUser, `[0,2,{...}]` SetUser, ...) and the server's reply are both on record.
+- `db-<moment>.json`: `user.db` dumps (`Users`, `SubUsers` with parsed `plugins`) after each mutating step: the side effect, not just the screen.
+- `browser-console.log`, `server.log` (copied at the end), `transcript.txt` (every assertion and `RESULT: PASS|FAIL`).
+
+Proof standards:
+
+- Drive the panel like a user. Do not `INSERT` into `user.db`, `fetch('/api')` or hand-send WebSocket frames to make a step pass; that skips the code under test. Reading the DB to confirm a side effect is fine and expected.
+- Capture the action and the resulting state, and confirm the side effect in `db-*.json` alongside the screenshot.
+- A plugin change only reaches a running bot through `SetUser` → worker restart or `SetPluginOptions`. Proving that needs `start-bot`; a `state = 0` account only proves the setting is stored.
+- No mocks. The game servers are the only external system, and the only safe boundary is not starting a bot. There is no dry-run mode.
+- If a step fails because a precondition is missing (no plugin with options, server list empty), report the failure and note the reason in that feature's Gotchas. Do not weaken the step.
+
+## Cleanup
+
+```bash
+.claude/skills/verify/scripts/gge-verify down v1
+```
+
+Kills only the recorded pid, and only if it is still a `main.js` process (bot workers are threads of that process, so they go with it), then deletes `~/.cache/gge-bot-verify/instances/v1`. It never touches `.verify-evidence/`, the seed cache, `pw/`, or the repo. Run `gge-verify list` afterwards; nothing you started should remain. Run `down` after failed attempts too.
+
+## Helpers
+
+- `.claude/skills/verify/scripts/gge-verify setup | up NAME [PORT] | doctor NAME | db NAME [OUTFILE] | logs NAME | down NAME | list`
+- `node .claude/skills/verify/scripts/drive.js NAME STEP... [--label L] [--headed] [--server ID] [--game-name N --game-pass P --live]`
+- `GGE_VERIFY_HOME` overrides `~/.cache/gge-bot-verify`.
+
+## Feature map
+
+[features/README.md](features/README.md) lists the user-facing features and how to drive each one. A proof is incomplete if it drives one entry point when the map lists others. Keep the map current with `/maintain-verification-skill`.
