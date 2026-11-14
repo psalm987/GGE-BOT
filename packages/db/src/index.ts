@@ -14,6 +14,14 @@ export function createDb(connectionString: string) {
 
 export type Db = ReturnType<typeof createDb>
 
+/** Postgres NOTIFY channels shared by the API and the runner. */
+export const CHANNELS = {
+    /** Accounts, settings or owners changed: the runner reconciles (sent by triggers). */
+    desired: "gge_desired",
+    /** A bot's status changed or it logged a line: the API streams it (sent by the runner). */
+    bot: "gge_bot",
+} as const
+
 export const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url))
 
 export async function runMigrations(db: Db) {

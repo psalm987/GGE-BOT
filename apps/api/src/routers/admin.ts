@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto"
 import { implement, ORPCError } from "@orpc/server"
-import { and, count, desc, eq, ilike, lt, max, sql } from "drizzle-orm"
-import { auditLog, botStatus, gameAccounts, invites, users } from "@gge/db"
+import { and, count, desc, eq, gt, ilike, inArray, lt, sql } from "drizzle-orm"
+import { auditLog, botRuns, botStatus, gameAccounts, invites, runnerHeartbeat, users } from "@gge/db"
 import { adminContract } from "@gge/contracts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
@@ -45,16 +45,25 @@ export const adminRouter = os.router({
         }),
     },
     overview: os.overview.use(admin).handler(async ({ context: { db } }) => {
-        const [[userCount], [accountCount], states, [heartbeat]] = await Promise.all([
+        const dayAgo = sql`now() - interval '24 hours'`
+        const [[userCount], [accountCount], states, [runner], [runs], [crashes]] = await Promise.all([
             db.select({ n: count() }).from(users),
             db.select({ n: count() }).from(gameAccounts),
             db.select({ state: botStatus.actualState, n: count() }).from(botStatus).groupBy(botStatus.actualState),
-            db.select({ at: max(botStatus.heartbeatAt) }).from(botStatus),
+            db.select().from(runnerHeartbeat),
+            db.select({ n: count() }).from(botRuns).where(gt(botRuns.startedAt, dayAgo)),
+            db.select({ n: count() }).from(botRuns).where(and(gt(botRuns.startedAt, dayAgo), inArray(botRuns.endReason, ["crash", "error"]))),
         ])
         const bots = { starting: 0, running: 0, stopped: 0, auth_failed: 0, banned: 0, error: 0 }
         for (const { state, n } of states)
             bots[state] = n
-        return { users: userCount!.n, accounts: accountCount!.n, bots, runnerHeartbeatAt: heartbeat?.at ?? null }
+        return {
+            users: userCount!.n,
+            accounts: accountCount!.n,
+            bots,
+            runner: runner ? { beatAt: runner.beatAt, startedAt: runner.startedAt, version: runner.version, running: runner.running } : null,
+            last24h: { runs: runs!.n, crashes: crashes!.n },
+        }
     }),
     users: {
         list: os.users.list.use(admin).handler(({ context: { db }, input }) =>

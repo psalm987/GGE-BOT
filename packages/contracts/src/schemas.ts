@@ -89,9 +89,33 @@ export const AuditEntry = z.object({
     ts: z.date(),
 })
 
+export const LogLine = z.object({
+    id: z.number().int(),
+    ts: z.date(),
+    level: z.number().int(),
+    message: z.string(),
+    /** Raw translation keys and values, for rendering in the viewer's language. */
+    parts: z.array(z.union([z.string(), z.number()])).nullable(),
+})
+
+export const Run = z.object({
+    id: z.number().int(),
+    startedAt: z.date(),
+    endedAt: z.date().nullable(),
+    endReason: z.string().nullable(),
+    error: z.string().nullable(),
+})
+
+export const BotEvent = z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("status"), accountId: z.uuid(), status: BotStatus }),
+    z.object({ kind: z.literal("log"), accountId: z.uuid(), line: LogLine.omit({ parts: true }) }),
+])
+export type BotEvent = z.infer<typeof BotEvent>
+
 export const Overview = z.object({
     users: z.number().int(),
     accounts: z.number().int(),
     bots: z.record(ActualState, z.number().int()),
-    runnerHeartbeatAt: z.date().nullable(),
+    runner: z.object({ beatAt: z.date(), startedAt: z.date(), version: z.string(), running: z.number().int() }).nullable(),
+    last24h: z.object({ runs: z.number().int(), crashes: z.number().int() }),
 })

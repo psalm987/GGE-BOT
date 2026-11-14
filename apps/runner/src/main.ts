@@ -1,7 +1,7 @@
 import { createRequire } from "node:module"
 import { Worker } from "node:worker_threads"
 import { sql } from "drizzle-orm"
-import { createDb, servers } from "@gge/db"
+import { CHANNELS, createDb, servers } from "@gge/db"
 import { openSealed } from "@gge/crypto"
 import { publishCatalog, readPluginRegistry } from "./catalog.ts"
 import { parseEnv, workerConfig } from "./env.ts"
@@ -66,7 +66,7 @@ async function reconcile() {
 
 // The lock's connection doubles as the listener: if it drops, we lose both together.
 lock.client.on("notification", () => void reconcile())
-await lock.client.query("listen gge_desired")
+await lock.client.query(`listen ${CHANNELS.desired}`)
 
 const startedAt = new Date()
 const timers = [

@@ -1,3 +1,4 @@
+import type { EventEmitter } from "node:events"
 import type { FastifyReply, FastifyRequest } from "fastify"
 import type { Db } from "@gge/db"
 import type { Env } from "./env.ts"
@@ -10,6 +11,8 @@ export type Ctx = {
     reply: FastifyReply
     /** Login and signup attempts: generous per IP (shared NATs), strict per username. */
     limits: { ip: RateLimiter; user: RateLimiter }
+    /** Emits "event" with each RawBotEvent the runner announces. */
+    botEvents: EventEmitter
 }
 
 /** A Postgres unique violation, optionally on one named constraint. */

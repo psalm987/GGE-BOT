@@ -1,5 +1,5 @@
 import { eq, inArray, isNull, lt, sql } from "drizzle-orm"
-import { botLogs, botRuns, botStatus, gameAccounts, runnerHeartbeat, type Db } from "@gge/db"
+import { CHANNELS, botLogs, botRuns, botStatus, gameAccounts, runnerHeartbeat, type Db } from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error"
 export type StatusPatch = {
@@ -13,8 +13,6 @@ export type StatusPatch = {
 const isMissingAccount = (error: unknown) =>
     ((error as { cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code) === "23503"
 
-/** Channel the API listens on to stream status and log changes to players. */
-export const BOT_EVENTS = "gge_bot"
 export const LOG_RETENTION = { perAccount: 500, days: 7 }
 
 export function createStore(db: Db, { flushMs = 500 } = {}) {
@@ -22,7 +20,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
     let timer: NodeJS.Timeout | undefined
 
     const notify = (payload: object) =>
-        db.execute(sql`select pg_notify(${BOT_EVENTS}, ${JSON.stringify(payload).slice(0, 7900)})`)
+        db.execute(sql`select pg_notify(${CHANNELS.bot}, ${JSON.stringify(payload).slice(0, 7900)})`)
 
     async function insertLogs(batch: typeof pending) {
         const ids = new Set((await db.select({ id: gameAccounts.id }).from(gameAccounts)

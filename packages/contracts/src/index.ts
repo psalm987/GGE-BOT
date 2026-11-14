@@ -1,9 +1,9 @@
-import { oc, type ContractRouterClient } from "@orpc/contract"
+import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { PluginCatalogEntry } from "./plugins.ts"
 import {
-    AdminAccount, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Id, Ids, Invite, Overview,
-    PublicAccount, PublicUser, Role, Server, Signup, UpdateAccount, UserStatus,
+    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Id, Ids, Invite, LogLine,
+    Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./plugins.ts"
@@ -24,6 +24,11 @@ export const clientContract = {
         update: oc.input(UpdateAccount).output(PublicAccount),
         remove: oc.input(Ids).output(z.void()),
         setDesiredState: oc.input(Ids.extend({ state: DesiredState })).output(z.void()),
+        logs: oc.input(Id.extend({ before: z.number().int().optional(), limit: z.number().int().min(1).max(500).default(100) }))
+            .output(z.array(LogLine)),
+        runs: oc.input(Id.extend({ limit: z.number().int().min(1).max(100).default(10) })).output(z.array(Run)),
+        /** Live status changes and log lines for the caller's accounts. */
+        events: oc.output(eventIterator(BotEvent)),
     },
     plugins: { catalog: oc.output(z.array(PluginCatalogEntry)) },
     servers: { list: oc.output(z.array(Server)) },
