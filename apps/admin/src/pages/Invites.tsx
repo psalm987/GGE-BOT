@@ -5,11 +5,10 @@ import dayjs from "dayjs"
 import { useState } from "react"
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
 import { client, messageOf, orpc, queryClient } from "../api.ts"
+import { CLIENT_URL } from "../config.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 
 type Invite = Awaited<ReturnType<typeof client.invites.list>>[number]
-
-const CLIENT_URL = (import.meta.env.VITE_CLIENT_URL as string | undefined) ?? "http://localhost:5173"
 
 function statusOf(i: Invite) {
     if (i.usedAt) return <Tag color="blue">Used by {i.usedBy ?? "someone"}</Tag>
@@ -22,11 +21,11 @@ const isOpen = (i: Invite) => !i.usedAt && !i.revokedAt && dayjs(i.expiresAt).is
 export function Invites() {
     const { message } = App.useApp()
     const [creating, setCreating] = useState(false)
-    const [code, setCode] = useState<string | null>(null)
+    const [created, setCreated] = useState<{ code: string; email: string | null } | null>(null)
     const invites = useQuery(orpc.invites.list.queryOptions())
     const refresh = () => queryClient.invalidateQueries({ queryKey: orpc.invites.list.key() })
     const create = useMutation(orpc.invites.create.mutationOptions({
-        onSuccess: ({ code }) => { setCreating(false); setCode(code); void refresh() },
+        onSuccess: ({ code, invite }) => { setCreating(false); setCreated({ code, email: invite.email }); void refresh() },
         onError: error => message.error(messageOf(error)),
     }))
     const revoke = useMutation(orpc.invites.revoke.mutationOptions({
@@ -34,7 +33,8 @@ export function Invites() {
         onError: error => message.error(messageOf(error)),
     }))
     const list = invites.data ?? []
-    const link = code ? `${CLIENT_URL}/signup?invite=${code}` : ""
+    const code = created?.code ?? null
+    const link = created ? `${CLIENT_URL}/signup?${new URLSearchParams({ invite: created.code, ...(created.email && { email: created.email }) })}` : ""
 
     async function copy(text: string, what: string) {
         try {
@@ -55,6 +55,7 @@ export function Invites() {
                     <Table<Invite> rowKey="id" loading={invites.isPending} dataSource={list} pagination={list.length > 20 ? { pageSize: 20 } : false} scroll={{ x: 700 }}
                         columns={[
                             { title: "Role", dataIndex: "role", render: (r: Invite["role"]) => r === "admin" ? "Admin" : "Player" },
+                            { title: "Email", dataIndex: "email", render: (e: string | null) => e ?? "" },
                             { title: "Created", dataIndex: "createdAt", render: (d: Date) => dayjs(d).format("D MMM YYYY HH:mm") },
                             { title: "Expires", dataIndex: "expiresAt", render: (d: Date) => dayjs(d).format("D MMM YYYY HH:mm") },
                             { title: "Status", key: "status", render: (_, i) => statusOf(i) },
@@ -71,9 +72,13 @@ export function Invites() {
             </ParchmentCard>
 
             <Modal title="Create invite" open={creating} onCancel={() => setCreating(false)} destroyOnHidden footer={null}>
-                <Form layout="vertical" requiredMark={false} initialValues={{ role: "user", expiresInHours: 72 }} onFinish={values => create.mutate(values)} disabled={create.isPending}>
+                <Form layout="vertical" requiredMark={false} initialValues={{ role: "user", expiresInHours: 72 }} onFinish={({ email, ...values }) => create.mutate({ ...values, ...(email && { email }) })} disabled={create.isPending}>
                     <Form.Item label="Role" name="role">
                         <Select options={[{ value: "user", label: "Player" }, { value: "admin", label: "Admin" }]} />
+                    </Form.Item>
+                    <Form.Item label="Email (optional)" name="email" extra="We'll email the invite link, and the address is confirmed when they sign up."
+                        rules={[{ type: "email", message: "Enter a valid email" }]}>
+                        <Input type="email" autoComplete="off" />
                     </Form.Item>
                     <Form.Item label="Expires in (hours)" name="expiresInHours" rules={[{ required: true, message: "Enter a number of hours" }]}>
                         <InputNumber min={1} max={720} precision={0} style={{ width: "100%" }} />
@@ -85,9 +90,9 @@ export function Invites() {
                 </Form>
             </Modal>
 
-            <Modal title="Invite created" open={code !== null} onCancel={() => setCode(null)} destroyOnHidden
-                footer={<Button type="primary" onClick={() => setCode(null)}>Done</Button>}>
-                <Alert type="warning" showIcon style={{ marginBottom: 16 }} title="This code won't be shown again." description="Copy it or the signup link now." />
+            <Modal title="Invite created" open={code !== null} onCancel={() => setCreated(null)} destroyOnHidden
+                footer={<Button type="primary" onClick={() => setCreated(null)}>Done</Button>}>
+                <Alert type="warning" showIcon style={{ marginBottom: 16 }} title="This code won't be shown again." description={created?.email ? `The link was emailed to ${created.email}. Copy it here too in case it doesn't arrive.` : "Copy it or the signup link now."} />
                 <Typography.Text strong>Invite code</Typography.Text>
                 <Space.Compact style={{ width: "100%", margin: "4px 0 16px" }}>
                     <Input readOnly value={code ?? ""} aria-label="Invite code" />
