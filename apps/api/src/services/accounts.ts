@@ -1,10 +1,10 @@
 import { ORPCError } from "@orpc/server"
-import { and, asc, eq, inArray, type SQL } from "drizzle-orm"
-import { botStatus, gameAccounts, pluginCatalog, pluginSettings, servers, type Db } from "@gge/db"
+import { and, asc, count, eq, inArray, type SQL } from "drizzle-orm"
+import { botStatus, gameAccounts, pluginCatalog, pluginSettings, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
     PluginSettingsError, normalizePluginSettings,
-    type PluginCatalogEntry, type PluginSettings, type PublicAccount,
+    type PluginCatalogEntry, type PluginSettings, type PublicAccount, type PublicUser,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 
@@ -86,11 +86,20 @@ async function replaceSettings(db: Pick<Db, "insert" | "delete">, accountId: str
         await db.insert(pluginSettings).values(rows)
 }
 
-export async function createAccount(db: Db, sealKey: string, ownerId: string,
+export async function createAccount(db: Db, sealKey: string, owner: Pick<PublicUser, "id" | "role">,
     input: { name: string; serverId: number; password: string; externalEvent: boolean; plugins: PluginSettings }) {
     await assertServer(db, input.serverId)
     const settings = await validSettings(db, input.plugins)
+    const ownerId = owner.id
     const id = await db.transaction(async tx => {
+        // The row lock makes concurrent creates by one user take turns, so both can't pass the cap check.
+        const [locked] = await tx.select({ maxBots: users.maxBots }).from(users).where(eq(users.id, ownerId)).for("update")
+        if (owner.role !== "admin") {
+            const [owned] = await tx.select({ n: count() }).from(gameAccounts).where(eq(gameAccounts.ownerId, ownerId))
+            const maxBots = locked!.maxBots
+            if (owned!.n >= maxBots)
+                throw new ORPCError("FORBIDDEN", { message: `Your plan allows ${maxBots} bot${maxBots === 1 ? "" : "s"}. Remove one to add another.` })
+        }
         const [account] = await tx.insert(gameAccounts).values({
             ownerId,
             name: input.name,

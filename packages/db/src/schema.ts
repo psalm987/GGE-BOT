@@ -40,6 +40,8 @@ export const users = pgTable("users", {
     passwordAlgo: passwordAlgo("password_algo").notNull().default("argon2id"),
     role: role("role").notNull().default("user"),
     status: userStatus("status").notNull().default("active"),
+    /** Game accounts the user may own; admins are exempt. Admin-adjustable. */
+    maxBots: integer("max_bots").notNull().default(1),
     /** Users.uuid in the legacy user.db, so the importer can re-run. */
     legacyUuid: text("legacy_uuid").unique(),
     createdAt: createdAt(),

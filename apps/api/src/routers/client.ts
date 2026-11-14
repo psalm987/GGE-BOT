@@ -47,7 +47,7 @@ export const clientRouter = os.router({
     accounts: {
         list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),
         create: os.accounts.create.use(verified).handler(async ({ context, input }) => {
-            const account = await createAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user.id, input)
+            const account = await createAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user, input)
             await audit(context.db, { actorId: context.user.id, action: "account.create", targetType: "account", targetId: account.id })
             return account
         }),

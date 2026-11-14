@@ -15,7 +15,7 @@ const LoginPassword = z.string().min(1).max(200)
 export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })
 export const Signup = z.object({ username: Username, email: Email, password: NewPassword })
 
-export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean() })
+export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int() })
 export type PublicUser = z.infer<typeof PublicUser>
 
 export const BotStatus = z.object({

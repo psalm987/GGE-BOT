@@ -23,7 +23,7 @@ function setSessionCookie(ctx: Ctx, audience: Audience, token: string) {
 }
 
 const publicUser = (user: typeof users.$inferSelect): PublicUser =>
-    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null })
+    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, maxBots: user.maxBots })
 
 async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
     const token = await createSession(ctx.db, { userId: user.id, audience, ip: ctx.req.ip, userAgent: ctx.req.headers["user-agent"] })

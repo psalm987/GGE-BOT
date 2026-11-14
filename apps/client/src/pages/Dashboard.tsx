@@ -7,6 +7,7 @@ import { useMemo, useState } from "react"
 import type { PublicAccount } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
+import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n.ts"
@@ -23,6 +24,7 @@ export function Dashboard() {
     const phone = !Grid.useBreakpoint().md
     const accounts = useQuery(orpc.accounts.list.queryOptions())
     const servers = useQuery(orpc.servers.list.queryOptions())
+    const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
     const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount }>({ open: false })
     useLiveBotEvents(true)
@@ -55,6 +57,9 @@ export function Dashboard() {
 
     const list = accounts.data ?? []
     const running = list.filter(a => a.status?.actualState === "running").length
+    const limit = me?.role === "admin" ? undefined : me?.maxBots
+    const atLimit = limit !== undefined && list.length >= limit
+    const limitHint = atLimit ? `Your plan allows ${limit} bot${limit === 1 ? "" : "s"}. Remove one to add another.` : undefined
     const attention = list.filter(a => a.status && NEEDS_ATTENTION.has(a.status.actualState)).length
 
     return (
@@ -69,11 +74,13 @@ export function Dashboard() {
                 <Space>
                     {!phone && <Select<Language> value={language} onChange={setLanguage} aria-label="Language for bot messages" style={{ width: 130 }}
                         suffix={<TranslationOutlined />} options={Object.entries(LANGUAGES).map(([value, label]) => ({ value: value as Language, label }))} />}
-                    <Button type="primary" icon={<PlusOutlined />} aria-label="Add account" onClick={() => setDrawer({ open: true })} className="gge-press">{phone ? null : "Add account"}</Button>
+                    <Tooltip title={limitHint}>
+                        <Button type="primary" icon={<PlusOutlined />} aria-label="Add account" disabled={atLimit} onClick={() => setDrawer({ open: true })} className="gge-press">{phone ? null : "Add account"}</Button>
+                    </Tooltip>
                 </Space>
             }>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={list.length} /></ParchmentCard></Col>
+                <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={list.length} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
                 <Col xs={12} sm={8}><ParchmentCard><Statistic title="Running now" value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
                 <Col xs={12} sm={8}><ParchmentCard><Statistic title="Need attention" value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
             </Row>
@@ -91,9 +98,10 @@ export function Dashboard() {
                         </Popconfirm>
                     </Space>
                 )}>
+                {limitHint && <Typography.Paragraph type="secondary" role="status">{limitHint}</Typography.Paragraph>}
                 {!accounts.isPending && list.length === 0 ? (
                     <CrestEmpty title="No accounts yet" hint="Add a game account to start running bots."
-                        action={<Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawer({ open: true })}>Add your first account</Button>} />
+                        action={<Button type="primary" icon={<PlusOutlined />} disabled={atLimit} onClick={() => setDrawer({ open: true })}>Add your first account</Button>} />
                 ) : (
                     <Table<PublicAccount>
                         rowKey="id"

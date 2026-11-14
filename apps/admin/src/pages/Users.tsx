@@ -1,6 +1,6 @@
 import { CheckCircleOutlined, CrownOutlined, LogoutOutlined, StopOutlined, UserOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Input, Popconfirm, Space, Table, Tag, Typography } from "antd"
+import { App, Button, Input, InputNumber, Popconfirm, Space, Table, Tag, Typography } from "antd"
 import dayjs from "dayjs"
 import { useState } from "react"
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
@@ -20,6 +20,7 @@ export function Users() {
     })
     const setStatus = useMutation(orpc.users.setStatus.mutationOptions(settle("User updated")))
     const setRole = useMutation(orpc.users.setRole.mutationOptions(settle("Role updated")))
+    const setMaxBots = useMutation(orpc.users.setMaxBots.mutationOptions(settle("Bot limit updated")))
     const revoke = useMutation(orpc.users.revokeSessions.mutationOptions(settle("Signed out everywhere")))
     const list = users.data ?? []
 
@@ -38,7 +39,22 @@ export function Users() {
                             { title: "Email", dataIndex: "email", render: (e: Row["email"], row: Row) => e ? <>{e} {row.emailVerified ? <Tag color="green">Verified</Tag> : <Tag color="orange">Unverified</Tag>}</> : <Typography.Text type="secondary">None</Typography.Text> },
                             { title: "Role", dataIndex: "role", render: (role: Row["role"]) => role === "admin" ? <Tag icon={<CrownOutlined />} color="gold">Admin</Tag> : <Tag icon={<UserOutlined />}>Player</Tag> },
                             { title: "Status", dataIndex: "status", render: (s: Row["status"]) => s === "active" ? <Tag color="green">Active</Tag> : <Tag color="red">Disabled</Tag> },
-                            { title: "Accounts", dataIndex: "accountCount", width: 100 },
+                            {
+                                title: "Bots", dataIndex: "accountCount", width: 150,
+                                render: (n: number, u) => (
+                                    <Space size={4}>
+                                        {n} /
+                                        <InputNumber key={`${u.id}:${u.maxBots}`} size="small" min={0} max={50} precision={0} defaultValue={u.maxBots} style={{ width: 64 }}
+                                            aria-label={`Bot limit for ${u.username}`} disabled={u.role === "admin"} title={u.role === "admin" ? "Admins have no limit" : undefined}
+                                            onBlur={e => {
+                                                const value = Number(e.target.value)
+                                                if (Number.isInteger(value) && value >= 0 && value <= 50 && value !== u.maxBots)
+                                                    setMaxBots.mutate({ id: u.id, maxBots: value })
+                                            }}
+                                            onPressEnter={e => e.currentTarget.blur()} />
+                                    </Space>
+                                ),
+                            },
                             { title: "Created", dataIndex: "createdAt", render: (d: Date) => dayjs(d).format("D MMM YYYY") },
                             {
                                 title: "Actions", key: "actions", align: "right",

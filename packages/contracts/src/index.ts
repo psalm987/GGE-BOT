@@ -56,6 +56,7 @@ export const adminContract = {
         list: oc.input(z.object({ search: z.string().trim().max(64).optional() })).output(z.array(AdminUser)),
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
+        setMaxBots: oc.input(Id.extend({ maxBots: z.number().int().min(0).max(50) })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
     },
     accounts: {

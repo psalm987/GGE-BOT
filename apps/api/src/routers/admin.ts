@@ -58,7 +58,7 @@ export const adminRouter = os.router({
         list: os.users.list.use(admin).handler(({ context: { db }, input }) =>
             db.select({
                 id: users.id, username: users.username, role: users.role, email: users.email,
-                emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, status: users.status, createdAt: users.createdAt,
+                emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
                 accountCount: count(gameAccounts.id),
             }).from(users)
                 .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
@@ -83,6 +83,12 @@ export const adminRouter = os.router({
                 throw new ORPCError("NOT_FOUND", { message: "No such user" })
             await revokeUserSessions(db, input.id)
             await audit(db, { actorId: user.id, action: "user.set_role", targetType: "user", targetId: input.id, meta: { role: input.role } })
+        }),
+        setMaxBots: os.users.setMaxBots.use(admin).handler(async ({ context: { db, user }, input }) => {
+            const [changed] = await db.update(users).set({ maxBots: input.maxBots, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
+            if (!changed)
+                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots } })
         }),
         revokeSessions: os.users.revokeSessions.use(admin).handler(async ({ context: { db, user }, input }) => {
             await revokeUserSessions(db, input.id)

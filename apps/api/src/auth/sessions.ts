@@ -35,7 +35,7 @@ export async function findSessionUser(db: Db, token: string, audience: Audience)
     const id = hashToken(token)
     const [row] = await db
         .select({
-            user: { id: users.id, username: users.username, role: users.role, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null` },
+            user: { id: users.id, username: users.username, role: users.role, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots },
             lastSeenAt: sessions.lastSeenAt,
         })
         .from(sessions)

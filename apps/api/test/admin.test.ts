@@ -27,10 +27,11 @@ describe("managing users", () => {
 
     test("the user list counts each player's game accounts", async () => {
         const p = await api.player("counted")
+        await admin.api.users.setMaxBots({ id: await userId("counted"), maxBots: 2 })
         await p.api.accounts.create({ name: "C1", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
         await p.api.accounts.create({ name: "C2", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
         const [row] = await admin.api.users.list({ search: "counted" })
-        expect(row).toMatchObject({ username: "counted", accountCount: 2 })
+        expect(row).toMatchObject({ username: "counted", accountCount: 2, maxBots: 2 })
     })
 
     test("an admin can't disable or demote themselves", async () => {
