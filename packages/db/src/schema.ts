@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm"
 import {
     bigserial,
     boolean,
+    check,
     customType,
     index,
     integer,
@@ -96,7 +97,8 @@ export const gameAccounts = pgTable("game_accounts", {
     createdAt: createdAt(),
     updatedAt: updatedAt(),
 }, t => [
-    uniqueIndex("game_accounts_server_name").on(t.serverId, sql`lower(${t.name})`),
+    // A player may pair an account with its external-event twin (same name, same server).
+    uniqueIndex("game_accounts_server_name").on(t.serverId, sql`lower(${t.name})`, t.externalEvent),
     index("game_accounts_owner").on(t.ownerId),
 ])
 
@@ -130,7 +132,10 @@ export const botLogs = pgTable("bot_logs", {
     accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),
     ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
     level: smallint("level").notNull(),
+    /** English rendering, for admins and search. */
     message: text("message").notNull(),
+    /** The worker's raw parts (translation keys and values), so the UI can render it in the viewer's language. */
+    parts: jsonb("parts"),
 }, t => [index("bot_logs_account").on(t.accountId, t.id)])
 
 export const botRuns = pgTable("bot_runs", {
@@ -142,6 +147,15 @@ export const botRuns = pgTable("bot_runs", {
     restarts: integer("restarts").notNull().default(0),
     error: text("error"),
 }, t => [index("bot_runs_account").on(t.accountId, t.startedAt)])
+
+/** One row, written by the runner every few seconds while it holds the lock. */
+export const runnerHeartbeat = pgTable("runner_heartbeat", {
+    id: smallint("id").primaryKey().default(1),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    beatAt: timestamp("beat_at", { withTimezone: true }).notNull(),
+    version: text("version").notNull(),
+    running: integer("running").notNull().default(0),
+}, t => [check("runner_heartbeat_single_row", sql`${t.id} = 1`)])
 
 export const discordLinks = pgTable("discord_links", {
     userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
