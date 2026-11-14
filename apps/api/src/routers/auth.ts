@@ -102,7 +102,7 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
                 throw new ORPCError("CONFLICT", { message: "That email is already in use" })
             throw error
         })
-    await audit(ctx.db, { actorId: user.id, action: "auth.signup" })
+    await audit(ctx.db, { actorId: user.id, action: "auth.signup", meta: { ip: ctx.req.ip, emailCanonical: user.emailCanonical } })
     await sendVerification(ctx, user, input.email)
     return startSession(ctx, "client", publicUser(user))
 }

@@ -1,7 +1,7 @@
 import { pbkdf2Sync, randomBytes } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { users } from "@gge/db"
+import { auditLog, users } from "@gge/db"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
 
 let api: Api
@@ -166,5 +166,13 @@ describe("signup rate limit", () => {
             codes.push(await attempt("203.0.113.7", `flood${i}`))
         expect(codes).toEqual(["ok", "ok", "ok", "ok", "ok", "TOO_MANY_REQUESTS"])
         expect(await attempt("203.0.113.8", "bystander")).toBe("ok")
+    })
+})
+
+describe("signup forensics", () => {
+    test("the audit entry records the client IP and the canonical email", async () => {
+        await api.client(undefined, "198.51.100.23").api.auth.signup({ username: "traced", email: "T.raced+1@googlemail.com", password: PASSWORD })
+        const entries = await api.db.select().from(auditLog).where(eq(auditLog.action, "auth.signup"))
+        expect(entries.map(e => e.meta)).toContainEqual({ ip: "198.51.100.23", emailCanonical: "traced@gmail.com" })
     })
 })
