@@ -14,6 +14,7 @@ export interface WorkerLike {
     on(event: "error", listener: (error: Error) => void): this
     once(event: "exit", listener: (code: number) => void): this
     off(event: "message", listener: (message: unknown[]) => void): this
+    getHeapStatistics?(): Promise<{ used_heap_size: number }>
 }
 
 export type EndReason = "stopped" | "restart" | "crash" | "error" | "banned" | "auth_failed" | "shutoff" | "deploy"
@@ -50,6 +51,8 @@ export type SupervisorDeps = {
     backoff?: { baseMs: number; maxMs: number }
     eventTimeoutMs?: number
     logger?: Pick<Console, "warn" | "error">
+    /** Receives each worker's metric batch. */
+    onMetrics?: (batch: never) => void
 }
 
 const STABLE_MS = 10 * 60_000
@@ -92,6 +95,13 @@ export class Supervisor {
 
     get running() {
         return [...this.bots.values()].filter(b => b.worker).length
+    }
+
+    /** V8 heap in use by each live worker, for the memory gauge. */
+    async heapSizes() {
+        const workers = [...this.bots.values()].flatMap(b => b.worker?.getHeapStatistics ? [b.worker] : [])
+        const stats = await Promise.allSettled(workers.map(w => w.getHeapStatistics!()))
+        return stats.flatMap(s => s.status === "fulfilled" ? [s.value.used_heap_size] : [])
     }
 
     reconcile(specs: Map<string, BotSpec>) {
@@ -224,6 +234,9 @@ export class Supervisor {
         switch (type) {
             case Action.GetLogs:
                 store.log(id, Number(payload), extra, this.deps.renderLog(extra))
+                break
+            case Action.Metrics:
+                this.deps.onMetrics?.(payload as never)
                 break
             case Action.StatusUser:
                 this.track(store.setStatus(id, { resources: payload, heartbeat: true }))

@@ -101,3 +101,12 @@ test("the admin overview shows the runner's heartbeat and the last day's runs an
     expect(overview.runner).toMatchObject({ version: "test", running: 3 })
     expect(overview.last24h).toEqual({ runs: 2, crashes: 1 })
 })
+
+test("/metrics reports request latency by route pattern, never by account", async () => {
+    const p = await api.player()
+    const { id } = await p.api.accounts.create(newAccount("metrics-bot"))
+    await p.api.accounts.logs({ id })
+    const text = await (await fetch(`${api.baseUrl}/metrics`)).text()
+    expect(text).toMatch(/http_request_duration_seconds_count\{[^}]*route="\/rpc\/\*"[^}]*\}/)
+    expect(text).not.toContain(id)
+})

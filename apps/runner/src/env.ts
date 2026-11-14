@@ -15,6 +15,8 @@ const Env = z.object({
     DEBUG: z.stringbool().default(false),
     /** Download items, language and server list at boot; off only for offline development. */
     REFRESH_GAME_DATA: z.stringbool().default(true),
+    /** Prometheus scrape port, internal network only. */
+    METRICS_PORT: z.coerce.number().int().default(9464),
 })
 
 export type Env = z.infer<typeof Env>

@@ -13,6 +13,7 @@ const { I18n } = require("i18n")
 const ggeConfig = require("./config.js")
 const ActionType = require("./actions.json")
 const err = require("./err.json")
+const metrics = require("./metrics.js")
 
 const limiter = new RateLimiter({ tokensPerInterval: 5, interval: "sec" })
 const events = new EventEmitter()
@@ -64,8 +65,9 @@ async function sendXT(cmdName, paramObj) {
     try {
     console.debug(cmdName, JSON.parse(paramObj))
     } catch {}
-    await limiter.removeTokens(1)
+    await metrics.time("bot_send_wait_seconds", {}, limiter.removeTokens(1))
     requestCount++
+    metrics.count("bot_messages_total", { direction: "out", command: cmdName })
     webSocket.send(`%xt%${botConfig.gameServer}%${cmdName}%1%${paramObj}%`)
 }
 
@@ -89,7 +91,9 @@ function fatal(reason) {
  * @param {function(object,number)} func 
  * @returns {Promise<[obj: object, result: Number]>}
  */
-const waitForResult = (key, timeout, func) => new Promise((resolve, reject) => {
+const waitForResult = (key, timeout, func) => metrics.time("bot_game_rtt_seconds", { command: key }, waitForReply(key, timeout, func))
+
+const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
     if (timeout == undefined)
         reject(`waitForResult: No timeout specified`)
 
@@ -171,6 +175,8 @@ const playerInfo = {
     }
 }
 
+metrics.startFlushing(ActionType.Metrics, ggeConfig.metricsFlushMs)
+
 module.exports = {
     sendXT,
     waitForResult,
@@ -193,6 +199,7 @@ webSocket.onmessage = ({data : message}) => {
     if (message.charAt(0) == "%") {
         let [,,cmd,, r, obj] = message.split("%")
         const result = Number(r)
+        metrics.count("bot_messages_total", { direction: "in", command: cmd })
         try { obj = JSON.parse(obj) }
         catch(e) {
             console.debug(e)

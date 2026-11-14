@@ -111,3 +111,26 @@ describe("important error counter", () => {
         expect(bot.paused).toBe(false)
     }, 15000)
 })
+
+describe("metrics", () => {
+    test("batches count messages per command and time replies, with no account in any label", async () => {
+        bot = startBot()
+        await bot.login()
+        const { done } = await bot.startWaitForResult("tst", 1000)
+        bot.xt("tst", 0)
+        await done
+        await bot.until(() => bot.metricBatches().some(b => b.observations.some(([name]) => name === "bot_game_rtt_seconds")), 2000)
+
+        const counters = bot.metricBatches().flatMap(b => b.counters)
+        const total = (direction, command) => counters
+            .filter(([name, labels]) => name === "bot_messages_total" && labels.direction === direction && labels.command === command)
+            .reduce((sum, [, , n]) => sum + n, 0)
+        expect(total("out", "vck")).toBe(1)
+        expect(total("out", "lli")).toBe(1)
+        expect(total("in", "tst")).toBe(1)
+
+        const rtt = bot.metricBatches().flatMap(b => b.observations).find(([name, labels]) => name === "bot_game_rtt_seconds" && labels.command === "tst")
+        expect(rtt[2][0]).toBeGreaterThanOrEqual(0)
+        expect(JSON.stringify(bot.metricBatches())).not.toContain("tester")
+    }, 15000)
+})

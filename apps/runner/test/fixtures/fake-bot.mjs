@@ -7,6 +7,7 @@ const mode = workerData.name.split("-")[0]
 
 post([5, 0, ["spawned", " ", workerData.gameURL, " ", workerData.gameServer, " plugins=", Object.keys(workerData.plugins).sort().join(",")]])
 post([5, 0, [workerData.pass === `pw-${workerData.name}` ? "password ok" : "password WRONG"]])
+post([21, { counters: [["bot_messages_total", { direction: "out", command: "lli" }, 1]], observations: [] }])
 
 parentPort.on("message", ([type, payload]) => {
     if (type === 17)

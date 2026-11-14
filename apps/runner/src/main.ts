@@ -8,6 +8,7 @@ import { parseEnv, workerConfig } from "./env.ts"
 import { readServers, refreshGameData } from "./game-data.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
+import { createMetrics, serveMetrics, type MetricBatch } from "./metrics.ts"
 import { loadSpecs } from "./specs.ts"
 import { createStore } from "./store.ts"
 import { Supervisor } from "./supervisor.ts"
@@ -38,8 +39,10 @@ const ggeConfig = workerConfig(env)
 const registry = readPluginRegistry(ggeConfig)
 await publishCatalog(db, registry.catalog)
 
+let applyMetrics: (batch: MetricBatch) => void = () => {}
 const supervisor = new Supervisor({
     spawn: workerData => new Worker(ggeBotPath, { workerData }),
+    onMetrics: (batch: MetricBatch) => applyMetrics(batch),
     store,
     openPassword: sealed => openSealed(env.SEAL_PRIVATE_KEY, sealed),
     renderLog: createLogRenderer(),
@@ -47,6 +50,10 @@ const supervisor = new Supervisor({
     startGapMs: env.START_GAP_MS,
     maxAccounts: env.MAX_ACCOUNTS,
 })
+
+const metrics = createMetrics({ db, heapSizes: () => supervisor.heapSizes() })
+applyMetrics = metrics.apply
+const metricsServer = await serveMetrics(metrics.registry, env.METRICS_PORT)
 
 let reconciling: Promise<void> | undefined
 let again = false
@@ -81,6 +88,7 @@ console.log(`runner ${VERSION} started`)
 for (const signal of ["SIGTERM", "SIGINT"] as const)
     process.once(signal, async () => {
         timers.forEach(clearInterval)
+        metricsServer.close()
         await supervisor.stopAll("deploy")
         await store.flushLogs()
         await lock.release()

@@ -288,7 +288,8 @@ async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache) {
     useCache ??= true
     const key = `${kingdomID}_${fromX}_${fromY}_${toX}_${toY}`
     let response = myCache.get(key)
-    
+    require("./metrics.js").count("bot_gaa_cache_total", { result: response && useCache ? "hit" : "miss" })
+
     if(!response || !useCache) {
         await limiter.removeTokens(1).then(() => setCastle(undefined, () =>
             sendXT("gaa", JSON.stringify({

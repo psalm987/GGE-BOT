@@ -8,12 +8,12 @@ const SERVER = {
 }
 
 /** Runs the real ggeBot.js in a worker against a scripted fake game socket. */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100 } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
             control: port2,
-            ggeConfig: { timeoutMultiplier, exitOnFatal },
+            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs },
             name: "tester",
             pass: "pw",
             gameURL: "fake.invalid",
@@ -32,6 +32,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false } = {}) {
         paused: false,
         closed: false,
         botStates: () => session.toParent.filter(m => m[0] === 20).map(m => m[1]),
+        metricBatches: () => session.toParent.filter(m => m[0] === 21).map(m => m[1]),
         exited: false,
         waits: new Map(),
         frame: data => port1.postMessage({ type: "frame", data }),

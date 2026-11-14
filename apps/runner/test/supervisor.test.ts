@@ -23,6 +23,7 @@ let ownerId: string
 let supervisor: Supervisor
 let spawned: Record<string, unknown>[]
 let store: ReturnType<typeof createStore>
+let metricBatches: unknown[]
 
 beforeAll(async () => {
     db = createDb(inject("databaseUrl"))
@@ -35,6 +36,7 @@ beforeEach(async () => {
     const [owner] = await db.insert(users).values({ username: `owner-${Math.random().toString(36).slice(2)}`, passwordHash: "x" }).returning()
     ownerId = owner!.id
     store = createStore(db, { flushMs: 20 })
+    metricBatches = []
     supervisor = makeSupervisor()
 })
 
@@ -55,6 +57,7 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
         backoff: { baseMs: 100, maxMs: 1000 },
         eventTimeoutMs: 2000,
         logger: { warn() {}, error() {} },
+        onMetrics: batch => metricBatches.push(batch),
         ...overrides,
     })
 }
@@ -105,6 +108,7 @@ describe("starting and stopping", () => {
         expect(spawned[0]).toMatchObject({ gameURL: "in1.test", gameServer: "EmpireEx_26", plugins: { attack: { state: true, attackDelaySeconds: "4.5", filename: "plugins/attack/attack" } } })
         expect(await until(async () => (await logs(a)).includes("password ok") && logs(a))).not.toContain("password WRONG")
         expect((await runs(a))).toHaveLength(1)
+        expect(metricBatches).toContainEqual({ counters: [["bot_messages_total", { direction: "out", command: "lli" }, 1]], observations: [] })
     })
 
     test("stopping in the database stops the worker and closes its run", async () => {

@@ -3,6 +3,7 @@ import { onError } from "@orpc/server"
 import { RPCHandler } from "@orpc/server/fastify"
 import { sql } from "drizzle-orm"
 import Fastify, { type FastifyInstance } from "fastify"
+import metricsPlugin from "fastify-metrics"
 import type { Db } from "@gge/db"
 import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
@@ -15,6 +16,8 @@ export async function buildServer({ db, env, logger = true }: { db: Db; env: Env
     // Caddy terminates TLS in front of us; trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
     await app.register(cookie)
+    // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc and /healthz.
+    await app.register(metricsPlugin.default, { endpoint: "/metrics", routeMetrics: { routeBlacklist: ["/metrics", "/healthz"] } })
     // oRPC reads the raw body itself.
     app.addContentTypeParser("*", (_req, _payload, done) => done(null, undefined))
 
