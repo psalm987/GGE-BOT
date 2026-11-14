@@ -5,8 +5,7 @@ const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
-const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
-const API_URL = process.env.API_URL ?? "http://127.0.0.1:3000"
+const DEV_LOG = process.env.DEV_LOG ?? "/tmp/gge-dev.log"
 const out = process.argv[2] ?? path.join(__dirname, "../../../../.verify-evidence", `${new Date().toISOString().replace(/[:.]/g, "-")}-client`)
 require("fs").mkdirSync(out, { recursive: true })
 const assert = (ok, what) => { if (!ok) throw new Error("FAILED: " + what); console.log("ok:", what) }
@@ -17,35 +16,93 @@ async function axe(page, name) {
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
 
-async function freshInvite() {
-    const call = async (path, body, cookie) => {
-        const res = await fetch(`${API_URL}/admin/rpc/${path}`, {
-            method: "POST",
-            headers: { origin: ADMIN_URL, "content-type": "application/json", ...(cookie && { cookie }) },
-            body: JSON.stringify({ json: body }),
-        })
-        return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
+/** The link in the newest email the dev API logged for an address (the log mailer prints every message). */
+function emailedLink(address) {
+    const lines = require("fs").readFileSync(DEV_LOG, "utf8").split("\n").reverse()
+    for (const line of lines) {
+        try {
+            const entry = JSON.parse(line)
+            if (entry.to === address) return entry.text.match(/https?:\/\/\S+/)[0]
+        } catch {}
     }
-    const { cookie } = await call("auth/login", { username: "admin", password: "demo-password" })
-    return (await call("invites/create", { role: "user", expiresInHours: 1 }, cookie)).json.code
+    throw new Error(`no email logged for ${address}; start the stack with its output in ${DEV_LOG}`)
 }
 
 ;(async () => {
-    const invite = await freshInvite()
     const browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } })
     const name = "u" + Date.now().toString(36)
-    await page.goto(`${CLIENT_URL}/signup?invite=${invite}`)
+    await page.goto(`${CLIENT_URL}/signup`)
     await page.getByRole("heading", { name: "Join the campaign" }).waitFor()
     await axe(page, "signup")
-    assert(await page.getByLabel("Invite code").inputValue() === invite, "invite code prefilled from the link")
+    assert(await page.getByLabel("Invite code").count() === 0, "signup asks for no invite code")
+    const top = label => page.getByLabel(label, { exact: true }).evaluate(el => Math.round(el.getBoundingClientRect().top))
+    assert(await top("Password") === await top("Confirm password"), "password and confirm share a row on a wide screen")
+    await page.screenshot({ path: `${out}/client-signup-1280.png` })
+    await page.setViewportSize({ width: 390, height: 844 })
+    assert(await top("Password") < await top("Confirm password"), "password and confirm stack at 390 px")
+    assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, "no horizontal overflow on signup at 390")
+    await page.screenshot({ path: `${out}/client-signup-390.png`, fullPage: true })
+    await page.setViewportSize({ width: 1280, height: 860 })
     await page.getByLabel("Username").fill(name)
+    await page.getByLabel("Email").fill(`${name}@example.test`)
     await page.getByLabel("Password", { exact: true }).fill("a-strong-password")
+    await page.getByLabel("Confirm password").fill("a-different-password")
+    await page.getByRole("button", { name: "Create account" }).click()
+    await page.getByText("The passwords don't match").waitFor()
+    assert(true, "mismatched passwords are caught before submitting")
     await page.getByLabel("Confirm password").fill("a-strong-password")
     await page.getByRole("button", { name: "Create account" }).click()
+
+    await page.getByText("Confirm your email", { exact: true }).waitFor()
+    assert(await page.getByText("No accounts yet").count() === 0, "an unverified player sees the email gate, not the roster")
+    await axe(page, "email gate")
+    await page.screenshot({ path: `${out}/client-email-gate-1280.png` })
+    const verifyPage = await browser.newPage()
+    await verifyPage.goto(emailedLink(`${name}@example.test`))
+    await verifyPage.getByText("Email verified").waitFor()
+    await verifyPage.close()
+    await page.reload()
     await page.getByText("No accounts yet").waitFor()
-    assert(true, "signup lands on an empty roster with a call to action")
+    assert(await page.getByText("Confirm your email", { exact: true }).count() === 0, "the roster opens once the emailed link is opened")
     await axe(page, "empty dashboard")
+
+    await page.getByRole("menuitem", { name: "Settings" }).click()
+    await page.getByRole("heading", { name: "Change password" }).waitFor().catch(() => {})
+    await page.getByLabel("Current password").fill("a-strong-password")
+    await page.getByLabel("New password", { exact: true }).fill("another-strong-password")
+    await page.getByLabel("Confirm new password").fill("another-strong-password")
+    await page.getByRole("button", { name: "Change password" }).click()
+    await page.getByText("Password changed").waitFor()
+    await axe(page, "settings")
+    assert(true, "Settings changes the password")
+    await page.getByRole("menuitem", { name: "Accounts" }).click()
+
+    const resetPage = await browser.newPage()
+    await resetPage.goto(`${CLIENT_URL}/forgot-password`)
+    await resetPage.getByLabel("Email").fill(`${name}@example.test`)
+    await resetPage.getByRole("button", { name: "Send reset link" }).click()
+    await resetPage.getByText("a reset link is on its way").waitFor()
+    await resetPage.goto(emailedLink(`${name}@example.test`))
+    await resetPage.getByLabel("New password", { exact: true }).fill("third-strong-password")
+    await resetPage.getByLabel("Confirm new password").fill("third-strong-password")
+    await resetPage.getByRole("button", { name: "Change password" }).click()
+    await resetPage.getByText("Password changed").first().waitFor()
+    await resetPage.goto(`${CLIENT_URL}/login`)
+    await resetPage.getByLabel("Username or email").fill(`${name}@example.test`)
+    await resetPage.getByLabel("Password").fill("third-strong-password")
+    await resetPage.getByRole("button", { name: "Sign in" }).click()
+    await resetPage.getByText("No accounts yet").waitFor()
+    assert(true, "forgot password, reset link, then sign in by email with the new password")
+    await resetPage.close()
+    await page.reload()
+    await page.getByRole("heading", { name: "Sign in" }).waitFor()
+    assert(true, "the reset signed the first browser out")
+    await page.goto(`${CLIENT_URL}/login`)
+    await page.getByLabel("Username or email").fill(name)
+    await page.getByLabel("Password").fill("third-strong-password")
+    await page.getByRole("button", { name: "Sign in" }).click()
+    await page.getByText("No accounts yet").waitFor()
 
     await page.getByRole("button", { name: "Add your first account" }).click()
     await page.getByLabel("Game account name").fill(`Storm${name}`)

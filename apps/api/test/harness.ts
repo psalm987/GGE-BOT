@@ -1,12 +1,12 @@
 import { createORPCClient } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
-import { sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { inject } from "vitest"
 import type { AdminApi, ClientApi } from "@gge/contracts"
-import { createDb, gameAccounts, invites, pluginCatalog, servers, users, type Db } from "@gge/db"
+import { createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
 import { generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
-import { hashInviteCode } from "../src/routers/auth.ts"
+import type { Mailer, MailMessage } from "../src/services/mailer.ts"
 import { buildServer } from "../src/server.ts"
 
 export const CLIENT_ORIGIN = "https://app.test"
@@ -43,15 +43,24 @@ function browser(baseUrl: string, path: string, origin: string) {
 
 export async function startApi() {
     const db: Db = createDb(inject("databaseUrl"))
-    await db.execute(sql`truncate ${users}, ${servers}, ${pluginCatalog}, ${invites} restart identity cascade`)
+    await db.execute(sql`truncate ${users}, ${servers}, ${pluginCatalog} restart identity cascade`)
     await db.insert(servers).values([
         { id: 26, label: "India 1", wsHost: "ep-live-in1-game.goodgamestudios.com", zone: "EmpireEx_26" },
         { id: 27, label: "Germany 1", wsHost: "ep-live-de1-game.goodgamestudios.com", zone: "EmpireEx_27" },
     ])
     await db.insert(pluginCatalog).values(catalog)
     const keys = generateSealKeyPair()
+    const sent: MailMessage[] = []
+    let mailFailing = false
+    const mailer: Mailer = {
+        send: async message => {
+            if (mailFailing)
+                throw new Error("mail provider down")
+            sent.push(message)
+        },
+    }
     const app = await buildServer({
-        db, logger: false,
+        db, logger: false, mailer,
         env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
@@ -66,27 +75,37 @@ export async function startApi() {
         return { api: createORPCClient<AdminApi>(link), jar }
     }
 
-    async function invite(role: "user" | "admin" = "user", code = `code-${Math.random()}`, expiresAt = new Date(Date.now() + 3600_000)) {
-        await db.insert(invites).values({ codeHash: hashInviteCode(code), role, expiresAt })
-        return code
+    /** A newly signed-up player who hasn't confirmed their email yet. */
+    async function signup(username = `p${Math.random().toString(36).slice(2, 10)}`, email = `${username.toLowerCase()}@example.test`) {
+        const c = client()
+        await c.api.auth.signup({ username, email, password: PASSWORD })
+        return { ...c, email }
     }
 
-    /** A signed-in player with a fresh account. */
-    async function player(username = `p${Math.random().toString(36).slice(2, 10)}`) {
-        const c = client()
-        await c.api.auth.signup({ inviteCode: await invite(), username, password: PASSWORD })
-        return c
+    /** A signed-in player with a confirmed email. */
+    async function player(username?: string, email?: string) {
+        const p = await signup(username, email)
+        await db.update(users).set({ emailVerifiedAt: new Date() }).where(eq(sql`lower(${users.email})`, p.email.toLowerCase()))
+        return p
     }
+
+    /** The link in the latest email sent to an address. */
+    const lastLink = (to: string) => {
+        const message = sent.findLast(m => m.to === to)
+        const url = message?.text.match(/https?:\/\/\S+/)?.[0]
+        return url ? new URL(url) : undefined
+    }
+    const lastToken = (to: string) => lastLink(to)?.searchParams.get("token") ?? undefined
 
     async function signedInAdmin() {
         await db.insert(users).values({ username: "boss", passwordHash: await hashPassword(PASSWORD), role: "admin" })
         const a = admin()
-        await a.api.auth.login({ username: "boss", password: PASSWORD })
+        await a.api.auth.login({ login: "boss", password: PASSWORD })
         return a
     }
 
     return {
-        db, keys, baseUrl, app, client, admin, invite, player, signedInAdmin,
+        db, keys, baseUrl, app, client, admin, signup, player, signedInAdmin, sent, lastLink, lastToken, failMail: (failing: boolean) => { mailFailing = failing },
         close: async () => { await app.close(); await db.$pool.end() },
         accountRows: () => db.select().from(gameAccounts),
     }

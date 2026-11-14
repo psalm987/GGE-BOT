@@ -2,6 +2,7 @@ import type { EventEmitter } from "node:events"
 import type { FastifyReply, FastifyRequest } from "fastify"
 import type { Db } from "@gge/db"
 import type { Env } from "./env.ts"
+import type { Mailer } from "./services/mailer.ts"
 import type { RateLimiter } from "./services/rate-limit.ts"
 
 export type Ctx = {
@@ -9,8 +10,9 @@ export type Ctx = {
     env: Env
     req: FastifyRequest
     reply: FastifyReply
-    /** Login and signup attempts: generous per IP (shared NATs), strict per username. */
-    limits: { ip: RateLimiter; user: RateLimiter }
+    /** Login and signup attempts: generous per IP (shared NATs), strict per username. `email` caps mail sent to one address. */
+    limits: { ip: RateLimiter; user: RateLimiter; email: RateLimiter }
+    mailer: Mailer
     /** Emits "event" with each RawBotEvent the runner announces. */
     botEvents: EventEmitter
 }

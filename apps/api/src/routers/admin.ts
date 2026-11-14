@@ -1,13 +1,12 @@
-import { randomBytes } from "node:crypto"
 import { implement, ORPCError } from "@orpc/server"
 import { and, count, desc, eq, gt, ilike, inArray, lt, sql } from "drizzle-orm"
-import { auditLog, botRuns, botStatus, gameAccounts, invites, runnerHeartbeat, users } from "@gge/db"
+import { auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, users } from "@gge/db"
 import { adminContract } from "@gge/contracts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { listAccounts, setDesiredState } from "../services/accounts.ts"
-import { currentUser, hashInviteCode, login, logout } from "./auth.ts"
+import { currentUser, login, logout } from "./auth.ts"
 
 const os = implement(adminContract).$context<Ctx>()
 
@@ -19,16 +18,6 @@ const admin = os.middleware(async ({ context, next }) => {
         throw new ORPCError("FORBIDDEN", { message: "Admins only" })
     return next({ context: { user } })
 })
-
-const inviteColumns = {
-    id: invites.id,
-    role: invites.role,
-    createdAt: invites.createdAt,
-    expiresAt: invites.expiresAt,
-    usedAt: invites.usedAt,
-    usedBy: users.username,
-    revokedAt: invites.revokedAt,
-}
 
 function notSelf(actorId: string, targetId: string, message: string) {
     if (actorId === targetId)
@@ -68,7 +57,8 @@ export const adminRouter = os.router({
     users: {
         list: os.users.list.use(admin).handler(({ context: { db }, input }) =>
             db.select({
-                id: users.id, username: users.username, role: users.role, status: users.status, createdAt: users.createdAt,
+                id: users.id, username: users.username, role: users.role, email: users.email,
+                emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, status: users.status, createdAt: users.createdAt,
                 accountCount: count(gameAccounts.id),
             }).from(users)
                 .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
@@ -97,26 +87,6 @@ export const adminRouter = os.router({
         revokeSessions: os.users.revokeSessions.use(admin).handler(async ({ context: { db, user }, input }) => {
             await revokeUserSessions(db, input.id)
             await audit(db, { actorId: user.id, action: "user.revoke_sessions", targetType: "user", targetId: input.id })
-        }),
-    },
-    invites: {
-        list: os.invites.list.use(admin).handler(({ context: { db } }) =>
-            db.select(inviteColumns).from(invites).leftJoin(users, eq(users.id, invites.usedBy)).orderBy(desc(invites.createdAt))),
-        create: os.invites.create.use(admin).handler(async ({ context: { db, user }, input }) => {
-            const code = randomBytes(18).toString("base64url")
-            const [created] = await db.insert(invites).values({
-                codeHash: hashInviteCode(code),
-                role: input.role,
-                createdBy: user.id,
-                expiresAt: new Date(Date.now() + input.expiresInHours * 3600_000),
-            }).returning({ id: invites.id })
-            await audit(db, { actorId: user.id, action: "invite.create", targetType: "invite", targetId: created!.id, meta: { role: input.role } })
-            const [invite] = await db.select(inviteColumns).from(invites).leftJoin(users, eq(users.id, invites.usedBy)).where(eq(invites.id, created!.id))
-            return { invite: invite!, code }
-        }),
-        revoke: os.invites.revoke.use(admin).handler(async ({ context: { db, user }, input }) => {
-            await db.update(invites).set({ revokedAt: new Date() }).where(and(eq(invites.id, input.id), sql`${invites.usedAt} is null`))
-            await audit(db, { actorId: user.id, action: "invite.revoke", targetType: "invite", targetId: input.id })
         }),
     },
     accounts: {

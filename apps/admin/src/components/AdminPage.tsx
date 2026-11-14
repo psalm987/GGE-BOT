@@ -1,4 +1,4 @@
-import { AuditOutlined, DashboardOutlined, KeyOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
+import { AuditOutlined, DashboardOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
 import { Alert, Button } from "antd"
 import type { ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router"
@@ -9,7 +9,6 @@ import { useLogout, useMe } from "../auth.tsx"
 const NAV: (NavItem & { path: string })[] = [
     { key: "overview", path: "/", label: "Overview", icon: <DashboardOutlined /> },
     { key: "users", path: "/users", label: "Users", icon: <UserOutlined /> },
-    { key: "invites", path: "/invites", label: "Invites", icon: <KeyOutlined /> },
     { key: "accounts", path: "/accounts", label: "Accounts", icon: <TeamOutlined /> },
     { key: "audit", path: "/audit", label: "Audit", icon: <AuditOutlined /> },
 ]

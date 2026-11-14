@@ -10,7 +10,6 @@ import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { Accounts } from "./pages/Accounts.tsx"
 import { Audit } from "./pages/Audit.tsx"
-import { Invites } from "./pages/Invites.tsx"
 import { Login } from "./pages/Login.tsx"
 import { Overview } from "./pages/Overview.tsx"
 import { Users } from "./pages/Users.tsx"
@@ -30,7 +29,6 @@ createRoot(document.getElementById("root")!, {
                         <Route path="/login" element={<Login />} />
                         <Route path="/" element={guarded(<Overview />)} />
                         <Route path="/users" element={guarded(<Users />)} />
-                        <Route path="/invites" element={guarded(<Invites />)} />
                         <Route path="/accounts" element={guarded(<Accounts />)} />
                         <Route path="/audit" element={guarded(<Audit />)} />
                         <Route path="*" element={<Navigate to="/" replace />} />

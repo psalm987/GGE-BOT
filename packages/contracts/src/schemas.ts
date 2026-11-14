@@ -7,13 +7,15 @@ export const DesiredState = z.enum(["running", "stopped"])
 export const ActualState = z.enum(["starting", "running", "stopped", "auth_failed", "banned", "error"])
 
 export const Username = z.string().trim().min(3).max(32).regex(/^[A-Za-z0-9_.-]+$/, "letters, digits, _ . - only")
+export const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
 export const NewPassword = z.string().min(10, "at least 10 characters").max(200)
 const LoginPassword = z.string().min(1).max(200)
 
-export const Credentials = z.object({ username: z.string().trim().min(1).max(64), password: LoginPassword })
-export const Signup = z.object({ inviteCode: z.string().trim().min(1).max(200), username: Username, password: NewPassword })
+/** `login` is a username or an email; usernames can't contain "@", so the two never collide. */
+export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })
+export const Signup = z.object({ username: Username, email: Email, password: NewPassword })
 
-export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role })
+export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean() })
 export type PublicUser = z.infer<typeof PublicUser>
 
 export const BotStatus = z.object({
@@ -65,16 +67,6 @@ export const AdminUser = PublicUser.extend({
     status: UserStatus,
     createdAt: z.date(),
     accountCount: z.number().int(),
-})
-
-export const Invite = z.object({
-    id: z.uuid(),
-    role: Role,
-    createdAt: z.date(),
-    expiresAt: z.date(),
-    usedAt: z.date().nullable(),
-    usedBy: z.string().nullable(),
-    revokedAt: z.date().nullable(),
 })
 
 export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ owner: z.string() })

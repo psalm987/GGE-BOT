@@ -2,7 +2,7 @@ import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { PluginCatalogEntry } from "./plugins.ts"
 import {
-    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Id, Ids, Invite, LogLine,
+    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -17,7 +17,21 @@ const auth = {
 
 /** What the player app (app.<domain>) calls, mounted at /rpc. */
 export const clientContract = {
-    auth: { ...auth, signup: oc.input(Signup).output(PublicUser) },
+    auth: {
+        ...auth,
+        signup: oc.input(Signup).output(PublicUser),
+        /** Always succeeds, so the answer never says whether the address has an account. */
+        requestPasswordReset: oc.input(z.object({ email: Email })).output(z.object({ ok: z.literal(true) })),
+        resetPassword: oc.input(z.object({ token: z.string().min(1).max(200), password: NewPassword })).output(z.void()),
+        /** Public: the emailed link may open in a browser that isn't signed in. */
+        verifyEmail: oc.input(z.object({ token: z.string().min(1).max(200) })).output(z.void()),
+    },
+    account: {
+        resendVerification: oc.output(z.void()),
+        /** Only while the account has no email yet. */
+        addEmail: oc.input(z.object({ email: Email })).output(z.void()),
+        changePassword: oc.input(z.object({ current: z.string().min(1).max(200), next: NewPassword })).output(z.void()),
+    },
     accounts: {
         list: oc.output(z.array(PublicAccount)),
         create: oc.input(CreateAccount).output(PublicAccount),
@@ -43,12 +57,6 @@ export const adminContract = {
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
-    },
-    invites: {
-        list: oc.output(z.array(Invite)),
-        create: oc.input(z.object({ role: Role.default("user"), expiresInHours: z.number().int().min(1).max(24 * 30).default(72) }))
-            .output(z.object({ invite: Invite, code: z.string() })),
-        revoke: oc.input(Id).output(z.void()),
     },
     accounts: {
         list: oc.output(z.array(AdminAccount)),

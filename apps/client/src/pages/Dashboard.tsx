@@ -1,15 +1,14 @@
-import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, TeamOutlined, TranslationOutlined } from "@ant-design/icons"
+import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, TranslationOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Button, Col, Grid, Popconfirm, Row, Select, Space, Statistic, Table, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useMemo, useState } from "react"
-import { useNavigate } from "react-router"
 import type { PublicAccount } from "@gge/contracts"
-import { CampaignLayout, CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
+import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
-import { useLogout, useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
+import { AppLayout } from "../components/AppLayout.tsx"
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n.ts"
 import { useLiveBotEvents } from "../live.ts"
 
@@ -20,9 +19,6 @@ const isRunning = (a: PublicAccount) => a.desiredState === "running"
 
 export function Dashboard() {
     const { message } = App.useApp()
-    const navigate = useNavigate()
-    const me = useMe()
-    const logout = useLogout()
     const language = useLanguage()
     const phone = !Grid.useBreakpoint().md
     const accounts = useQuery(orpc.accounts.list.queryOptions())
@@ -61,20 +57,10 @@ export function Dashboard() {
     const running = list.filter(a => a.status?.actualState === "running").length
     const attention = list.filter(a => a.status && NEEDS_ATTENTION.has(a.status.actualState)).length
 
-    async function signOut() {
-        await logout.mutateAsync({})
-        navigate("/login", { replace: true })
-    }
-
     return (
-        <CampaignLayout
-            product="GGE Command"
-            nav={[{ key: "accounts", label: "Accounts", icon: <TeamOutlined /> }]}
+        <AppLayout
             activeKey="accounts"
-            onNavigate={() => {}}
             title="Your accounts"
-            username={me.data?.username ?? ""}
-            onLogout={signOut}
             accountMenu={phone ? [{
                 key: "language", icon: <TranslationOutlined />, label: "Language",
                 children: Object.entries(LANGUAGES).map(([value, label]) => ({ key: value, label, onClick: () => setLanguage(value as Language) })),
@@ -151,6 +137,6 @@ export function Dashboard() {
             </ParchmentCard>
 
             <AccountDrawer open={drawer.open} account={drawer.account} onClose={() => setDrawer({ open: false })} />
-        </CampaignLayout>
+        </AppLayout>
     )
 }

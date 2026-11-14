@@ -11,42 +11,53 @@ afterAll(() => api.close())
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 
 describe("signup", () => {
-    test("an invite signs a new player in, and works only once", async () => {
-        const code = await api.invite()
+    test("anyone can sign up: a player, signed in, with the email still to confirm", async () => {
         const first = api.client()
-        const me = await first.api.auth.signup({ inviteCode: code, username: "alice", password: PASSWORD })
-        expect(me).toMatchObject({ username: "alice", role: "user" })
+        const me = await first.api.auth.signup({ username: "alice", email: "Alice@Example.test", password: PASSWORD })
+        expect(me).toMatchObject({ username: "alice", role: "user", email: "alice@example.test", emailVerified: false })
         expect(await first.api.auth.me()).toMatchObject({ username: "alice" })
-
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "bob", password: PASSWORD }))).toBe("BAD_REQUEST")
     })
 
-    test("expired and unknown invites are refused", async () => {
-        const expired = await api.invite("user", "old", new Date(Date.now() - 1000))
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: expired, username: "carol", password: PASSWORD }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: "nope", username: "carol", password: PASSWORD }))).toBe("BAD_REQUEST")
+    test("signup can't pick a role", async () => {
+        const signup = api.client().api.auth.signup as (input: object) => Promise<{ role: string }>
+        expect((await signup({ username: "sneaky", email: "sneaky@example.test", password: PASSWORD, role: "admin" })).role).toBe("user")
     })
 
-    test("a taken username (any case) is a conflict and leaves the invite unused", async () => {
+    test("a taken username or email (any case) is a conflict", async () => {
         await api.player("dave")
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "DAVE", password: PASSWORD }))).toBe("CONFLICT")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "dave2", password: PASSWORD }))).toBe("ok")
+        expect(await codeOf(api.client().api.auth.signup({ username: "DAVE", email: "other-dave@example.test", password: PASSWORD }))).toBe("CONFLICT")
+        expect(await codeOf(api.client().api.auth.signup({ username: "dave2", email: "DAVE@example.test", password: PASSWORD }))).toBe("CONFLICT")
+        expect(await codeOf(api.client().api.auth.signup({ username: "dave2", email: "dave2@example.test", password: PASSWORD }))).toBe("ok")
     })
 
     test("short passwords and bad usernames are rejected before anything is written", async () => {
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "erin", password: "short" }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "no spaces", password: PASSWORD }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "erin", password: PASSWORD }))).toBe("ok")
+        expect(await codeOf(api.client().api.auth.signup({ username: "erin", email: "erin@example.test", password: "short" }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ username: "no spaces", email: "nospaces@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ username: "erin", email: "erin@example.test", password: PASSWORD }))).toBe("ok")
+    })
+})
+
+describe("email gate", () => {
+    test("an unverified player can manage their email but not their bots, until they verify", async () => {
+        const p = await api.signup("newbie")
+        expect(await codeOf(p.api.accounts.list())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.servers.list())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.plugins.catalog())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.accounts.create({ name: "Early", serverId: 26, password: "game-password" }))).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.auth.me())).toBe("ok")
+        expect(await codeOf(p.api.account.resendVerification({}))).toBe("ok")
+
+        await api.client().api.auth.verifyEmail({ token: api.lastToken(p.email)! })
+        expect(await codeOf(p.api.accounts.list())).toBe("ok")
+        expect(await codeOf(p.api.servers.list())).toBe("ok")
     })
 })
 
 describe("login and sessions", () => {
     test("a wrong password and an unknown user give the same answer", async () => {
         await api.player("frank")
-        const wrong = await api.client().api.auth.login({ username: "frank", password: "wrong password!" }).catch(e => e)
-        const nobody = await api.client().api.auth.login({ username: "nobody-here", password: "wrong password!" }).catch(e => e)
+        const wrong = await api.client().api.auth.login({ login: "frank", password: "wrong password!" }).catch(e => e)
+        const nobody = await api.client().api.auth.login({ login: "nobody-here", password: "wrong password!" }).catch(e => e)
         expect([wrong.code, wrong.message]).toEqual(["UNAUTHORIZED", "Wrong username or password"])
         expect([nobody.code, nobody.message]).toEqual([wrong.code, wrong.message])
     })
@@ -56,7 +67,7 @@ describe("login and sessions", () => {
         const response = await fetch(`${api.baseUrl}/rpc/auth/login`, {
             method: "POST",
             headers: { origin: "https://app.test", "content-type": "application/json" },
-            body: JSON.stringify({ json: { username: "gina", password: PASSWORD } }),
+            body: JSON.stringify({ json: { login: "gina", password: PASSWORD } }),
         })
         const cookie = response.headers.getSetCookie().find(c => c.startsWith("gge_session="))!
         expect(cookie).toMatch(/HttpOnly/i)
@@ -81,7 +92,7 @@ describe("login and sessions", () => {
         const player = await api.player("hank")
         await api.db.update(users).set({ status: "disabled" }).where(eq(users.username, "hank"))
         expect(await player.api.auth.me()).toBeNull()
-        expect(await codeOf(api.client().api.auth.login({ username: "hank", password: PASSWORD }))).toBe("FORBIDDEN")
+        expect(await codeOf(api.client().api.auth.login({ login: "hank", password: PASSWORD }))).toBe("FORBIDDEN")
     })
 
     test("repeated failures for one username are throttled", async () => {
@@ -89,7 +100,7 @@ describe("login and sessions", () => {
         const attacker = api.client()
         const codes = []
         for (let i = 0; i < 11; i++)
-            codes.push(await codeOf(attacker.api.auth.login({ username: "ivan", password: `guess ${i} wrong` })))
+            codes.push(await codeOf(attacker.api.auth.login({ login: "ivan", password: `guess ${i} wrong` })))
         expect(codes.slice(0, 10).every(c => c === "UNAUTHORIZED")).toBe(true)
         expect(codes[10]).toBe("TOO_MANY_REQUESTS")
     })
@@ -102,25 +113,25 @@ describe("login and sessions", () => {
             passwordSalt: salt,
             passwordHash: pbkdf2Sync("old secret pw", salt, 600_000, 64, "sha256").toString("hex"),
         })
-        expect(await api.client().api.auth.login({ username: "legacy", password: "old secret pw" })).toMatchObject({ username: "legacy" })
+        expect(await api.client().api.auth.login({ login: "legacy", password: "old secret pw" })).toMatchObject({ username: "legacy" })
 
         const [row] = await api.db.select().from(users).where(eq(users.username, "legacy"))
         expect(row).toMatchObject({ passwordAlgo: "argon2id", passwordSalt: null })
         expect(row!.passwordHash).toMatch(/^\$argon2id\$/)
-        expect(await codeOf(api.client().api.auth.login({ username: "legacy", password: "old secret pw" }))).toBe("ok")
+        expect(await codeOf(api.client().api.auth.login({ login: "legacy", password: "old secret pw" }))).toBe("ok")
     })
 })
 
 describe("boundaries between the apps", () => {
     test("a player can't sign in to the admin app", async () => {
         await api.player("jill")
-        expect(await codeOf(api.admin().api.auth.login({ username: "jill", password: PASSWORD }))).toBe("FORBIDDEN")
+        expect(await codeOf(api.admin().api.auth.login({ login: "jill", password: PASSWORD }))).toBe("FORBIDDEN")
     })
 
     test("a client session cookie does not authenticate admin calls", async () => {
         const admin = await api.signedInAdmin()
         const asPlayer = api.client()
-        await asPlayer.api.auth.login({ username: "boss", password: PASSWORD })
+        await asPlayer.api.auth.login({ login: "boss", password: PASSWORD })
         const adminApp = api.admin()
         for (const [k, v] of asPlayer.jar) adminApp.jar.set(k, v)
         expect(await codeOf(adminApp.api.overview())).toBe("UNAUTHORIZED")

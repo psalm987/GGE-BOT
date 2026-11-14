@@ -30,11 +30,12 @@ export function Users() {
                 <Input.Search allowClear placeholder="Search by username" aria-label="Search users" style={{ width: 240, maxWidth: "100%" }} onSearch={setSearch} />
             } title="Players">
                 {!users.isPending && !users.error && list.length === 0 ? (
-                    <CrestEmpty title="No users found" hint={search ? "Try a different search." : "Invite someone to get started."} />
+                    <CrestEmpty title="No users found" hint={search ? "Try a different search." : "Players appear here once they sign up."} />
                 ) : (
-                    <Table<Row> rowKey="id" loading={users.isPending} dataSource={list} pagination={list.length > 20 ? { pageSize: 20 } : false} scroll={{ x: 900 }}
+                    <Table<Row> rowKey="id" loading={users.isPending} dataSource={list} pagination={list.length > 20 ? { pageSize: 20 } : false} scroll={{ x: 1100 }}
                         columns={[
                             { title: "Username", dataIndex: "username", render: (name: string) => <Typography.Text strong>{name}</Typography.Text> },
+                            { title: "Email", dataIndex: "email", render: (e: Row["email"], row: Row) => e ? <>{e} {row.emailVerified ? <Tag color="green">Verified</Tag> : <Tag color="orange">Unverified</Tag>}</> : <Typography.Text type="secondary">None</Typography.Text> },
                             { title: "Role", dataIndex: "role", render: (role: Row["role"]) => role === "admin" ? <Tag icon={<CrownOutlined />} color="gold">Admin</Tag> : <Tag icon={<UserOutlined />}>Player</Tag> },
                             { title: "Status", dataIndex: "status", render: (s: Row["status"]) => s === "active" ? <Tag color="green">Active</Tag> : <Tag color="red">Disabled</Tag> },
                             { title: "Accounts", dataIndex: "accountCount", width: 100 },

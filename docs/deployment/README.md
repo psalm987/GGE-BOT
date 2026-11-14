@@ -39,7 +39,7 @@ Before you start, know that running bots against Goodgame Empire breaks its term
    docker compose --env-file infra/.env -f infra/docker-compose.yml exec -e GGE_ADMIN_PASSWORD='a long password' api \
      node apps/api/src/cli/create-admin.ts --username yourname
    ```
-6. Sign in at `https://admin.<domain>`, create an invite, and open the signup link it gives you to make a player account at `https://app.<domain>`.
+6. Sign in at `https://admin.<domain>`. Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
 
 ## Check it
 

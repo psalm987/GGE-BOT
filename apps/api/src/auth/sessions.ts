@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto"
-import { and, eq, gt, sql } from "drizzle-orm"
+import { and, eq, gt, ne, sql } from "drizzle-orm"
 import { sessions, users, type Db } from "@gge/db"
+import type { PublicUser } from "@gge/contracts"
 
 export type Audience = "client" | "admin"
 
@@ -27,13 +28,16 @@ export async function createSession(db: Db, input: { userId: string; audience: A
     return token
 }
 
-export type SessionUser = { id: string; username: string; role: "user" | "admin" }
+export type SessionUser = PublicUser
 
 /** The active user behind a token, sliding its expiry forward on use. */
 export async function findSessionUser(db: Db, token: string, audience: Audience): Promise<SessionUser | null> {
     const id = hashToken(token)
     const [row] = await db
-        .select({ user: { id: users.id, username: users.username, role: users.role }, lastSeenAt: sessions.lastSeenAt })
+        .select({
+            user: { id: users.id, username: users.username, role: users.role, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null` },
+            lastSeenAt: sessions.lastSeenAt,
+        })
         .from(sessions)
         .innerJoin(users, eq(users.id, sessions.userId))
         .where(and(eq(sessions.id, id), eq(sessions.audience, audience), gt(sessions.expiresAt, sql`now()`), eq(users.status, "active")))
@@ -48,4 +52,6 @@ export async function findSessionUser(db: Db, token: string, audience: Audience)
 
 export const deleteSession = (db: Db, token: string) => db.delete(sessions).where(eq(sessions.id, hashToken(token)))
 
-export const revokeUserSessions = (db: Db, userId: string) => db.delete(sessions).where(eq(sessions.userId, userId))
+/** Deletes the user's sessions, all but `except` (a session id) when given. */
+export const revokeUserSessions = (db: Pick<Db, "delete">, userId: string, { except }: { except?: string } = {}) =>
+    db.delete(sessions).where(and(eq(sessions.userId, userId), except ? ne(sessions.id, except) : undefined))

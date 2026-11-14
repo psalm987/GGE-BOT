@@ -8,7 +8,7 @@ pnpm dev            # Postgres, migrations, demo data, API, player and admin app
 pnpm dev --runner   # the same, plus the bot runner (it will log real accounts in)
 ```
 
-`pnpm dev` starts a throwaway Postgres unless `DATABASE_URL` is set. It prints the URLs and the demo logins: player `demo`, admin `admin`, both with password `demo-password`, and an invite code. Without `--runner`, nothing contacts the game.
+`pnpm dev` starts a throwaway Postgres unless `DATABASE_URL` is set. It prints the URLs and the demo logins: player `demo`, admin `admin`, both with password `demo-password` and a confirmed email. Without `--runner`, nothing contacts the game.
 
 ## Checks
 

@@ -52,6 +52,8 @@ services:
       SEAL_PUBLIC_KEY: ${SEAL_PUBLIC_KEY:?set SEAL_PUBLIC_KEY in Dokploy's Environment tab}
       CLIENT_ORIGINS: https://app.${DOMAIN}
       ADMIN_ORIGINS: https://admin.${DOMAIN}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
       PORT: "3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]

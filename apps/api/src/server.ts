@@ -11,9 +11,10 @@ import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
 import { createBotEventHub } from "./services/bot-events.ts"
+import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
-export async function buildServer({ db, env, logger = true }: { db: Db; env: Env; logger?: boolean }): Promise<FastifyInstance> {
+export async function buildServer({ db, env, logger = true, mailer }: { db: Db; env: Env; logger?: boolean; mailer?: Mailer }): Promise<FastifyInstance> {
     // Caddy terminates TLS in front of us; trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
     Sentry.setupFastifyErrorHandler(app)
@@ -28,6 +29,7 @@ export async function buildServer({ db, env, logger = true }: { db: Db; env: Env
     const limits = {
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
         user: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
+        email: createRateLimiter({ max: 3, windowMs: 15 * 60_000 }),
     }
     // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.
     const logServerError = (error: unknown) => {
@@ -44,7 +46,7 @@ export async function buildServer({ db, env, logger = true }: { db: Db; env: Env
             // call whose Origin isn't one of our apps.
             if (!origins.includes(req.headers.origin ?? ""))
                 return reply.status(403).send({ message: "Origin not allowed" })
-            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, limits, botEvents: hub.emitter } })
+            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, limits, mailer: mailer ?? logMailer(app.log), botEvents: hub.emitter } })
             if (!matched)
                 return reply.status(404).send({ message: "Not found" })
         })

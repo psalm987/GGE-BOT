@@ -16,6 +16,8 @@
 | `START_GAP_MS` | runner | no | Milliseconds between two bot logins. Default 2000. |
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
+| `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
+| `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
 | `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep on the host. Default 14. |
 | `SENTRY_DSN` | api, runner | no | DSN of the `gge-bot-server` Sentry project. Empty turns server-side Sentry off. |
 | `VITE_SENTRY_DSN` | web (build) | no | DSN of the `gge-bot-frontend` Sentry project, baked into both apps at build time. Empty turns browser Sentry off. |
@@ -26,10 +28,16 @@
 | Variable | Service | Value |
 |---|---|---|
 | `DATABASE_URL` | api, runner, migrate | `postgres://gge@postgres:5432/gge`, with the password passed separately as `PGPASSWORD` so any characters work |
-| `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. |
+| `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. Emailed links point at the first client origin. |
 | `PORT` | api | 3000 (internal) |
 | `METRICS_PORT` | runner | 9464 (internal) |
 | `GGE_DATA_DIR` | runner | `/data`, the `gamedata` volume with items, language and server list |
 | `FONT_PATH` | runner | DejaVu Sans, installed in the image |
 
 Development-only switches: `COOKIE_SECURE=false` (api) lets cookies work over plain http; `REFRESH_GAME_DATA=false` (runner) skips downloading game data at boot. Never set either in production.
+
+## Email (Resend)
+
+The API sends account email through [Resend](https://resend.com): address verification, password reset, and password-changed notices. Players can't run bots until they verify, so without a working sender new players are stuck. Before the first send, add your sending domain in the Resend dashboard and publish the SPF and DKIM DNS records it shows. Then set `RESEND_API_KEY` and `EMAIL_FROM` in `infra/.env` and recreate the `api` service.
+
+To smoke-test, sign up with `delivered@resend.dev` and check the message in the Resend dashboard. A failed send never breaks a request; it is written to the API log and the audit log as `email.send_failed`.

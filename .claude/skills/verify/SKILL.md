@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Drive GGE-BOT's web apps with Playwright the way a person does and keep screenshots as proof. Two surfaces. The new stack (apps/client player app, apps/admin admin app, apps/api, apps/runner) runs under `pnpm dev`, with drive-client.cjs and drive-admin.cjs covering sign-up, accounts, start/stop, invites, users, force stop, audit, axe and phone widths. The legacy panel (main.js plus website/) runs in an isolated copy via gge-verify and drive.js. Use to prove a change to any app, the API, the runner, packages/ui or packages/bot-core works in the real app, not just in tests.
+description: Drive GGE-BOT's web apps with Playwright the way a person does and keep screenshots as proof. Two surfaces. The new stack (apps/client player app, apps/admin admin app, apps/api, apps/runner) runs under `pnpm dev`, with drive-client.cjs and drive-admin.cjs covering open sign-up, the email gate, accounts, start/stop, users, force stop, audit, axe and phone widths. The legacy panel (main.js plus website/) runs in an isolated copy via gge-verify and drive.js. Use to prove a change to any app, the API, the runner, packages/ui or packages/bot-core works in the real app, not just in tests.
 ---
 
 # verify — drive GGE-BOT for real
@@ -12,15 +12,15 @@ All commands run from the repo root. The drivers use the Playwright and axe-core
 1. **Start the stack** in the background: `pnpm dev > /tmp/gge-dev.log 2>&1`. It starts a throwaway Postgres, migrates, seeds demo data and starts the API on :3000, the player app on :5173 and the admin app on :5174. The runner is off, so nothing contacts the game. Pass `--runner` only with the user's go-ahead.
 2. **Wait until it's ready**: `curl -sf localhost:5173 && curl -sf localhost:5174 && curl -sf 127.0.0.1:3000/healthz`.
 3. **Drive**:
-   - `node .claude/skills/verify/scripts/drive-client.cjs`: invite sign-up (mints its own invite through the admin API), add an account, start and stop it (optimistic, survives reload), edit with the discard guard, then confirmed remove. Runs axe on each screen.
-   - `node .claude/skills/verify/scripts/drive-admin.cjs`: a player is refused; overview with the runner warning; create an invite (code shown once) and revoke it; force-stop Ironhold; disable and re-enable `demo`; self-disable is refused; the audit trail; no horizontal overflow at 390 px on every page.
+   - `node .claude/skills/verify/scripts/drive-client.cjs`: open sign-up (password row side by side at 1280 px and stacked at 390 px, mismatch caught), the email gate until the emailed link is opened, add an account, start and stop it (optimistic, survives reload), edit with the discard guard, then confirmed remove. It also covers Settings change-password and forgot-password, reset link and sign-in by email. The log mailer prints each email to `/tmp/gge-dev.log` (set `DEV_LOG` if the stack logs elsewhere), and the script reads links from there. Runs axe on each screen.
+   - `node .claude/skills/verify/scripts/drive-admin.cjs`: a player is refused; overview with the runner warning and no Invites page; force-stop Ironhold; disable and re-enable `demo`; self-disable is refused; the audit trail; no horizontal overflow at 390 px on every page.
 
    Each prints `ok:` lines and `axe <screen>:` results. Screenshots go to `.verify-evidence/<time>-client|admin/`, or to a folder passed as the first argument. Point them elsewhere with `CLIENT_URL`, `ADMIN_URL` and `API_URL`.
 4. **Pass** means every `ok:` line printed, the script exited 0, and every axe line reads "no WCAG A/AA violations".
 5. **Stop** with SIGINT (`kill -INT <pnpm dev pid>`) so `tools/dev` stops and deletes its throwaway Postgres. A SIGKILL leaves a `gge-pg-*` cluster running in `$TMPDIR`. Stop it with that Postgres's `pg_ctl -D <dir> stop`, then delete the folder.
 
 Gotchas:
-- **Invites are single-use.** The seeded `welcome-to-the-war-table` works once per database, which is why the drivers mint their own.
+- **Seeded `demo` and `admin` have confirmed emails**, so the gate never shows for them. A fresh sign-up is gated until its link is opened.
 - **A game account is unique per (server, name, event flag) across all players.** `drive-client.cjs` uses a fresh account name each run.
 - **`drive-admin.cjs` changes demo data.** It sets Ironhold back to running at the start, because its force-stop step stops it.
 - **antd 6 renders a modal's title twice** (`ant-modal-title` and `ant-modal-confirm-title`). Select dialogs with `getByRole("dialog", { name })`.
