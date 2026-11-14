@@ -12,6 +12,7 @@
 | `SEAL_PRIVATE_KEY` | runner | yes | Opens game passwords to log bots in. Only the runner gets it. Back it up apart from the database. |
 | `GRAFANA_ADMIN_PASSWORD` | grafana | yes | Grafana's `admin` login. |
 | `GRAFANA_ADMIN_USER` | grafana | no | Default `admin`. |
+| `GRAFANA_ALERT_DISCORD_WEBHOOK` | grafana | no | Discord webhook URL that receives every Grafana alert ([observability.md](observability.md#alerts)). Empty: alerts show in Grafana only. |
 | `MAX_ACCOUNTS` | runner | no | Most bots the runner will run at once. Default 50. Accounts past it show "The runner is at capacity". |
 | `START_GAP_MS` | runner | no | Milliseconds between two bot logins. Default 2000. |
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |

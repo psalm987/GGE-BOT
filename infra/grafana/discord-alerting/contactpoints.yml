@@ -1,0 +1,9 @@
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: Discord
+    receivers:
+      - uid: gge-discord
+        type: discord
+        settings:
+          url: $GRAFANA_ALERT_DISCORD_WEBHOOK

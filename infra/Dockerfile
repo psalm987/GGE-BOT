@@ -55,8 +55,12 @@ FROM prom/prometheus:v3.5.0 AS prometheus
 COPY infra/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 
 FROM grafana/grafana:12.1.0 AS grafana
-COPY infra/grafana/provisioning /etc/grafana/provisioning
+# The entrypoint, running as grafana, adds the Discord files to alerting/.
+COPY --chown=grafana:root infra/grafana/provisioning /etc/grafana/provisioning
 COPY infra/grafana/dashboards /var/lib/grafana/dashboards
+COPY infra/grafana/discord-alerting /usr/share/gge-grafana/discord-alerting
+COPY --chmod=755 infra/grafana/entrypoint.sh /usr/share/gge-grafana/entrypoint.sh
+ENTRYPOINT ["/usr/share/gge-grafana/entrypoint.sh"]
 
 FROM postgres:17-bookworm AS backup
 # rclone's image ships a static binary; it copies the dumps to Google Drive.

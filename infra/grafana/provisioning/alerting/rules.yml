@@ -1,5 +1,5 @@
-# Grafana-managed alert rules. Add a contact point (Discord webhook, email) in
-# Grafana and route the "gge" folder to it; see docs/deployment/observability.md.
+# Grafana-managed alert rules. GRAFANA_ALERT_DISCORD_WEBHOOK delivers them to
+# Discord (../../discord-alerting); see docs/deployment/observability.md.
 apiVersion: 1
 groups:
   - orgId: 1

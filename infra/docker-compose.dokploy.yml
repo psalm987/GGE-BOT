@@ -122,6 +122,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GGE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      GRAFANA_ALERT_DISCORD_WEBHOOK: ${GRAFANA_ALERT_DISCORD_WEBHOOK:-}
     volumes: [grafana:/var/lib/grafana]
     expose: ["3000"]
     networks: [default, dokploy-network]

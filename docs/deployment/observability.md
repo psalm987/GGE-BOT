@@ -39,7 +39,9 @@ Three Grafana-managed rules are provisioned from `infra/grafana/provisioning/ale
 | Bots are crashing | More than 10 runs ended in `crash` or `error` in the last hour, for 10 minutes |
 | Event loop lag over 200 ms | API or runner p99 lag above 0.2 s for 5 minutes |
 
-Grafana evaluates them but delivers nowhere until you add a contact point: Alerting, Contact points, add one (a Discord webhook or email), then set it as the default notification policy.
+To get them in Discord, create a webhook (channel settings, Integrations, Webhooks), put its URL in `GRAFANA_ALERT_DISCORD_WEBHOOK` and recreate the `grafana` service. On start the image then provisions a Discord contact point and makes it the default notification policy, so every alert, firing and resolved, posts to that channel. The provisioned policy can't be edited in the UI; change `infra/grafana/discord-alerting/` instead.
+
+With the variable empty, Grafana evaluates the rules but delivers nowhere. They show as firing under Alerting, Alert rules, and nobody is told. Emptying it after a start with it set leaves the Discord contact point and policy in Grafana's database; add `deleteContactPoints` and `resetPolicies` entries to a provisioning file to remove them. To use email or another channel instead, add it under Alerting, Contact points and set it as the default notification policy.
 
 ## Measuring a change to the bot
 
