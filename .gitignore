@@ -14,3 +14,8 @@ plugins-personal
 update
 plugins-extra
 website
+# context-mem
+.context-mem/
+credentials.json
+credentials/
+screenshots/
