@@ -7,6 +7,7 @@ import { createDb, gameAccounts, invites, pluginCatalog, servers, users, type Db
 import { generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
 import { hashInviteCode } from "../src/routers/auth.ts"
+import type { Mailer, MailMessage } from "../src/services/mailer.ts"
 import { buildServer } from "../src/server.ts"
 
 export const CLIENT_ORIGIN = "https://app.test"
@@ -50,9 +51,11 @@ export async function startApi() {
     ])
     await db.insert(pluginCatalog).values(catalog)
     const keys = generateSealKeyPair()
+    const sent: MailMessage[] = []
+    const mailer: Mailer = { send: async message => { sent.push(message) } }
     const app = await buildServer({
-        db, logger: false,
-        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false },
+        db, logger: false, mailer,
+        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, CLIENT_URL: "https://app.test" },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
     const baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`
