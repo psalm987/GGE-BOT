@@ -286,7 +286,7 @@ let currentCastle = undefined
  */
 async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache) {
     useCache ??= true
-    const key = `${kingdomID}_${fromX}_${fromY}_${fromX}_${fromY}`
+    const key = `${kingdomID}_${fromX}_${fromY}_${toX}_${toY}`
     let response = myCache.get(key)
     
     if(!response || !useCache) {
@@ -326,7 +326,7 @@ async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache) {
         })
         o.result = result
         response = new ServerGetAreaInfo(o)
-        if(response == 0)
+        if (response.result == 0)
             myCache.set(key, response, 60)
     }
     return response
@@ -398,7 +398,7 @@ const GetProductionData = e => ({
 
     safeFood: Number(e.SAFE_F),
     safeStone: Number(e.SAFE_S),
-    safeWood: Number(e.SAFE_F),
+    safeWood: Number(e.SAFE_W),
     safeCoal: Number(e.SAFE_C),
     safeIron: Number(e.SAFE_I),
     safeOil: Number(e.SAFE_O),
@@ -644,7 +644,7 @@ class CastleInfo extends EventEmitter { //JSDOC: HACK
         this.openGateTime = Number(e.OGT)
         this.unlockedHorses = Array.from(e.UH).map(Number)
         this.buildings = Array.from(e.gca?.BD ?? []).map(BuildingInfo)
-        this.buildingSlots = Array.from(o.scl?.OIDL ?? []).map(Number)
+        this.buildingSlots = Array.from(e.scl?.OIDL ?? []).map(Number)
         this.resourceTransfer = ResourceTransfer(e)
         this.troopTransfer = TroopTransfer(e)
         this.constructionItems = Array.from(e.gca.CI).map(e => new ConstructionItem(e))
@@ -1301,12 +1301,12 @@ xtHandler.on("cat", (o, r) => {
 xtHandler.on("gam", (o, r) => r == 0 ? 
     Array.from(o.M ?? []).map(e => new Movement(e, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))) : undefined)
 
-xtHandler.on("dms", ({MID}) => MID.forEach(movementID => () => {
+xtHandler.on("dms", ({MID}) => MID.forEach(movementID => {
     const movementIndex = movements.findIndex(e => e.id == Number(movementID))
     if (movementIndex == -1)
         return
-    
-    const movement = movements.splice(movementIndex, 1)
+
+    const [movement] = movements.splice(movementIndex, 1)
 
     movementEvents.emit("return", movement)
 }))

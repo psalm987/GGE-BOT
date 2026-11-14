@@ -45,14 +45,13 @@ conf_value() { # key -> true / false / crashed
                    console.log(v === undefined ? "crashed" : v) }
              catch { console.log("crashed") }' "$conf" "$1"
 }
-# sameRunReacquireGetsWokenCommander is true while finding 1 is present: a
-# same-run re-acquire takes the woken waiter's commander. A fix flips it; then
-# update the model and EXPECTED.
+# sameRunReacquireGetsWokenCommander was true before the hand-off fix
+# (finding 1): a same-run re-acquire took the woken waiter's commander.
 for key in fastPathMarksUsed waitsWhenAllUsed freeWakesFirstWaiterOnly \
-           freeUnusedIsNoop returnFrees laterReacquireWaits \
-           sameRunReacquireGetsWokenCommander; do
+           freeUnusedIsNoop returnFrees laterReacquireWaits; do
     report "$key" true "$(conf_value "$key")"
 done
+report sameRunReacquireGetsWokenCommander false "$(conf_value sameRunReacquireGetsWokenCommander)"
 if [[ "$(conf_value fastPathMarksUsed)" == crashed ]]; then
     echo "        conformance.js output:"; echo "$conf" | sed 's/^/        /'
 fi
@@ -64,8 +63,8 @@ cp "$DIR/CommanderPool.tla" "$TMP/"
 
 # name | LoopPlugins | Mutation | rule | expected (holds / violated)
 EXPECTED='
-code-as-is|{p1}|none|NoDoubleBooking|violated
-code-as-is|{p1}|none|NoBusyLordSent|violated
+code-as-is|{p1}|none|NoDoubleBooking|holds
+code-as-is|{p1}|none|NoBusyLordSent|holds
 code-as-is|{p1}|none|NoStrandedWaiter|holds
 code-as-is|{p1}|none|NoLeakedLord|holds
 code-as-is|{p1}|none|Deadlock|holds
@@ -74,7 +73,8 @@ sendHit-loops-only|{}|none|NoBusyLordSent|holds
 sendHit-loops-only|{}|none|NoStrandedWaiter|holds
 sendHit-loops-only|{}|none|NoLeakedLord|holds
 sendHit-loops-only|{}|none|Deadlock|holds
-broken:resume-skips-useCommander|{}|resumeSkipsUse|NoDoubleBooking|violated
+broken:wake-skips-useCommander|{p1}|wakeSkipsUse|NoDoubleBooking|violated
+broken:wake-skips-useCommander|{p1}|wakeSkipsUse|NoBusyLordSent|violated
 broken:freeCommander-wakes-nobody|{}|freeSkipsWake|NoStrandedWaiter|violated
 broken:return-does-not-free|{}|returnSkipsFree|NoLeakedLord|violated
 broken:success-frees-commander|{}|okFreesLord|NoBusyLordSent|violated

@@ -52,7 +52,7 @@ events.once("load", async () => {
             let attemptsLeft = 5
             do {
                 try {
-                    areas.push(...(await getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).filter(e => e.type == type))
+                    areas.push(...((await getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).areaInfo ?? []).filter(e => e.type == type))
                     break
                 }
                 catch { attemptsLeft-- }

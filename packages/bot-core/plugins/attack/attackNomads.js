@@ -117,11 +117,11 @@ xtHandler.on("pep", obj => {
     if (obj.EID != eventID)
         return
 
-    if (pluginOptions.nomadsScoreShutoff <= 0)
-        pluginOptions.nomadsScoreShutoff = Infinity
+    if (pluginOptions.scoreShutoff <= 0)
+        pluginOptions.scoreShutoff = Infinity
 
     nomadsPoints = Number(obj.OP[0])
-    if (nomadsPoints >= pluginOptions.nomadsScoreShutoff) {
+    if (nomadsPoints >= pluginOptions.scoreShutoff) {
         console.log("shuttingDownEvent", "scoreReached")
         quit = true
     }

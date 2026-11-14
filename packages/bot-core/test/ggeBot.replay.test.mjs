@@ -26,7 +26,7 @@ describe("login", () => {
         expect(bot.loads).toBe(1)
     }, 15000)
 
-    test.fails("known bug: event data arriving after the fallback does not load a second time (ggeBot.js:392-403)", async () => {
+    test("event data arriving after the fallback does not load a second time (ggeBot.js:392-403)", async () => {
         bot = startBot()
         await bot.login()
         bot.xt("lli", 0)
@@ -38,7 +38,7 @@ describe("login", () => {
         expect(bot.loads).toBe(1)
     }, 15000)
 
-    test.fails("known bug: a long ban never schedules an overflowing retry (ggeBot.js:384)", async () => {
+    test("a long ban never schedules an overflowing retry (ggeBot.js:384)", async () => {
         bot = startBot()
         await bot.login()
         bot.xt("lli", code("IS_BANNED"), { CD: 0, RS: 30 * 24 * 3600 })
@@ -65,7 +65,7 @@ describe("important error counter", () => {
         expect(bot.paused).toBe(true)
     }, 15000)
 
-    test.fails("known bug: a success resets the count, so scattered errors never pause (ggeBot.js:89-104)", async () => {
+    test("a success resets the count, so scattered errors never pause (ggeBot.js:89-104)", async () => {
         bot = startBot()
         await bot.login()
         for (let i = 0; i < 7; i++) await fail()

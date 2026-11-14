@@ -250,7 +250,7 @@ events.on("eventStart", async eventInfo => {
                         attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
                         attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
                     }
-                    else if (!pluginOptions.noeventTools) {
+                    else if (!pluginOptions.noEventTools) {
                         const selectTool = i => {
                             let tools = attackerBerimondTools
                             if (tools.length == 0 || ((!tools[0]?.unitInfo.pointBonus && !tools[0]?.unitInfo.reputationBonus))) {

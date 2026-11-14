@@ -30,7 +30,7 @@ test("whole-second delays are honoured", async () => {
     expect(at).toBeLessThan(3100)
 })
 
-test.fails("known bug: fractional delays are not truncated (attack.js:272 parseInt)", async () => {
+test("fractional delays are not truncated (attack.js:272 parseInt)", async () => {
     const at = await secondAttackStartsAt({ attackDelaySeconds: "4.5", attackDelayRandomizationSeconds: "0" })
     expect(at).toBeGreaterThanOrEqual(4500)
 })

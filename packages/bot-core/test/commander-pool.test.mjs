@@ -19,6 +19,6 @@ const facts = [
 for (const fact of facts)
     test(`commander.js: ${fact}`, () => expect(observed[fact]).toBe(true))
 
-test.fails("known bug: a same-run re-acquire never takes the commander just handed to a waiter (commander.js:81-96)", () => {
+test("a same-run re-acquire never takes the commander just handed to a waiter (commander.js:81-96)", () => {
     expect(observed.sameRunReacquireGetsWokenCommander).toBe(false)
 })

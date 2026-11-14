@@ -255,7 +255,7 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
 
     attacks.push(() => {
         try {
-            ret = callback()
+            const ret = callback()
             resolve(ret)
             return ret
         }
@@ -269,8 +269,8 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         alreadyRunning = true
         while (attacks?.length > 0) {
             try {
-                const baseDelay = parseInt(pluginOptions.attackDelaySeconds)
-                const variance = parseInt(pluginOptions.attackDelayRandomizationSeconds)
+                const baseDelay = parseFloat(pluginOptions.attackDelaySeconds)
+                const variance = parseFloat(pluginOptions.attackDelayRandomizationSeconds)
                 const naturalDelay = boxMullerRandom(baseDelay * 1000, (baseDelay + variance) * 1000, 1)
 
                 console.debug("attackDelayAttack", naturalDelay)

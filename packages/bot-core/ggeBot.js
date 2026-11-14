@@ -135,6 +135,8 @@ const waitForResult = (key, timeout, func) => new Promise((resolve, reject) => {
 
         xtHandler.removeListener(key, helperFunction)
         clearInterval(timer)
+        if (Number(_result) == 0)
+            importantErrors = timedOut = 0
         resolve([Object(data), Number(_result)])
     }
 
@@ -177,7 +179,7 @@ module.exports = {
 }
 
 webSocket.onopen = () => {
-    webSocket.send('<msg t="sys"><body action="verChk" r="0"><ver v="166"/></body></msg>')
+    webSocket.send(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
 }
 let errorCount = 0
 
@@ -381,25 +383,33 @@ xtHandler.on("lli", async (obj, r) => {
     }
 
     if (err[r] == "IS_BANNED") {
-        console.log("retryLogin", obj.CD, "retryLoginSeconds")
-        console.log("retryLogin", (obj.RS / 60 / 60).toFixed(2), "retryLoginHours")
-        setTimeout(retry, obj.RS * 1000)
+        console.error("IS_BANNED", (obj.RS / 60 / 60).toFixed(2), "retryLoginHours")
+        status.hasError = true
+        parentPort.postMessage([ActionType.StatusUser, status])
+        setTimeout(() => parentPort.postMessage([ActionType.KillBot]), 1000 * 8)
         return
     }
 
     if (r == 0) {
+        let started = false
+        const start = loadDelay => {
+            if (started)
+                return
+            started = true
+            clearTimeout(timer)
+            parentPort.postMessage([ActionType.Started])
+            setTimeout(() => events.emit("load"), loadDelay)
+        }
         //Due to exploits that can break the client this is to give limited access again.
         const timer = setTimeout(() => {
             console.warn("loggedIn", "loggedInWithoutEventData")
             console.warn("featuresMightNotWork")
-            events.emit("load")
+            start(0)
         }, 30 * 1000 * (ggeConfig.timeoutMultiplier ?? 1))
 
         xtHandler.once("sei", () => {
-            parentPort.postMessage([ActionType.Started])
             console.log("loggedIn")
-            setTimeout(() => events.emit("load"), 4500)
-            clearTimeout(timer)
+            start(4500)
         })
         events.emit("earlyLoad")
         setInterval(() => sendXT("pin", "<RoundHouseKick>"), 1000 * 60).unref()

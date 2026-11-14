@@ -78,7 +78,7 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         console.warn(e)
     }
     try {
-        if (pluginOptions.channelAquaAlert)
+        if (pluginOptions.stormChannelID)
             var channelAquaAlert = await client.channels.fetch(pluginOptions.stormChannelID)
     }
     catch (e) {
@@ -111,11 +111,11 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         return
 
     if (member != undefined) {
+        const shouldAlertMember = () => member?.presence?.status == undefined ||
+            member.presence.status !== PresenceUpdateStatus.Online &&
+            member.presence.status !== PresenceUpdateStatus.DoNotDisturb
         if (movement.kingdomID != KingdomID.stormIslands && shouldAlertMember()) {
-            const spreadAlert = () =>
-                (member?.presence?.status == undefined ||
-                    member?.presence?.status !== PresenceUpdateStatus.Online &&
-                    member?.presence?.status !== PresenceUpdateStatus.DoNotDisturb) ? channelAlert.send(`<@${member.id}> `) : undefined
+            const spreadAlert = () => shouldAlertMember() ? channelAlert.send(`<@${member.id}> `) : undefined
             setTimeout(spreadAlert, timeLeft * 1000 / 4).unref()
             setTimeout(spreadAlert, timeLeft * 1000 / 3).unref()
             setTimeout(spreadAlert, timeLeft * 1000 / 2).unref()

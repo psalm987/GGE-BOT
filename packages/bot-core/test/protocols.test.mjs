@@ -1,16 +1,13 @@
 import { createRequire } from "node:module"
 import { describe, test, expect } from "vitest"
 
-// test.fails marks a verified bug: the test passes while the bug exists and
-// fails once it is fixed, at which point it becomes a plain test.
-
 const require = createRequire(import.meta.url)
 const { loadModule } = require("./harness/load.cjs")
 
 const productionData = { SAFE_F: 111, SAFE_W: 222, SAFE_S: 333, MRF: 1, MRW: 2, MRS: 3 }
 
 describe("castle production data", () => {
-    test.fails("known bug: safeWood comes from SAFE_W, not SAFE_F (protocols.js:401)", () => {
+    test("safeWood comes from SAFE_W, not SAFE_F (protocols.js:401)", () => {
         const { mod, bot } = loadModule("protocols.js")
         bot.xtHandler.emit("dcl", { C: [{ KID: 0, AI: [{ AID: 1, gpa: productionData }] }] }, 0)
 
@@ -36,7 +33,7 @@ function answerGaa(bot) {
 }
 
 describe("getAreaInfo cache", () => {
-    test.fails("known bug: a repeated identical request is served from cache (protocols.js:329)", async () => {
+    test("a repeated identical request is served from cache (protocols.js:329)", async () => {
         const { mod, bot } = loadModule("protocols.js")
         const getAreaInfo = mod.ClientCommands.getAreaInfo
 
@@ -62,7 +59,7 @@ describe("getAreaInfo cache", () => {
 })
 
 describe("movement removal", () => {
-    test.fails("known bug: dms emits return with the removed Movement (protocols.js:1304)", () => {
+    test("dms emits return with the removed Movement (protocols.js:1304)", () => {
         const { mod, bot } = loadModule("protocols.js")
         bot.xtHandler.emit("gam", { M: [{ M: { MID: 42, T: 0, KID: 0, OID: 99, TID: 99, SID: 99, TT: 60, PT: 30, TA: [], SA: [] } }], O: [] }, 0)
         expect(mod.movements.map(m => m.id)).toContain(42)

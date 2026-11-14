@@ -88,6 +88,9 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
 
             event.removeEventListener("freedCommander", checkForCommander)
             currentEvent.stopImmediatePropagation()
+            // Mark it in the same run as the hand-off, so a loop that asks again
+            // before this await resumes can't take it too.
+            useCommander(currentEvent.detail)
             resolve(currentEvent.detail)
         }
         event.addEventListener("freedCommander", checkForCommander)

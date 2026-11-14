@@ -40,19 +40,11 @@ Exit 0 means every result matches `EXPECTED`. Exit 1 prints a `DIFF` line for ea
 
 Read every TLC result, passing or failing, with the pstack `/statechart` skill. On a violation it gives the shortest path to the broken rule in plain words. On a pass it draws how the pool moves between states. Give `/statechart` `verification/commander-pool/CommanderPool.tla` and `CommanderPool.cfg` (that config is the `code-as-is` run with all four rules).
 
-## Current findings (code at the sync commit)
+## Findings
 
-**1. Khan-shaped loops double-book commanders (`NoDoubleBooking`, confirmed in real code by `sameRunReacquireGetsWokenCommander`).** `attackKhan`, `attackNomads`, `attackSamurai` and `attackBerimondInvasion` free a commander and then `continue` or `break` back to `waitForCommanderAvailable` in the same synchronous run (for example `attackKhan.js:428-429`). `freeCommander` has just handed that commander to a waiting loop through `resolve()` (`commander.js:91`). The waiter only marks it used one microtask later (`commander.js:96`). TLC's shortest path:
-   1. Khan holds commander 1, a barron loop holds commander 2, and a fortress loop waits.
-   2. Khan's attack finds no target, so it frees commander 1, which wakes the fortress loop.
-   3. In the same run, Khan asks for a commander again. Commander 1 is not in `usedCommanders` yet, so Khan takes it.
-   4. The fortress loop resumes with commander 1. Both loops now hold it.
+**Fixed: Khan-shaped loops double-booked commanders (`NoDoubleBooking`, `NoBusyLordSent`).** `attackKhan`, `attackNomads`, `attackSamurai` and `attackBerimondInvasion` free a commander and then `continue` back to `waitForCommanderAvailable` in the same synchronous run. `freeCommander` handed that commander to a waiting loop through `resolve()`, but the waiter only marked it used one microtask later, so the same-run re-acquire took it too. The second send got `LORD_IS_USED`, and its handler passed the busy commander on to the next waiter. The listener now calls `useCommander` before `resolve()` (`commander.js:93`). `conformance.js` reports `sameRunReacquireGetsWokenCommander: false`, and TLC finds all four rules hold for `code-as-is`. The `broken:wake-skips-useCommander` run models the old code and must keep failing both rules.
 
-**2. This leads to `LORD_IS_USED`, and the error handler passes the busy commander on (`NoBusyLordSent`).** In TLC's path, Khan's attack with commander 1 succeeds, and the fortress loop then sends commander 1 and gets `LORD_IS_USED`. Its handler runs `freeCommander` and then `useCommander` (for example `sharedFortressAttackLogic.js:134-146`). That `freeCommander` wakes the next waiter with the busy commander, so the waiter gets `LORD_IS_USED` too. Each error counts toward the 8 that pause the bot.
-
-The sendHit-shaped loops (`sharedBarronAttackLogic`, `sharedFortressAttackLogic`, `attackStormForts`) satisfy all four rules on their own. They `return` before asking again, so the waiter resumes first (`laterReacquireWaits`).
-
-These are findings, not modeling errors. Don't weaken a rule or the model to make them pass. Product code changes only when the user asks for a fix.
+These are findings, not modeling errors. Don't weaken a rule or the model to make them pass.
 
 ## Does my change touch the verified code?
 
@@ -96,7 +88,7 @@ The model assumes, and does not check:
 - **The server answers every `cra`.** A reply that comes after `waitForResult`'s timeout (`TIMED_OUT`, then a late success) isn't modeled.
 - **Commanders are loaded** (`gli` has arrived), and the commander list doesn't change while plugins run.
 
-Not covered: the troop math in `getAttackInfo`/`assignUnit`, the attack-limit check in `waitToAttack`, target selection, and the `dms` handler in `protocols.js` (its inner function is never called, so a deleted movement never frees its commander).
+Not covered: the troop math in `getAttackInfo`/`assignUnit`, the attack-limit check in `waitToAttack`, target selection, and the `dms` handler in `protocols.js` (a deleted movement emits `return`, which frees its commander; the model's `MarchReturns` covers the effect).
 
 ## Keeping in step
 

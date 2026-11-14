@@ -27,7 +27,7 @@ async function trySendRes() {
 
         if ([KingdomID.berimond, KingdomID.stormIslands].includes(castle.kingdomID))
             continue
-        if (!allowedAIDS.includes(castle.areaID))
+        if (!allowedAIDS.includes(castle.id))
             continue
         if (castle.resourceTransfer?.remainingTime > 0)
             continue
@@ -43,7 +43,7 @@ async function trySendRes() {
         if (G.length == 0)
             continue
 
-        let result = await ClientCommands.kingdomUnitTransfer(stormCastle.areaID, KingdomID.stormIslands, castle.kingdomID, G)
+        let result = await ClientCommands.kingdomUnitTransfer(stormCastle.id, KingdomID.stormIslands, castle.kingdomID, G)
         
         if (result != 0)
             continue

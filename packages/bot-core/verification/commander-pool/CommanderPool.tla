@@ -30,7 +30,7 @@ CONSTANTS
 
 ASSUME LoopPlugins \subseteq Plugins
 ASSUME NoLord \notin Lords
-ASSUME Mutation \in {"none", "resumeSkipsUse", "freeSkipsWake",
+ASSUME Mutation \in {"none", "wakeSkipsUse", "freeSkipsWake",
                      "returnSkipsFree", "okFreesLord"}
 
 VARIABLES
@@ -81,13 +81,15 @@ TypeOK ==
 
 (* freeCommander(l), commander.js:16-22. It does nothing unless l is in    *)
 (* use. Otherwise it removes l and dispatches "freedCommander"; with no    *)
-(* whitelist set, the first listener takes it and stops propagation.       *)
+(* whitelist set, the first listener takes it, marks it used again in the  *)
+(* same run (commander.js:93), and stops propagation. "wakeSkipsUse" is    *)
+(* the code before that mark, where only Resume marked it.                 *)
 FreeState(s, l) ==
     IF l \notin s.used THEN s
     ELSE IF s.waiters = <<>> \/ Mutation = "freeSkipsWake"
          THEN [s EXCEPT !.used = @ \ {l}]
          ELSE LET q == Head(s.waiters) IN
-              [s EXCEPT !.used    = @ \ {l},
+              [s EXCEPT !.used    = IF Mutation = "wakeSkipsUse" THEN @ \ {l} ELSE @,
                         !.waiters = Tail(@),
                         !.pc      = [@ EXCEPT ![q] = "woken"],
                         !.lord    = [@ EXCEPT ![q] = l]]
@@ -126,13 +128,13 @@ Reacquire(p) ==
     /\ UNCHANGED <<away, outcome, queueSleeping>>
 
 (* Microtask: the woken listener's await continues and calls              *)
-(* useCommander(lordID) (commander.js:96). This spec runs it before any    *)
-(* other queued job; see "Scope" in the skill.                             *)
+(* useCommander(lordID) again (commander.js:99), a no-op unless the        *)
+(* hand-off skipped it. This spec runs it before any other queued job;     *)
+(* see "Scope" in the skill.                                               *)
 Resume(p) ==
     /\ pool.pc[p] = "woken"
     /\ pool' = [pool EXCEPT
-                  !.used = IF Mutation = "resumeSkipsUse" THEN @
-                           ELSE @ \cup {pool.lord[p]},
+                  !.used = @ \cup {pool.lord[p]},
                   !.pc   = [@ EXCEPT ![p] = "queued"]]
     /\ UNCHANGED <<away, outcome, queueSleeping>>
 
