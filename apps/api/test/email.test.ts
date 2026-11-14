@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm"
-import { afterAll, beforeAll, describe, expect, test } from "vitest"
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest"
 import { auditLog, emailTokens, users } from "@gge/db"
 import { hashPassword } from "../src/auth/passwords.ts"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
@@ -118,6 +118,15 @@ describe("signup with an email", () => {
 
 describe("password reset", () => {
     const requestReset = (email: string) => api.client().api.auth.requestPasswordReset({ email })
+    const resetToken = async (email: string) => {
+        await requestReset(email)
+        return await vi.waitFor(() => {
+            const link = api.sent.findLast(m => m.to === email && m.tag === "reset_password")?.text.match(/https?:\/\/\S+/)?.[0]
+            if (!link)
+                throw new Error(`no reset mail for ${email} yet`)
+            return new URL(link).searchParams.get("token")!
+        })
+    }
 
     test("every address gets the same answer, and only a verified one gets mail", async () => {
         await api.player("dora")
@@ -127,7 +136,7 @@ describe("password reset", () => {
 
         const answers = [await requestReset("nobody@example.test"), await requestReset("dora@example.test"), await requestReset("eli@example.test")]
         expect(answers).toEqual([{ ok: true }, { ok: true }, { ok: true }])
-        expect(api.sent.slice(before)).toMatchObject([{ to: "eli@example.test", tag: "reset_password" }])
+        await vi.waitFor(() => expect(api.sent.slice(before)).toMatchObject([{ to: "eli@example.test", tag: "reset_password" }]))
     })
 
     test("resetting signs every session out, replaces the password, and sends a notice", async () => {
@@ -135,8 +144,7 @@ describe("password reset", () => {
         await api.client().api.auth.verifyEmail({ token: api.lastToken("fay@example.test")! })
         const phone = await loggedIn("fay")
         const laptop = await loggedIn("fay@example.test")
-        await requestReset("fay@example.test")
-        const token = api.lastToken("fay@example.test")!
+        const token = await resetToken("fay@example.test")
 
         await api.client().api.auth.resetPassword({ token, password: NEW_PASSWORD })
         expect(await phone.api.auth.me()).toBeNull()
@@ -150,8 +158,7 @@ describe("password reset", () => {
     test("a weak new password is refused and the link still works", async () => {
         await api.player("gus")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("gus@example.test")! })
-        await requestReset("gus@example.test")
-        const token = api.lastToken("gus@example.test")!
+        const token = await resetToken("gus@example.test")
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: "short" }))).toBe("BAD_REQUEST")
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: NEW_PASSWORD }))).toBe("ok")
     })
@@ -159,8 +166,7 @@ describe("password reset", () => {
     test("a link dies when the account's email has changed since it was sent", async () => {
         await api.player("hal")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("hal@example.test")! })
-        await requestReset("hal@example.test")
-        const token = api.lastToken("hal@example.test")!
+        const token = await resetToken("hal@example.test")
         await api.db.update(users).set({ email: "hal2@example.test" }).where(eq(users.username, "hal"))
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: NEW_PASSWORD }))).toBe("BAD_REQUEST")
         expect(await codeOf(api.client().api.auth.login({ login: "hal", password: PASSWORD }))).toBe("ok")
@@ -175,13 +181,14 @@ describe("password reset", () => {
     test("a mail provider outage looks the same to the caller", async () => {
         await api.player("ivy")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("ivy@example.test")! })
+        const failuresBefore = (await api.db.select().from(auditLog).where(eq(auditLog.action, "email.send_failed"))).length
         api.failMail(true)
         try {
             expect(await requestReset("ivy@example.test")).toEqual({ ok: true })
+            await vi.waitFor(async () => expect((await api.db.select().from(auditLog).where(eq(auditLog.action, "email.send_failed"))).length).toBeGreaterThan(failuresBefore))
         } finally {
             api.failMail(false)
         }
-        expect((await api.db.select().from(auditLog).where(eq(auditLog.action, "email.send_failed"))).length).toBeGreaterThan(0)
     })
 })
 

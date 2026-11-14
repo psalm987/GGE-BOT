@@ -122,12 +122,16 @@ export async function requestPasswordReset(ctx: Ctx, input: { email: string }) {
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
     const [user] = await ctx.db.select().from(users)
         .where(and(eq(sql`lower(${users.email})`, input.email), eq(users.status, "active"), isNotNull(users.emailVerifiedAt)))
-    if (user) {
-        const token = await issueToken(ctx.db, { userId: user.id, purpose: "reset_password", email: input.email })
-        await sendEmail(ctx, "reset_password", input.email, { link: clientLink(ctx, "/reset-password", { token }) }, user.id)
-        await audit(ctx.db, { actorId: user.id, action: "auth.password.reset_requested" })
-    }
+    // Detached so a verified address answers as fast as an unknown one.
+    if (user)
+        void sendResetLink(ctx, user.id, input.email).catch(error => ctx.req.log.error({ err: error }, "password reset request failed"))
     return { ok: true as const }
+}
+
+async function sendResetLink(ctx: Ctx, userId: string, email: string) {
+    const token = await issueToken(ctx.db, { userId, purpose: "reset_password", email })
+    await sendEmail(ctx, "reset_password", email, { link: clientLink(ctx, "/reset-password", { token }) }, userId)
+    await audit(ctx.db, { actorId: userId, action: "auth.password.reset_requested" })
 }
 
 export async function resetPassword(ctx: Ctx, input: { token: string; password: string }) {
