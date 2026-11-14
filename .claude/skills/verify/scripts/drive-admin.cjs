@@ -19,11 +19,12 @@ async function axe(page, name) {
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
 
+const call = async (path, body, cookie) => {
+    const res = await fetch(`${API_URL}/rpc/${path}`, { method: "POST", headers: { origin: CLIENT_URL, "content-type": "application/json", ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
+    return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
+}
+
 async function restoreIronhold() {
-    const call = async (path, body, cookie) => {
-        const res = await fetch(`${API_URL}/rpc/${path}`, { method: "POST", headers: { origin: CLIENT_URL, "content-type": "application/json", ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
-        return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
-    }
     const { cookie } = await call("auth/login", { login: "demo", password: "demo-password" })
     const list = (await call("accounts/list", {}, cookie)).json
     await call("accounts/setDesiredState", { ids: [list.find(a => a.name === "Ironhold").id], state: "running" }, cookie)
@@ -87,6 +88,25 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await demo().getByRole("button", { name: "Enable" }).click()
     await demo().getByText("Active", { exact: true }).waitFor()
     assert(true, "demo is re-enabled")
+    const { cookie: demoCookie } = await call("auth/login", { login: "demo", password: "demo-password" })
+    const addBot = name => call("accounts/create", { name, serverId: 26, password: "x" }, demoCookie)
+    const owned = (await call("accounts/list", {}, demoCookie)).json.length
+    const limit = page.getByLabel("Bot limit for demo")
+    assert(await limit.inputValue() === "1", `demo starts at the default limit of 1 bot, owning ${owned} (existing bots are kept)`)
+    assert((await addBot("Capped")).json.code === "FORBIDDEN", "demo is refused another bot at the limit")
+    await limit.fill(String(owned + 1))
+    await limit.blur()
+    await page.getByText("Bot limit updated").waitFor()
+    assert((await addBot("Capped")).json.name === "Capped", `after the admin raises demo's limit to ${owned + 1}, demo can add a bot`)
+    await page.reload()
+    await nav(page, "Users")
+    assert(await page.getByLabel("Bot limit for demo").inputValue() === String(owned + 1), "the raised limit persisted")
+    await page.screenshot({ path: `${out}/admin-users-bot-limit.png` })
+    await call("accounts/remove", { ids: [(await call("accounts/list", {}, demoCookie)).json.find(a => a.name === "Capped").id] }, demoCookie)
+    await page.getByLabel("Bot limit for demo").fill("1")
+    await page.getByLabel("Bot limit for demo").blur()
+    await page.getByText("Bot limit updated").waitFor()
+    assert(true, "demo's limit and bots restored")
     const self = page.getByRole("row").filter({ hasText: "admin" }).filter({ hasText: /Admin/ }).first()
     await self.getByRole("button", { name: "Disable" }).click()
     await confirm(page, "Disable")

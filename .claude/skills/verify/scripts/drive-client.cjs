@@ -121,6 +121,14 @@ function emailedLink(address) {
     const row = page.getByRole("row", { name: new RegExp(`Storm${name}`) })
     await row.waitFor()
     assert(await row.getByText("Stopped").isVisible(), "new account shows as stopped")
+    assert(await page.getByRole("button", { name: "Add account", exact: true }).isDisabled(), "Add account is disabled at the one-bot limit")
+    assert(await page.getByText("Your plan allows 1 bot. Remove one to add another.").first().isVisible(), "the limit is explained on the page")
+    await page.screenshot({ path: `${out}/10b-at-bot-limit.png` })
+    const refused = await page.evaluate(async serverId => {
+        const res = await fetch("/rpc/accounts/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: { name: "OneTooMany", serverId, password: "x" } }) })
+        return { status: res.status, code: (await res.json()).json?.code }
+    }, 27)
+    assert(refused.status === 403 && refused.code === "FORBIDDEN", "calling the API directly for a second bot is refused (FORBIDDEN)")
 
     await row.getByRole("button", { name: "Start" }).click()
     await row.getByRole("button", { name: "Stop" }).waitFor()
