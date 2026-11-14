@@ -1,0 +1,73 @@
+# Grafana-managed alert rules. Add a contact point (Discord webhook, email) in
+# Grafana and route the "gge" folder to it; see docs/deployment/observability.md.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: gge
+    folder: GGE
+    interval: 1m
+    rules:
+      - uid: gge-runner-heartbeat
+        title: Runner stopped reporting
+        condition: C
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: The runner has not written its heartbeat for over 2 minutes. No bots are being supervised.
+        data:
+          - refId: A
+            datasourceUid: gge-postgres
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              rawQuery: true
+              editorMode: code
+              format: table
+              rawSql: "select coalesce(extract(epoch from now() - max(beat_at)), 999999) as seconds_since_beat from runner_heartbeat"
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [120] } }] }
+      - uid: gge-crash-rate
+        title: Bots are crashing
+        condition: C
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: More than 10 bot runs ended in a crash or error in the last hour.
+        data:
+          - refId: A
+            datasourceUid: gge-postgres
+            relativeTimeRange: { from: 3600, to: 0 }
+            model:
+              refId: A
+              rawQuery: true
+              editorMode: code
+              format: table
+              rawSql: "select count(*) as crashes from bot_runs where ended_at > now() - interval '1 hour' and end_reason in ('crash', 'error')"
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [10] } }] }
+      - uid: gge-eventloop-lag
+        title: Event loop lag over 200 ms
+        condition: C
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: The API or runner event loop is lagging; bots and requests will be slow.
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 600, to: 0 }
+            model: { refId: A, expr: "max(nodejs_eventloop_lag_p99_seconds)", instant: true }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0.2] } }] }

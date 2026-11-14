@@ -22,3 +22,4 @@ screenshots/
 data/
 .turbo/
 dist/
+infra/.env

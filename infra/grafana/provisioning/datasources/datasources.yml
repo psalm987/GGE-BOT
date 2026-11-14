@@ -1,0 +1,19 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+  - name: GGE Postgres
+    uid: gge-postgres
+    type: grafana-postgresql-datasource
+    url: postgres:5432
+    user: gge
+    secureJsonData:
+      password: $GGE_DB_PASSWORD
+    jsonData:
+      database: gge
+      sslmode: disable
+      postgresVersion: 1700

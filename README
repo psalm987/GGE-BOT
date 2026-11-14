@@ -1,3 +1,28 @@
+# GGE Command
+
+Run Goodgame Empire bots for many players from one server. Players manage their game accounts in a web app; an admin app manages users and invites; a runner keeps one bot alive per started account.
+
+> Using bots breaks Goodgame Empire's terms of service and can get accounts banned. Whoever hosts this holds other players' game passwords (stored sealed; see [docs/deployment/security.md](docs/deployment/security.md)).
+
+| Read | For |
+|---|---|
+| [docs/deployment/README.md](docs/deployment/README.md) | Deploying with Docker Compose on one host |
+| [docs/deployment/migration-from-legacy.md](docs/deployment/migration-from-legacy.md) | Moving from the old single-process bot and its `user.db` |
+| [docs/architecture.md](docs/architecture.md) | How the API, runner, apps and bot fit together |
+| [docs/development.md](docs/development.md) | Working on the code: `pnpm dev`, tests, conventions |
+
+Quick start for development (Node 22.18+, pnpm 11):
+
+```sh
+pnpm install
+pnpm dev          # player app :5173 (demo / demo-password), admin app :5174 (admin / demo-password)
+pnpm check        # lint, typecheck, tests, formal model
+```
+
+## Legacy notes
+
+The original single-process bot (`main.js` with the `website/` panel, `start_linux.sh`, `start_windows.bat`) still runs from this repository until the cutover. Its README text follows.
+
 DISCLAIMER: Use this at your own risk.
 We are not affiliated with GoodGameStudios.
 
