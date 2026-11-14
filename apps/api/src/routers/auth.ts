@@ -9,6 +9,7 @@ import { COOKIE_NAME, SESSION_TTL_MS, createSession, deleteSession, findSessionU
 import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { clientLink, sendEmail } from "../services/email.ts"
+import { DISPOSABLE_MESSAGE, isDisposable } from "../services/email-policy.ts"
 import { verifyTurnstile } from "../services/turnstile.ts"
 
 const WRONG_CREDENTIALS = "Wrong username or password"
@@ -86,6 +87,9 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
     if (!await verifyTurnstile(ctx.env.TURNSTILE_SECRET_KEY, input.turnstileToken, ctx.req.ip))
         throw new ORPCError("BAD_REQUEST", { message: "Captcha failed, please retry" })
+
+    if (isDisposable(input.email))
+        throw new ORPCError("BAD_REQUEST", { message: DISPOSABLE_MESSAGE })
 
     const passwordHash = await hashPassword(input.password)
     const user = await ctx.db.insert(users)
