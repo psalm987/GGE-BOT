@@ -35,6 +35,6 @@ Development-only switches: `COOKIE_SECURE=false` (api) lets cookies work over pl
 
 ## Email (Resend)
 
-The API sends account email through [Resend](https://resend.com): address verification, password reset, password-changed notices and invites. Before the first send, add your sending domain in the Resend dashboard and publish the SPF and DKIM DNS records it shows. Then set `RESEND_API_KEY` and `EMAIL_FROM` in `infra/.env` and recreate the `api` service.
+The API sends account email through [Resend](https://resend.com): address verification, password reset, and password-changed notices. Players can't run bots until they verify, so without a working sender new players are stuck. Before the first send, add your sending domain in the Resend dashboard and publish the SPF and DKIM DNS records it shows. Then set `RESEND_API_KEY` and `EMAIL_FROM` in `infra/.env` and recreate the `api` service.
 
 To smoke-test, sign up with `delivered@resend.dev` and check the message in the Resend dashboard. A failed send never breaks a request; it is written to the API log and the audit log as `email.send_failed`.

@@ -6,6 +6,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import { CampaignProvider } from "@gge/ui"
 import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
+import { RequireVerified } from "./components/EmailGate.tsx"
 import { useLanguage } from "./i18n.ts"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
@@ -28,7 +29,7 @@ function Root() {
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
-                        <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+                        <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>

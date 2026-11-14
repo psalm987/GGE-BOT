@@ -2,7 +2,7 @@ import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { PluginCatalogEntry } from "./plugins.ts"
 import {
-    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, Invite, LogLine,
+    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -57,12 +57,6 @@ export const adminContract = {
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
-    },
-    invites: {
-        list: oc.output(z.array(Invite)),
-        create: oc.input(z.object({ role: Role.default("user"), email: Email.optional(), expiresInHours: z.number().int().min(1).max(24 * 30).default(72) }))
-            .output(z.object({ invite: Invite, code: z.string() })),
-        revoke: oc.input(Id).output(z.void()),
     },
     accounts: {
         list: oc.output(z.array(AdminAccount)),

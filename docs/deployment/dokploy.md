@@ -83,7 +83,7 @@ Open the **api** container's terminal (in the service, **Docker** or **Logs → 
 GGE_ADMIN_PASSWORD='a long password' node apps/api/src/cli/create-admin.ts --username yourname
 ```
 
-Sign in at `https://admin.<domain>`, create an invite, and open its signup link to make a player account at `https://app.<domain>`.
+Sign in at `https://admin.<domain>`. Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
 
 ## Check it
 

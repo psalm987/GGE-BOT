@@ -7,11 +7,10 @@ import { homedir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { sql } from "drizzle-orm"
-import { botLogs, botRuns, botStatus, createDb, gameAccounts, invites, pluginSettings, runMigrations, servers, users } from "@gge/db"
+import { botLogs, botRuns, botStatus, createDb, gameAccounts, pluginSettings, runMigrations, servers, users } from "@gge/db"
 import { startTestPostgres } from "@gge/db/testing"
 import { generateSealKeyPair, sealFor } from "@gge/crypto"
 import { hashPassword } from "@gge/api/src/auth/passwords.ts"
-import { hashInviteCode } from "@gge/api/src/routers/auth.ts"
 import { publishCatalog, readPluginRegistry } from "@gge/runner/src/catalog.ts"
 import { readServers } from "@gge/runner/src/game-data.ts"
 
@@ -41,9 +40,9 @@ async function seed() {
     await publishCatalog(db, readPluginRegistry({}).catalog)
 
     const passwordHash = await hashPassword("demo-password")
-    const [admin] = await db.insert(users).values({ username: "admin", passwordHash, role: "admin" }).returning()
-    const [player] = await db.insert(users).values({ username: "demo", passwordHash }).returning()
-    await db.insert(invites).values({ codeHash: hashInviteCode("welcome-to-the-war-table"), createdBy: admin!.id, expiresAt: new Date(Date.now() + 7 * 86400_000) })
+    const verified = new Date()
+    await db.insert(users).values({ username: "admin", email: "admin@example.test", emailVerifiedAt: verified, passwordHash, role: "admin" })
+    const [player] = await db.insert(users).values({ username: "demo", email: "demo@example.test", emailVerifiedAt: verified, passwordHash }).returning()
 
     const serverId = serverRows.find(s => s.label.includes("Germany"))?.id ?? serverRows[0]!.id
     const demo: [string, "running" | "stopped", "running" | "stopped" | "banned" | "auth_failed" | "error" | null, string | null][] = [
@@ -111,7 +110,6 @@ if (withRunner)
 console.log(`
   Player app   http://localhost:5173   demo / demo-password
   Admin app    http://localhost:5174   admin / demo-password
-  Invite code  welcome-to-the-war-table
   API          http://localhost:${API_PORT}${seeded ? "\n  (seeded demo data)" : ""}${withRunner ? "" : "\n  Runner off: pass --runner to run bots."}
 `)
 

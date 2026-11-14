@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { Crest } from "./Crest.tsx"
 
 /** Sign-in layout: a heraldic banner beside the form; the banner folds away on phones. */
-export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode }) {
+export function AuthShell({ title, subtitle, children, footer, wide }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
     return (
         <div style={{ minHeight: "100dvh", display: "flex" }}>
             <aside className="gge-heraldry gge-auth-banner" aria-hidden="true" style={{ flex: "1 1 45%", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "1px solid #4A3B26" }}>
@@ -15,7 +15,7 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
                 </div>
             </aside>
             <main style={{ flex: "1 1 55%", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px 20px" }}>
-                <div style={{ width: "100%", maxWidth: 400 }}>
+                <div style={{ width: "100%", maxWidth: wide ? 480 : 400 }}>
                     <div className="gge-auth-mark" style={{ display: "none", justifyContent: "center", marginBottom: 16 }}><Crest size={56} title="GGE Command" /></div>
                     <Typography.Title level={2} className="gge-display" style={{ marginBottom: 4 }}>{title}</Typography.Title>
                     {subtitle && <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>{subtitle}</Typography.Paragraph>}

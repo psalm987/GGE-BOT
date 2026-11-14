@@ -12,24 +12,6 @@ afterAll(() => api.close())
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 const userId = async (username: string) => (await admin.api.users.list({ search: username })).find(u => u.username === username)!.id
 
-describe("invites", () => {
-    test("an invite code is shown once, signs up one player, and records who used it", async () => {
-        const { invite, code } = await admin.api.invites.create({ role: "user", expiresInHours: 24 })
-        expect(allStrings(await admin.api.invites.list())).not.toContain(code)
-
-        await api.client().api.auth.signup({ inviteCode: code, username: "invited", email: "invited@example.test", password: PASSWORD })
-        const listed = (await admin.api.invites.list()).find(i => i.id === invite.id)!
-        expect(listed.usedBy).toBe("invited")
-        expect(listed.usedAt).toBeInstanceOf(Date)
-    })
-
-    test("a revoked invite no longer works", async () => {
-        const { invite, code } = await admin.api.invites.create({ role: "user", expiresInHours: 24 })
-        await admin.api.invites.revoke({ id: invite.id })
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "late", email: "late@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
-    })
-})
-
 describe("managing users", () => {
     test("disabling a player ends their sessions and stops their bots", async () => {
         const p = await api.player("rowdy")
@@ -81,7 +63,7 @@ describe("overview and audit", () => {
         expect(overview.accounts).toBeGreaterThanOrEqual(2)
 
         const actions = (await admin.api.audit.list({ limit: 500 })).map(e => `${e.actor}:${e.action}`)
-        for (const expected of ["boss:invite.create", "boss:invite.revoke", "boss:user.disable", "boss:user.set_role", "boss:account.force_stop", "rowdy:account.create", "rowdy:account.start"])
+        for (const expected of ["boss:user.disable", "boss:user.set_role", "boss:account.force_stop", "rowdy:account.create", "rowdy:account.start"])
             expect(actions).toContain(expected)
     })
 
@@ -90,6 +72,6 @@ describe("overview and audit", () => {
         const asAdminApp = api.admin()
         for (const [k, v] of p.jar) asAdminApp.jar.set(k, v)
         expect(await codeOf(asAdminApp.api.users.list({}))).toBe("UNAUTHORIZED")
-        expect(await codeOf(asAdminApp.api.invites.create({ role: "admin", expiresInHours: 1 }))).toBe("UNAUTHORIZED")
+        expect(await codeOf(asAdminApp.api.users.setRole({ id: await userId("boss"), role: "user" }))).toBe("UNAUTHORIZED")
     })
 })

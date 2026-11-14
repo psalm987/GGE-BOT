@@ -41,7 +41,7 @@ The importer can run again safely: rows already imported (matched by their legac
 
 ## What does not move
 
-- `ggeConfig.json`: its settings are now environment variables ([env.md](env.md)). `signupToken` is gone; use invites.
+- `ggeConfig.json`: its settings are now environment variables ([env.md](env.md)). `signupToken` is gone; anyone can sign up, and must confirm an email before running bots.
 - Bot logs and in-memory state.
 - Discord guild links move; Discord channel choices move with each account's plugin settings.
 

@@ -1,8 +1,7 @@
 import type {} from "@fastify/cookie"
-import { createHash } from "node:crypto"
 import { ORPCError } from "@orpc/server"
-import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm"
-import { invites, users, type Db } from "@gge/db"
+import { and, eq, isNotNull, sql } from "drizzle-orm"
+import { users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
 import { claimToken, issueToken } from "../auth/email-tokens.ts"
 import { hashPassword, verifyNobody, verifyPassword } from "../auth/passwords.ts"
@@ -81,37 +80,23 @@ export async function logout(ctx: Ctx, audience: Audience) {
     ctx.reply.clearCookie(COOKIE_NAME[audience], { path: "/" })
 }
 
-export const hashInviteCode = (code: string) => createHash("sha256").update(code).digest("hex")
-
-export async function signup(ctx: Ctx, input: { inviteCode: string; username: string; email: string; password: string }) {
+export async function signup(ctx: Ctx, input: { username: string; email: string; password: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip))
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
 
     const passwordHash = await hashPassword(input.password)
-    const user = await ctx.db.transaction(async tx => {
-        const [invite] = await tx.update(invites)
-            .set({ usedAt: new Date() })
-            .where(and(eq(invites.codeHash, hashInviteCode(input.inviteCode)), isNull(invites.usedAt), isNull(invites.revokedAt), gt(invites.expiresAt, sql`now()`)))
-            .returning()
-        if (!invite)
-            throw new ORPCError("BAD_REQUEST", { message: "This invite is invalid, used or expired" })
-        if (invite.email && invite.email !== input.email)
-            throw new ORPCError("BAD_REQUEST", { message: "This invite was sent to a different email address" })
-        const [created] = await tx.insert(users)
-            .values({ username: input.username, email: input.email, passwordHash, role: invite.role, emailVerifiedAt: invite.email ? new Date() : null })
-            .returning()
-        await tx.update(invites).set({ usedBy: created!.id }).where(eq(invites.id, invite.id))
-        return created!
-    }).catch(error => {
-        if (isUniqueViolation(error, "users_username_lower"))
-            throw new ORPCError("CONFLICT", { message: "That username is taken" })
-        if (isUniqueViolation(error, "users_email_lower"))
-            throw new ORPCError("CONFLICT", { message: "That email is already in use" })
-        throw error
-    })
+    const user = await ctx.db.insert(users)
+        .values({ username: input.username, email: input.email, passwordHash })
+        .returning()
+        .then(([created]) => created!, error => {
+            if (isUniqueViolation(error, "users_username_lower"))
+                throw new ORPCError("CONFLICT", { message: "That username is taken" })
+            if (isUniqueViolation(error, "users_email_lower"))
+                throw new ORPCError("CONFLICT", { message: "That email is already in use" })
+            throw error
+        })
     await audit(ctx.db, { actorId: user.id, action: "auth.signup" })
-    if (!user.emailVerifiedAt)
-        await sendVerification(ctx, user, input.email)
+    await sendVerification(ctx, user, input.email)
     return startSession(ctx, "client", publicUser(user))
 }
 

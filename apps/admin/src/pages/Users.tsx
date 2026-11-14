@@ -30,7 +30,7 @@ export function Users() {
                 <Input.Search allowClear placeholder="Search by username" aria-label="Search users" style={{ width: 240, maxWidth: "100%" }} onSearch={setSearch} />
             } title="Players">
                 {!users.isPending && !users.error && list.length === 0 ? (
-                    <CrestEmpty title="No users found" hint={search ? "Try a different search." : "Invite someone to get started."} />
+                    <CrestEmpty title="No users found" hint={search ? "Try a different search." : "Players appear here once they sign up."} />
                 ) : (
                     <Table<Row> rowKey="id" loading={users.isPending} dataSource={list} pagination={list.length > 20 ? { pageSize: 20 } : false} scroll={{ x: 1100 }}
                         columns={[

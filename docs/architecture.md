@@ -12,7 +12,7 @@ GGE Command runs Goodgame Empire bots for many players from one server. Players 
 
 | Path | Role |
 |---|---|
-| `apps/api` | Fastify + oRPC. The player contract at `/rpc`, the admin contract at `/admin/rpc`. Sign-in, sessions, email verification and password reset (Resend), accounts, invites, audit. Streams bot status and logs to players. |
+| `apps/api` | Fastify + oRPC. The player contract at `/rpc`, the admin contract at `/admin/rpc`. Sign-in, sessions, email verification and password reset (Resend), accounts, audit. Streams bot status and logs to players. |
 | `apps/runner` | Supervises bot workers. Reads which accounts should run from Postgres, starts and stops workers, records status, logs and runs. Exactly one runs at a time (a Postgres advisory lock). |
 | `apps/client` | The player app (Vite, React, Ant Design). |
 | `apps/admin` | The admin app. |

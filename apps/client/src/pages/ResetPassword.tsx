@@ -1,9 +1,9 @@
-import { LockOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
-import { Alert, Button, Form, Input } from "antd"
+import { Alert, Button, Form } from "antd"
 import { Link, useSearchParams } from "react-router"
 import { AuthShell } from "@gge/ui"
 import { messageOf, orpc } from "../api.ts"
+import { PasswordFields } from "../components/PasswordFields.tsx"
 
 export function ResetPassword() {
     const token = useSearchParams()[0].get("token")
@@ -22,16 +22,7 @@ export function ResetPassword() {
                 : <>
                     {reset.error && <Alert type="error" showIcon title={messageOf(reset.error)} style={{ marginBottom: 16 }} role="alert" />}
                     <Form layout="vertical" requiredMark={false} onFinish={({ password }) => reset.mutate({ token, password })} disabled={reset.isPending}>
-                        <Form.Item label="New password" name="password" extra="At least 10 characters"
-                            rules={[{ required: true, message: "Choose a password" }, { min: 10, message: "At least 10 characters" }]}>
-                            <Input.Password prefix={<LockOutlined />} autoComplete="new-password" autoFocus size="large" />
-                        </Form.Item>
-                        <Form.Item label="Confirm password" name="confirm" dependencies={["password"]}
-                            rules={[{ required: true, message: "Type the password again" }, ({ getFieldValue }) => ({
-                                validator: (_, value) => !value || value === getFieldValue("password") ? Promise.resolve() : Promise.reject(new Error("The passwords don't match")),
-                            })]}>
-                            <Input.Password prefix={<LockOutlined />} autoComplete="new-password" size="large" />
-                        </Form.Item>
+                        <PasswordFields label="New password" size="large" autoFocus />
                         <Button type="primary" htmlType="submit" block size="large" loading={reset.isPending} className="gge-press">Change password</Button>
                     </Form>
                 </>}

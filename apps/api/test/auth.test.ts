@@ -11,34 +11,45 @@ afterAll(() => api.close())
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 
 describe("signup", () => {
-    test("an invite signs a new player in, and works only once", async () => {
-        const code = await api.invite()
+    test("anyone can sign up: a player, signed in, with the email still to confirm", async () => {
         const first = api.client()
-        const me = await first.api.auth.signup({ inviteCode: code, username: "alice", email: "alice@example.test", password: PASSWORD })
-        expect(me).toMatchObject({ username: "alice", role: "user" })
+        const me = await first.api.auth.signup({ username: "alice", email: "Alice@Example.test", password: PASSWORD })
+        expect(me).toMatchObject({ username: "alice", role: "user", email: "alice@example.test", emailVerified: false })
         expect(await first.api.auth.me()).toMatchObject({ username: "alice" })
-
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "bob", email: "bob@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
     })
 
-    test("expired and unknown invites are refused", async () => {
-        const expired = await api.invite("user", "old", new Date(Date.now() - 1000))
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: expired, username: "carol", email: "carol@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: "nope", username: "carol", email: "carol@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
+    test("signup can't pick a role", async () => {
+        const signup = api.client().api.auth.signup as (input: object) => Promise<{ role: string }>
+        expect((await signup({ username: "sneaky", email: "sneaky@example.test", password: PASSWORD, role: "admin" })).role).toBe("user")
     })
 
-    test("a taken username (any case) is a conflict and leaves the invite unused", async () => {
+    test("a taken username or email (any case) is a conflict", async () => {
         await api.player("dave")
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "DAVE", email: "dave@example.test", password: PASSWORD }))).toBe("CONFLICT")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "dave2", email: "dave2@example.test", password: PASSWORD }))).toBe("ok")
+        expect(await codeOf(api.client().api.auth.signup({ username: "DAVE", email: "other-dave@example.test", password: PASSWORD }))).toBe("CONFLICT")
+        expect(await codeOf(api.client().api.auth.signup({ username: "dave2", email: "DAVE@example.test", password: PASSWORD }))).toBe("CONFLICT")
+        expect(await codeOf(api.client().api.auth.signup({ username: "dave2", email: "dave2@example.test", password: PASSWORD }))).toBe("ok")
     })
 
     test("short passwords and bad usernames are rejected before anything is written", async () => {
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "erin", email: "erin@example.test", password: "short" }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "no spaces", email: "nospaces@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "erin", email: "erin@example.test", password: PASSWORD }))).toBe("ok")
+        expect(await codeOf(api.client().api.auth.signup({ username: "erin", email: "erin@example.test", password: "short" }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ username: "no spaces", email: "nospaces@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ username: "erin", email: "erin@example.test", password: PASSWORD }))).toBe("ok")
+    })
+})
+
+describe("email gate", () => {
+    test("an unverified player can manage their email but not their bots, until they verify", async () => {
+        const p = await api.signup("newbie")
+        expect(await codeOf(p.api.accounts.list())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.servers.list())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.plugins.catalog())).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.accounts.create({ name: "Early", serverId: 26, password: "game-password" }))).toBe("FORBIDDEN")
+        expect(await codeOf(p.api.auth.me())).toBe("ok")
+        expect(await codeOf(p.api.account.resendVerification({}))).toBe("ok")
+
+        await api.client().api.auth.verifyEmail({ token: api.lastToken(p.email)! })
+        expect(await codeOf(p.api.accounts.list())).toBe("ok")
+        expect(await codeOf(p.api.servers.list())).toBe("ok")
     })
 })
 

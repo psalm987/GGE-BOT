@@ -5,8 +5,6 @@ const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
-const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
-const API_URL = process.env.API_URL ?? "http://127.0.0.1:3000"
 const DEV_LOG = process.env.DEV_LOG ?? "/tmp/gge-dev.log"
 const out = process.argv[2] ?? path.join(__dirname, "../../../../.verify-evidence", `${new Date().toISOString().replace(/[:.]/g, "-")}-client`)
 require("fs").mkdirSync(out, { recursive: true })
@@ -30,46 +28,44 @@ function emailedLink(address) {
     throw new Error(`no email logged for ${address}; start the stack with its output in ${DEV_LOG}`)
 }
 
-async function freshInvite() {
-    const call = async (path, body, cookie) => {
-        const res = await fetch(`${API_URL}/admin/rpc/${path}`, {
-            method: "POST",
-            headers: { origin: ADMIN_URL, "content-type": "application/json", ...(cookie && { cookie }) },
-            body: JSON.stringify({ json: body }),
-        })
-        return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
-    }
-    const { cookie } = await call("auth/login", { login: "admin", password: "demo-password" })
-    return (await call("invites/create", { role: "user", expiresInHours: 1 }, cookie)).json.code
-}
-
 ;(async () => {
-    const invite = await freshInvite()
     const browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } })
     const name = "u" + Date.now().toString(36)
-    await page.goto(`${CLIENT_URL}/signup?invite=${invite}`)
+    await page.goto(`${CLIENT_URL}/signup`)
     await page.getByRole("heading", { name: "Join the campaign" }).waitFor()
     await axe(page, "signup")
-    assert(await page.getByLabel("Invite code").inputValue() === invite, "invite code prefilled from the link")
+    assert(await page.getByLabel("Invite code").count() === 0, "signup asks for no invite code")
+    const top = label => page.getByLabel(label, { exact: true }).evaluate(el => Math.round(el.getBoundingClientRect().top))
+    assert(await top("Password") === await top("Confirm password"), "password and confirm share a row on a wide screen")
+    await page.screenshot({ path: `${out}/client-signup-1280.png` })
+    await page.setViewportSize({ width: 390, height: 844 })
+    assert(await top("Password") < await top("Confirm password"), "password and confirm stack at 390 px")
+    assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, "no horizontal overflow on signup at 390")
+    await page.screenshot({ path: `${out}/client-signup-390.png`, fullPage: true })
+    await page.setViewportSize({ width: 1280, height: 860 })
     await page.getByLabel("Username").fill(name)
     await page.getByLabel("Email").fill(`${name}@example.test`)
     await page.getByLabel("Password", { exact: true }).fill("a-strong-password")
+    await page.getByLabel("Confirm password").fill("a-different-password")
+    await page.getByRole("button", { name: "Create account" }).click()
+    await page.getByText("The passwords don't match").waitFor()
+    assert(true, "mismatched passwords are caught before submitting")
     await page.getByLabel("Confirm password").fill("a-strong-password")
     await page.getByRole("button", { name: "Create account" }).click()
-    await page.getByText("No accounts yet").waitFor()
-    assert(true, "signup lands on an empty roster with a call to action")
-    await axe(page, "empty dashboard")
 
-    await page.getByText("Check your inbox").waitFor()
-    assert(true, "an unverified player sees the verification banner")
+    await page.getByText("Confirm your email", { exact: true }).waitFor()
+    assert(await page.getByText("No accounts yet").count() === 0, "an unverified player sees the email gate, not the roster")
+    await axe(page, "email gate")
+    await page.screenshot({ path: `${out}/client-email-gate-1280.png` })
     const verifyPage = await browser.newPage()
     await verifyPage.goto(emailedLink(`${name}@example.test`))
     await verifyPage.getByText("Email verified").waitFor()
     await verifyPage.close()
     await page.reload()
     await page.getByText("No accounts yet").waitFor()
-    assert(await page.getByText("Check your inbox").count() === 0, "the banner is gone once the emailed link is opened")
+    assert(await page.getByText("Confirm your email", { exact: true }).count() === 0, "the roster opens once the emailed link is opened")
+    await axe(page, "empty dashboard")
 
     await page.getByRole("menuitem", { name: "Settings" }).click()
     await page.getByRole("heading", { name: "Change password" }).waitFor().catch(() => {})
@@ -89,7 +85,7 @@ async function freshInvite() {
     await resetPage.getByText("a reset link is on its way").waitFor()
     await resetPage.goto(emailedLink(`${name}@example.test`))
     await resetPage.getByLabel("New password", { exact: true }).fill("third-strong-password")
-    await resetPage.getByLabel("Confirm password").fill("third-strong-password")
+    await resetPage.getByLabel("Confirm new password").fill("third-strong-password")
     await resetPage.getByRole("button", { name: "Change password" }).click()
     await resetPage.getByText("Password changed").first().waitFor()
     await resetPage.goto(`${CLIENT_URL}/login`)

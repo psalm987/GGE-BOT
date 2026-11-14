@@ -22,6 +22,13 @@ const authed = os.middleware(async ({ context, next }) => {
     return next({ context: { user } })
 })
 
+/** Running bots needs a confirmed email; sign-in, resend and account settings don't. */
+const verified = authed.concat(async ({ context, next }) => {
+    if (!context.user.emailVerified)
+        throw new ORPCError("FORBIDDEN", { message: "Verify your email to continue" })
+    return next()
+})
+
 export const clientRouter = os.router({
     auth: {
         signup: os.auth.signup.handler(({ context, input }) => signup(context, input)),
@@ -38,13 +45,13 @@ export const clientRouter = os.router({
         changePassword: os.account.changePassword.use(authed).handler(({ context, input }) => changePassword(context, context.user, input)),
     },
     accounts: {
-        list: os.accounts.list.use(authed).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),
-        create: os.accounts.create.use(authed).handler(async ({ context, input }) => {
+        list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),
+        create: os.accounts.create.use(verified).handler(async ({ context, input }) => {
             const account = await createAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user.id, input)
             await audit(context.db, { actorId: context.user.id, action: "account.create", targetType: "account", targetId: account.id })
             return account
         }),
-        update: os.accounts.update.use(authed).handler(async ({ context, input }) => {
+        update: os.accounts.update.use(verified).handler(async ({ context, input }) => {
             const account = await updateAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user.id, input)
             await audit(context.db, {
                 actorId: context.user.id, action: "account.update", targetType: "account", targetId: account.id,
@@ -52,29 +59,29 @@ export const clientRouter = os.router({
             })
             return account
         }),
-        remove: os.accounts.remove.use(authed).handler(async ({ context, input }) => {
+        remove: os.accounts.remove.use(verified).handler(async ({ context, input }) => {
             const removed = await removeAccounts(context.db, context.user.id, input.ids)
             for (const { id } of removed)
                 await audit(context.db, { actorId: context.user.id, action: "account.remove", targetType: "account", targetId: id })
         }),
-        setDesiredState: os.accounts.setDesiredState.use(authed).handler(async ({ context, input }) => {
+        setDesiredState: os.accounts.setDesiredState.use(verified).handler(async ({ context, input }) => {
             const changed = await setDesiredState(context.db, ownedBy(context.user.id, input.ids), input.state)
             for (const { id } of changed)
                 await audit(context.db, { actorId: context.user.id, action: `account.${input.state === "running" ? "start" : "stop"}`, targetType: "account", targetId: id })
         }),
-        logs: os.accounts.logs.use(authed).handler(async ({ context: { db, user }, input }) => {
+        logs: os.accounts.logs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)
             const rows = await db.select().from(botLogs)
                 .where(and(eq(botLogs.accountId, input.id), input.before ? lt(botLogs.id, input.before) : undefined))
                 .orderBy(desc(botLogs.id)).limit(input.limit)
             return rows.map(r => ({ id: r.id, ts: r.ts, level: r.level, message: r.message, parts: Array.isArray(r.parts) ? r.parts : null }))
         }),
-        runs: os.accounts.runs.use(authed).handler(async ({ context: { db, user }, input }) => {
+        runs: os.accounts.runs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)
             return db.select({ id: botRuns.id, startedAt: botRuns.startedAt, endedAt: botRuns.endedAt, endReason: botRuns.endReason, error: botRuns.error })
                 .from(botRuns).where(eq(botRuns.accountId, input.id)).orderBy(desc(botRuns.id)).limit(input.limit)
         }),
-        events: os.accounts.events.use(authed).handler(async function* ({ context: { db, user, botEvents }, signal }) {
+        events: os.accounts.events.use(verified).handler(async function* ({ context: { db, user, botEvents }, signal }) {
             // Ownership is checked per account and remembered, so accounts created mid-stream still show up.
             const owned = new Map<string, boolean>()
             const isOwned = async (accountId: string) => {
@@ -106,11 +113,11 @@ export const clientRouter = os.router({
         }),
     },
     plugins: {
-        catalog: os.plugins.catalog.use(authed).handler(async ({ context }) =>
+        catalog: os.plugins.catalog.use(verified).handler(async ({ context }) =>
             (await loadCatalog(context.db)).filter(entry => !entry.hidden)),
     },
     servers: {
-        list: os.servers.list.use(authed).handler(({ context }) =>
+        list: os.servers.list.use(verified).handler(({ context }) =>
             context.db.select({ id: servers.id, label: servers.label }).from(servers).orderBy(asc(servers.label))),
     },
 })

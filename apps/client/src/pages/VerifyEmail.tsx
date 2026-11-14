@@ -21,7 +21,7 @@ export function VerifyEmail() {
         <AuthShell title="Verify your email" footer={<Link to="/">Continue to GGE Command</Link>}>
             {!token && <Alert type="error" showIcon role="alert" title="This link is incomplete" description="Open the link from your email again." />}
             {token && verify.isSuccess && <Alert type="success" showIcon role="status" title="Email verified" description="Thanks. Your address is confirmed." />}
-            {token && verify.error && <Alert type="error" showIcon role="alert" title={messageOf(verify.error)} description="Sign in and use Resend on the banner for a fresh link." />}
+            {token && verify.error && <Alert type="error" showIcon role="alert" title={messageOf(verify.error)} description="Sign in and choose Resend the link for a fresh one." />}
             {token && !verify.isSuccess && !verify.error && <Spin />}
         </AuthShell>
     )

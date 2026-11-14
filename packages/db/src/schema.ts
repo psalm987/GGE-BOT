@@ -61,20 +61,6 @@ export const sessions = pgTable("sessions", {
     createdAt: createdAt(),
 }, t => [index("sessions_user").on(t.userId)])
 
-export const invites = pgTable("invites", {
-    id: uuid("id").primaryKey().defaultRandom(),
-    codeHash: text("code_hash").notNull().unique(),
-    role: role("role").notNull().default("user"),
-    /** The address the invite link was emailed to. */
-    email: text("email"),
-    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    usedBy: uuid("used_by").references(() => users.id, { onDelete: "set null" }),
-    usedAt: timestamp("used_at", { withTimezone: true }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: createdAt(),
-})
-
 export const emailTokens = pgTable("email_tokens", {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

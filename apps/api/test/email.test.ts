@@ -24,7 +24,7 @@ const loggedIn = async (login: string, password = PASSWORD) => {
 
 describe("email verification", () => {
     test("signup emails a link, and opening it verifies the address", async () => {
-        const player = await api.player("vera")
+        const player = await api.signup("vera")
         expect(await player.api.auth.me()).toMatchObject({ email: "vera@example.test", emailVerified: false })
         expect(mailsTo("vera@example.test")).toHaveLength(1)
         expect(mailsTo("vera@example.test")[0]).toMatchObject({ tag: "verify_email" })
@@ -34,14 +34,14 @@ describe("email verification", () => {
     })
 
     test("a token works once", async () => {
-        await api.player("walt")
+        await api.signup("walt")
         const token = api.lastToken("walt@example.test")!
         expect(await codeOf(api.client().api.auth.verifyEmail({ token }))).toBe("ok")
         expect(await codeOf(api.client().api.auth.verifyEmail({ token }))).toBe("BAD_REQUEST")
     })
 
     test("an expired token is rejected and leaves the address unverified", async () => {
-        const player = await api.player("xena")
+        const player = await api.signup("xena")
         const token = api.lastToken("xena@example.test")!
         await api.db.update(emailTokens).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(emailTokens.userId, (await userRow("xena")).id))
         expect(await codeOf(api.client().api.auth.verifyEmail({ token }))).toBe("BAD_REQUEST")
@@ -49,7 +49,7 @@ describe("email verification", () => {
     })
 
     test("a token stops working once the user's email is different", async () => {
-        const player = await api.player("yuri")
+        const player = await api.signup("yuri")
         const token = api.lastToken("yuri@example.test")!
         await api.db.update(users).set({ email: "yuri2@example.test" }).where(eq(users.username, "yuri"))
         expect(await codeOf(api.client().api.auth.verifyEmail({ token }))).toBe("BAD_REQUEST")
@@ -58,13 +58,13 @@ describe("email verification", () => {
     })
 
     test("a verification token is not a reset token", async () => {
-        await api.player("zane")
+        await api.signup("zane")
         const token = api.lastToken("zane@example.test")!
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: NEW_PASSWORD }))).toBe("BAD_REQUEST")
     })
 
     test("resending replaces the earlier link, and is rate limited", async () => {
-        const player = await api.player("ada")
+        const player = await api.signup("ada")
         const first = api.lastToken("ada@example.test")!
         await player.api.account.resendVerification()
         const second = api.lastToken("ada@example.test")!
@@ -74,7 +74,7 @@ describe("email verification", () => {
         await player.api.account.resendVerification()
         expect(mailsTo("ada@example.test")).toHaveLength(2)
 
-        const other = await api.player("ben")
+        const other = await api.signup("ben")
         const codes = []
         for (let i = 0; i < 4; i++) codes.push(await codeOf(other.api.account.resendVerification()))
         expect(codes).toEqual(["ok", "ok", "ok", "TOO_MANY_REQUESTS"])
@@ -83,32 +83,14 @@ describe("email verification", () => {
 
 describe("signup with an email", () => {
     test("an email already in use (any case) is a conflict", async () => {
-        await api.player("cleo", "cleo@example.test")
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "cleo2", email: "CLEO@example.test", password: PASSWORD }))).toBe("CONFLICT")
+        await api.signup("cleo", "cleo@example.test")
+        expect(await codeOf(api.client().api.auth.signup({ username: "cleo2", email: "CLEO@example.test", password: PASSWORD }))).toBe("CONFLICT")
     })
 
-    test("an emailed invite signs up pre-verified, and refuses a different address", async () => {
-        const { invite, code } = await admin.api.invites.create({ email: "Newbie@Example.test" })
-        expect(invite.email).toBe("newbie@example.test")
-        expect(mailsTo("newbie@example.test")).toMatchObject([{ tag: "invite" }])
-        const link = api.lastLink("newbie@example.test")!
-        expect(link.pathname).toBe("/signup")
-        expect(link.searchParams.get("invite")).toBe(code)
-
-        const client = api.client()
-        expect(await codeOf(client.api.auth.signup({ inviteCode: code, username: "newbie", email: "other@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
-        const me = await client.api.auth.signup({ inviteCode: code, username: "newbie", email: "newbie@example.test", password: PASSWORD })
-        expect(me).toMatchObject({ email: "newbie@example.test", emailVerified: true })
-        expect(mailsTo("newbie@example.test")).toHaveLength(1)
-        expect((await api.db.select().from(auditLog).where(eq(auditLog.action, "invite.emailed"))).length).toBeGreaterThan(0)
-    })
-
-    test("a failed invite email is audited and the code still comes back", async () => {
+    test("a failed verification email is audited and the signup still goes through", async () => {
         api.failMail(true)
         try {
-            const { code } = await admin.api.invites.create({ email: "lost@example.test" })
-            expect(code).toBeTruthy()
+            expect(await api.client().api.auth.signup({ username: "lost", email: "lost@example.test", password: PASSWORD })).toMatchObject({ emailVerified: false })
         } finally {
             api.failMail(false)
         }
@@ -129,8 +111,8 @@ describe("password reset", () => {
     }
 
     test("every address gets the same answer, and only a verified one gets mail", async () => {
-        await api.player("dora")
-        await api.player("eli")
+        await api.signup("dora")
+        await api.signup("eli")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("eli@example.test")! })
         const before = api.sent.length
 
@@ -140,7 +122,7 @@ describe("password reset", () => {
     })
 
     test("resetting signs every session out, replaces the password, and sends a notice", async () => {
-        await api.player("fay")
+        await api.signup("fay")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("fay@example.test")! })
         const phone = await loggedIn("fay")
         const laptop = await loggedIn("fay@example.test")
@@ -156,7 +138,7 @@ describe("password reset", () => {
     })
 
     test("a weak new password is refused and the link still works", async () => {
-        await api.player("gus")
+        await api.signup("gus")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("gus@example.test")! })
         const token = await resetToken("gus@example.test")
         expect(await codeOf(api.client().api.auth.resetPassword({ token, password: "short" }))).toBe("BAD_REQUEST")
@@ -164,7 +146,7 @@ describe("password reset", () => {
     })
 
     test("a link dies when the account's email has changed since it was sent", async () => {
-        await api.player("hal")
+        await api.signup("hal")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("hal@example.test")! })
         const token = await resetToken("hal@example.test")
         await api.db.update(users).set({ email: "hal2@example.test" }).where(eq(users.username, "hal"))
@@ -179,7 +161,7 @@ describe("password reset", () => {
     })
 
     test("a mail provider outage looks the same to the caller", async () => {
-        await api.player("ivy")
+        await api.signup("ivy")
         await api.client().api.auth.verifyEmail({ token: api.lastToken("ivy@example.test")! })
         const failuresBefore = (await api.db.select().from(auditLog).where(eq(auditLog.action, "email.send_failed"))).length
         api.failMail(true)
@@ -194,33 +176,32 @@ describe("password reset", () => {
 
 describe("login by username or email", () => {
     test("either works, in any case", async () => {
-        await api.player("joan")
+        await api.signup("joan")
         expect(await codeOf(api.client().api.auth.login({ login: "JOAN@Example.test", password: PASSWORD }))).toBe("ok")
         expect(await codeOf(api.client().api.auth.login({ login: "joan", password: PASSWORD }))).toBe("ok")
     })
 
     test("an unknown email fails exactly like a wrong password", async () => {
-        await api.player("kai")
+        await api.signup("kai")
         const wrong = await api.client().api.auth.login({ login: "kai@example.test", password: "wrong password!" }).catch(e => e)
         const nobody = await api.client().api.auth.login({ login: "nobody@example.test", password: "wrong password!" }).catch(e => e)
         expect([nobody.code, nobody.message]).toEqual([wrong.code, wrong.message])
     })
 
     test("a username can't contain an @", async () => {
-        const code = await api.invite()
-        expect(await codeOf(api.client().api.auth.signup({ inviteCode: code, username: "a@b.c", email: "ab@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
+        expect(await codeOf(api.client().api.auth.signup({ username: "a@b.c", email: "ab@example.test", password: PASSWORD }))).toBe("BAD_REQUEST")
     })
 })
 
 describe("change password", () => {
     test("a wrong current password is rejected", async () => {
-        const player = await api.player("lou")
+        const player = await api.signup("lou")
         expect(await codeOf(player.api.account.changePassword({ current: "not my password", next: NEW_PASSWORD }))).toBe("BAD_REQUEST")
         expect(await codeOf(api.client().api.auth.login({ login: "lou", password: PASSWORD }))).toBe("ok")
     })
 
     test("other sessions are signed out and this one survives", async () => {
-        const here = await api.player("max")
+        const here = await api.signup("max")
         const elsewhere = await loggedIn("max")
         await here.api.account.changePassword({ current: PASSWORD, next: NEW_PASSWORD })
         expect(await here.api.auth.me()).toMatchObject({ username: "max" })
@@ -255,7 +236,7 @@ describe("adding an email", () => {
     })
 
     test("an account that already has an email can't swap it", async () => {
-        const pia = await api.player("pia")
+        const pia = await api.signup("pia")
         expect(await codeOf(pia.api.account.addEmail({ email: "pia2@example.test" }))).toBe("CONFLICT")
         expect(await pia.api.auth.me()).toMatchObject({ email: "pia@example.test" })
     })

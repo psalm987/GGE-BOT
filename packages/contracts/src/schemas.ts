@@ -13,7 +13,7 @@ const LoginPassword = z.string().min(1).max(200)
 
 /** `login` is a username or an email; usernames can't contain "@", so the two never collide. */
 export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })
-export const Signup = z.object({ inviteCode: z.string().trim().min(1).max(200), username: Username, email: Email, password: NewPassword })
+export const Signup = z.object({ username: Username, email: Email, password: NewPassword })
 
 export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean() })
 export type PublicUser = z.infer<typeof PublicUser>
@@ -67,17 +67,6 @@ export const AdminUser = PublicUser.extend({
     status: UserStatus,
     createdAt: z.date(),
     accountCount: z.number().int(),
-})
-
-export const Invite = z.object({
-    id: z.uuid(),
-    role: Role,
-    email: z.string().nullable(),
-    createdAt: z.date(),
-    expiresAt: z.date(),
-    usedAt: z.date().nullable(),
-    usedBy: z.string().nullable(),
-    revokedAt: z.date().nullable(),
 })
 
 export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ owner: z.string() })

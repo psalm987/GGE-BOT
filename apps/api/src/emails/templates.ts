@@ -25,8 +25,6 @@ export const templates = {
         render("Reset your password", ["We got a request to reset your GGE Bot password. The link works for 1 hour. If this wasn't you, ignore this email."], { label: "Choose a new password", url: link }),
     password_changed: (_: Record<string, never>) =>
         render("Your password was changed", ["The password on your GGE Bot account was just changed and other devices were signed out. If this wasn't you, reset your password right away."]),
-    invite: ({ link }: Link) =>
-        render("You're invited to GGE Bot", ["You've been invited to create a GGE Bot account. This address is already confirmed once you sign up through this link."], { label: "Create your account", url: link }),
 }
 
 export type EmailKind = keyof typeof templates
