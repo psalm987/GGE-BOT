@@ -1,0 +1,43 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/gge-bot-tla
+          key: gge-bot-tla-${{ hashFiles('packages/bot-core/verification/commander-pool/check.sh') }}
+
+      # One throwaway cluster per test package (packages/db/src/testing.ts), not a shared
+      # TEST_DATABASE_URL: the API harness truncates users while the runner tests run alongside.
+      - name: Point tests at the preinstalled Postgres
+        run: |
+          initdb=$(ls /usr/lib/postgresql/*/bin/initdb | sort -V | tail -1)
+          "$initdb" --version
+          echo "PG_BIN=$(dirname "$initdb")" >> "$GITHUB_ENV"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm check

@@ -160,7 +160,7 @@ export class Supervisor {
         await this.draining
         await Promise.all(bots.map(bot => this.stop(bot, reason)))
         while (this.inFlight.size)
-            await Promise.allSettled([...this.inFlight])
+            await Promise.allSettled(this.inFlight)
     }
 
     private track(work: Promise<unknown>) {

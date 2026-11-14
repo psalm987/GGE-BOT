@@ -5,10 +5,9 @@ import { hashPassword } from "../src/auth/passwords.ts"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
 
 let api: Api
-let admin: Awaited<ReturnType<Api["signedInAdmin"]>>
 beforeAll(async () => {
     api = await startApi()
-    admin = await api.signedInAdmin()
+    await api.signedInAdmin()
 })
 afterAll(() => api.close())
 
