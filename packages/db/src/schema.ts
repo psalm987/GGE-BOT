@@ -26,12 +26,14 @@ export const userStatus = pgEnum("user_status", ["active", "disabled"])
 export const passwordAlgo = pgEnum("password_algo", ["argon2id", "pbkdf2-legacy"])
 export const audience = pgEnum("audience", ["client", "admin"])
 export const desiredState = pgEnum("desired_state", ["running", "stopped"])
+export const emailTokenPurpose = pgEnum("email_token_purpose", ["verify_email", "reset_password"])
 export const actualState = pgEnum("actual_state", ["starting", "running", "stopped", "auth_failed", "banned", "error"])
 
 export const users = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
     username: text("username").notNull(),
     email: text("email"),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     passwordHash: text("password_hash").notNull(),
     /** Only for imported PBKDF2 hashes; cleared when the hash is upgraded. */
     passwordSalt: bytea("password_salt"),
@@ -63,6 +65,8 @@ export const invites = pgTable("invites", {
     id: uuid("id").primaryKey().defaultRandom(),
     codeHash: text("code_hash").notNull().unique(),
     role: role("role").notNull().default("user"),
+    /** The address the invite link was emailed to. */
+    email: text("email"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedBy: uuid("used_by").references(() => users.id, { onDelete: "set null" }),
@@ -70,6 +74,19 @@ export const invites = pgTable("invites", {
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: createdAt(),
 })
+
+export const emailTokens = pgTable("email_tokens", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    purpose: emailTokenPurpose("purpose").notNull(),
+    /** sha256 of the emailed token, hex. The token itself is never stored. */
+    tokenHash: text("token_hash").notNull().unique(),
+    /** The address the token was issued for; a token dies when the user's email no longer matches. */
+    email: text("email").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+}, t => [index("email_tokens_user").on(t.userId)])
 
 /** Game servers from the GGE network file (1.xml), refreshed by the runner. */
 export const servers = pgTable("servers", {
