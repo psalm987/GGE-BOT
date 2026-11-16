@@ -4,7 +4,7 @@ import { asc, eq } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
 import type { PluginCatalogEntry } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
-import { botLogs, botRuns, botStatus, createDb, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
+import { CHANNELS, botLogs, botRuns, botStatus, createDb, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
 import { loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
@@ -272,6 +272,179 @@ describe("when a bot ends on its own", () => {
     })
 })
 
+describe("a bot that stops responding", () => {
+    const quick = { liveness: { staleMs: 300 } }
+
+    test("a silent worker is ended, its run recorded as stale, and it is started again", async () => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount("silent-x")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+        expect(supervisor.checkLiveness()).toEqual([])
+
+        await until(() => supervisor.checkLiveness().includes(id))
+        await until(async () => (await runs(id))[0]?.endReason === "stale")
+        expect((await runs(id))[0]!.error).toBe("The bot stopped responding")
+        await until(async () => (await status(id))?.lastError?.startsWith("The bot stopped responding; retrying in"))
+        await until(() => spawned.length === 2)
+    })
+
+    test("a worker whose event loop is blocked is killed and recorded as stale", async () => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount("hang-x")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+
+        await until(() => supervisor.checkLiveness().includes(id))
+        await until(async () => (await runs(id))[0]?.endReason === "stale")
+    })
+
+    test("a worker that keeps sending heartbeats is left alone", async () => {
+        supervisor = makeSupervisor(quick)
+        const running = await addAccount("ok-beating")
+        const loggingIn = await addAccount("login-slow")
+        await reconcile()
+        await until(async () => (await status(running))?.actualState === "running")
+        await new Promise(r => setTimeout(r, 600))
+
+        expect(supervisor.checkLiveness()).toEqual([])
+        expect(supervisor.running).toBe(2)
+        expect((await status(loggingIn))?.heartbeatAt).toBeNull()
+    })
+
+    test("a check that runs late ends nothing, because a busy runner can't tell who is silent", async () => {
+        supervisor = makeSupervisor({ liveness: { staleMs: 300, intervalMs: 1000, maxLagMs: 500 } })
+        const id = await addAccount("silent-lag")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+        const t0 = Date.now()
+        expect(supervisor.checkLiveness(t0)).toEqual([])
+
+        expect(supervisor.checkLiveness(t0 + 1501)).toEqual([])
+        expect(supervisor.running).toBe(1)
+        expect(supervisor.checkLiveness(t0 + 1501 + 1500)).toEqual([id])
+    })
+
+    test("heartbeats from a running bot keep its last-seen time fresh without notifying subscribers", async () => {
+        const id = await addAccount("ok-seen")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+        const listener = await db.$pool.connect()
+        try {
+            const notified: string[] = []
+            listener.on("notification", n => {
+                const event = JSON.parse(n.payload!) as { kind: string; accountId: string }
+                if (event.kind === "status" && event.accountId === id)
+                    notified.push(n.payload!)
+            })
+            await listener.query(`listen ${CHANNELS.bot}`)
+            const before = (await status(id))!.heartbeatAt!
+
+            await until(async () => (await status(id))!.heartbeatAt!.getTime() > before.getTime() + 150)
+            expect(notified).toEqual([])
+        } finally {
+            listener.release(true)
+        }
+    })
+})
+
+describe("giving up on an account that can't start", () => {
+    const quick = { backoff: { baseMs: 20, maxMs: 40 }, giveUp: { failures: 3, minAgeMs: 0 } }
+    const settle = () => new Promise(r => setTimeout(r, 500))
+
+    test("after enough failed starts in a row the account is stopped and says why", async () => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount("crash-forever")
+        await reconcile()
+
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect((await status(id))?.lastError).toBe("Stopped after 3 failed starts in a row: The bot stopped unexpectedly")
+        await until(async () => (await desired(id)) === "stopped")
+        expect(supervisor.bots.size).toBe(0)
+        await settle()
+        expect(spawned).toHaveLength(3)
+        expect((await runs(id)).map(r => r.endReason)).toEqual(["crash", "crash", "crash"])
+    })
+
+    test("the last failure's reason is the one reported", async () => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount("fatal-forever")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect((await status(id))?.lastError).toBe("Stopped after 3 failed starts in a row: tooManyImportantErrors")
+    })
+
+    test("failures keep being retried until they have gone on for long enough", async () => {
+        supervisor = makeSupervisor({ ...quick, giveUp: { failures: 2, minAgeMs: 700 } })
+        const id = await addAccount("crash-young")
+        await reconcile()
+        const started = Date.now()
+
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect(Date.now() - started).toBeGreaterThanOrEqual(700)
+        expect((await runs(id)).length).toBeGreaterThan(2)
+    })
+
+    test.each([
+        ["a rejected client version", "sysfail-x", "CLIENT_VERSION_REJECTED"],
+        ["a dropped game connection", "netfail-x", "SOCKET_ERROR:1006"],
+    ])("%s is no fault of the account and is retried forever", async (_, name, reason) => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount(name)
+        await reconcile()
+
+        await until(async () => (await runs(id)).filter(r => r.error === reason).length >= 6)
+        expect(await desired(id)).toBe("running")
+        expect((await status(id))?.actualState).not.toBe("crash_loop")
+    })
+
+    test("a run that lasts long enough clears the failures before it", async () => {
+        // The crash fixture runs for at least 40 ms, so every run counts as stable.
+        supervisor = makeSupervisor({ ...quick, stableMs: 20 })
+        const id = await addAccount("crash-stable")
+        await reconcile()
+
+        await until(async () => (await runs(id)).filter(r => r.endReason === "crash").length >= 6)
+        expect(await desired(id)).toBe("running")
+        expect((await status(id))?.actualState).not.toBe("crash_loop")
+    })
+
+    test("changing the account's login starts the count again", async () => {
+        supervisor = makeSupervisor({ ...quick, giveUp: { failures: 4, minAgeMs: 0 } })
+        const id = await addAccount("crash-edited")
+        await reconcile()
+        await until(async () => (await runs(id)).length >= 2)
+        await db.update(gameAccounts).set({ passwordSealed: sealFor(keys.publicKey, "pw-crash-edited") }).where(eq(gameAccounts.id, id))
+        await reconcile()
+
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect((await runs(id)).filter(r => r.endReason === "crash").length).toBeGreaterThanOrEqual(5)
+    })
+
+    test("when most of the fleet is failing together nobody is given up on", async () => {
+        supervisor = makeSupervisor({ ...quick, startGapMs: 5, giveUp: { failures: 3, minAgeMs: 0, outageMinBots: 3 } })
+        const ids = await Promise.all(["crash-a", "crash-b", "crash-c"].map(name => addAccount(name)))
+        await reconcile()
+
+        await until(async () => (await Promise.all(ids.map(runs))).every(r => r.length >= 6), 15_000)
+        for (const id of ids) {
+            expect(await desired(id)).toBe("running")
+            expect((await status(id))?.actualState).not.toBe("crash_loop")
+        }
+    })
+
+    test("one failing account among healthy ones is still given up on", async () => {
+        supervisor = makeSupervisor({ ...quick, giveUp: { failures: 3, minAgeMs: 0, outageMinBots: 1 } })
+        const healthy = await Promise.all(["ok-a", "ok-b"].map(name => addAccount(name)))
+        const broken = await addAccount("crash-alone")
+        await reconcile()
+
+        await until(async () => (await status(broken))?.actualState === "crash_loop")
+        for (const id of healthy)
+            expect((await status(id))?.actualState).toBe("running")
+    })
+})
+
 describe("external events", () => {
     test("a probe worker finds the event server, then the event bot plays there", async () => {
         const id = await addAccount("event-hero", { externalEvent: true })
@@ -304,5 +477,47 @@ describe("external events", () => {
         await until(() => spawned.length === 3)
         expect(spawned[1]).toMatchObject({ gameURL: "in1.test", externalEvent: false, plugins: {} })
         expect(spawned[2]).toMatchObject({ gameURL: "event-host.test", externalEvent: true })
+    })
+})
+
+describe("attack plugin cap", () => {
+    const attackKeys = ["raidA", "raidB", "raidC", "raidD", "raidE"]
+    const capped: PluginRegistry = {
+        catalog: [...catalog, ...attackKeys.map(key => ({ key, force: false, hidden: false, options: [], category: "attack" as const }))],
+        filenames: new Map([...registry.filenames, ...attackKeys.map(key => [key, `plugins/attack/${key}`] as const)]),
+    }
+    const reconcileCapped = async () => supervisor.reconcile(await loadSpecs(db, capped))
+    const enableAttacks = (accountId: string, n: number) =>
+        db.insert(pluginSettings).values(attackKeys.slice(0, n).map(pluginKey => ({ accountId, pluginKey, enabled: true, options: {} })))
+
+    test("an account over its cap never starts and says why", async () => {
+        const id = await addAccount("ok-cap-over")
+        await enableAttacks(id, 5)
+        await reconcileCapped()
+        await until(async () => (await status(id))?.actualState === "error")
+        expect(await status(id)).toMatchObject({ lastError: "TOO_MANY_ATTACK_PLUGINS" })
+        expect(spawned).toHaveLength(0)
+    })
+
+    test("a per-user override of none lets it run", async () => {
+        await db.update(users).set({ attackPluginCap: "none" }).where(eq(users.id, ownerId))
+        const id = await addAccount("ok-cap-none")
+        await enableAttacks(id, 5)
+        await reconcileCapped()
+        await until(async () => (await status(id))?.actualState === "running")
+    })
+
+    test("lowering the cap stops a running bot that is now over it", async () => {
+        await db.update(users).set({ attackPluginCap: "6" }).where(eq(users.id, ownerId))
+        const id = await addAccount("ok-cap-lowered")
+        await enableAttacks(id, 5)
+        await reconcileCapped()
+        await until(async () => (await status(id))?.actualState === "running")
+
+        await db.update(users).set({ attackPluginCap: "4" }).where(eq(users.id, ownerId))
+        await reconcileCapped()
+        await until(async () => (await status(id))?.lastError === "TOO_MANY_ATTACK_PLUGINS")
+        expect(supervisor.running).toBe(0)
+        expect((await status(id))?.actualState).toBe("error")
     })
 })

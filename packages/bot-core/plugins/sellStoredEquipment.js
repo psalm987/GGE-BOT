@@ -1,23 +1,20 @@
 if (require('node:worker_threads').isMainThread)
-    return module.exports = {}
+    return module.exports = {
+        pluginOptions: [
+            { type: "Text", key: "sellStartDelayMinutes", default: "2", min: 1, max: 60 },
+            { type: "Text", key: "sellMaxPerRun", default: "20", min: 1, max: 50 },
+        ]
+    }
 
-const { events, xtHandler, sendXT } = require('../ggeBot')
+const { events, sendXT, waitForResult, botConfig } = require('../ggeBot')
+const { pause } = require("../pacing.js")
 const gems = require("../paths.js").loadItem("gems")
-const sellGems = e => {
-    let gemsSold = 0
-    Array.from(e.GEM).forEach(([id, amount]) => {
-        const gem = gems.find(e => e.gemID == id)
-        if(gem.setID != undefined)
-            return
 
-        for (let i = 0; i < amount; i++) {
-            sendXT("sge", JSON.stringify({GID:gem.gemID,RGEM:0,LFID:-1}))
-            gemsSold++
-        }
-    })
+const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const startDelayMinutes = Number(pluginOptions.sellStartDelayMinutes) || 2
+const maxPerRun = Number(pluginOptions.sellMaxPerRun) || 20
+const runIntervalMs = 1000 * 60 * 5
 
-    console.log(gemsSold, 'gemsSold')
-}
 const equipmentType = {
     unique : 0,
     common : 1,
@@ -25,54 +22,59 @@ const equipmentType = {
     epic : 3,
     legendary : 4,
     relic : 5,
-    heroUnique : 10, 
+    heroUnique : 10,
     heroCommon : 11,
     heroRare : 12,
     heroEpic : 13,
     heroLegendary : 14,
     heroRelic : 15
 }
-class Equipment {
-    constructor(e) {
-        this.id = e[0]
-        this.slotType = e[1]
-        this.lordType = e[2]
-        this.rarity = e[3]
-        this.name = e[4]
-        this.objectID = e[6]
-        this.setID = e[7]
-        this.enchantmentLevel = e[8]
-        this.timeLeft = e[9] + Date.now() //TODO Verify
-        this.temporary = e[9] > 0
-        this.gemID = e[10]
+const keptRarities = [equipmentType.relic, equipmentType.heroRelic, equipmentType.unique, equipmentType.heroUnique]
+
+const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
+    const gem = gems.find(g => g.gemID == id)
+    if (!gem || gem.setID != undefined)
+        return []
+    return Array.from({ length: amount }, () => ["sge", { GID: gem.gemID, RGEM: 0, LFID: -1 }])
+})
+
+// Equipment rows: [id, slotType, lordType, rarity, name, ?, objectID, setID, ...]
+const equipmentSales = e => Array.from(e.I ?? [])
+    .filter(item => !keptRarities.includes(item[3]) && item[7] == -1)
+    .map(item => ["seq", { EID: item[0], LID: -1, EX: 0, LFID: -1 }])
+
+async function fetch(cmd) {
+    const reply = waitForResult(cmd, 1000 * 10)
+    await sendXT(cmd, JSON.stringify({}))
+    const [obj] = await reply
+    return obj
+}
+
+async function sellRun() {
+    const equipment = equipmentSales(await fetch("gei"))
+    const gemList = gemSales(await fetch("ggm"))
+    const sales = [...equipment, ...gemList].slice(0, maxPerRun)
+    for (let i = 0; i < sales.length; i++) {
+        if (i > 0)
+            await pause(2000, 6000)
+        const [cmd, params] = sales[i]
+        await sendXT(cmd, JSON.stringify(params))
     }
+    const equipmentSold = sales.filter(([cmd]) => cmd == "seq").length
+    if (equipmentSold)
+        console.log("equipmentSold", equipmentSold)
+    if (sales.length - equipmentSold)
+        console.log(sales.length - equipmentSold, "gemsSold")
 }
 
-const sellEquipment = e => {
-    let equipmentSold = 0
-    Array.from(e.I).map(e => new Equipment(e)).forEach(equipment => {
-        if([equipmentType.relic, equipmentType.heroRelic, equipmentType.unique, equipmentType.heroUnique]
-            .includes(equipment.rarity))
-            return
-        if(equipment.setID != -1)
-            return
-
-        sendXT("seq", JSON.stringify({EID:equipment.id, LID:-1, EX:0, LFID:-1}))
-        equipmentSold++
-    })
-    console.log("equipmentSold", equipmentSold)
-}
-
-events.on("load", () => {
-    sendXT("ggm", JSON.stringify({}))
-    xtHandler.once("ggm", sellGems)
-    sendXT("gei", JSON.stringify({}))
-    xtHandler.once("gei", sellEquipment)
-    
-    setInterval(() => {
-        sendXT("ggm", JSON.stringify({}))
-        xtHandler.once("ggm", sellGems)
-        sendXT("gei", JSON.stringify({}))
-        xtHandler.once("gei", sellEquipment)
-    }, 1000 * 10 * 30)
+events.once("load", async () => {
+    await pause(startDelayMinutes * 60_000, (startDelayMinutes + 3) * 60_000)
+    while (true) {
+        try {
+            await sellRun()
+        } catch (e) {
+            console.warn("sellStoredEquipment", e)
+        }
+        await pause(runIntervalMs, runIntervalMs * 1.5)
+    }
 })

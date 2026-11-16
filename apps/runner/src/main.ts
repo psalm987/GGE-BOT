@@ -11,7 +11,7 @@ import { createLogRenderer } from "./log-render.ts"
 import { createMetrics, serveMetrics, type MetricBatch } from "./metrics.ts"
 import { loadSpecs } from "./specs.ts"
 import { createStore } from "./store.ts"
-import { Supervisor } from "./supervisor.ts"
+import { LIVENESS, Supervisor } from "./supervisor.ts"
 
 const require = createRequire(import.meta.url)
 const paths = require("@gge/bot-core/paths.js") as { data: string }
@@ -88,7 +88,10 @@ await lock.client.query(`listen ${CHANNELS.desired}`)
 
 const startedAt = new Date()
 const timers = [
-    setInterval(() => void reconcile(), 30_000),
+    setInterval(() => {
+        supervisor.checkLiveness()
+        void reconcile()
+    }, LIVENESS.intervalMs),
     setInterval(() => void store.beat(startedAt, VERSION, supervisor.running).catch(e => console.error("heartbeat failed", e)), 10_000),
     setInterval(() => void store.pruneLogs().catch(e => console.error("log prune failed", e)), 3600_000),
 ]

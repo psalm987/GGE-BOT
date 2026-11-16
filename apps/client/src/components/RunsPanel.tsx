@@ -11,6 +11,7 @@ const REASONS: Record<string, { label: string; color?: string }> = {
     restart: { label: "Settings changed" },
     crash: { label: "Crashed", color: "red" },
     error: { label: "Error", color: "red" },
+    stale: { label: "Stopped responding", color: "red" },
     banned: { label: "Banned", color: "red" },
     auth_failed: { label: "Wrong password", color: "orange" },
     shutoff: { label: "Shutoff timer" },

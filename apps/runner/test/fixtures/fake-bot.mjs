@@ -16,10 +16,33 @@ parentPort.on("message", ([type, payload]) => {
         post([16, { sei: { E: [] }, glt: { TSIP: "event-host.test", TSZ: "EmpireEx_99" } }])
 })
 
+const beat = phase => setInterval(() => post([22, { phase }]), 50)
+
 switch (mode) {
+    case "silent":
+        later(10, () => post([14]))
+        break
+    case "hang":
+        later(10, () => {
+            post([14])
+            for (;;) { /* a blocked event loop */ }
+        })
+        break
+    case "sysfail":
+        later(10, () => post([20, { state: "error", reason: "CLIENT_VERSION_REJECTED" }]))
+        later(20, () => process.exit(0))
+        break
+    case "netfail":
+        later(10, () => post([20, { state: "error", reason: "SOCKET_ERROR:1006" }]))
+        later(20, () => process.exit(0))
+        break
+    case "login":
+        beat("login")
+        break
     case "ok":
     case "event":
         later(10, () => post([14]))
+        beat("running")
         break
     case "crash":
         later(10, () => post([14]))

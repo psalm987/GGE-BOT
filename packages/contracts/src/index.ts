@@ -1,6 +1,6 @@
 import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
-import { PluginCatalogEntry } from "./plugins.ts"
+import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import {
     AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
@@ -44,7 +44,11 @@ export const clientContract = {
         /** Live status changes and log lines for the caller's accounts. */
         events: oc.output(eventIterator(BotEvent)),
     },
-    plugins: { catalog: oc.output(z.array(PluginCatalogEntry)) },
+    plugins: {
+        catalog: oc.output(z.array(PluginCatalogEntry)),
+        /** How many attack plugins the caller may turn on per account; null for no limit. */
+        attackLimit: oc.output(z.number().int().nullable()),
+    },
     servers: { list: oc.output(z.array(Server)) },
 }
 
@@ -57,7 +61,13 @@ export const adminContract = {
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         setMaxBots: oc.input(Id.extend({ maxBots: z.number().int().min(0).max(50) })).output(z.void()),
+        /** null clears the override, so the user follows the global default. */
+        setAttackPluginCap: oc.input(Id.extend({ cap: AttackPluginCap.nullable() })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
+    },
+    settings: {
+        get: oc.output(z.object({ attackPluginCap: AttackPluginCap })),
+        setAttackPluginCap: oc.input(z.object({ cap: AttackPluginCap })).output(z.void()),
     },
     accounts: {
         list: oc.output(z.array(AdminAccount)),

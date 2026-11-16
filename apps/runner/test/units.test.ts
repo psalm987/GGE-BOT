@@ -7,6 +7,26 @@ import { createDb, gameAccounts, servers, users, type Db } from "@gge/db"
 import { resolveEventServer } from "../src/event-server.ts"
 import { readServers } from "../src/game-data.ts"
 import { acquireRunnerLock } from "../src/lock.ts"
+import { blameFor } from "../src/supervisor.ts"
+
+describe("blameFor", () => {
+    test.each([
+        ["CLIENT_VERSION_REJECTED", "outside"],
+        ["Couldn't find the event server", "outside"],
+        ["PROXY_UNREACHABLE", "outside"],
+        ["SOCKET_ERROR:1006", "outside"],
+        ["SOCKET_ERROR:ECONNREFUSED", "outside"],
+        ["CONNECTION_STALE", "outside"],
+        ["LOGIN_TIMEOUT", "outside"],
+        ["TOO_MANY_TIMEOUTS", "outside"],
+        ["The bot stopped responding", "account"],
+        ["The bot stopped unexpectedly", "account"],
+        ["The bot ran out of memory", "account"],
+        ["tooManyImportantErrors", "account"],
+    ])("%s is blamed on the %s", (why, blame) => {
+        expect(blameFor(why)).toBe(blame)
+    })
+})
 
 describe("resolveEventServer", () => {
     test.each([

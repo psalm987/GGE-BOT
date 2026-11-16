@@ -5,7 +5,7 @@ if (require('node:worker_threads').isMainThread)
 
 const pretty = require('pretty-time')
 const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID, spiralCoordinates } = require('../../protocols')
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getMaxUnitsInReinforcementWave } = require("./attack")
+const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
 
@@ -106,21 +106,7 @@ async function fortressHit(kingdomID, level, options) {
                         maxTroops -= assignUnit(unitSlot, attackerTroops, maxTroops))
                 }
 
-                await sendXT("cra", JSON.stringify(attackInfo))
-
-                const [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) => {
-                    if (result != 0)
-                        return true
-
-                    if (obj.AAM.M.KID != kingdomID || obj.AAM.M.TA[1] != AI.x || obj.AAM.M.TA[2] != AI.y)
-                        return false
-                    return true
-                })
-
-                if (result != 0)
-                    throw err[result]
-
-                return obj
+                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
             })
 
             if (!attackInfo) {
@@ -135,7 +121,7 @@ async function fortressHit(kingdomID, level, options) {
             switch (e) {
                 case "NO_MORE_TROOPS":
                     await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").Types.Movement} */ movement) {
-                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.areaInfo.id)
+                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
                             return
 
                         movementEvents.off("return", self)

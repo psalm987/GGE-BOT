@@ -97,9 +97,16 @@ test("the admin overview shows the runner's heartbeat and the last day's runs an
     expect((await admin.api.overview()).runner).toBeNull()
 
     await api.db.insert(runnerHeartbeat).values({ id: 1, startedAt: new Date(), beatAt: new Date(), version: "test", running: 3 })
+    const owner = await api.player()
+    const { id } = await owner.api.accounts.create(newAccount("gave-up-bot"))
+    await api.db.insert(botStatus).values({ accountId: id, actualState: "crash_loop", lastError: "Stopped after 8 failed starts in a row: The bot stopped responding" })
+    await api.db.insert(botRuns).values({ accountId: id, startedAt: new Date(Date.now() - 60_000), endedAt: new Date(), endReason: "stale" })
+
     const overview = await admin.api.overview()
     expect(overview.runner).toMatchObject({ version: "test", running: 3 })
-    expect(overview.last24h).toEqual({ runs: 2, crashes: 1 })
+    expect(overview.last24h).toEqual({ runs: 3, crashes: 2 })
+    expect(overview.bots).toMatchObject({ crash_loop: 1 })
+    expect((await owner.api.accounts.list()).find(a => a.id === id)?.status).toMatchObject({ actualState: "crash_loop" })
 })
 
 test("/metrics reports request latency by route pattern, never by account", async () => {

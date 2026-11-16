@@ -1,7 +1,7 @@
 import { eq, inArray, isNull, lt, sql } from "drizzle-orm"
 import { CHANNELS, botLogs, botRuns, botStatus, gameAccounts, runnerHeartbeat, type Db } from "@gge/db"
 
-export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error"
+export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
     actualState?: ActualState
     lastError?: string | null
@@ -79,6 +79,11 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             } catch (error) {
                 if (!isMissingAccount(error)) throw error
             }
+        },
+
+        /** Records that the bot is alive. No notify: nothing a subscriber shows has changed, and every bot does this twice a minute. */
+        async touchHeartbeat(accountId: string) {
+            await db.update(botStatus).set({ heartbeatAt: new Date() }).where(eq(botStatus.accountId, accountId))
         },
 
         /** The runner itself decided this account must not run again until its owner acts. */

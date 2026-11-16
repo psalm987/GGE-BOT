@@ -16,7 +16,9 @@ export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRe
     const filenames = new Map<string, string>()
     for (const [filename, mod] of plugins) {
         const key = path.basename(filename)
-        catalog.push(PluginCatalogEntry.parse({ key, force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions ?? [] }))
+        const force = Boolean(mod.force), hidden = Boolean(mod.hidden)
+        const category = !force && !hidden && filename.startsWith("plugins/attack/") ? "attack" : null
+        catalog.push(PluginCatalogEntry.parse({ key, force, hidden, options: mod.pluginOptions ?? [], category }))
         filenames.set(key, filename)
     }
     return { catalog, filenames }
@@ -25,8 +27,8 @@ export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRe
 export async function publishCatalog(db: Db, catalog: PluginCatalogEntry[]) {
     await db.transaction(async tx => {
         for (const entry of catalog)
-            await tx.insert(pluginCatalog).values({ ...entry, updatedAt: new Date() })
-                .onConflictDoUpdate({ target: pluginCatalog.key, set: { force: entry.force, hidden: entry.hidden, options: entry.options, updatedAt: sql`now()` } })
+            await tx.insert(pluginCatalog).values({ ...entry, category: entry.category ?? null, updatedAt: new Date() })
+                .onConflictDoUpdate({ target: pluginCatalog.key, set: { force: entry.force, hidden: entry.hidden, options: entry.options, category: entry.category ?? null, updatedAt: sql`now()` } })
         await tx.delete(pluginCatalog).where(notInArray(pluginCatalog.key, catalog.map(e => e.key)))
     })
 }

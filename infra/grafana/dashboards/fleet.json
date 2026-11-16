@@ -62,7 +62,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(bot_workers{state=~\"error|banned|auth_failed\"})"
+          "expr": "sum(bot_workers{state=~\"error|crash_loop|banned|auth_failed\"})"
         }
       ]
     },

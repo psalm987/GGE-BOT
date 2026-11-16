@@ -1,0 +1,1 @@
+ALTER TYPE "public"."actual_state" ADD VALUE 'crash_loop';

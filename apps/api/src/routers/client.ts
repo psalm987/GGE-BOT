@@ -7,7 +7,7 @@ import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import {
-    createAccount, getOwnedAccount, listOwnedAccounts, loadCatalog, ownedBy, removeAccounts, setDesiredState, updateAccount,
+    createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, updateAccount,
 } from "../services/accounts.ts"
 import type { RawBotEvent } from "../services/bot-events.ts"
 import { addEmail, changePassword, resendVerification } from "./account.ts"
@@ -115,6 +115,7 @@ export const clientRouter = os.router({
     plugins: {
         catalog: os.plugins.catalog.use(verified).handler(async ({ context }) =>
             (await loadCatalog(context.db)).filter(entry => !entry.hidden)),
+        attackLimit: os.plugins.attackLimit.use(verified).handler(({ context }) => attackLimitFor(context.db, context.user.id)),
     },
     servers: {
         list: os.servers.list.use(verified).handler(({ context }) =>

@@ -20,6 +20,7 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 | `bot_game_rtt_seconds` | workers | `command` |
 | `bot_send_wait_seconds` | workers | none |
 | `bot_gaa_cache_total` | workers | `result` (hit, miss) |
+| `bot_inbound_gap_seconds` | workers | none |
 | `bot_workers` | runner, from `bot_status` | `state` |
 | `bot_worker_heap_bytes` | runner, from each worker | `stat` (max, avg) |
 | `http_request_duration_seconds` | API | `method`, `route`, `status_code` |
@@ -27,7 +28,28 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 
 No metric carries an account id or name. Per-account detail (status, logs, run history) lives in Postgres and the apps.
 
-Run history is product data, not a metric: every bot start is a `bot_runs` row with `started_at`, `ended_at` and `end_reason` (`stopped`, `restart`, `crash`, `error`, `banned`, `auth_failed`, `shutoff`, `deploy`, `runner_lost`). Players see their last runs in the account drawer; the admin overview and the Fleet dashboard aggregate them.
+Run history is product data, not a metric: every bot start is a `bot_runs` row with `started_at`, `ended_at` and `end_reason` (`stopped`, `restart`, `crash`, `error`, `stale`, `banned`, `auth_failed`, `shutoff`, `deploy`, `runner_lost`). Players see their last runs in the account drawer; the admin overview and the Fleet dashboard aggregate them.
+
+## Liveness
+
+A bot is shown as running only while it proves it:
+
+- **The worker can watch its connection.** With `INBOUND_STALE_MS` set, a logged-in bot that hears nothing from the game for that long ends its run with `CONNECTION_STALE` and is retried. It is off by default, because nobody has yet measured how quiet a healthy bot gets. `bot_inbound_gap_seconds` records the longest silence in each 30-second window; after a few days of data, set `INBOUND_STALE_MS` to about 3 times its p99.
+- **The runner watches its workers.** Each worker sends a heartbeat every 30 seconds, from the moment it starts. The runner ends a worker that has sent nothing for 90 seconds, records the run as `stale`, and retries it. A check that itself runs more than 15 seconds late is skipped, because a busy runner can't tell which workers are silent.
+- **`bot_status.heartbeat_at`** ("Last seen" in the player app) is refreshed by each heartbeat from a logged-in bot.
+
+## Giving up on a crash loop
+
+An account that can never start stops retrying. After 8 failures in a row spanning at least 30 minutes, the runner sets the account's state to `crash_loop` ("Stopped after repeated crashes"), records the last failure in `last_error`, and sets `desired_state = 'stopped'`. The owner starts it again by hand. A run that lasts 10 minutes clears the count.
+
+Only failures the account can cause count:
+
+| Failure | Counts toward giving up |
+|---|---|
+| A crash, running out of memory, a `stale` run (the worker stopped responding), or a fatal error the bot reported | Yes, unless the fleet is failing together |
+| `SOCKET_ERROR:*`, `CONNECTION_STALE`, `LOGIN_TIMEOUT`, `TOO_MANY_TIMEOUTS`, `CLIENT_VERSION_REJECTED`, the event server not found, `PROXY_*` | Never. These are the game, the network or the setup, so they retry with backoff for as long as they last, and a game outage never stops a player's bot. |
+
+The fleet is failing together when at least 5 accounts ended a run early in the last 10 minutes and they are at least half of the accounts started in that time. While that holds, nobody is given up on, so a bad deploy doesn't stop every bot.
 
 ## Alerts
 
@@ -36,7 +58,7 @@ Three Grafana-managed rules are provisioned from `infra/grafana/provisioning/ale
 | Rule | Fires when |
 |---|---|
 | Runner stopped reporting | `runner_heartbeat.beat_at` is more than 2 minutes old for 2 minutes |
-| Bots are crashing | More than 10 runs ended in `crash` or `error` in the last hour, for 10 minutes |
+| Bots are crashing | More than 10 runs ended in `crash`, `error` or `stale` in the last hour, for 10 minutes |
 | Event loop lag over 200 ms | API or runner p99 lag above 0.2 s for 5 minutes |
 
 To get them in Discord, create a webhook (channel settings, Integrations, Webhooks), put its URL in `GRAFANA_ALERT_DISCORD_WEBHOOK` and recreate the `grafana` service. On start the image then provisions a Discord contact point and makes it the default notification policy, so every alert, firing and resolved, posts to that channel. The provisioned policy can't be edited in the UI; change `infra/grafana/discord-alerting/` instead.

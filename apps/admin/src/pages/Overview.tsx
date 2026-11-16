@@ -7,7 +7,7 @@ import { ParchmentCard, SigilStatus, type BotState, palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 
-const STATES: BotState[] = ["running", "starting", "error", "banned", "auth_failed", "stopped"]
+const STATES: BotState[] = ["running", "starting", "error", "crash_loop", "banned", "auth_failed", "stopped"]
 const STALE_AFTER_S = 60
 const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL as string | undefined
 

@@ -8,12 +8,13 @@ const SERVER = {
 }
 
 /** Runs the real ggeBot.js in a worker against a scripted fake game socket. */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100 } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, connect = true } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
             control: port2,
-            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs },
+            connect,
+            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs },
             name: "tester",
             pass: "pw",
             gameURL: "fake.invalid",
@@ -25,6 +26,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
         stderr: true,
     })
 
+    let chatter
     const session = {
         sent: [],
         toParent: [],
@@ -33,8 +35,10 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
         closed: false,
         botStates: () => session.toParent.filter(m => m[0] === 20).map(m => m[1]),
         metricBatches: () => session.toParent.filter(m => m[0] === 21).map(m => m[1]),
+        heartbeats: () => session.toParent.filter(m => m[0] === 22).map(m => m[1]),
         exited: false,
         waits: new Map(),
+        connect: () => port1.postMessage({ type: "open" }),
         frame: data => port1.postMessage({ type: "frame", data }),
         serverClose: code => port1.postMessage({ type: "serverClose", code }),
         socketError: (message, code) => port1.postMessage({ type: "socketError", message, code }),
@@ -63,7 +67,12 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             session.xt("vck", 0)
             await session.until(() => session.sentXT("lli").length === 1)
         },
-        stop: () => worker.terminate(),
+        /** Answers like a live server would, so a quiet test isn't ended as a stale connection. */
+        keepAlive: () => { chatter ??= setInterval(() => session.xt("pin", 0), 500) },
+        stop: () => {
+            clearInterval(chatter)
+            return worker.terminate()
+        },
     }
 
     port1.on("message", m => {

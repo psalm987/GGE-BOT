@@ -17,6 +17,7 @@
 | `START_GAP_MS` | runner | no | Milliseconds between two bot logins. Default 2000. |
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |
 | `WORKER_MAX_OLD_MB` | runner | no | Heap cap per bot, in MB. Default 512. A bot that goes over is stopped and retried, and its run says "The bot ran out of memory". |
+| `INBOUND_STALE_MS` | runner | no | Milliseconds of silence from the game after which a logged-in bot reconnects. Off when unset. Set it to about 3× the p99 of `bot_inbound_gap_seconds` ([observability.md](observability.md#liveness)). |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |

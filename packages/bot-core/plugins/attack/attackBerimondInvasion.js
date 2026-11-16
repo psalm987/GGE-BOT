@@ -46,7 +46,7 @@ if (require('node:worker_threads').isMainThread)
     }
 const { spendSkip } = require("../skips.js")
 const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require('../../ggeBot.js')
 
@@ -312,19 +312,7 @@ events.on("eventStart", async eventInfo => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
-                await sendXT("cra", JSON.stringify(attackInfo))
-
-                let [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) => {
-                    if (result != 0)
-                        return true
-
-                    if (obj.AAM.M.KID != kingdomID || obj.AAM.M.TA[1] != areaInfo.x || obj.AAM.M.TA[2] != areaInfo.y)
-                        return false
-                    return true
-                })
-                if (result != 0)
-                    throw err[result]
-                return obj
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
             })
             if (!attackInfo) {
                 freeCommander(commander.lordID)

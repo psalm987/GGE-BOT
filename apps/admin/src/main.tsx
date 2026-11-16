@@ -12,6 +12,7 @@ import { Accounts } from "./pages/Accounts.tsx"
 import { Audit } from "./pages/Audit.tsx"
 import { Login } from "./pages/Login.tsx"
 import { Overview } from "./pages/Overview.tsx"
+import { Settings } from "./pages/Settings.tsx"
 import { Users } from "./pages/Users.tsx"
 
 const guarded = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!, {
                         <Route path="/users" element={guarded(<Users />)} />
                         <Route path="/accounts" element={guarded(<Accounts />)} />
                         <Route path="/audit" element={guarded(<Audit />)} />
+                        <Route path="/settings" element={guarded(<Settings />)} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>

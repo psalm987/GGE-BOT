@@ -22,6 +22,8 @@ const Env = z.object({
     METRICS_PORT: z.coerce.number().int().default(9464),
     /** V8 old-space cap per bot worker; a leaking bot dies alone instead of taking the runner with it. */
     WORKER_MAX_OLD_MB: z.coerce.number().int().positive().default(512),
+    /** Inbound silence after which a logged-in bot reconnects. Unset: never; pick it from bot_inbound_gap_seconds. */
+    INBOUND_STALE_MS: optional.pipe(z.coerce.number<string>().int().positive().optional()),
 })
 
 export type Env = z.infer<typeof Env>
@@ -36,5 +38,6 @@ export const workerConfig = (env: Env) => ({
     discordClientId: env.DISCORD_CLIENT_ID,
     fontPath: env.FONT_PATH,
     debug: env.DEBUG,
+    inboundStaleMs: env.INBOUND_STALE_MS,
     exitOnFatal: true,
 })

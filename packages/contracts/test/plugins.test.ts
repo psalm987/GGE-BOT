@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PluginSettingsError, effectivePluginConfig, normalizePluginSettings, type PluginCatalogEntry } from "../src/index.ts"
+import { PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, type PluginCatalogEntry } from "../src/index.ts"
 
 const catalog: PluginCatalogEntry[] = [
     {
@@ -63,5 +63,59 @@ describe("effectivePluginConfig", () => {
             removedPlugin: { enabled: true, options: {} },
         })
         expect(Object.keys(config)).toEqual(["attack"])
+    })
+})
+
+describe("bounded number options", () => {
+    const bounded: PluginCatalogEntry[] = [{
+        key: "attack", force: true, hidden: false, options: [
+            { type: "Text", key: "attackDelaySeconds", default: "20", min: 15, max: 600 },
+            { type: "Text", key: "attackLimit", min: 1 },
+        ],
+    }]
+    const save = (options: Record<string, string>) => normalizePluginSettings(bounded, { attack: { enabled: true, options } })
+
+    test("rejects values outside the range or not numbers", () => {
+        expect(() => save({ attackDelaySeconds: "4.5" })).toThrow("attack.attackDelaySeconds must be between 15 and 600")
+        expect(() => save({ attackDelaySeconds: "601" })).toThrow(PluginSettingsError)
+        expect(() => save({ attackDelaySeconds: "abc" })).toThrow(PluginSettingsError)
+    })
+
+    test("accepts values in range and an empty value", () => {
+        expect(save({ attackDelaySeconds: "20", attackLimit: "" }).attack!.options).toEqual({ attackDelaySeconds: "20", attackLimit: "" })
+    })
+
+    test("clamps values saved before the bounds existed", () => {
+        const config = effectivePluginConfig(bounded, { attack: { enabled: true, options: { attackDelaySeconds: "4.5" } } })
+        expect(config.attack!.attackDelaySeconds).toBe("15")
+        const junk = effectivePluginConfig(bounded, { attack: { enabled: true, options: { attackDelaySeconds: "abc" } } })
+        expect(junk.attack!.attackDelaySeconds).toBe("20")
+    })
+})
+
+describe("attack plugin cap", () => {
+    const attackers: PluginCatalogEntry[] = [
+        { key: "attack", force: true, hidden: false, options: [], category: null },
+        { key: "feast", force: false, hidden: false, options: [], category: null },
+        ...Array.from({ length: 13 }, (_, i) => ({ key: `attack${i}`, force: false, hidden: false, options: [], category: "attack" as const })),
+    ]
+    const turnOn = (n: number) => ({
+        feast: { enabled: true, options: {} },
+        ...Object.fromEntries(Array.from({ length: n }, (_, i) => [`attack${i}`, { enabled: true, options: {} }])),
+    })
+
+    test("maps each cap to a limit", () => {
+        expect([attackPluginLimit("4"), attackPluginLimit("6"), attackPluginLimit("none")]).toEqual([4, 6, null])
+    })
+
+    test("rejects more attack plugins than the limit and counts only attack plugins", () => {
+        expect(() => normalizePluginSettings(attackers, turnOn(5), 4)).toThrow("Your plan allows 4 attack plugins at once")
+        expect(() => normalizePluginSettings(attackers, turnOn(4), 4)).not.toThrow()
+    })
+
+    test("disabled attack plugins don't count, and no limit allows all", () => {
+        const settings = { ...turnOn(4), attack9: { enabled: false, options: {} } }
+        expect(() => normalizePluginSettings(attackers, settings, 4)).not.toThrow()
+        expect(() => normalizePluginSettings(attackers, turnOn(13), null)).not.toThrow()
     })
 })

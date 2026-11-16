@@ -1,9 +1,9 @@
-import { CheckCircleFilled, ClockCircleOutlined, KeyOutlined, MinusCircleOutlined, StopOutlined, WarningFilled } from "@ant-design/icons"
+import { CheckCircleFilled, ClockCircleOutlined, CloseCircleFilled, KeyOutlined, MinusCircleOutlined, StopOutlined, WarningFilled } from "@ant-design/icons"
 import { Tag, Tooltip } from "antd"
 import type { ReactNode } from "react"
 import { palette } from "./theme.ts"
 
-export type BotState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error"
+export type BotState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 
 /** `color` draws the icon and border (3:1), `text` the label (4.5:1). */
 const SIGILS: Record<BotState, { label: string; color: string; text: string; icon: ReactNode }> = {
@@ -13,6 +13,7 @@ const SIGILS: Record<BotState, { label: string; color: string; text: string; ico
     auth_failed: { label: "Wrong password", color: palette.amber, text: palette.amber, icon: <KeyOutlined /> },
     banned: { label: "Banned", color: palette.crimson, text: palette.crimsonText, icon: <StopOutlined /> },
     error: { label: "Error", color: palette.crimson, text: palette.crimsonText, icon: <WarningFilled /> },
+    crash_loop: { label: "Stopped after repeated crashes", color: palette.crimson, text: palette.crimsonText, icon: <CloseCircleFilled /> },
 }
 
 /** A bot's state as icon, colour and words together, so colour is never the only signal. */

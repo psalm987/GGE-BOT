@@ -1,21 +1,33 @@
 import { ORPCError } from "@orpc/server"
 import { and, asc, count, eq, inArray, type SQL } from "drizzle-orm"
-import { botStatus, gameAccounts, pluginCatalog, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botStatus, gameAccounts, pluginCatalog, pluginSettings, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
-    PluginSettingsError, normalizePluginSettings,
+    PluginSettingsError, attackPluginLimit, normalizePluginSettings,
     type PluginCatalogEntry, type PluginSettings, type PublicAccount, type PublicUser,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 
 export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
     const rows = await db.select().from(pluginCatalog).orderBy(asc(pluginCatalog.key))
-    return rows.map(r => ({ key: r.key, force: r.force, hidden: r.hidden, options: r.options as PluginCatalogEntry["options"] }))
+    return rows.map(r => ({
+        key: r.key, force: r.force, hidden: r.hidden, options: r.options as PluginCatalogEntry["options"],
+        category: r.category === "attack" ? "attack" as const : null,
+    }))
 }
 
-async function validSettings(db: Db, settings: PluginSettings) {
+/** The user's attack plugin cap as a number, or null for no limit: their override, else the global default. */
+export async function attackLimitFor(db: Pick<Db, "select">, userId: string): Promise<number | null> {
+    const [[user], [settings]] = await Promise.all([
+        db.select({ cap: users.attackPluginCap }).from(users).where(eq(users.id, userId)),
+        db.select({ cap: appSettings.attackPluginCap }).from(appSettings),
+    ])
+    return attackPluginLimit(user?.cap ?? settings?.cap ?? "4")
+}
+
+async function validSettings(db: Db, ownerId: string, settings: PluginSettings) {
     try {
-        return normalizePluginSettings(await loadCatalog(db), settings)
+        return normalizePluginSettings(await loadCatalog(db), settings, await attackLimitFor(db, ownerId))
     } catch (error) {
         if (error instanceof PluginSettingsError)
             throw new ORPCError("BAD_REQUEST", { message: error.message })
@@ -89,7 +101,7 @@ async function replaceSettings(db: Pick<Db, "insert" | "delete">, accountId: str
 export async function createAccount(db: Db, sealKey: string, owner: Pick<PublicUser, "id" | "role">,
     input: { name: string; serverId: number; password: string; externalEvent: boolean; plugins: PluginSettings }) {
     await assertServer(db, input.serverId)
-    const settings = await validSettings(db, input.plugins)
+    const settings = await validSettings(db, owner.id, input.plugins)
     const ownerId = owner.id
     const id = await db.transaction(async tx => {
         // The row lock makes concurrent creates by one user take turns, so both can't pass the cap check.
@@ -118,7 +130,7 @@ export async function updateAccount(db: Db, sealKey: string, ownerId: string,
     await getOwnedAccount(db, ownerId, input.id)
     if (input.serverId !== undefined)
         await assertServer(db, input.serverId)
-    const settings = input.plugins && await validSettings(db, input.plugins)
+    const settings = input.plugins && await validSettings(db, ownerId, input.plugins)
     await db.transaction(async tx => {
         await tx.update(gameAccounts).set({
             ...(input.name !== undefined && { name: input.name }),

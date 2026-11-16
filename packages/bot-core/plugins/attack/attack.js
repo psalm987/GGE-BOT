@@ -5,16 +5,21 @@ if (require('node:worker_threads').isMainThread) {
             {
                 type: "Text",
                 key: "attackDelaySeconds",
-                default: "4.5"
+                default: "20",
+                min: 15,
+                max: 600
             },
             {
                 type: "Text",
                 key: "attackDelayRandomizationSeconds",
-                default: "2.5"
+                default: "15",
+                min: 10,
+                max: 600
             },
             {
                 type: "Text",
-                key: "attackLimit"
+                key: "attackLimit",
+                min: 1
             }
         ]
     }
@@ -22,7 +27,7 @@ if (require('node:worker_threads').isMainThread) {
 
 const { RateLimiter } = require('limiter')
 const { resources } = require('../../protocols')
-const { botConfig, playerInfo, xtHandler } = require('../../ggeBot')
+const { botConfig, playerInfo, xtHandler, sendXT, waitForResult } = require('../../ggeBot')
 const stables = require("../../paths.js").loadItem("horses")
 
 const getTotalAmountTools = (e, t, n) =>
@@ -211,21 +216,7 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
     return attackTarget
 }
 
-function boxMullerRandom(min, max, skew) {
-    let u = 0, v = 0
-    while(u === 0) u = Math.random()
-    while(v === 0) v = Math.random()
-    let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v )
-
-    num = num / 10.0 + 0.5
-    if (num > 1 || num < 0) num = boxMullerRandom(min, max, skew)
-    num = Math.pow(num, skew)
-    num *= max - min
-    num += min
-    return num
-}
-
-const sleep = ms => new Promise(r => setTimeout(r, ms).unref())
+const { boxMullerRandom, sleep } = require("../../pacing.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const attacks = []
@@ -242,10 +233,41 @@ xtHandler.on("gai", obj => {
 })
 let announced = false
 
-const limiter = new RateLimiter({ tokensPerInterval : 60 / (8 / 60) - 8, interval: "hour"})
+const limiter = new RateLimiter({ tokensPerInterval: 120, interval: "hour" })
+
+const err = require("../../err.json")
+const MAX_REJECTIONS_IN_A_ROW = 3
+let rejectionsInARow = 0
+let turnRejected = false
+let haltReason
+
+// A rejected attack means the bot's view of the game is wrong. Sending more
+// on the same view repeats the request the server just refused.
+function halt(reason) {
+    if (haltReason)
+        return
+    haltReason = reason
+    console.error("attacksHalted", reason)
+}
+
+xtHandler.on("cra", (_, result) => {
+    if (Number(result) == 0) {
+        rejectionsInARow = 0
+        return
+    }
+    turnRejected = true
+    rejectionsInARow++
+    if (err[result] == "ATTACK_TOO_MANY_UNITS")
+        halt("ATTACK_TOO_MANY_UNITS")
+    else if (rejectionsInARow >= MAX_REJECTIONS_IN_A_ROW)
+        halt("REJECTIONS_IN_A_ROW")
+})
 
 const waitToAttack = callback => new Promise(async (resolve, reject) => {
-    if(!botConfig.externalEvent && attackCount >= Number(pluginOptions.attackLimit ?? attackThreshold)) {
+    if (haltReason)
+        return reject("ATTACKS_HALTED")
+
+    if(!botConfig.externalEvent && attackCount >= Number(pluginOptions.attackLimit || attackThreshold)) {
         if(!announced) {
             announced = true
             console.log("Max attacks reached")
@@ -253,42 +275,98 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         return reject("ATTACK_LIMIT_REACHED")
     }
 
-    attacks.push(() => {
-        try {
-            const ret = callback()
-            resolve(ret)
-            return ret
-        }
-        catch (e) {
-            reject(e)
-            return true
-        }
-    })
-    
-    if (!alreadyRunning) {
-        alreadyRunning = true
-        while (attacks?.length > 0) {
+    attacks.push({
+        run: () => {
             try {
-                const baseDelay = parseFloat(pluginOptions.attackDelaySeconds)
-                const variance = parseFloat(pluginOptions.attackDelayRandomizationSeconds)
-                const naturalDelay = boxMullerRandom(baseDelay * 1000, (baseDelay + variance) * 1000, 1)
-
-                console.debug("attackDelayAttack", naturalDelay)
-
-                if (!await(attacks.shift()()))
-                    continue
-
-                await limiter.removeTokens(1)
-                await sleep(naturalDelay)
-            } catch (innerError) {
+                const ret = callback()
+                resolve(ret)
+                return ret
             }
+            catch (e) {
+                reject(e)
+                return true
+            }
+        },
+        reject,
+    })
+
+    if (alreadyRunning)
+        return
+    alreadyRunning = true
+    while (attacks.length > 0) {
+        const job = attacks.shift()
+        if (haltReason) {
+            job.reject("ATTACKS_HALTED")
+            continue
         }
-        alreadyRunning = false
+        const baseDelay = parseFloat(pluginOptions.attackDelaySeconds)
+        const variance = parseFloat(pluginOptions.attackDelayRandomizationSeconds)
+        const naturalDelay = boxMullerRandom(baseDelay * 1000, (baseDelay + variance) * 1000, 1)
+
+        turnRejected = false
+        let ret, threw = false
+        try {
+            ret = await job.run()
+        } catch {
+            threw = true
+        }
+        if (!ret && !threw && !turnRejected)
+            continue
+
+        if (ret || turnRejected)
+            await limiter.removeTokens(1)
+        const delay = turnRejected || threw ? naturalDelay * 2 : naturalDelay
+        console.debug("attackDelayAttack", delay)
+        await sleep(delay)
     }
+    alreadyRunning = false
 })
+
+
+/** Fetches the castle list so local unit counts match the server's again. */
+async function resyncUnits() {
+    const snapshot = waitForResult("dcl", 1000 * 10)
+    await sendXT("dcl", JSON.stringify({ CD: 1 }))
+    await snapshot.catch(() => {})
+}
+
+/**
+ * Sends one attack and waits for its reply. After a rejection or a timeout it
+ * waits for a fresh castle list before returning, so the next attack in the
+ * queue never builds on unit counts the server has already contradicted.
+ * Throws the server's error name, as plugins expect.
+ */
+const slotTotal = slots => (slots ?? []).reduce((n, slot) => n + (Number(slot?.[1]) || 0), 0)
+const attackShape = attackInfo => ({
+    waves: (attackInfo.A ?? []).map(wave => Object.fromEntries(["L", "M", "R"].map(side =>
+        [side, { units: slotTotal(wave[side]?.U), tools: slotTotal(wave[side]?.T) }]))),
+    courtyard: slotTotal(attackInfo.RW),
+})
+
+async function sendAttack(attackInfo, kingdomID, x, y, context = {}) {
+    await sendXT("cra", JSON.stringify(attackInfo))
+    let obj, result
+    try {
+        [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) =>
+            result != 0 || (obj.AAM.M.KID == kingdomID && obj.AAM.M.TA[1] == x && obj.AAM.M.TA[2] == y))
+    } catch (e) {
+        await resyncUnits()
+        throw e
+    }
+    if (result != 0) {
+        if (err[result] == "ATTACK_TOO_MANY_UNITS")
+            console.error("attackRejectedDetails", JSON.stringify({
+                kingdomID, x, y, lordID: attackInfo.LID, ...context, ...attackShape(attackInfo),
+            }))
+        await resyncUnits()
+        throw err[result]
+    }
+    return obj
+}
 
 module.exports = {
     getAttackInfo,
+    sendAttack,
     assignUnit,
     waitToAttack,
     getTotalAmountToolsFlank,

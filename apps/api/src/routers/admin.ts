@@ -1,6 +1,6 @@
 import { implement, ORPCError } from "@orpc/server"
 import { and, count, desc, eq, gt, ilike, inArray, lt, sql } from "drizzle-orm"
-import { auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, users } from "@gge/db"
+import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, users } from "@gge/db"
 import { adminContract } from "@gge/contracts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
@@ -41,9 +41,9 @@ export const adminRouter = os.router({
             db.select({ state: botStatus.actualState, n: count() }).from(botStatus).groupBy(botStatus.actualState),
             db.select().from(runnerHeartbeat),
             db.select({ n: count() }).from(botRuns).where(gt(botRuns.startedAt, dayAgo)),
-            db.select({ n: count() }).from(botRuns).where(and(gt(botRuns.startedAt, dayAgo), inArray(botRuns.endReason, ["crash", "error"]))),
+            db.select({ n: count() }).from(botRuns).where(and(gt(botRuns.startedAt, dayAgo), inArray(botRuns.endReason, ["crash", "error", "stale"]))),
         ])
-        const bots = { starting: 0, running: 0, stopped: 0, auth_failed: 0, banned: 0, error: 0 }
+        const bots = { starting: 0, running: 0, stopped: 0, auth_failed: 0, banned: 0, error: 0, crash_loop: 0 }
         for (const { state, n } of states)
             bots[state] = n
         return {
@@ -59,6 +59,7 @@ export const adminRouter = os.router({
             db.select({
                 id: users.id, username: users.username, role: users.role, email: users.email,
                 emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
+                attackPluginCap: users.attackPluginCap,
                 accountCount: count(gameAccounts.id),
             }).from(users)
                 .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
@@ -90,9 +91,28 @@ export const adminRouter = os.router({
                 throw new ORPCError("NOT_FOUND", { message: "No such user" })
             await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots } })
         }),
+        setAttackPluginCap: os.users.setAttackPluginCap.use(admin).handler(async ({ context: { db, user }, input }) => {
+            const [before] = await db.select({ cap: users.attackPluginCap }).from(users).where(eq(users.id, input.id))
+            if (!before)
+                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            await db.update(users).set({ attackPluginCap: input.cap, updatedAt: new Date() }).where(eq(users.id, input.id))
+            await audit(db, { actorId: user.id, action: "admin.user.attack_plugin_cap", targetType: "user", targetId: input.id, meta: { from: before.cap, to: input.cap } })
+        }),
         revokeSessions: os.users.revokeSessions.use(admin).handler(async ({ context: { db, user }, input }) => {
             await revokeUserSessions(db, input.id)
             await audit(db, { actorId: user.id, action: "user.revoke_sessions", targetType: "user", targetId: input.id })
+        }),
+    },
+    settings: {
+        get: os.settings.get.use(admin).handler(async ({ context: { db } }) => {
+            const [row] = await db.select({ attackPluginCap: appSettings.attackPluginCap }).from(appSettings)
+            return { attackPluginCap: row?.attackPluginCap ?? "4" }
+        }),
+        setAttackPluginCap: os.settings.setAttackPluginCap.use(admin).handler(async ({ context: { db, user }, input }) => {
+            const [before] = await db.select({ cap: appSettings.attackPluginCap }).from(appSettings)
+            await db.insert(appSettings).values({ id: 1, attackPluginCap: input.cap })
+                .onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: input.cap, updatedAt: new Date() } })
+            await audit(db, { actorId: user.id, action: "admin.settings.attack_plugin_cap", meta: { from: before?.cap ?? "4", to: input.cap } })
         }),
     },
     accounts: {

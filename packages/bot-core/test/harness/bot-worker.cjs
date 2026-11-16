@@ -9,7 +9,13 @@ class FakeWebSocket {
     constructor(url) {
         this.url = url
         FakeWebSocket.instance = this
-        setImmediate(() => this.onopen?.())
+        this.readyState = 0
+        if (workerData.connect)
+            setImmediate(() => this.open())
+    }
+    open() {
+        this.readyState = 1
+        this.onopen?.()
     }
     send(msg) { control.postMessage({ type: "sent", msg }) }
     pause() { control.postMessage({ type: "paused" }) }
@@ -31,6 +37,8 @@ const bot = require(path.join(repo, "ggeBot.js"))
 bot.events.on("load", () => control.postMessage({ type: "load" }))
 
 control.on("message", m => {
+    if (m.type === "open")
+        FakeWebSocket.instance.open()
     if (m.type === "frame")
         FakeWebSocket.instance.onmessage({ data: m.data })
     if (m.type === "serverClose")

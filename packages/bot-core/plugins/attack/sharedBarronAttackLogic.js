@@ -12,7 +12,7 @@ const {
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
     getMaxUnitsInReinforcementWave,
-    getTotalAmountToolsFlank } = require("./attack.js")
+    getTotalAmountToolsFlank, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const err = require("../../err.json")
@@ -250,21 +250,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                     })
                 }
 
-                await sendXT("cra", JSON.stringify(attackInfo))
-
-                let [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) => {
-                    if (result != 0)
-                        return true
-
-                    if (obj.AAM.M.KID != kingdomID || obj.AAM.M.TA[1] != areaInfo.x || obj.AAM.M.TA[2] != areaInfo.y)
-                        return false
-                    return true
-                })
-
-                if (result != 0)
-                    throw err[result]
-
-                return obj
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
             })
 
             if (!attackInfo) {

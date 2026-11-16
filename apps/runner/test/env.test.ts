@@ -18,6 +18,11 @@ describe("parseEnv", () => {
             expect(() => parseEnv({ ...required, GAME_CLIENT_VERSION: value }), value).toThrow()
     })
 
+    test("the inbound silence limit is off unless set", () => {
+        expect(parseEnv({ ...required, INBOUND_STALE_MS: "" }).INBOUND_STALE_MS).toBeUndefined()
+        expect(parseEnv({ ...required, INBOUND_STALE_MS: "600000" }).INBOUND_STALE_MS).toBe(600000)
+    })
+
     test("workers are capped at 512 MB unless configured", () => {
         expect(parseEnv(required).WORKER_MAX_OLD_MB).toBe(512)
         expect(parseEnv({ ...required, WORKER_MAX_OLD_MB: "1024" }).WORKER_MAX_OLD_MB).toBe(1024)

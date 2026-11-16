@@ -1,4 +1,4 @@
-import { AuditOutlined, DashboardOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
+import { AuditOutlined, DashboardOutlined, SettingOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
 import { Alert, Button } from "antd"
 import type { ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router"
@@ -11,6 +11,7 @@ const NAV: (NavItem & { path: string })[] = [
     { key: "users", path: "/users", label: "Users", icon: <UserOutlined /> },
     { key: "accounts", path: "/accounts", label: "Accounts", icon: <TeamOutlined /> },
     { key: "audit", path: "/audit", label: "Audit", icon: <AuditOutlined /> },
+    { key: "settings", path: "/settings", label: "Settings", icon: <SettingOutlined /> },
 ]
 
 export function AdminPage({ title, extra, children }: { title: string; extra?: ReactNode; children: ReactNode }) {

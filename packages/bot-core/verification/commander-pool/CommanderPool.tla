@@ -160,7 +160,8 @@ Run(p) ==
 (* march gets LORD_IS_USED. Otherwise the attack leaves, and the           *)
 (* "outgoing" movement event marks the commander used again                *)
 (* (protocols.js:1197, commander.js:31-38), or it fails with an error the  *)
-(* loops retry on (COOLING_DOWN, MISSING_UNITS, ...).                      *)
+(* loops retry on (COOLING_DOWN, MISSING_UNITS, ...). The queue sleeps    *)
+(* after a rejection too (attack.js waitToAttack).                         *)
 Respond(p) ==
     /\ NoPendingJobs
     /\ pool.pc[p] = "sent"
@@ -176,7 +177,8 @@ Respond(p) ==
                /\ queueSleeping' = TRUE
             \/ /\ outcome' = [outcome EXCEPT ![p] = "retry"]
                /\ pool' = [pool EXCEPT !.pc = [@ EXCEPT ![p] = "settled"]]
-               /\ UNCHANGED <<away, queueSleeping>>
+               /\ queueSleeping' = TRUE
+               /\ UNCHANGED away
 
 (* Microtask: the loop handles the result.                                 *)
 (*   ok         keeps the commander until its march returns                *)

@@ -1,10 +1,10 @@
 import * as z from "zod"
-import { PluginSettings } from "./plugins.ts"
+import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 
 export const Role = z.enum(["user", "admin"])
 export const UserStatus = z.enum(["active", "disabled"])
 export const DesiredState = z.enum(["running", "stopped"])
-export const ActualState = z.enum(["starting", "running", "stopped", "auth_failed", "banned", "error"])
+export const ActualState = z.enum(["starting", "running", "stopped", "auth_failed", "banned", "error", "crash_loop"])
 
 export const Username = z.string().trim().min(3).max(32).regex(/^[A-Za-z0-9_.-]+$/, "letters, digits, _ . - only")
 export const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
@@ -65,6 +65,8 @@ export const Server = z.object({ id: z.number().int(), label: z.string() })
 
 export const AdminUser = PublicUser.extend({
     status: UserStatus,
+    /** null: the user follows the global default. */
+    attackPluginCap: AttackPluginCap.nullable(),
     createdAt: z.date(),
     accountCount: z.number().int(),
 })

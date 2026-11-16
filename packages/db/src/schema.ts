@@ -27,7 +27,9 @@ export const passwordAlgo = pgEnum("password_algo", ["argon2id", "pbkdf2-legacy"
 export const audience = pgEnum("audience", ["client", "admin"])
 export const desiredState = pgEnum("desired_state", ["running", "stopped"])
 export const emailTokenPurpose = pgEnum("email_token_purpose", ["verify_email", "reset_password"])
-export const actualState = pgEnum("actual_state", ["starting", "running", "stopped", "auth_failed", "banned", "error"])
+/** How many attack plugins one account may run at once; "none" means no limit. */
+export const attackPluginCap = pgEnum("attack_plugin_cap", ["4", "6", "none"])
+export const actualState = pgEnum("actual_state", ["starting", "running", "stopped", "auth_failed", "banned", "error", "crash_loop"])
 
 export const users = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -44,6 +46,8 @@ export const users = pgTable("users", {
     status: userStatus("status").notNull().default("active"),
     /** Game accounts the user may own; admins are exempt. Admin-adjustable. */
     maxBots: integer("max_bots").notNull().default(1),
+    /** Overrides app_settings.attack_plugin_cap for this user; null uses the default. Admin-adjustable. */
+    attackPluginCap: attackPluginCap("attack_plugin_cap"),
     /** Users.uuid in the legacy user.db, so the importer can re-run. */
     legacyUuid: text("legacy_uuid").unique(),
     createdAt: createdAt(),
@@ -122,6 +126,8 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     force: boolean("force").notNull().default(false),
     hidden: boolean("hidden").notNull().default(false),
     options: jsonb("options").notNull().default([]),
+    /** "attack" for plugins under plugins/attack/, which count toward the attack plugin cap. */
+    category: text("category"),
     updatedAt: updatedAt(),
 })
 
@@ -179,3 +185,10 @@ export const auditLog = pgTable("audit_log", {
     meta: jsonb("meta"),
     ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
 }, t => [index("audit_log_ts").on(t.ts)])
+
+/** Deployment-wide settings an admin can change. One row. */
+export const appSettings = pgTable("app_settings", {
+    id: smallint("id").primaryKey().default(1),
+    attackPluginCap: attackPluginCap("attack_plugin_cap").notNull().default("4"),
+    updatedAt: updatedAt(),
+}, t => [check("app_settings_single_row", sql`${t.id} = 1`)])

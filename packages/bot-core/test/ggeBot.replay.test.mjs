@@ -36,6 +36,7 @@ describe("login", () => {
         await sleep(5500)
 
         expect(bot.loads).toBe(1)
+        expect(bot.exited).toBe(false)
     }, 15000)
 
     test("a long ban never schedules an overflowing retry (ggeBot.js:384)", async () => {
@@ -254,5 +255,83 @@ describe("reasons for stopping", () => {
 
         expect(bot.botStates()).toEqual([{ state: "auth_failed", reason: "INVALID_LOGIN_TOKEN" }])
         expect(bot.sentXT("lli")).toHaveLength(4)
+    }, 15000)
+})
+
+describe("liveness", () => {
+    test("heartbeats report the phase from connecting through login to running", async () => {
+        bot = startBot({ connect: false, timeoutMultiplier: 0.02 })
+        await bot.until(() => bot.heartbeats().length > 0)
+        expect(bot.heartbeats()[0]).toMatchObject({ phase: "connecting" })
+
+        bot.connect()
+        await bot.until(() => bot.heartbeats().some(h => h.phase === "login"))
+        await bot.login()
+        bot.xt("lli", 0)
+        await bot.until(() => bot.heartbeats().some(h => h.phase === "running"))
+
+        expect([...new Set(bot.heartbeats().map(h => h.phase))]).toEqual(["connecting", "login", "running"])
+        const beat = bot.heartbeats().at(-1)
+        expect(beat.ws).toBe(1)
+        expect(beat.inboundAgeMs).toBeGreaterThanOrEqual(0)
+        expect(beat.outboundAgeMs).toBeGreaterThanOrEqual(0)
+    }, 15000)
+
+    test("heartbeats show how long ago a frame last arrived and was last sent", async () => {
+        bot = startBot()
+        await bot.login()
+        bot.xt("lli", 0)
+        await sleep(700)
+        bot.xt("pin", 0)
+        const seen = bot.heartbeats().length
+        await bot.until(() => bot.heartbeats().length > seen)
+
+        const beat = bot.heartbeats().at(-1)
+        expect(beat.inboundAgeMs).toBeLessThan(600)
+        expect(beat.outboundAgeMs).toBeGreaterThanOrEqual(600)
+    }, 15000)
+
+    test("with a silence limit set, a running bot that hears nothing past it reports CONNECTION_STALE and exits", async () => {
+        bot = startBot({ inboundStaleMs: 3000 })
+        await bot.login()
+        bot.xt("lli", 0)
+        const silentSince = Date.now()
+        await bot.until(() => bot.exited, 10000)
+
+        expect(bot.botStates()).toEqual([{ state: "error", reason: "CONNECTION_STALE" }])
+        expect(Date.now() - silentSince).toBeGreaterThanOrEqual(3000)
+    }, 15000)
+
+    test("with no silence limit set, a quiet running bot keeps running", async () => {
+        bot = startBot()
+        await bot.login()
+        bot.xt("lli", 0)
+        await sleep(4000)
+
+        expect(bot.botStates()).toEqual([])
+        expect(bot.exited).toBe(false)
+        expect(bot.heartbeats().at(-1).phase).toBe("running")
+    }, 15000)
+
+    test("a running bot that keeps hearing from the server is not stale", async () => {
+        bot = startBot({ inboundStaleMs: 3000 })
+        await bot.login()
+        bot.xt("lli", 0)
+        bot.keepAlive()
+        await sleep(4000)
+
+        expect(bot.botStates()).toEqual([])
+        expect(bot.exited).toBe(false)
+    }, 15000)
+
+    test("the longest silence between frames is recorded as a metric", async () => {
+        bot = startBot()
+        await bot.login()
+        bot.xt("lli", 0)
+        await sleep(600)
+        bot.xt("pin", 0)
+        const gaps = () => bot.metricBatches().flatMap(b => b.observations).filter(([name]) => name === "bot_inbound_gap_seconds").flatMap(([, , values]) => values)
+        await bot.until(() => gaps().some(g => g >= 0.5))
+        expect(Math.max(...gaps())).toBeLessThan(3)
     }, 15000)
 })

@@ -46,7 +46,7 @@ groups:
               rawQuery: true
               editorMode: code
               format: table
-              rawSql: "select count(*) as crashes from bot_runs where ended_at > now() - interval '1 hour' and end_reason in ('crash', 'error')"
+              rawSql: "select count(*) as crashes from bot_runs where ended_at > now() - interval '1 hour' and end_reason in ('crash', 'error', 'stale')"
           - refId: B
             datasourceUid: __expr__
             model: { refId: B, type: reduce, expression: A, reducer: last }

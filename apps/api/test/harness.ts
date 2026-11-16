@@ -3,7 +3,7 @@ import { RPCLink } from "@orpc/client/fetch"
 import { eq, sql } from "drizzle-orm"
 import { inject } from "vitest"
 import type { AdminApi, ClientApi } from "@gge/contracts"
-import { createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
+import { appSettings, createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
 import { generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
 import type { Env } from "../src/env.ts"
@@ -50,6 +50,7 @@ export async function startApi(env: Partial<Env> = {}) {
         { id: 27, label: "Germany 1", wsHost: "ep-live-de1-game.goodgamestudios.com", zone: "EmpireEx_27" },
     ])
     await db.insert(pluginCatalog).values(catalog)
+    await db.insert(appSettings).values({ id: 1, attackPluginCap: "4" }).onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: "4" } })
     const keys = generateSealKeyPair()
     const sent: MailMessage[] = []
     let mailFailing = false

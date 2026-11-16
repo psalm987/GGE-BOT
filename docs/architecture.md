@@ -43,6 +43,8 @@ The API and the runner never call each other. Postgres is the only channel.
 | Password, server, event mode or set of plugins changed | Restart the worker (a new login). |
 | Only plugin options changed | Push them into the running worker. |
 | Worker exits unexpectedly or reports a fatal error | Retry with exponential backoff and jitter (5 s doubling to 5 min). |
+| Worker sends nothing for 90 s | End it, record the run as `stale`, and retry. |
+| 8 failures in a row over 30 min, with the rest of the fleet healthy | Set the state to `crash_loop` and stop the account; wait for the owner to act. See [observability](deployment/observability.md#giving-up-on-a-crash-loop). |
 | Worker reports `banned` or `auth_failed` | Stop the account (`desired_state = 'stopped'`); wait for the owner to act. |
 | Shutoff timer plugin fires | Stop the account. |
 | Account deleted, stopped, or owner disabled | Stop the worker. |

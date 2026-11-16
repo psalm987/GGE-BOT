@@ -26,6 +26,7 @@ export function createMetrics({ db, heapSizes, log = console }: { db: Db; heapSi
     }
     const histograms: Record<string, client.Histogram> = {
         bot_game_rtt_seconds: new client.Histogram({ name: "bot_game_rtt_seconds", help: "Time from asking for a reply to receiving it, by command", labelNames: ["command"], buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30], registers }),
+        bot_inbound_gap_seconds: new client.Histogram({ name: "bot_inbound_gap_seconds", help: "Longest silence from the game server between two bot heartbeats", buckets: [1, 5, 15, 30, 60, 90, 120, 180, 300], registers }),
         bot_send_wait_seconds: new client.Histogram({ name: "bot_send_wait_seconds", help: "Time a send waited for the rate limiter", buckets: [0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5], registers }),
     }
 

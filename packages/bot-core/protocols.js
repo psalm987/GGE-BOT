@@ -672,6 +672,7 @@ xtHandler.on("dcl", (obj, result) => {
             .map(a => Array.from(a.AI).map(e => new CastleResourceInfo(e, a.KID))).flat()
     resourceCastleList.forEach(castleChanges => {
         const castle = castles.find(e => e.kingdomID == castleChanges.kingdomID && e.id == castleChanges.id)
+        castleChanges.unitsSyncedAt = Date.now()
         if(castle) {
             Object.assign(castle, castleChanges)
             castle.emit("resourceUpdate")
@@ -1278,6 +1279,11 @@ movementEvents.on("return", async (/** @type {Movement} */ movement) => {
     const castle = castles.find(castle => castle.kingdomID == movement.kingdomID && castle.id == movement.targetAttack.extraData[0])
     if(!castle)
         debugger
+    // This handler runs a second after the march ends. A castle list fetched
+    // since then already counts the returned units.
+    const marchEndedAt = Date.now() - 1000
+    if (castle.unitsSyncedAt >= marchEndedAt)
+        return
     movement.station.forEach(unit => {
         const unitInInventory = castle.unitInventory.find(e => e.unitInfo.wodID == unit.unitInfo.wodID)
         if(unitInInventory)
@@ -1292,8 +1298,6 @@ movementEvents.on("return", async (/** @type {Movement} */ movement) => {
 xtHandler.on("cra", (o, r) => r == 0 ? 
     new Movement(o.AAM, Array.from(o.O ?? []).map(o => new OwnerInfo(o))) : undefined)
 
-xtHandler.on("cra", (_, r) => r != 0 ? 
-    sendXT("dcl", JSON.stringify({ CD: 1 })) : undefined)
 
 xtHandler.on("cat", (o, r) => {
     if(r == 0) 

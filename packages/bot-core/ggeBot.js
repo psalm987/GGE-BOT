@@ -69,7 +69,35 @@ async function sendXT(cmdName, paramObj) {
     await metrics.time("bot_send_wait_seconds", {}, limiter.removeTokens(1))
     requestCount++
     metrics.count("bot_messages_total", { direction: "out", command: cmdName })
-    webSocket.send(`%xt%${botConfig.gameServer}%${cmdName}%1%${paramObj}%`)
+    send(`%xt%${botConfig.gameServer}%${cmdName}%1%${paramObj}%`)
+}
+
+const liveness = { phase: "connecting", lastInbound: Date.now(), lastOutbound: Date.now(), longestGap: 0 }
+
+function send(frame) {
+    liveness.lastOutbound = Date.now()
+    webSocket.send(frame)
+}
+
+function heartbeat() {
+    const now = Date.now()
+    const inboundAgeMs = now - liveness.lastInbound
+    parentPort.postMessage([ActionType.Heartbeat, {
+        phase: liveness.phase,
+        ws: webSocket.readyState,
+        inboundAgeMs,
+        outboundAgeMs: now - liveness.lastOutbound,
+    }])
+    if (liveness.phase != "running")
+        return
+    metrics.observe("bot_inbound_gap_seconds", {}, Math.max(liveness.longestGap, inboundAgeMs) / 1000)
+    liveness.longestGap = 0
+    // A dead connection doesn't always close the socket, so silence is the only
+    // sign. Off until the operator sets a limit from bot_inbound_gap_seconds: a
+    // guessed one would reconnect healthy bots that are merely quiet. A bot that
+    // has already said why it is stopping is left to stop on its own schedule.
+    if (!stopReason && ggeConfig.inboundStaleMs && inboundAgeMs > ggeConfig.inboundStaleMs)
+        exitWorker("CONNECTION_STALE")
 }
 
 let importantErrors = 0
@@ -191,6 +219,7 @@ const playerInfo = {
 }
 
 metrics.startFlushing(ActionType.Metrics, ggeConfig.metricsFlushMs)
+setInterval(heartbeat, 30 * 1000 * timeoutMultiplier).unref()
 
 module.exports = {
     sendXT,
@@ -205,12 +234,16 @@ module.exports = {
 }
 
 webSocket.onopen = () => {
-    webSocket.send(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
+    liveness.phase = "login"
+    send(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
 }
 let errorCount = 0
 
 webSocket.onmessage = ({data : message}) => {
     message = message.toString()
+    const now = Date.now()
+    liveness.longestGap = Math.max(liveness.longestGap, now - liveness.lastInbound)
+    liveness.lastInbound = now
     if (message.charAt(0) == "%") {
         let [,,cmd,, r, obj] = message.split("%")
         const result = Number(r)
@@ -243,13 +276,13 @@ webSocket.onmessage = ({data : message}) => {
     else if (message[0] == "<") {
         switch (message.match(/action='(\w+)'/)?.[1]) {
             case "apiOK":
-                webSocket.send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[undefined%en%0]]></pword></login></body></msg>`)
+                send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[undefined%en%0]]></pword></login></body></msg>`)
                 break
             case "apiKO":
                 exitWorker("CLIENT_VERSION_REJECTED")
                 break
             case "joinOK":
-                webSocket.send('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
+                send('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
                 sendXT("vck", `undefined%web-html5%<RoundHouseKick>%${(Math.random() * Number.MAX_VALUE).toFixed()}`)
                 break
             case "roundTripRes":
@@ -289,7 +322,7 @@ events.once("load", async () => {
     getStormStats()
 })
 
-xtHandler.on("rlu", () => webSocket.send('<msg t="sys"><body action="autoJoin" r="-1"></body></msg>'))
+xtHandler.on("rlu", () => send('<msg t="sys"><body action="autoJoin" r="-1"></body></msg>'))
 xtHandler.on("gal", obj => {
     playerInfo.alliance.id = Number(obj.AID)
     playerInfo.alliance.rank = Number(obj.R)
@@ -408,6 +441,7 @@ xtHandler.on("lli", async (obj, r) => {
 
     if (r == 0) {
         clearTimeout(loginWatchdog)
+        liveness.phase = "running"
         let started = false
         const start = loadDelay => {
             if (started)

@@ -45,13 +45,14 @@ async function seed() {
     const [player] = await db.insert(users).values({ username: "demo", email: "demo@example.test", emailVerifiedAt: verified, passwordHash }).returning()
 
     const serverId = serverRows.find(s => s.label.includes("Germany"))?.id ?? serverRows[0]!.id
-    const demo: [string, "running" | "stopped", "running" | "stopped" | "banned" | "auth_failed" | "error" | null, string | null][] = [
+    const demo: [string, "running" | "stopped", "running" | "stopped" | "banned" | "auth_failed" | "error" | "crash_loop" | null, string | null][] = [
         ["Ironhold", "running", "running", null],
         ["Ravenmoor", "running", "running", null],
         ["Brightwater", "stopped", "stopped", null],
         ["Thornwick", "stopped", "auth_failed", "INVALID_PASSWORD"],
         ["Ashenfell", "stopped", "banned", "IS_BANNED"],
         ["Duskmere", "running", "error", "The bot stopped unexpectedly; retrying in 20s"],
+        ["Emberfall", "stopped", "crash_loop", "Stopped after 8 failed starts in a row: The bot stopped responding"],
         ["Newkeep", "stopped", null, null],
     ]
     for (const [name, desiredState, state, lastError] of demo) {
@@ -69,7 +70,7 @@ async function seed() {
         })
         await db.insert(botRuns).values([
             { accountId: account!.id, startedAt: new Date(Date.now() - 30 * 3600_000), endedAt: new Date(Date.now() - 20 * 3600_000), endReason: "deploy" },
-            { accountId: account!.id, startedAt: new Date(Date.now() - 20 * 3600_000), ...(state === "running" ? {} : { endedAt: new Date(Date.now() - 6 * 3600_000), endReason: state === "stopped" ? "stopped" : state }) },
+            { accountId: account!.id, startedAt: new Date(Date.now() - 20 * 3600_000), ...(state === "running" ? {} : { endedAt: new Date(Date.now() - 6 * 3600_000), endReason: state === "stopped" ? "stopped" : state === "crash_loop" ? "stale" : state }) },
         ])
         await db.insert(botLogs).values([
             { accountId: account!.id, level: 0, message: "Logged in", parts: ["loggedIn"] },

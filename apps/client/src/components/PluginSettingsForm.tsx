@@ -1,7 +1,9 @@
 import { DownOutlined, RightOutlined } from "@ant-design/icons"
 import { Button, Checkbox, Col, Form, Input, Row, Select, Switch, Tag, Typography } from "antd"
+import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import type { PluginCatalogEntry, PluginSettings } from "@gge/contracts"
+import { orpc } from "../api.ts"
 import { t, useLanguage } from "../i18n.ts"
 
 type OptionValues = Record<string, string | number | boolean | undefined>
@@ -53,16 +55,19 @@ function OptionField({ pluginKey, def }: { pluginKey: string; def: PluginCatalog
         return <Col xs={24} sm={12}><Form.Item name={name} valuePropName="checked" style={{ marginBottom: 4 }}><Checkbox>{t(def.key)}</Checkbox></Form.Item></Col>
     if (def.type === "Select")
         return <Col xs={24} sm={12}><Form.Item name={name} label={t(def.key)}><Select options={def.selection.map((label, value) => ({ label, value }))} /></Form.Item></Col>
+    const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
+    const extra = def.type === "Channel" ? "Discord channel ID"
+        : bounds ? `Between ${def.min ?? "any"} and ${def.max ?? "any"}` : undefined
     return (
         <Col xs={24} sm={12}>
-            <Form.Item name={name} label={t(def.key)} extra={def.type === "Channel" ? "Discord channel ID" : undefined}>
-                <Input placeholder={def.default ? `Default: ${def.default}` : undefined} />
+            <Form.Item name={name} label={t(def.key)} extra={extra}>
+                <Input inputMode={bounds ? "decimal" : undefined} placeholder={def.default ? `Default: ${def.default}` : undefined} />
             </Form.Item>
         </Col>
     )
 }
 
-function PluginRow({ entry }: { entry: PluginCatalogEntry }) {
+function PluginRow({ entry, atAttackLimit }: { entry: PluginCatalogEntry; atAttackLimit: boolean }) {
     const [open, setOpen] = useState(false)
     const panelId = `plugin-${entry.key}-settings`
     const label = t(entry.key)
@@ -72,7 +77,7 @@ function PluginRow({ entry }: { entry: PluginCatalogEntry }) {
                 {entry.force
                     ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>Always on</Tag>
                     : <Form.Item name={["plugins", entry.key, "enabled"]} valuePropName="checked" noStyle>
-                        <Switch size="small" aria-label={`Enable ${label}`} />
+                        <AttackAwareSwitch label={label} blockTurningOn={entry.category === "attack" && atAttackLimit} />
                     </Form.Item>}
                 <span style={{ flex: 1, fontWeight: 600 }}>{label}</span>
                 {entry.options.length > 0 &&
@@ -89,8 +94,28 @@ function PluginRow({ entry }: { entry: PluginCatalogEntry }) {
     )
 }
 
+/** An enable switch that can't be turned on while the account is at its attack plugin limit; it can always be turned off. */
+function AttackAwareSwitch({ label, blockTurningOn, checked, onChange }: { label: string; blockTurningOn: boolean; checked?: boolean; onChange?: (v: boolean) => void }) {
+    return <Switch size="small" aria-label={`Enable ${label}`} checked={checked} onChange={onChange}
+        disabled={blockTurningOn && !checked} title={blockTurningOn && !checked ? "Attack plugin limit reached" : undefined} />
+}
+
 /** One row per plugin, built from the catalog: an enable switch and its settings. Lives inside a Form whose `plugins` field holds PluginFormValues. */
 export function PluginSettingsForm({ catalog }: { catalog: PluginCatalogEntry[] }) {
     useLanguage()
-    return <div>{catalog.filter(e => !e.hidden).map(entry => <PluginRow key={entry.key} entry={entry} />)}</div>
+    const limit = useQuery(orpc.plugins.attackLimit.queryOptions()).data
+    const values = Form.useWatch("plugins") as PluginFormValues | undefined
+    const attackPlugins = catalog.filter(e => e.category === "attack" && !e.force && !e.hidden)
+    const enabled = attackPlugins.filter(e => values?.[e.key]?.enabled).length
+    const atLimit = limit !== undefined && limit !== null && enabled >= limit
+    return (
+        <div>
+            {attackPlugins.length > 0 && (
+                <Typography.Paragraph type={limit !== null && limit !== undefined && enabled > limit ? "danger" : "secondary"} style={{ marginBottom: 8 }}>
+                    Attack plugins on: {enabled}{limit !== null && limit !== undefined ? ` / ${limit}` : ""}
+                </Typography.Paragraph>
+            )}
+            {catalog.filter(e => !e.hidden).map(entry => <PluginRow key={entry.key} entry={entry} atAttackLimit={atLimit} />)}
+        </div>
+    )
 }

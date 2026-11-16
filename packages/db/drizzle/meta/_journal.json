@@ -57,6 +57,20 @@
       "when": 1794684041571,
       "tag": "0007_canonical_email",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794717877275,
+      "tag": "0008_crash_loop",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794811369011,
+      "tag": "0009_attack_plugin_cap",
+      "breakpoints": true
     }
   ]
 }

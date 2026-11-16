@@ -34,3 +34,52 @@ test("fractional delays are not truncated (attack.js:272 parseInt)", async () =>
     const at = await secondAttackStartsAt({ attackDelaySeconds: "4.5", attackDelayRandomizationSeconds: "0" })
     expect(at).toBeGreaterThanOrEqual(4500)
 })
+
+function loadAttackWithBot(options) {
+    const bot = fakeBot()
+    bot.botConfig.plugins.attack = { attackLimit: "", attackDelaySeconds: "3", attackDelayRandomizationSeconds: "0", ...options }
+    return { ...loadModule("plugins/attack/attack.js", { bot, extra: { "protocols": { resources: {} } } }).mod, bot }
+}
+
+const rejectWith = (bot, code) => async () => {
+    bot.xtHandler.emit("cra", {}, code)
+    throw "REJECTED"
+}
+
+test("a rejected attack still delays the next one", async () => {
+    vi.useFakeTimers()
+    const { waitToAttack, bot } = loadAttackWithBot()
+    let secondRanAt
+    const start = Date.now()
+    waitToAttack(rejectWith(bot, 101)).catch(() => {})
+    waitToAttack(() => { secondRanAt = Date.now() - start; return true })
+    for (let t = 0; t < 20_000 && secondRanAt === undefined; t += 50)
+        await vi.advanceTimersByTimeAsync(50)
+    expect(secondRanAt).toBeGreaterThanOrEqual(3000)
+})
+
+test("ATTACK_TOO_MANY_UNITS halts every queued and later attack", async () => {
+    vi.useFakeTimers()
+    const { waitToAttack, bot } = loadAttackWithBot()
+    let laterRan = false
+    waitToAttack(rejectWith(bot, 313)).catch(() => {})
+    const queued = waitToAttack(() => { laterRan = true; return true })
+    const queuedResult = queued.catch(e => e)
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    expect(await queuedResult).toBe("ATTACKS_HALTED")
+    await expect(waitToAttack(() => { laterRan = true; return true })).rejects.toBe("ATTACKS_HALTED")
+    expect(laterRan).toBe(false)
+})
+
+test("three rejections in a row halt attacks; a success resets the count", async () => {
+    vi.useFakeTimers()
+    const { waitToAttack, bot } = loadAttackWithBot()
+    const ok = () => { bot.xtHandler.emit("cra", {}, 0); return true }
+    for (const job of [rejectWith(bot, 101), rejectWith(bot, 101), ok, rejectWith(bot, 101), rejectWith(bot, 101)])
+        waitToAttack(job).catch(() => {})
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    await expect(waitToAttack(() => true)).resolves.toBe(true)
+    waitToAttack(rejectWith(bot, 101)).catch(() => {})
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    await expect(waitToAttack(ok)).rejects.toBe("ATTACKS_HALTED")
+})

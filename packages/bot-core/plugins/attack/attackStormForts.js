@@ -48,7 +48,7 @@ if (require('node:worker_threads').isMainThread) {
 
 
 const { movementEvents, ClientCommands, AreaType, KingdomID, movements, spiralCoordinates, castles } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler } = require("../../ggeBot.js")
 
@@ -85,50 +85,50 @@ if (pluginOptions.resourceSend) {
     }
 }
 
+const { pause } = require("../../pacing.js")
 const kingdomID = KingdomID.stormIslands
 const type = AreaType.stormTower
 
 events.once("load", async () => {
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.externalKingdom)
+    const purchases = [
+        { option: "buyCoins", PID: 2798, cost: 75000, log: "broughtCoins" },
+        { option: "buyDecoration", PID: 3117, cost: 100000, log: "broughtDeco" },
+        { option: "buyXP", PID: 3114, cost: 10000, log: "broughtXP" },
+    ]
+    let buying = false
     async function onResourceUpdate() {
-        let resUpdate = false
-        if (pluginOptions["buyCoins"] && castle.getProductionData.maxAmountAqua <=
-            Math.min(castle.getProductionData.maxAmountAqua, castle.aqua + 100000)) {
-            for (let i = 0; i < Math.floor(castle.aqua / 75000); i++) {
-                castle.aqua -= 75000
-                sendXT("sbp", JSON.stringify({
-                    PID: 2798, BT: 3, TID: -1, AMT: 1,
-                    KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1
-                }))
-                console.info("broughtCoins")
+        if (buying)
+            return
+        const nearlyFull = castle.getProductionData.maxAmountAqua <=
+            Math.min(castle.getProductionData.maxAmountAqua, castle.aqua + 100000)
+        if (!nearlyFull)
+            return
+        buying = true
+        let bought = 0
+        try {
+            let aqua = castle.aqua
+            for (const { option, PID, cost, log } of purchases) {
+                if (!pluginOptions[option])
+                    continue
+                const count = Math.floor(aqua / cost)
+                aqua -= count * cost
+                for (let i = 0; i < count; i++) {
+                    if (bought > 0)
+                        await pause(2000, 6000)
+                    await sendXT("sbp", JSON.stringify({
+                        PID, BT: 3, TID: -1, AMT: 1,
+                        KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1
+                    }))
+                    castle.aqua -= cost
+                    bought++
+                    console.info(log)
+                }
             }
-            resUpdate = true
+        } finally {
+            buying = false
         }
-        if (pluginOptions["buyDecoration"] && castle.getProductionData.maxAmountAqua <=
-            Math.min(castle.getProductionData.maxAmountAqua, castle.aqua + 100000)) {
-            for (let i = 0; i < Math.floor(castle.aqua / 100000); i++) {
-                castle.aqua -= 100000
-                sendXT("sbp", JSON.stringify({
-                    PID: 3117, BT: 3, TID: -1, AMT: 1,
-                    KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1
-                }))
-                console.info("broughtDeco")
-            }
-            resUpdate = true
-        }
-        if (pluginOptions["buyXP"] && castle.getProductionData.maxAmountAqua <=
-            Math.min(castle.getProductionData.maxAmountAqua, castle.aqua + 100000)) {
-            for (let i = 0; i < Math.floor(castle.aqua / 10000); i++) {
-                castle.aqua -= 10000
-                sendXT("sbp", JSON.stringify({
-                    PID: 3114, BT: 3, TID: -1, AMT: 1,
-                    KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1
-                }))
-                console.info("broughtXP")
-            }
-            resUpdate = true
-        }
-        if(resUpdate)
+        if (bought)
             castle.emit("resourceUpdate")
     }
     await onResourceUpdate()
@@ -265,19 +265,7 @@ events.once("load", async () => {
                             attackerRangeTroops : attackerMeleeTroops, maxTroops))
                 })
 
-                await sendXT("cra", JSON.stringify(attackInfo))
-
-                let [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) => {
-                    if (result != 0)
-                        return true
-
-                    if (obj.AAM.M.KID != kingdomID || obj.AAM.M.TA[1] != areaInfo.x || obj.AAM.M.TA[2] != areaInfo.y)
-                        return false
-                    return true
-                })
-                if (result != 0)
-                    throw err[result]
-                return obj
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y)
             })
 
             if (!attackInfo) {

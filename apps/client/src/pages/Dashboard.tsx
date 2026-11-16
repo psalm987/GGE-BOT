@@ -15,7 +15,7 @@ import { useLiveBotEvents } from "../live.ts"
 
 dayjs.extend(relativeTime)
 
-const NEEDS_ATTENTION = new Set(["auth_failed", "banned", "error"])
+const NEEDS_ATTENTION = new Set(["auth_failed", "banned", "error", "crash_loop"])
 const isRunning = (a: PublicAccount) => a.desiredState === "running"
 
 export function Dashboard() {
