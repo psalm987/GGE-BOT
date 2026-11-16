@@ -38,7 +38,7 @@ export async function sendVerification(ctx: Ctx, user: { id: string }, email: st
     await mailVerification(ctx, user.id, email, token)
 }
 
-function mailVerification(ctx: Ctx, userId: string, email: string, token: string) {
+export function mailVerification(ctx: Ctx, userId: string, email: string, token: string) {
     return sendEmail(ctx, "verify_email", email, { link: clientLink(ctx, "/verify-email", { token }) }, userId)
 }
 
@@ -134,7 +134,7 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
     return startSession(ctx, "client", publicUser(user))
 }
 
-const BAD_LINK = "This link is invalid or has expired"
+export const BAD_LINK = "This link is invalid or has expired"
 
 export async function requestPasswordReset(ctx: Ctx, input: { email: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.email.hit(`reset:${input.email}`))

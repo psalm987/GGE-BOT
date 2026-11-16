@@ -1,13 +1,15 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
+import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
+    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LoginPassword, NewPassword, LogLine,
     LogsInput, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
+export * from "./data-export.ts"
 export * from "./entitlement.ts"
 export * from "./notifications.ts"
 export * from "./plugins.ts"
@@ -33,12 +35,20 @@ export const clientContract = {
     },
     account: {
         resendVerification: oc.output(z.void()),
-        /** Only while the account has no email yet. */
+        /** Sets the email while it isn't confirmed yet: a first address, or a fix for a mistyped one. */
         addEmail: oc.input(z.object({ email: Email })).output(z.void()),
         changePassword: oc.input(z.object({ current: z.string().min(1).max(200), next: NewPassword })).output(z.void()),
         /** Which kinds of notification are also emailed. */
         notificationPrefs: oc.output(NotificationPrefs),
         setNotificationPrefs: oc.input(NotificationPrefs).output(z.void()),
+        /** Only for a verified email. Emails a confirm link to the new address; nothing changes until it is opened. */
+        changeEmail: oc.input(z.object({ email: Email, password: LoginPassword })).output(z.void()),
+        /** Public: the emailed link may open in a browser that isn't signed in. Ends every session the user has. */
+        confirmEmailChange: oc.input(z.object({ token: z.string().min(1).max(200) })).output(z.void()),
+        /** Once every 10 minutes per player. */
+        exportData: oc.output(DataExport),
+        /** Deletes the caller and everything they own. `confirmUsername` is their username, typed out. */
+        deleteMe: oc.input(z.object({ password: LoginPassword, confirmUsername: z.string().trim().max(64) })).output(z.void()),
     },
     /** The caller's own notifications, newest first. An unverified player can read them too. */
     notifications: {

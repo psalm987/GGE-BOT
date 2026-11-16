@@ -50,13 +50,44 @@ Set `TOTP_ENCRYPTION_KEY` before you deploy; the API refuses to start without it
 - Sign-in accepts a username or an email; usernames can't contain `@`, so the two never collide. An email matches the way sign-up uniqueness does (case, and dots and `+tags` for Gmail and similar providers), so any spelling of the address works.
 - A password change in Settings has its own cap on wrong current passwords (10 per 15 minutes per account), so failed sign-ins never block it.
 - Sign-up is open and always creates a player, never an admin. Every new address must be verified by link. Until it is, the player can sign in, resend the link and change the address, but every account, bot, server and plugin procedure answers `FORBIDDEN`. Sign-up is rate-limited per IP. Admins are made with `create-admin` or the admin app's role toggle.
-- Email links carry a random 32-byte token. Only its SHA-256 is stored, a token works once, a new request replaces older ones, and it dies if the account's email changed after it was issued. Verification links last 24 hours, reset links 1 hour.
+- Email links carry a random 32-byte token. Only its SHA-256 is stored, a token works once, a new request replaces older ones, and it dies if the account's email changed after it was issued. Verification links last 24 hours, reset links 1 hour, and links that confirm a new email 1 hour.
 - Password reset is offered only for verified addresses and answers the same for every address. Requests are throttled per IP and per address (3 per 15 minutes). A reset, or a password change in Settings, ends sessions (all of them for a reset, all but the current one for a change) and sends a notice email. Admins reset through the player app's forgot-password page.
-- Users can add an email only while they have none and can't change it afterwards.
+- A user can set their email freely until it is confirmed, so a typo at sign-up can be fixed from the confirm-your-email page. The new address gets a fresh link and the old link stops working. A confirmed email is changed under **Settings** ([Account self-service](#account-self-service)).
 - Every account query is scoped to the signed-in owner. Integration tests break the ownership filter and the Origin check on purpose to prove they are enforced.
 - Input is validated by the contract's Zod schemas; output is shaped by them too, so fields the contract doesn't declare are never sent.
 - Disabling a user or changing their role ends their sessions at once; disabling also stops their bots. A demoted admin keeps their authenticator, so promoting them again doesn't ask them to enroll.
 - Every admin action and every account start, stop, create, update and remove is written to the audit log with its actor.
+
+## Account self-service
+
+A player does these three things under **Settings**, without an admin. Each one that changes or deletes the account asks for the password again. Wrong passwords have their own cap per action (10 per 15 minutes per account), apart from the sign-in caps.
+
+### Change a verified email
+
+1. The player enters the new address and the password. The API refuses a disposable address, the current address, and an address that another account already has in any spelling. The last refusal reveals that the address is registered, as sign-up does.
+2. The API emails a confirm link to the new address. The link works for 1 hour. The API also emails a notice to the old address. The notice carries no link, so a person who reads only the old inbox can't finish the change.
+3. Opening the link sets the new address, marks it verified, and ends every session the user has, in both apps and including the browser that opened the link. The email is a sign-in name, so the user signs in again with the new address. The old address gets a second email that says the change happened.
+
+The account keeps the old address until step 3. The link works only while the account still has the address that the link was issued against, so a link from before a later change is dead. If another account takes the new address before step 3, the link is refused and nothing changes. Requests are capped at 3 per 15 minutes per account. The audit log records `account.email.change_requested` and `account.email.changed`, without either address.
+
+### Download your data
+
+**Download my data** returns one JSON file: the profile, the game accounts with their settings, schedule, and status, the plugin settings, the run history, the retained log lines, the notifications, and the audit entries where the player is the actor. The file never contains a game password, sealed or not, or the panel password hash. A player can download once every 10 minutes.
+
+### Delete your account
+
+The player enters the password and types the username. In one transaction, the API:
+
+- sets `meta` to null on every audit entry where the user is the actor,
+- deletes the user, which cascades to their sessions, game accounts, plugin settings, logs, runs, and notifications,
+- queues a `disconnect` so Centrifugo closes their sockets,
+- writes an `account.deleted` audit entry with no actor, whose `meta` holds only the old user ID.
+
+The runner stops the deleted accounts' bots at its next reconcile, which the delete triggers. A verified address gets a confirmation email. The username and the email can be registered again at once.
+
+The only active admin can't delete their own account. Make another user an admin first.
+
+**What the audit log keeps.** The user's entries stay, with their action, target, and time, but with no actor and no `meta`. `meta` is where sign-up stores the IP address and the canonical email. The API clears all of `meta` instead of removing named keys, so a key that a later version adds is erased too. For a deleted admin, the cost is that the details of their admin actions, such as the bot limit they set, are lost. Entries that other people wrote about the user keep the user's ID as the target. Entries are pruned after `AUDIT_RETENTION_DAYS`. Backups made before the deletion still hold the account until they expire.
 
 ## Live updates
 
@@ -65,7 +96,7 @@ The browser gets status changes and log lines from Centrifugo over a websocket a
 - **Connection token** (`realtime.connectionToken`). It names the signed-in player. Centrifugo lets a socket subscribe to `personal:user#<userId>` only when the ID matches the token, so a player can't read another player's status events.
 - **Subscription token** (`realtime.subscriptionToken`). It names one `bot:<accountId>` channel, which carries that account's log lines. The API signs one only for the account's owner. It answers `NOT_FOUND` for another player's account exactly as it does for an account that doesn't exist.
 - Both need a signed-in player with a verified email. The app asks for a new token before the old one expires, and a session that has ended doesn't get one.
-- **A session that ends loses its sockets at once.** Sign-out, a password change or reset, an admin's **Revoke sessions**, a role change, and disabling a user each queue a `disconnect` for that user in the same transaction. Centrifugo closes every socket the user has. A browser that is still signed in reconnects with a new token. A browser whose session ended gets `UNAUTHORIZED`, stops, and shows the sign-in page.
+- **A session that ends loses its sockets at once.** Sign-out, a password change or reset, a confirmed email change, an account deletion, an admin's **Revoke sessions**, a role change, and disabling a user each queue a `disconnect` for that user in the same transaction. Centrifugo closes every socket the user has. A browser that is still signed in reconnects with a new token. A browser whose session ended gets `UNAUTHORIZED`, stops, and shows the sign-in page.
 - If Centrifugo is down when the session ends, the `disconnect` waits in the outbox. If Centrifugo stays down for more than an hour, the runner deletes the row. The browser can then reconnect with the token it already has until that token expires, at most 15 minutes after the API signed it.
 - Centrifugo's HTTP API and admin UI are off. The only way to publish is a row in `centrifugo_outbox`, so publishing needs database access.
 

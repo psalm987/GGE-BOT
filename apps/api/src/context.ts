@@ -14,9 +14,10 @@ export type Ctx = {
     /**
      * `ip` caps every login and signup attempt per IP, generously (shared NATs). Failed password
      * checks are capped strictly per username and IP in `user`, and per username across all IPs in
-     * `userTotal`. `user` also caps wrong second-factor codes per admin. `email` caps mail sent to one address; `signup` caps new accounts per IP.
+     * `userTotal`. `user` also caps wrong second-factor codes per admin. `email` caps mail sent to one address; `signup` caps new accounts per IP;
+     * `dataExport` caps data downloads per user.
      */
-    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter }
+    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter }
     mailer: Mailer
 }
 

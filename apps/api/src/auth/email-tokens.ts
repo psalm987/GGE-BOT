@@ -8,10 +8,11 @@ export type EmailTokenPurpose = (typeof emailTokenPurpose.enumValues)[number]
 const TTL_MS: Record<EmailTokenPurpose, number> = {
     verify_email: 24 * 3600_000,
     reset_password: 3600_000,
+    change_email: 3600_000,
 }
 
 /** Stores a fresh token and returns the raw value to email. Older unused tokens of the same purpose, and expired rows, are removed. */
-export async function issueToken(db: Pick<Db, "transaction">, input: { userId: string; purpose: EmailTokenPurpose; email: string }) {
+export async function issueToken(db: Pick<Db, "transaction">, input: { userId: string; purpose: EmailTokenPurpose; email: string; currentEmail?: string }) {
     const token = randomBytes(32).toString("base64url")
     await db.transaction(async tx => {
         await tx.delete(emailTokens).where(or(
@@ -23,6 +24,7 @@ export async function issueToken(db: Pick<Db, "transaction">, input: { userId: s
             purpose: input.purpose,
             tokenHash: hashToken(token),
             email: input.email,
+            currentEmail: input.currentEmail,
             expiresAt: new Date(Date.now() + TTL_MS[input.purpose]),
         })
     })
@@ -41,6 +43,6 @@ export async function claimToken(tx: Tx, purpose: EmailTokenPurpose, rawToken: s
             isNull(emailTokens.usedAt),
             sql`${emailTokens.expiresAt} > now()`,
         ))
-        .returning({ userId: emailTokens.userId, email: emailTokens.email })
+        .returning({ userId: emailTokens.userId, email: emailTokens.email, currentEmail: emailTokens.currentEmail })
     return claimed
 }

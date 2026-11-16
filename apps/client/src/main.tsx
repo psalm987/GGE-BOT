@@ -11,6 +11,7 @@ import { RequireAuth } from "./auth.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
 import { LiveUpdates } from "./components/LiveUpdates.tsx"
 import { useLanguage } from "./i18n.ts"
+import { ConfirmEmailChange } from "./pages/ConfirmEmailChange.tsx"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
 import { Login } from "./pages/Login.tsx"
@@ -33,6 +34,7 @@ function Root() {
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/verify-email" element={<VerifyEmail />} />
+                        <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
                         <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                         <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
                         <Route path="*" element={<Navigate to="/" replace />} />

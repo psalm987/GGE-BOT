@@ -9,7 +9,8 @@ import {
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { connectionToken, subscriptionToken } from "../services/realtime.ts"
-import { addEmail, changePassword, resendVerification } from "./account.ts"
+import { exportData } from "../services/data-export.ts"
+import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
 import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
 
 const os = implement(clientContract).$context<Ctx>()
@@ -44,6 +45,10 @@ export const clientRouter = os.router({
         changePassword: os.account.changePassword.use(authed).handler(({ context, input }) => changePassword(context, context.user, input)),
         notificationPrefs: os.account.notificationPrefs.use(authed).handler(({ context }) => getNotificationPrefs(context.db, context.user.id)),
         setNotificationPrefs: os.account.setNotificationPrefs.use(authed).handler(({ context, input }) => setNotificationPrefs(context.db, context.user.id, input)),
+        changeEmail: os.account.changeEmail.use(authed).handler(({ context, input }) => changeEmail(context, context.user, input)),
+        confirmEmailChange: os.account.confirmEmailChange.handler(({ context, input }) => confirmEmailChange(context, input)),
+        exportData: os.account.exportData.use(authed).handler(({ context }) => exportData(context, context.user.id)),
+        deleteMe: os.account.deleteMe.use(authed).handler(({ context, input }) => deleteMe(context, context.user, input)),
     },
     // Not `verified`: a player whose email isn't confirmed yet can still have notifications to read.
     notifications: {

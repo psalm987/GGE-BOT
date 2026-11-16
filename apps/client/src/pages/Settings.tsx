@@ -5,6 +5,7 @@ import { NOTIFICATION_KINDS, type NotificationKind, type NotificationPrefs } fro
 import { ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
+import { ChangeEmailCard, DeleteAccountCard, ExportDataCard } from "../components/AccountCards.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PasswordFields } from "../components/PasswordFields.tsx"
 
@@ -56,6 +57,7 @@ function EmailPrefs() {
 
 export function Settings() {
     const { message } = App.useApp()
+    const me = useMe().data
     const [form] = Form.useForm()
     const change = useMutation(orpc.account.changePassword.mutationOptions({
         onSuccess: () => {
@@ -66,7 +68,8 @@ export function Settings() {
     return (
         <AppLayout activeKey="settings" title="Settings">
             <EmailPrefs />
-            <ParchmentCard title="Change password" style={{ maxWidth: 480 }}>
+            {me?.email && me.emailVerified && <ChangeEmailCard me={me} />}
+            <ParchmentCard title="Change password" style={{ maxWidth: 480, marginBottom: 16 }}>
                 {change.error && <Alert type="error" showIcon title={messageOf(change.error)} style={{ marginBottom: 16 }} role="alert" />}
                 <Form form={form} layout="vertical" requiredMark={false} onFinish={({ current, next }) => change.mutate({ current, next })} disabled={change.isPending}>
                     <Form.Item label="Current password" name="current" rules={[{ required: true, message: "Enter your current password" }]}>
@@ -76,6 +79,8 @@ export function Settings() {
                     <Button type="primary" htmlType="submit" loading={change.isPending} className="gge-press">Change password</Button>
                 </Form>
             </ParchmentCard>
+            <ExportDataCard />
+            {me && <DeleteAccountCard me={me} />}
         </AppLayout>
     )
 }

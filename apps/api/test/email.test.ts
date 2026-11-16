@@ -234,9 +234,21 @@ describe("adding an email", () => {
         expect(await codeOf(opal.api.account.addEmail({ email: "ned@example.test" }))).toBe("CONFLICT")
     })
 
-    test("an account that already has an email can't swap it", async () => {
-        const pia = await api.signup("pia")
-        expect(await codeOf(pia.api.account.addEmail({ email: "pia2@example.test" }))).toBe("CONFLICT")
-        expect(await pia.api.auth.me()).toMatchObject({ email: "pia@example.test" })
+    test("a mistyped address can be fixed before it is confirmed, and the old link stops working", async () => {
+        const pia = await api.signup("pia", "pia@exmaple.test")
+        const oldToken = api.lastToken("pia@exmaple.test")!
+
+        await pia.api.account.addEmail({ email: "pia@example.test" })
+        expect(await pia.api.auth.me()).toMatchObject({ email: "pia@example.test", emailVerified: false })
+        expect(await codeOf(api.client().api.auth.verifyEmail({ token: oldToken }))).toBe("BAD_REQUEST")
+
+        await api.client().api.auth.verifyEmail({ token: api.lastToken("pia@example.test")! })
+        expect(await pia.api.auth.me()).toMatchObject({ email: "pia@example.test", emailVerified: true })
+    })
+
+    test("a confirmed address can't be swapped this way", async () => {
+        const quinn = await api.player("quinn")
+        expect(await codeOf(quinn.api.account.addEmail({ email: "quinn2@example.test" }))).toBe("CONFLICT")
+        expect(await quinn.api.auth.me()).toMatchObject({ email: "quinn@example.test" })
     })
 })

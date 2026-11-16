@@ -9,7 +9,7 @@ export const ActualState = z.enum(["starting", "running", "stopped", "auth_faile
 export const Username = z.string().trim().min(3).max(32).regex(/^[A-Za-z0-9_.-]+$/, "letters, digits, _ . - only")
 export const Email = z.string().trim().toLowerCase().pipe(z.email().max(254))
 export const NewPassword = z.string().min(10, "at least 10 characters").max(200)
-const LoginPassword = z.string().min(1).max(200)
+export const LoginPassword = z.string().min(1).max(200)
 
 /** `login` is a username or an email; usernames can't contain "@", so the two never collide. */
 export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })

@@ -28,6 +28,21 @@ export const templates = {
         render("Reset your password", ["We got a request to reset your GGE Bot password. The link works for 1 hour. If this wasn't you, ignore this email."], { label: "Choose a new password", url: link }),
     password_changed: (_: Record<string, never>) =>
         render("Your password was changed", ["The password on your GGE Bot account was just changed and other devices were signed out. If this wasn't you, reset your password right away."]),
+    change_email: ({ link }: Link) =>
+        render("Confirm your new email", ["Confirm this address to make it the email on your GGE Bot account. The link works for 1 hour. Confirming signs you out everywhere, and you sign in again with this address."], { label: "Confirm new email", url: link }),
+    /** To the address being replaced. It carries no link, so whoever reads the old inbox can't confirm the change. */
+    email_change_requested: ({ newEmail }: { newEmail: string }) =>
+        render("Someone asked to change your email", [
+            `Someone who knows your GGE Bot password asked to change your account's email to ${newEmail}. Nothing changes until that address confirms.`,
+            "If this wasn't you, change your password right away. That signs out every other device.",
+        ]),
+    email_changed: ({ newEmail }: { newEmail: string }) =>
+        render("Your email was changed", [
+            `The email on your GGE Bot account is now ${newEmail}. This address no longer signs in or receives account emails, and every device was signed out.`,
+            "If this wasn't you, contact the administrator of this GGE Bot server.",
+        ]),
+    account_deleted: ({ username }: { username: string }) =>
+        render("Your account was deleted", [`Your GGE Bot account ${username} was deleted, along with its game accounts, settings, logs and notifications. Its bots are stopping.`, "If this wasn't you, contact the administrator of this GGE Bot server."]),
     recovery_code_used: ({ remaining }: { remaining: number }) =>
         render("A recovery code was used to sign in", [
             "Someone just signed in to the GGE Bot admin app with your password and one of your recovery codes, in place of an authenticator code.",

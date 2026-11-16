@@ -7,7 +7,8 @@ import { messageOf, orpc, queryClient } from "../api.ts"
 
 export function Login() {
     const navigate = useNavigate()
-    const from = (useLocation().state as { from?: string } | null)?.from ?? "/"
+    const state = useLocation().state as { from?: string; notice?: string } | null
+    const from = state?.from ?? "/"
     const login = useMutation(orpc.auth.login.mutationOptions({
         onSuccess: user => {
             queryClient.setQueryData(orpc.auth.me.queryKey(), user)
@@ -17,6 +18,7 @@ export function Login() {
     return (
         <AuthShell title="Sign in" subtitle="Command your game accounts from one war table."
             footer={<span style={{ color: "#BFAE8A" }}>New here? <Link to="/signup">Create your account</Link></span>}>
+            {state?.notice && !login.error && <Alert type="success" showIcon title={state.notice} style={{ marginBottom: 16 }} role="status" />}
             {login.error && <Alert type="error" showIcon title={messageOf(login.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form layout="vertical" requiredMark={false} onFinish={values => login.mutate(values)} disabled={login.isPending}>
                 <Form.Item label="Username or email" name="login" rules={[{ required: true, message: "Enter your username or email" }]}>

@@ -28,7 +28,7 @@ export const userStatus = pgEnum("user_status", ["active", "disabled"])
 export const passwordAlgo = pgEnum("password_algo", ["argon2id", "pbkdf2-legacy"])
 export const audience = pgEnum("audience", ["client", "admin"])
 export const desiredState = pgEnum("desired_state", ["running", "stopped"])
-export const emailTokenPurpose = pgEnum("email_token_purpose", ["verify_email", "reset_password"])
+export const emailTokenPurpose = pgEnum("email_token_purpose", ["verify_email", "reset_password", "change_email"])
 /** How many attack plugins one account may run at once; "none" means no limit. */
 export const attackPluginCap = pgEnum("attack_plugin_cap", ["4", "6", "none"])
 export const actualState = pgEnum("actual_state", ["starting", "running", "stopped", "auth_failed", "banned", "error", "crash_loop"])
@@ -81,6 +81,8 @@ export const emailTokens = pgTable("email_tokens", {
     tokenHash: text("token_hash").notNull().unique(),
     /** The address the token was issued for; a token dies when the user's email no longer matches. */
     email: text("email").notNull(),
+    /** Only for change_email: the address being replaced. The change applies only while the user still has it. */
+    currentEmail: text("current_email"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: createdAt(),

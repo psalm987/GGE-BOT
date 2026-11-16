@@ -1,7 +1,7 @@
 import { MailOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
-import { App, Button, Form, Input, Typography } from "antd"
-import type { ReactNode } from "react"
+import { App, Button, Form, Input, Space, Typography } from "antd"
+import { useState, type ReactNode } from "react"
 import type { PublicUser } from "@gge/contracts"
 import { ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
@@ -33,17 +33,21 @@ function EmailGate({ user }: { user: PublicUser }) {
         },
         onError: error => message.error(messageOf(error)),
     }))
+    const [fixing, setFixing] = useState(false)
     const card = { maxWidth: 520 }
+    const emailForm = (label: string) => (
+        <Form layout="vertical" requiredMark={false} onFinish={({ email }) => add.mutate({ email }, { onSuccess: () => setFixing(false) })} disabled={add.isPending}>
+            <Form.Item label={label} name="email" rules={[{ required: true, type: "email", message: "Enter a valid email" }]}>
+                <Input prefix={<MailOutlined />} type="email" autoComplete="email" placeholder="you@example.com" />
+            </Form.Item>
+            <Button type="primary" htmlType="submit" loading={add.isPending} className="gge-press">Send verification link</Button>
+        </Form>
+    )
     if (!user.email)
         return (
             <ParchmentCard title="Add your email" style={card}>
                 <Typography.Paragraph>Confirm an email address to start running bots. It's also how you reset a forgotten password.</Typography.Paragraph>
-                <Form layout="vertical" requiredMark={false} onFinish={({ email }) => add.mutate({ email })} disabled={add.isPending}>
-                    <Form.Item label="Email" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email" }]}>
-                        <Input prefix={<MailOutlined />} type="email" autoComplete="email" placeholder="you@example.com" />
-                    </Form.Item>
-                    <Button type="primary" htmlType="submit" loading={add.isPending} className="gge-press">Send verification link</Button>
-                </Form>
+                {emailForm("Email")}
             </ParchmentCard>
         )
     return (
@@ -51,7 +55,12 @@ function EmailGate({ user }: { user: PublicUser }) {
             <Typography.Paragraph>
                 We sent a link to <Typography.Text strong>{user.email}</Typography.Text>. Open it to start running bots.
             </Typography.Paragraph>
-            <Button loading={resend.isPending} onClick={() => resend.mutate({})}>Resend the link</Button>
+            {fixing
+                ? emailForm("Correct email")
+                : <Space wrap>
+                    <Button loading={resend.isPending} onClick={() => resend.mutate({})}>Resend the link</Button>
+                    <Button type="link" onClick={() => setFixing(true)}>Wrong address? Change it</Button>
+                </Space>}
         </ParchmentCard>
     )
 }
