@@ -36,7 +36,7 @@ afterAll(() => db.$pool.end())
 
 beforeEach(async () => {
     // Each test has its own owner and account names, so nothing needs a table-wide truncate.
-    const [owner] = await db.insert(users).values({ username: `owner-${Math.random().toString(36).slice(2)}`, passwordHash: "x" }).returning()
+    const [owner] = await db.insert(users).values({ username: `owner-${Math.random().toString(36).slice(2)}`, passwordHash: "x", maxBots: 50 }).returning()
     ownerId = owner!.id
     store = createStore(db, { flushMs: 20 })
     metricBatches = []
@@ -519,5 +519,32 @@ describe("attack plugin cap", () => {
         await until(async () => (await status(id))?.lastError === "TOO_MANY_ATTACK_PLUGINS")
         expect(supervisor.running).toBe(0)
         expect((await status(id))?.actualState).toBe("error")
+    })
+})
+
+describe("plan limits", () => {
+    test("an account beyond the owner's plan is not started, while its twin rides free", async () => {
+        await db.update(users).set({ maxBots: 1 }).where(eq(users.id, ownerId))
+        const first = await addAccount("ok-plan-first")
+        const twin = await addAccount("ok-plan-first", { externalEvent: true })
+        const extra = await addAccount("ok-plan-extra")
+        const specs = await loadSpecs(db, registry)
+        expect([...specs.keys()].sort()).toEqual([first, twin].sort())
+        expect(specs.has(extra)).toBe(false)
+    })
+
+    test("lowering max_bots stops the newest running worker and leaves the oldest running", async () => {
+        const oldest = await addAccount("ok-plan-oldest")
+        const newest = await addAccount("ok-plan-newest")
+        await reconcile()
+        await until(async () => (await status(oldest))?.actualState === "running" && (await status(newest))?.actualState === "running")
+
+        await db.update(users).set({ maxBots: 1 }).where(eq(users.id, ownerId))
+        await reconcile()
+
+        await until(async () => (await status(newest))?.actualState === "stopped")
+        expect(supervisor.running).toBe(1)
+        expect((await status(oldest))?.actualState).toBe("running")
+        expect(await desired(newest)).toBe("running")
     })
 })

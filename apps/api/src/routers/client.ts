@@ -7,7 +7,7 @@ import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import {
-    createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, updateAccount,
+    createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import type { RawBotEvent } from "../services/bot-events.ts"
 import { addEmail, changePassword, resendVerification } from "./account.ts"
@@ -47,7 +47,7 @@ export const clientRouter = os.router({
     accounts: {
         list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),
         create: os.accounts.create.use(verified).handler(async ({ context, input }) => {
-            const account = await createAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user, input)
+            const account = await createAccount(context.db, context.env.SEAL_PUBLIC_KEY, context.user.id, input)
             await audit(context.db, { actorId: context.user.id, action: "account.create", targetType: "account", targetId: account.id })
             return account
         }),
@@ -65,7 +65,9 @@ export const clientRouter = os.router({
                 await audit(context.db, { actorId: context.user.id, action: "account.remove", targetType: "account", targetId: id })
         }),
         setDesiredState: os.accounts.setDesiredState.use(verified).handler(async ({ context, input }) => {
-            const changed = await setDesiredState(context.db, ownedBy(context.user.id, input.ids), input.state)
+            const changed = input.state === "running"
+                ? await startAccounts(context.db, context.user.id, input.ids)
+                : await setDesiredState(context.db, ownedBy(context.user.id, input.ids), "stopped")
             for (const { id } of changed)
                 await audit(context.db, { actorId: context.user.id, action: `account.${input.state === "running" ? "start" : "stop"}`, targetType: "account", targetId: id })
         }),

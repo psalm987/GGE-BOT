@@ -5,7 +5,7 @@ import { adminContract } from "@gge/contracts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
-import { listAccounts, setDesiredState } from "../services/accounts.ts"
+import { listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { currentUser, login, logout } from "./auth.ts"
 
 const os = implement(adminContract).$context<Ctx>()
@@ -79,17 +79,23 @@ export const adminRouter = os.router({
         }),
         setRole: os.users.setRole.use(admin).handler(async ({ context: { db, user }, input }) => {
             notSelf(user.id, input.id, "You can't change your own role")
-            const [changed] = await db.update(users).set({ role: input.role, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
-            if (!changed)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            const stopped = await db.transaction(async tx => {
+                const [changed] = await tx.update(users).set({ role: input.role, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
+                if (!changed)
+                    throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                return stopUnentitled(tx, input.id)
+            })
             await revokeUserSessions(db, input.id)
-            await audit(db, { actorId: user.id, action: "user.set_role", targetType: "user", targetId: input.id, meta: { role: input.role } })
+            await audit(db, { actorId: user.id, action: "user.set_role", targetType: "user", targetId: input.id, meta: { role: input.role, stopped } })
         }),
         setMaxBots: os.users.setMaxBots.use(admin).handler(async ({ context: { db, user }, input }) => {
-            const [changed] = await db.update(users).set({ maxBots: input.maxBots, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
-            if (!changed)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
-            await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots } })
+            const stopped = await db.transaction(async tx => {
+                const [changed] = await tx.update(users).set({ maxBots: input.maxBots, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
+                if (!changed)
+                    throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                return stopUnentitled(tx, input.id)
+            })
+            await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots, stopped } })
         }),
         setAttackPluginCap: os.users.setAttackPluginCap.use(admin).handler(async ({ context: { db, user }, input }) => {
             const [before] = await db.select({ cap: users.attackPluginCap }).from(users).where(eq(users.id, input.id))

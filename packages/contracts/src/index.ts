@@ -6,6 +6,7 @@ import {
     Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
+export * from "./entitlement.ts"
 export * from "./plugins.ts"
 export * from "./schemas.ts"
 

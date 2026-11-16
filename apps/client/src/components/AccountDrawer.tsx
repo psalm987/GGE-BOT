@@ -9,8 +9,11 @@ import { RunsPanel } from "./RunsPanel.tsx"
 
 type Values = { name: string; serverId: number; password?: string; externalEvent: boolean; plugins: PluginFormValues }
 
-/** Add or edit one game account: settings, plugins, and for existing accounts its logs and runs. */
-export function AccountDrawer({ open, account, onClose }: { open: boolean; account?: PublicAccount; onClose: () => void }) {
+/**
+ * Add or edit one game account: settings, plugins, and for existing accounts its logs and runs.
+ * With twinOf, it adds that account's event twin, prefilled with its name and server.
+ */
+export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; onClose: () => void }) {
     const { message, modal } = App.useApp()
     const [form] = Form.useForm<Values>()
     const servers = useQuery(orpc.servers.list.queryOptions())
@@ -23,12 +26,12 @@ export function AccountDrawer({ open, account, onClose }: { open: boolean; accou
             return
         form.resetFields()
         form.setFieldsValue({
-            name: account?.name ?? "",
-            serverId: account?.serverId,
-            externalEvent: account?.externalEvent ?? false,
+            name: account?.name ?? twinOf?.name ?? "",
+            serverId: account?.serverId ?? twinOf?.serverId,
+            externalEvent: account?.externalEvent ?? Boolean(twinOf),
             plugins: pluginFormValues(catalog.data, account?.plugins),
         })
-    }, [open, account, catalog.data, form])
+    }, [open, account, twinOf, catalog.data, form])
 
     const done = (text: string) => {
         void queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() })
@@ -90,7 +93,7 @@ export function AccountDrawer({ open, account, onClose }: { open: boolean; accou
     )
 
     return (
-        <Drawer open={open} onClose={close} size={phone ? "100%" : 620} destroyOnHidden title={<span className="gge-display">{isNew ? "Add game account" : account.name}</span>}
+        <Drawer open={open} onClose={close} size={phone ? "100%" : 620} destroyOnHidden title={<span className="gge-display">{isNew ? (twinOf ? `Add event twin for ${twinOf.name}` : "Add game account") : account.name}</span>}
             footer={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
                 <Button onClick={close}>Cancel</Button>
                 <Button type="primary" loading={saving} onClick={() => form.submit()} className="gge-press">{isNew ? "Add account" : "Save changes"}</Button>

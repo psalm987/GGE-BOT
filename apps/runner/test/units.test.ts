@@ -86,7 +86,7 @@ describe("against the database", () => {
         await mine.end()
     })
 
-    test("changing an account, its settings or its owner's status notifies the runner", async () => {
+    test("changing an account, its settings or its owner's status or plan notifies the runner", async () => {
         const listener = new pg.Client({ connectionString: inject("databaseUrl") })
         await listener.connect()
         let notifications = 0
@@ -108,6 +108,13 @@ describe("against the database", () => {
         await settle()
         expect(notifications).toBeGreaterThan(beforeStatus)
         expect(afterUserInsert).toBe(0)
+
+        for (const change of [{ maxBots: 3 }, { role: "admin" as const }]) {
+            const before = notifications
+            await db.update(users).set(change).where(eq(users.id, owner!.id))
+            await settle()
+            expect(notifications, `notified on ${Object.keys(change)[0]}`).toBeGreaterThan(before)
+        }
 
         await db.delete(users).where(eq(users.id, owner!.id))
         await listener.end()

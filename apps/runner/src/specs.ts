@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto"
 import { and, eq, inArray } from "drizzle-orm"
-import { TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, type OptionValue, type PluginSettings } from "@gge/contracts"
+import {
+    TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, entitledAccountIds, type OptionValue, type PluginSettings,
+} from "@gge/contracts"
 import { appSettings, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "./catalog.ts"
 
@@ -25,12 +27,14 @@ export type BotSpec = {
 }
 
 export async function loadSpecs(db: Db, registry: PluginRegistry): Promise<Map<string, BotSpec>> {
-    const rows = await db
-        .select({ account: gameAccounts, server: servers, attackPluginCap: users.attackPluginCap })
+    const wanted = await db
+        .select({ account: gameAccounts, server: servers, attackPluginCap: users.attackPluginCap, owner: { role: users.role, maxBots: users.maxBots } })
         .from(gameAccounts)
         .innerJoin(users, eq(users.id, gameAccounts.ownerId))
         .innerJoin(servers, eq(servers.id, gameAccounts.serverId))
         .where(and(eq(gameAccounts.desiredState, "running"), eq(users.status, "active")))
+    const entitled = await entitledAmong(db, wanted)
+    const rows = wanted.filter(r => entitled.has(r.account.id))
     const ids = rows.map(r => r.account.id)
     const settings = ids.length ? await db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : []
 
@@ -63,6 +67,26 @@ export async function loadSpecs(db: Db, registry: PluginRegistry): Promise<Map<s
         })
     }
     return specs
+}
+
+/**
+ * The API already refuses to start accounts beyond a plan, but a demotion, a
+ * lowered limit or a direct SQL edit can leave them wanted, so the runner
+ * checks again against each owner's full account list.
+ */
+async function entitledAmong(db: Db, wanted: { account: { ownerId: string }; owner: { role: "user" | "admin"; maxBots: number } }[]) {
+    const owners = new Map(wanted.map(r => [r.account.ownerId, r.owner]))
+    if (!owners.size)
+        return new Set<string>()
+    const accounts = await db
+        .select({ ownerId: gameAccounts.ownerId, id: gameAccounts.id, serverId: gameAccounts.serverId, name: gameAccounts.name, externalEvent: gameAccounts.externalEvent, createdAt: gameAccounts.createdAt })
+        .from(gameAccounts)
+        .where(inArray(gameAccounts.ownerId, [...owners.keys()]))
+    const entitled = new Set<string>()
+    for (const [ownerId, mine] of Map.groupBy(accounts, a => a.ownerId))
+        for (const id of entitledAccountIds(owners.get(ownerId)!, mine))
+            entitled.add(id)
+    return entitled
 }
 
 function overCap(registry: PluginRegistry, saved: PluginSettings, limit: number | null) {

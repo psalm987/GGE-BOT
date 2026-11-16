@@ -34,6 +34,10 @@ export const PublicAccount = z.object({
     plugins: PluginSettings,
     status: BotStatus.nullable(),
     createdAt: z.date(),
+    /** An event account paired with a main of the same name and server: it doesn't count toward maxBots. */
+    isTwin: z.boolean(),
+    /** False when the owner's plan doesn't cover this account, so it can't run. */
+    entitled: z.boolean(),
 })
 export type PublicAccount = z.infer<typeof PublicAccount>
 

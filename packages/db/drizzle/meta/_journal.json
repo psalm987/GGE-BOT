@@ -71,6 +71,13 @@
       "when": 1794811369011,
       "tag": "0009_attack_plugin_cap",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794814098948,
+      "tag": "0010_plan_limit_notify",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,8 @@ const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
+const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
+const API_URL = process.env.API_URL ?? "http://127.0.0.1:3000"
 const DEV_LOG = process.env.DEV_LOG ?? "/tmp/gge-dev.log"
 const out = process.argv[2] ?? path.join(__dirname, "../../../../.verify-evidence", `${new Date().toISOString().replace(/[:.]/g, "-")}-client`)
 require("fs").mkdirSync(out, { recursive: true })
@@ -15,6 +17,31 @@ async function axe(page, name) {
     const result = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map(v => `${v.id} (${v.impact}): ${v.nodes.length} node(s) e.g. ${v.nodes[0].target.join(" ")}`))
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
+
+/** Signs in as the seeded admin and sets a player's bot limit through the admin API. */
+async function setMaxBots(username, maxBots) {
+    const call = async (path, body, cookie) => {
+        const res = await fetch(`${API_URL}/admin/rpc/${path}`, { method: "POST", headers: { origin: ADMIN_URL, "content-type": "application/json", ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
+        return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
+    }
+    const { cookie } = await call("auth/login", { login: "admin", password: "demo-password" })
+    const user = (await call("users/list", { search: username }, cookie)).json.find(u => u.username === username)
+    await call("users/setMaxBots", { id: user.id, maxBots }, cookie)
+}
+
+async function addAccount(page, accountName) {
+    await page.getByLabel("Game account name").fill(accountName)
+    await page.getByLabel("Server").click()
+    await page.keyboard.type("Germany")
+    await page.locator(".ant-select-item-option", { hasText: "Germany 1" }).click()
+    await page.getByLabel("Game password").fill("hunter2")
+    await page.getByRole("button", { name: "Add account", exact: true }).last().click()
+    await page.getByText(`${accountName} added`).waitFor()
+    await drawerClosed(page)
+}
+
+// The drawer keeps its own "Add account" button on screen until its close animation ends.
+const drawerClosed = page => page.locator(".ant-drawer-content-wrapper").waitFor({ state: "hidden" })
 
 /** The link in the newest email the dev API logged for an address (the log mailer prints every message). */
 function emailedLink(address) {
@@ -118,6 +145,7 @@ function emailedLink(address) {
     const fieldErrors = await page.locator(".ant-form-item-explain-error").allTextContents()
     if (alerts.length || fieldErrors.length) console.log("form errors:", alerts, fieldErrors)
     await page.getByText(`Storm${name} added`).waitFor()
+    await drawerClosed(page)
     const row = page.getByRole("row", { name: new RegExp(`Storm${name}`) })
     await row.waitFor()
     assert(await row.getByText("Stopped").isVisible(), "new account shows as stopped")
@@ -147,7 +175,8 @@ function emailedLink(address) {
     await page.getByRole("button", { name: "Keep editing" }).click()
     await page.getByRole("button", { name: "Save changes" }).click()
     await page.getByText(`Storm${name} Keep saved`).waitFor()
-    assert(await page.getByRole("row", { name: new RegExp(`Storm${name} Keep`) }).isVisible(), "rename saved and shown")
+    await page.getByRole("row", { name: new RegExp(`Storm${name} Keep`) }).waitFor()
+    assert(true, "rename saved and shown")
 
     await page.getByRole("row", { name: new RegExp(`Storm${name} Keep`) }).getByRole("checkbox").check()
     await page.getByRole("button", { name: "Remove" }).click()
@@ -156,5 +185,61 @@ function emailedLink(address) {
     await page.getByRole("button", { name: "Remove", exact: true }).last().click()
     await page.getByText("No accounts yet").waitFor()
     assert(true, "remove asks to confirm, then the roster is empty again")
+
+    const gale = `Gale${name}`
+    await page.getByRole("button", { name: "Add your first account" }).click()
+    await addAccount(page, gale)
+    assert(await page.getByRole("button", { name: "Add account", exact: true }).isDisabled(), "Add account is disabled again at the limit")
+    await page.getByRole("button", { name: `Add event twin for ${gale}` }).click()
+    await page.getByText(`Add event twin for ${gale}`, { exact: true }).waitFor()
+    assert(await page.getByLabel("Game account name").inputValue() === gale, "the twin drawer is prefilled with the main's name")
+    assert(await page.getByRole("switch", { name: "External event account" }).isChecked(), "the twin drawer has External event on")
+    assert(await page.locator('.ant-select-content[title="Germany 1"]').count() > 0, "the twin drawer is prefilled with the main's server")
+    await axe(page, "add-twin drawer")
+    await page.getByLabel("Game password").fill("hunter2")
+    await page.getByRole("button", { name: "Add account", exact: true }).last().click()
+    await page.getByText(`${gale} added`).waitFor()
+    await drawerClosed(page)
+    const galeRows = page.getByRole("row", { name: new RegExp(gale) })
+    await galeRows.nth(1).waitFor()
+    assert(await galeRows.count() === 2, "the event twin was added at the limit")
+    const accountsStat = await page.locator(".ant-statistic").filter({ hasText: "Accounts" }).textContent()
+    assert(/Accounts\s*1\s*\/\s*1/.test(accountsStat), `the counter counts the main only (${accountsStat})`)
+    const twinRow = page.getByRole("row").filter({ hasText: "· event" })
+    assert(await twinRow.getByRole("button", { name: `Start ${gale}` }).isEnabled(), "the twin can be started")
+    assert(await page.getByRole("button", { name: `Add event twin for ${gale}` }).count() === 0, "a main that has its twin offers no second one")
+    await page.screenshot({ path: `${out}/12-event-twin-at-limit.png` })
+
+    await setMaxBots(name, 2)
+    await page.reload()
+    await page.getByRole("button", { name: "Add account", exact: true }).click()
+    const hail = `Hail${name}`
+    await addAccount(page, hail)
+    await setMaxBots(name, 1)
+    await page.reload()
+    const hailRow = page.getByRole("row", { name: new RegExp(hail) })
+    await hailRow.getByText("Over plan limit").waitFor()
+    assert(await hailRow.getByRole("button", { name: `Start ${hail}` }).isDisabled(), "after the admin lowers the limit the newest account shows Over plan limit with Start disabled")
+    assert(await galeRows.first().getByRole("button", { name: `Start ${gale}` }).isEnabled(), "the oldest account can still start")
+    assert(await page.getByText("1 account is over your plan limit and can't start.").isVisible(), "the page explains the over-limit account")
+    await hailRow.getByText("Over plan limit").hover()
+    await page.getByRole("tooltip").filter({ hasText: "Your plan runs your oldest bot" }).waitFor()
+    assert(true, "the over-limit state explains itself in a tooltip")
+    await page.screenshot({ path: `${out}/13-over-plan-limit-1280.png` })
+    await axe(page, "dashboard over limit")
+    const startRefused = await page.evaluate(async accountName => {
+        const post = (p, json) => fetch(`/rpc/${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json }) }).then(async r => ({ status: r.status, body: (await r.json()).json }))
+        const list = (await post("accounts/list", {})).body
+        return post("accounts/setDesiredState", { ids: [list.find(a => a.name === accountName).id], state: "running" })
+    }, hail)
+    assert(startRefused.status === 403 && startRefused.body.code === "FORBIDDEN", "calling the API to start the over-limit account is refused (FORBIDDEN)")
+    // An open tooltip keeps its wide-screen position through a resize and would read as overflow.
+    await page.mouse.move(0, 0)
+    await page.getByRole("tooltip").filter({ hasText: "Your plan runs your oldest bot" }).waitFor({ state: "hidden" })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.waitForTimeout(500)
+    assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, "no horizontal overflow on the over-limit dashboard at 390")
+    await page.screenshot({ path: `${out}/13b-over-plan-limit-390.png`, fullPage: true })
+    await axe(page, "dashboard over limit 390")
     await browser.close()
 })().catch(e => { console.error(e.message); process.exit(1) })

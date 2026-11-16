@@ -1,10 +1,10 @@
-import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, TranslationOutlined } from "@ant-design/icons"
+import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined, TranslationOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Col, Grid, Popconfirm, Row, Select, Space, Statistic, Table, Tooltip, Typography } from "antd"
+import { App, Button, Col, Grid, Popconfirm, Row, Select, Space, Statistic, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useMemo, useState } from "react"
-import type { PublicAccount } from "@gge/contracts"
+import { planRunsMessage, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
@@ -17,6 +17,7 @@ dayjs.extend(relativeTime)
 
 const NEEDS_ATTENTION = new Set(["auth_failed", "banned", "error", "crash_loop"])
 const isRunning = (a: PublicAccount) => a.desiredState === "running"
+const twinKey = (a: Pick<PublicAccount, "serverId" | "name">) => `${a.serverId}:${a.name.toLowerCase()}`
 
 export function Dashboard() {
     const { message } = App.useApp()
@@ -26,7 +27,7 @@ export function Dashboard() {
     const servers = useQuery(orpc.servers.list.queryOptions())
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
-    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount }>({ open: false })
+    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
     useLiveBotEvents(true)
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
@@ -57,9 +58,16 @@ export function Dashboard() {
 
     const list = accounts.data ?? []
     const running = list.filter(a => a.status?.actualState === "running").length
+    const counted = list.filter(a => !a.isTwin).length
     const limit = me?.role === "admin" ? undefined : me?.maxBots
-    const atLimit = limit !== undefined && list.length >= limit
-    const limitHint = atLimit ? `Your plan allows ${limit} bot${limit === 1 ? "" : "s"}. Remove one to add another.` : undefined
+    const atLimit = limit !== undefined && counted >= limit
+    const overLimit = list.filter(a => !a.entitled).length
+    const planHint = limit === undefined ? undefined : planRunsMessage(limit)
+    const limitHint = overLimit
+        ? `${overLimit} account${overLimit === 1 ? " is" : "s are"} over your plan limit and can't start. ${planHint}`
+        : atLimit ? `Your plan allows ${limit} bot${limit === 1 ? "" : "s"}. Remove one to add another. Event twins are free.` : undefined
+    const twinned = new Set(list.filter(a => a.isTwin).map(twinKey))
+    const selectedOverLimit = list.some(a => selected.includes(a.id) && !a.entitled)
     const attention = list.filter(a => a.status && NEEDS_ATTENTION.has(a.status.actualState)).length
 
     return (
@@ -80,7 +88,7 @@ export function Dashboard() {
                 </Space>
             }>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={list.length} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
+                <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={counted} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
                 <Col xs={12} sm={8}><ParchmentCard><Statistic title="Running now" value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
                 <Col xs={12} sm={8}><ParchmentCard><Statistic title="Need attention" value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
             </Row>
@@ -90,7 +98,9 @@ export function Dashboard() {
                 extra={selected.length > 0 && (
                     <Space wrap>
                         <Typography.Text type="secondary">{selected.length} selected</Typography.Text>
-                        <Button icon={<CaretRightFilled />} onClick={() => setState.mutate({ ids: selected, state: "running" })}>Start</Button>
+                        <Tooltip title={selectedOverLimit ? `The selection includes accounts over your plan limit. ${planHint}` : undefined}>
+                            <Button icon={<CaretRightFilled />} disabled={selectedOverLimit} onClick={() => setState.mutate({ ids: selected, state: "running" })}>Start</Button>
+                        </Tooltip>
                         <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: selected, state: "stopped" })}>Stop</Button>
                         <Popconfirm title={`Remove ${selected.length} account${selected.length > 1 ? "s" : ""}?`} description="Their bots stop and their settings are deleted. This can't be undone."
                             okText="Remove" okButtonProps={{ danger: true }} onConfirm={() => remove.mutate({ ids: selected })}>
@@ -120,7 +130,14 @@ export function Dashboard() {
                                     </div>
                                 ),
                             },
-                            { title: "Status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> },
+                            {
+                                title: "Status",
+                                render: (_, a) => a.entitled ? <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> : (
+                                    <Tooltip title={planHint}>
+                                        <Tag tabIndex={0} variant="outlined" style={{ color: palette.amber, borderColor: palette.amber, background: "transparent", fontWeight: 500 }}>Over plan limit</Tag>
+                                    </Tooltip>
+                                ),
+                            },
                             { title: "Plugins", render: (_, a) => Object.values(a.plugins).filter(p => p.enabled).length, width: 90 },
                             {
                                 title: "Last seen", width: 140,
@@ -129,12 +146,22 @@ export function Dashboard() {
                                     : <Typography.Text type="secondary">—</Typography.Text>,
                             },
                             {
-                                title: "", key: "actions", width: 200, align: "right",
+                                title: "", key: "actions", width: 240, align: "right",
                                 render: (_, a) => (
                                     <Space>
                                         {isRunning(a)
                                             ? <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: [a.id], state: "stopped" })}>Stop</Button>
-                                            : <Button type="primary" ghost icon={<CaretRightFilled />} onClick={() => setState.mutate({ ids: [a.id], state: "running" })}>Start</Button>}
+                                            : (
+                                                <Tooltip title={a.entitled ? undefined : `Over your plan limit. ${planHint}`}>
+                                                    <Button type="primary" ghost icon={<CaretRightFilled />} disabled={!a.entitled} aria-label={`Start ${a.name}`}
+                                                        onClick={() => setState.mutate({ ids: [a.id], state: "running" })}>Start</Button>
+                                                </Tooltip>
+                                            )}
+                                        {!a.externalEvent && !twinned.has(twinKey(a)) && (
+                                            <Tooltip title="Add event twin: free, plays the temporary event server">
+                                                <Button icon={<ThunderboltOutlined />} aria-label={`Add event twin for ${a.name}`} onClick={() => setDrawer({ open: true, twinOf: a })} />
+                                            </Tooltip>
+                                        )}
                                         <Button icon={<EditOutlined />} aria-label={`Edit ${a.name}`} onClick={() => setDrawer({ open: true, account: a })} />
                                     </Space>
                                 ),
@@ -144,7 +171,7 @@ export function Dashboard() {
                 )}
             </ParchmentCard>
 
-            <AccountDrawer open={drawer.open} account={drawer.account} onClose={() => setDrawer({ open: false })} />
+            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} onClose={() => setDrawer({ open: false })} />
         </AppLayout>
     )
 }
