@@ -1,6 +1,6 @@
 # Competitor research: "Bot Config Builder" (majestic-biscochitos-b7a68b.netlify.app)
 
-Researched 2026-11-16. No account, login or payment exists or was needed.
+Researched 2026-11-16; screenshot pass 2026-11-17 (48 shots, text dumps and a route/section table in `.audit/netlify-config-builder/`). No account, login or payment exists or was needed.
 
 ## Summary
 
@@ -12,6 +12,8 @@ Researched 2026-11-16. No account, login or payment exists or was needed.
 ## How the page works (UI/UX)
 
 - **Header actions:** Load example (asks first: "Replace the current settings with the example from main.py?"), Open file (`.json,.txt,.py`), Paste config (a modal that accepts JSON or the Python dict from `main.py`, with a "Read from clipboard" button; comments and `True`/`False` are accepted; sections missing from the pasted text keep their current values), Copy all, Download, Preview (JSON, or the Python dict for `main.py`), and Reset (back to the bot's defaults).
+- **Preview modal:** a JSON / Python (main.py) toggle and a scope dropdown (whole config or one section). The JSON hint reads "Paste this into the bot's config box (Discord /update_config)", so the bot is also configured through a Discord slash command. The page has no Discord link or settings. The Python hint says to paste the dict as the value of `EXAMPLE_BOT_CONFIG` in `main.py`.
+- **Config keys:** top level is `global`, `towers_bot`, `forts_bot`, `storm_farmer`, `crafting`, `troops_bot`, `tools_bot`, `hospital_bot`, `berimond_bot`, `glory_bot`. Examples: `active`, `scan_every_x_hours`, `max_daily_attacks`, `reserve_commander` (the Prepared switch), `heal_only_coin`, `tower_40` to `tower_80`, `event_difficulty_name`, `banner_mode`.
 - **Per section:** Copy section, Download section and Preview. A section exports as `{ "towers_bot": {...} }` and can be pasted back on its own.
 - **Validation:** each nav item has a badge (✓, or the number of issues), and a global status bar shows "Every section is filled in correctly." An alert inside a section lists each problem, for example "Green · Main castle is on but has no soldier picked." or "Green refinery is on but has no recipe." When you paste a config, keys the page does not know are reported and ignored, for example "forts_bot.ice.aggressive_fort is not shown on this page; ignored" (plus `aggressive_fort_min_delay`, `aggressive_fort_max_delay` and "+17 more"). The bot's own validation still makes the final decision.
 - **Form controls:**
@@ -56,7 +58,7 @@ All rows are "Free (no paid tier exists)". Under Evidence, **UI** means the rend
 | Scheduling / timers | Scan interval and caps | Scan every N hours for each bot; daily caps; hourly caps for each bot, each kingdom and each storm level. No time-of-day scheduler or sleep windows are visible | Free | UI |
 | Anti-ban / humanization | Not exposed | Hourly caps and the reconnect delay are the only throttles. No proxies and no random delays, except the hidden `aggressive_fort_min/max_delay` | n/a | UI |
 | Multi-account | Not exposed | One config per bot instance; the login fields are left out | n/a | README |
-| Notifications | None | No Discord, Telegram or email settings | n/a | UI |
+| Notifications | None | No Discord, Telegram or email settings. The Preview hint does show that the bot takes config through a Discord `/update_config` command | n/a | UI, Preview hint |
 | Dashboards / logs / stats | None | The site only generates config | n/a | UI |
 | Quests / daily rewards / gifts / chests / feasts / Nomads, Samurai, Khan, Underworld | Not present | No sections for these. Glory Bot is generic "event glory attacks" | n/a | UI |
 | Account / billing | None | No account system | n/a | UI |

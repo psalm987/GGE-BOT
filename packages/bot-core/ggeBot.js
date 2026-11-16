@@ -130,6 +130,8 @@ const reportState = (state, reason, extra) => {
     stopReason = reason
     parentPort.postMessage([ActionType.BotState, { state, reason, ...extra }])
 }
+/** True once the bot has told the host why it is stopping. Nothing new should be sent after that. */
+const stopping = () => Boolean(stopReason)
 
 function exitWorker(reason) {
     if (!stopReason)
@@ -247,6 +249,7 @@ module.exports = {
     xtHandler,
     webSocket,
     events,
+    stopping,
     botConfig,
     playerInfo,
     status,

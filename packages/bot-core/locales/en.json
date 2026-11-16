@@ -239,6 +239,13 @@
 	"attackForeign": "Attack Foreign Invasion",
 	"shutoffTimer": "Shutoff timer",
 	"sellStoredEquipment": "Sell stored equipment",
+	"loginBonus": "Daily login bonus",
+	"loginBonusClaimed": "Claimed the daily login bonus",
+	"loginBonusRefused": "The game refused the daily login bonus: ",
+	"loginBonusNoReply": "The game did not answer the daily login bonus claim",
+	"taxCollector": "Tax collector",
+	"taxesCollected": "Collected taxes and sent the tax collector out again",
+	"taxCollectorRefused": "The tax collector could not be used now: ",
 	"upgradeStormForts": "Upgrade Storm Forts",
 	"gettingSpeedGlobalEffect": "Got effect"
 }

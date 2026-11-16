@@ -11,6 +11,7 @@ function fakeBot(overrides = {}) {
     const bot = {
         xtHandler,
         events: new EventEmitter(),
+        stopping: () => false,
         status: {},
         playerInfo: { playerID: 7, alliance: {} },
         botConfig: { name: "test", plugins: {}, gameServer: "EmpireEx_1" },

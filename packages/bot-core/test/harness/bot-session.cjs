@@ -11,7 +11,7 @@ const SERVER = {
  * Runs the real ggeBot.js in a worker against a scripted fake game socket.
  * With `realSocket` the bot opens a real `ws` connection instead, and only what it tells its parent can be checked.
  */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, pinIntervalMs, nchIntervalMs, humanize, gameClientBuild, connect = true, proxyUrl, realSocket = false, surviveExit = false } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, pinIntervalMs, nchIntervalMs, humanize, gameClientBuild, connect = true, proxyUrl, realSocket = false, surviveExit = false, plugins = {} } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
@@ -25,7 +25,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             pass: "pw",
             gameURL: "fake.invalid",
             gameServer: "EmpireEx_1",
-            plugins: {},
+            plugins,
         },
         transferList: [port2],
         stdout: true,
