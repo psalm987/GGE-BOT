@@ -18,3 +18,11 @@ export const queryClient = new QueryClient({
 
 /** The message the API wrote for people, or a generic one. */
 export const messageOf = (error: unknown) => (error as { message?: string })?.message || "Something went wrong. Try again."
+
+const NOTIFICATIONS_PAGE = 20
+/** The player's notifications, a page at a time, newest first. Live events patch this query's data. */
+export const notificationsQuery = orpc.notifications.list.infiniteOptions({
+    input: (before: number | undefined) => ({ before, limit: NOTIFICATIONS_PAGE }),
+    initialPageParam: undefined,
+    getNextPageParam: last => last.items.length >= NOTIFICATIONS_PAGE ? last.items.at(-1)!.id : undefined,
+})

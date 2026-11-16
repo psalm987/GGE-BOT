@@ -47,6 +47,8 @@ The process that changes the data also inserts one row per event into `centrifug
 | Runner | `status`: a bot's whole status row | `personal:user#<ownerId>` |
 | Runner | `log`: one log line, with its untranslated `parts` | `bot:<accountId>` |
 | Runner, API | `account`: an account was started or stopped | `personal:user#<ownerId>` |
+| Runner | `notification`: a new notification, whole | `personal:user#<ownerId>` |
+| API | `notifications_read`: the notifications a player just marked read | `personal:user#<userId>` |
 | API | a `disconnect` for one user, when a session of theirs ends | none |
 
 The API publishes an `account` event for every start and stop it makes: a player's own, a lowered plan limit, an admin's force stop, and a disabled user. A second tab or device therefore shows the change at once.
@@ -55,7 +57,25 @@ The player app opens one socket per tab with a token from `realtime.connectionTo
 
 Centrifugo keeps a few minutes of history for each channel, so a socket that reconnects gets the events it missed. If the gap is longer than the history, the app refetches the account list or the log page.
 
-While the socket is down, the app shows **Reconnecting…** and refetches the account list every 15 seconds. A deployment without Centrifugo (`CENTRIFUGO_TOKEN_SECRET` unset) works the same way, without the badge: the API answers `NOT_IMPLEMENTED` to a token request and the app stops asking.
+While the socket is down, the app shows **Reconnecting…** and refetches the account list and the notifications every 15 seconds. A deployment without Centrifugo (`CENTRIFUGO_TOKEN_SECRET` unset) works the same way, without the badge: the API answers `NOT_IMPLEMENTED` to a token request and the app stops asking.
+
+## Notifications
+
+A player is notified when the runner stops a bot that only they can get going again. There are four kinds: `banned`, `auth_failed` (the game rejected the password), `crash_loop` (the runner gave up after repeated failures) and `shutoff` (the shutoff-timer plugin ended the run).
+
+The runner's `store.endAccount` saves the status, sets the account to stopped and inserts the `notifications` row in one transaction, together with their three events. The row's `dedup_key` is `<kind>:<accountId>:<runId>`, so a worker that reports the same ending twice notifies once. The row's `data` copies the account's name and server, so the notification still reads right after the account is renamed or removed.
+
+The player app shows them under the bell in the header. A `notification` event adds one to the open list and shows a toast. Marking one read in one tab clears it in the others through `notifications_read`.
+
+The API also emails them. `apps/api/src/services/notification-mailer.ts` runs inside every API process and looks for due rows every 15 seconds:
+
+- A player's rows are due once their newest pending row is 30 seconds old, so a burst shares one email. A steady stream can hold back the oldest row for at most 5 minutes. Each round sends one `bot_alerts` email per player, covering every row of theirs that is due.
+- A round claims its rows with `FOR UPDATE SKIP LOCKED` and stamps `email_claimed_at`. Two API processes therefore never send the same row. A claim left by a process that died is taken over after 5 minutes.
+- A row ends as `sent`, `skipped` or `failed` in `email_state`. It is skipped, with the reason in `email_error`, when the player is disabled, has no confirmed email, turned that kind off under **Settings**, or already got 20 notifications by email in the last 24 hours. A delivery that fails is tried again on the next round, and the row is `failed` after 5 attempts.
+
+Players choose the kinds to be emailed about under **Settings**. Emails for `shutoff` are off until they turn them on. The choice is stored in `users.notification_prefs`, and a kind that is missing there takes its default.
+
+The runner deletes read notifications after 30 days and every notification after 180 days.
 
 ## Bot lifecycle in the runner
 

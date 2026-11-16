@@ -69,7 +69,7 @@ export async function startApi(env: Partial<Env> = {}) {
         },
     }
     const app = await buildServer({
-        db, logger: false, mailer,
+        db, logger: false, mailer, mailWorker: false,
         env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, TOTP_ENCRYPTION_KEY: totpKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
@@ -131,7 +131,10 @@ export async function startApi(env: Partial<Env> = {}) {
     }
 
     return {
-        db, keys, baseUrl, app, client, admin, signup, player, newAdmin, enrolledAdmin, signedInAdmin, sent, lastLink, lastToken, failMail: (failing: boolean) => { mailFailing = failing },
+        db, keys, baseUrl, app, client, admin, signup, player, newAdmin, enrolledAdmin, signedInAdmin, sent, lastLink, lastToken,
+        /** One round of the notification mailer, which doesn't poll on its own here. */
+        mailTick: () => app.notificationMailer.tick(),
+        failMail: (failing: boolean) => { mailFailing = failing },
         close: async () => { await app.close(); await db.$pool.end() },
         accountRows: () => db.select().from(gameAccounts),
     }

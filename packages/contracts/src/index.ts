@@ -1,13 +1,15 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
-import { RealtimeToken } from "./realtime.ts"
+import { Notification, NotificationPrefs } from "./notifications.ts"
+import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
     AdminAccount, AdminLoginStep, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, SecondFactor, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./entitlement.ts"
+export * from "./notifications.ts"
 export * from "./plugins.ts"
 export * from "./realtime.ts"
 export * from "./schemas.ts"
@@ -34,6 +36,16 @@ export const clientContract = {
         /** Only while the account has no email yet. */
         addEmail: oc.input(z.object({ email: Email })).output(z.void()),
         changePassword: oc.input(z.object({ current: z.string().min(1).max(200), next: NewPassword })).output(z.void()),
+        /** Which kinds of notification are also emailed. */
+        notificationPrefs: oc.output(NotificationPrefs),
+        setNotificationPrefs: oc.input(NotificationPrefs).output(z.void()),
+    },
+    /** The caller's own notifications, newest first. An unverified player can read them too. */
+    notifications: {
+        /** `unread` counts every unread notification, not only the ones on this page. */
+        list: oc.input(z.object({ before: z.number().int().optional(), limit: z.number().int().min(1).max(50).default(20) }))
+            .output(z.object({ items: z.array(Notification), unread: z.number().int() })),
+        markRead: oc.input(NotificationsRead).output(z.void()),
     },
     accounts: {
         list: oc.output(z.array(PublicAccount)),

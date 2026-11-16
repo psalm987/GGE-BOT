@@ -58,4 +58,4 @@ The runner takes a Postgres advisory lock at start. A second runner (for example
 
 ## Disk
 
-Postgres, Prometheus (15 days) and the backups volume grow. `docker system df -v` shows volume sizes. Bot logs are pruned hourly; audit log and run history are kept.
+Postgres, Prometheus (15 days) and the backups volume grow. `docker system df -v` shows volume sizes. Bot logs and notifications are pruned hourly (a read notification after 30 days, any notification after 180); audit log and run history are kept.

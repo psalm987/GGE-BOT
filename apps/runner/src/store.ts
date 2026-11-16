@@ -1,6 +1,8 @@
-import { eq, inArray, isNull, lt, sql } from "drizzle-orm"
-import { botChannel, userChannel, type BotChannelEvent, type UserEvent } from "@gge/contracts"
-import { botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, publish, publishMany, runnerHeartbeat, type Db } from "@gge/db"
+import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { botChannel, userChannel, type BotChannelEvent, type NotificationContent, type UserEvent } from "@gge/contracts"
+import {
+    botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, insertNotification, notifications, publish, publishMany, runnerHeartbeat, servers, type Db,
+} from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
@@ -11,12 +13,26 @@ export type StatusPatch = {
     heartbeat?: boolean
 }
 
+type Detail<C> = C extends { kind: infer K; data: infer D } ? { kind: K } & Omit<D, "accountName" | "serverLabel"> : never
+/** What to tell the owner about a run that ended: the kind and its details. The store adds the account's name and server. */
+export type EndNotice = Detail<NotificationContent>
+
+/** How an account that the runner itself stops is left. A status is written only when `actualState` is given. */
+export type AccountEnding = Pick<StatusPatch, "actualState" | "lastError" | "bannedUntil"> & {
+    /** `runId` is the run that ended, so a second report of the same ending is recognised. */
+    notification: EndNotice & { runId: number | undefined }
+}
+
 const isMissingAccount = (error: unknown) =>
     ((error as { cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code) === "23503"
 
 export const LOG_RETENTION = { perAccount: 500, days: 7 }
 /** Centrifugo deletes outbox rows as it delivers them. Older rows mean it is down, and its clients refetch on reconnect anyway. */
 export const OUTBOX_MAX_AGE_MS = 3600_000
+/** A read notification is kept this long, and any notification no longer than `anyDays`. */
+export const NOTIFICATION_RETENTION = { readDays: 30, anyDays: 180 }
+
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0]
 
 const logParts = (parts: unknown) => Array.isArray(parts) ? parts as (string | number)[] : null
 
@@ -59,6 +75,21 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         }
     }
 
+    const upsertStatus = (tx: Tx, accountId: string, patch: StatusPatch) => {
+        const set = {
+            ...(patch.actualState && { actualState: patch.actualState }),
+            ...(patch.lastError !== undefined && { lastError: patch.lastError }),
+            ...(patch.bannedUntil !== undefined && { bannedUntil: patch.bannedUntil }),
+            ...(patch.resources !== undefined && { resources: patch.resources }),
+            ...(patch.heartbeat && { heartbeatAt: new Date() }),
+        }
+        return tx.insert(botStatus).values({ accountId, ...set }).onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
+    }
+    const statusEvent = (status: typeof botStatus.$inferSelect): UserEvent => ({
+        v: 1, kind: "status", accountId: status.accountId,
+        status: { actualState: status.actualState, heartbeatAt: status.heartbeatAt, lastError: status.lastError, bannedUntil: status.bannedUntil },
+    })
+
     return {
         async openRun(accountId: string) {
             const [run] = await db.insert(botRuns).values({ accountId }).returning({ id: botRuns.id }).catch(error => {
@@ -74,22 +105,11 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         },
 
         async setStatus(accountId: string, patch: StatusPatch) {
-            const set = {
-                ...(patch.actualState && { actualState: patch.actualState }),
-                ...(patch.lastError !== undefined && { lastError: patch.lastError }),
-                ...(patch.bannedUntil !== undefined && { bannedUntil: patch.bannedUntil }),
-                ...(patch.resources !== undefined && { resources: patch.resources }),
-                ...(patch.heartbeat && { heartbeatAt: new Date() }),
-            }
             try {
                 await db.transaction(async tx => {
-                    const [status] = await tx.insert(botStatus).values({ accountId, ...set })
-                        .onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
+                    const [status] = await upsertStatus(tx, accountId, patch)
                     const [account] = await tx.select({ ownerId: gameAccounts.ownerId }).from(gameAccounts).where(eq(gameAccounts.id, accountId))
-                    await publish(tx, userChannel(account!.ownerId), {
-                        v: 1, kind: "status", accountId,
-                        status: { actualState: status!.actualState, heartbeatAt: status!.heartbeatAt, lastError: status!.lastError, bannedUntil: status!.bannedUntil },
-                    } satisfies UserEvent)
+                    await publish(tx, userChannel(account!.ownerId), statusEvent(status!))
                 })
             } catch (error) {
                 if (!isMissingAccount(error)) throw error
@@ -101,13 +121,32 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             await db.update(botStatus).set({ heartbeatAt: new Date() }).where(eq(botStatus.accountId, accountId))
         },
 
-        /** The runner itself decided this account must not run again until its owner acts. */
-        async stopAccount(accountId: string) {
+        /**
+         * The runner itself decided this account must not run again until its owner acts.
+         * Saves the status (when one is given), stops the account and notifies the owner, all or nothing.
+         * Reporting the same run's ending twice notifies once. A deleted account is left alone.
+         */
+        async endAccount(accountId: string, { notification, ...status }: AccountEnding) {
             await db.transaction(async tx => {
                 const [account] = await tx.update(gameAccounts).set({ desiredState: "stopped", updatedAt: new Date() })
-                    .where(eq(gameAccounts.id, accountId)).returning({ ownerId: gameAccounts.ownerId })
-                if (account)
-                    await publish(tx, userChannel(account.ownerId), { v: 1, kind: "account", accountId, desiredState: "stopped" } satisfies UserEvent)
+                    .where(eq(gameAccounts.id, accountId))
+                    .returning({ ownerId: gameAccounts.ownerId, name: gameAccounts.name, serverId: gameAccounts.serverId })
+                if (!account)
+                    return
+                const channel = userChannel(account.ownerId)
+                if (status.actualState)
+                    await publish(tx, channel, statusEvent((await upsertStatus(tx, accountId, status))[0]!))
+                await publish(tx, channel, { v: 1, kind: "account", accountId, desiredState: "stopped" } satisfies UserEvent)
+
+                const [server] = await tx.select({ label: servers.label }).from(servers).where(eq(servers.id, account.serverId))
+                const { runId, kind, ...details } = notification
+                // The details are the ones `kind` calls for; taking them apart loses that pairing for the compiler.
+                const content = { kind, data: { ...details, accountName: account.name, serverLabel: server!.label } } as NotificationContent
+                await insertNotification(tx, {
+                    ...content, userId: account.ownerId, accountId,
+                    // Without a run there is nothing to recognise a repeat by, so each report stands alone.
+                    dedupKey: `${kind}:${accountId}:${runId ?? `at-${Date.now()}`}`,
+                })
             })
         },
 
@@ -139,6 +178,13 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                         select id, row_number() over (partition by account_id order by id desc) as n from ${botLogs}
                     ) ranked where n > ${perAccount}
                 ) old where l.id = old.id`)
+        },
+
+        async pruneNotifications({ readDays, anyDays } = NOTIFICATION_RETENTION) {
+            await db.delete(notifications).where(or(
+                and(isNotNull(notifications.readAt), lt(notifications.createdAt, sql`now() - make_interval(days => ${readDays})`)),
+                lt(notifications.createdAt, sql`now() - make_interval(days => ${anyDays})`),
+            ))
         },
 
         async pruneOutbox(maxAgeMs = OUTBOX_MAX_AGE_MS) {

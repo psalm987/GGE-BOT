@@ -1,8 +1,10 @@
 import { Centrifuge, UnauthorizedError, connectingCodes, disconnectedCodes, type SubscribedContext } from "centrifuge"
-import { useEffect, useState, useSyncExternalStore } from "react"
-import { BotChannelEvent, UserEvent, botChannel, userChannel, type PublicAccount } from "@gge/contracts"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { BotChannelEvent, UserEvent, botChannel, userChannel, type Notification, type PublicAccount } from "@gge/contracts"
 import { applyUserEvent } from "./account-events.ts"
-import { client, orpc, queryClient } from "./api.ts"
+import { client, notificationsQuery, orpc, queryClient } from "./api.ts"
+import { patchQuery } from "./live-cache.ts"
+import { applyNotificationEvent, type NotificationPages } from "./notification-events.ts"
 
 /**
  * Where live updates stand:
@@ -72,8 +74,14 @@ function parse<T>(schema: { safeParse: (data: unknown) => { success: true; data:
 /** True when events may have been missed: a first subscribe, or a resubscribe the server's history couldn't cover. */
 const missedEvents = (ctx: SubscribedContext) => !ctx.recovered
 
-/** Keeps the account list current for the signed-in player while mounted. Pass undefined while signed out. */
-export function useRealtime(userId: string | undefined) {
+/**
+ * Keeps the account list and the notifications current for the signed-in player while mounted, and calls
+ * `onNotification` for each new one. Pass undefined while signed out. It owns the one connection, so mount it
+ * once, above the routes: a second mount, or one that remounts on navigation, would reconnect.
+ */
+export function useRealtime(userId: string | undefined, onNotification: (notification: Notification) => void) {
+    const notify = useRef(onNotification)
+    useEffect(() => { notify.current = onNotification })
     useEffect(() => {
         if (!userId)
             return
@@ -81,12 +89,19 @@ export function useRealtime(userId: string | undefined) {
         const subscription = centrifuge.newSubscription(userChannel(userId))
         subscription.on("publication", ({ data }) => {
             const event = parse(UserEvent, data)
-            if (event)
-                queryClient.setQueryData<PublicAccount[]>(listKey, accounts => applyUserEvent(accounts, event))
+            if (!event)
+                return
+            if (event.kind === "status" || event.kind === "account")
+                return patchQuery<PublicAccount[]>(queryClient, listKey, accounts => applyUserEvent(accounts, event))
+            patchQuery<NotificationPages>(queryClient, notificationsQuery.queryKey, loaded => applyNotificationEvent(loaded, event))
+            if (event.kind === "notification")
+                notify.current(event.notification)
         })
         subscription.on("subscribed", ctx => {
-            if (missedEvents(ctx))
-                void queryClient.invalidateQueries({ queryKey: listKey })
+            if (!missedEvents(ctx))
+                return
+            void queryClient.invalidateQueries({ queryKey: listKey })
+            void queryClient.invalidateQueries({ queryKey: notificationsQuery.queryKey })
         })
         subscription.subscribe()
         centrifuge.connect()

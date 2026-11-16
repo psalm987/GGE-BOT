@@ -7,6 +7,7 @@ import { audit } from "../services/audit.ts"
 import {
     createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
+import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { connectionToken, subscriptionToken } from "../services/realtime.ts"
 import { addEmail, changePassword, resendVerification } from "./account.ts"
 import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
@@ -41,6 +42,13 @@ export const clientRouter = os.router({
         resendVerification: os.account.resendVerification.use(authed).handler(({ context }) => resendVerification(context, context.user)),
         addEmail: os.account.addEmail.use(authed).handler(({ context, input }) => addEmail(context, context.user, input)),
         changePassword: os.account.changePassword.use(authed).handler(({ context, input }) => changePassword(context, context.user, input)),
+        notificationPrefs: os.account.notificationPrefs.use(authed).handler(({ context }) => getNotificationPrefs(context.db, context.user.id)),
+        setNotificationPrefs: os.account.setNotificationPrefs.use(authed).handler(({ context, input }) => setNotificationPrefs(context.db, context.user.id, input)),
+    },
+    // Not `verified`: a player whose email isn't confirmed yet can still have notifications to read.
+    notifications: {
+        list: os.notifications.list.use(authed).handler(({ context, input }) => listNotifications(context.db, context.user.id, input)),
+        markRead: os.notifications.markRead.use(authed).handler(({ context, input }) => markNotificationsRead(context.db, context.user.id, input)),
     },
     accounts: {
         list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),

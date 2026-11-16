@@ -9,6 +9,7 @@ import { CampaignProvider } from "@gge/ui"
 import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
+import { LiveUpdates } from "./components/LiveUpdates.tsx"
 import { useLanguage } from "./i18n.ts"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
@@ -24,6 +25,8 @@ function Root() {
         <CampaignProvider direction={language === "ar" ? "rtl" : "ltr"}>
             <QueryClientProvider client={queryClient}>
                 <BrowserRouter>
+                    {/* Outside <Routes>, so moving between pages keeps the one live connection. */}
+                    <LiveUpdates />
                     <Routes>
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />

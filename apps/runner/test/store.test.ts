@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto"
 import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
-import { BotChannelEvent, UserEvent, botChannel, userChannel } from "@gge/contracts"
-import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, publish, servers, users, type Db } from "@gge/db"
+import { BotChannelEvent, Notification, UserEvent, botChannel, userChannel } from "@gge/contracts"
+import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, publish, servers, users, type Db } from "@gge/db"
 import { createStore, type Store } from "../src/store.ts"
 
 let db: Db
@@ -76,7 +76,7 @@ test("flushed log lines are published to the account's channel with their parts"
 test("nothing is published for a deleted account, and its lines don't cost other accounts theirs", async () => {
     const gone = randomUUID()
     await store.setStatus(gone, { actualState: "running" })
-    await store.stopAccount(gone)
+    await store.endAccount(gone, { actualState: "banned", notification: { kind: "shutoff", runId: 1 } })
     store.log(gone, 0, ["x"], "from a deleted account")
     store.log(accountId, 0, ["y"], "from a live account")
     await store.flushLogs()
@@ -85,13 +85,76 @@ test("nothing is published for a deleted account, and its lines don't cost other
     expect(await published(botChannel(accountId))).toHaveLength(1)
 })
 
-test("stopping an account on the runner's own decision tells its owner", async () => {
-    await store.stopAccount(accountId)
+const mine = () => db.select().from(notifications).where(eq(notifications.userId, ownerId)).orderBy(asc(notifications.id))
 
-    expect((await published(userChannel(ownerId))).map(data => UserEvent.parse(data)))
-        .toEqual([{ v: 1, kind: "account", accountId, desiredState: "stopped" }])
+test("ending an account saves why, stops it and notifies its owner, in that order on their channel", async () => {
+    const bannedUntil = new Date("2031-02-03T04:05:06.000Z")
+    await store.endAccount(accountId, {
+        actualState: "banned", lastError: "IS_BANNED", bannedUntil,
+        notification: { kind: "banned", bannedUntil: bannedUntil.toISOString(), runId: 7 },
+    })
+
     const [account] = await db.select().from(gameAccounts).where(eq(gameAccounts.id, accountId))
     expect(account!.desiredState).toBe("stopped")
+    const [row] = await mine()
+    expect(row).toMatchObject({
+        accountId, kind: "banned", readAt: null, emailState: "pending",
+        data: { accountName: account!.name, serverLabel: "India 1", bannedUntil: "2031-02-03T04:05:06.000Z" },
+    })
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events).toEqual([
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null } },
+        { v: 1, kind: "account", accountId, desiredState: "stopped" },
+        { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
+    ])
+})
+
+test("an ending without a status leaves the status alone", async () => {
+    await store.setStatus(accountId, { actualState: "running" })
+    await store.endAccount(accountId, { notification: { kind: "shutoff", runId: 7 } })
+
+    expect((await db.select().from(botStatus).where(eq(botStatus.accountId, accountId)))[0]!.actualState).toBe("running")
+    expect((await published(userChannel(ownerId))).map(data => UserEvent.parse(data).kind)).toEqual(["status", "account", "notification"])
+    expect(await mine()).toMatchObject([{ kind: "shutoff" }])
+})
+
+test("the same run's ending reported twice notifies once, and another run's notifies again", async () => {
+    const ending = (runId: number) => ({ actualState: "auth_failed" as const, lastError: "INVALID_PASSWORD", notification: { kind: "auth_failed" as const, lastError: "INVALID_PASSWORD", runId } })
+    await store.endAccount(accountId, ending(7))
+    await store.endAccount(accountId, ending(7))
+    const notified = async () => (await published(userChannel(ownerId))).filter(data => UserEvent.parse(data).kind === "notification").length
+    expect(await mine()).toHaveLength(1)
+    expect(await notified()).toBe(1)
+
+    await store.endAccount(accountId, ending(8))
+    expect(await mine()).toHaveLength(2)
+    expect(await notified()).toBe(2)
+})
+
+test("a notification outlives its account and keeps the account's name", async () => {
+    await store.endAccount(accountId, { actualState: "crash_loop", lastError: "x", notification: { kind: "crash_loop", failures: 8, lastError: "boom", runId: 7 } })
+    const [account] = await db.select().from(gameAccounts).where(eq(gameAccounts.id, accountId))
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
+
+    expect(await mine()).toMatchObject([{ accountId: null, kind: "crash_loop", data: { accountName: account!.name, failures: 8, lastError: "boom" } }])
+})
+
+test("pruning removes read notifications after 30 days and unread ones after 180", async () => {
+    const add = async (label: string, days: number, read: boolean) => {
+        await db.insert(notifications).values({
+            userId: ownerId, accountId, kind: "shutoff", data: { accountName: label, serverLabel: "India 1" }, dedupKey: label,
+            createdAt: sql`now() - make_interval(days => ${days})`, readAt: read ? new Date() : null,
+        })
+    }
+    await add("read, 29 days", 29, true)
+    await add("read, 31 days", 31, true)
+    await add("unread, 31 days", 31, false)
+    await add("unread, 179 days", 179, false)
+    await add("unread, 181 days", 181, false)
+
+    await store.pruneNotifications()
+
+    expect((await mine()).map(row => row.dedupKey)).toEqual(["read, 29 days", "unread, 31 days", "unread, 179 days"])
 })
 
 test("pruning removes only messages nobody collected for over an hour", async () => {
@@ -116,7 +179,7 @@ test("each new message wakes Centrifugo's consumer on its partition", async () =
         const woken: string[] = []
         listener.on("notification", n => { if (n.channel === "centrifugo_partition_change") woken.push(n.payload!) })
         await listener.query("listen centrifugo_partition_change")
-        await store.stopAccount(accountId)
+        await store.endAccount(accountId, { notification: { kind: "shutoff", runId: 1 } })
         await expect.poll(() => woken).toContain("0")
     } finally {
         listener.release(true)

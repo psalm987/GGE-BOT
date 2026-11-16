@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { UserEvent, type PublicAccount } from "@gge/contracts"
+import { UserEvent, type AccountEvent, type PublicAccount } from "@gge/contracts"
 import { applyUserEvent } from "../src/account-events.ts"
 
 const account = (id: string, over: Partial<PublicAccount> = {}): PublicAccount => ({
@@ -9,7 +9,7 @@ const account = (id: string, over: Partial<PublicAccount> = {}): PublicAccount =
 const A = "11111111-1111-4111-8111-111111111111"
 const B = "22222222-2222-4222-8222-222222222222"
 /** An event as it arrives off the socket: JSON, parsed the way the app parses it. */
-const fromWire = (event: object) => UserEvent.parse(JSON.parse(JSON.stringify({ v: 1, ...event })))
+const fromWire = (event: object) => UserEvent.parse(JSON.parse(JSON.stringify({ v: 1, ...event }))) as AccountEvent
 
 test("a status event replaces that account's status and leaves the others alone", () => {
     const list = [account(A), account(B)]

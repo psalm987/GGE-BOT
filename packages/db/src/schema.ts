@@ -14,6 +14,7 @@ import {
     smallint,
     text,
     timestamp,
+    unique,
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
@@ -51,6 +52,8 @@ export const users = pgTable("users", {
     attackPluginCap: attackPluginCap("attack_plugin_cap"),
     /** Users.uuid in the legacy user.db, so the importer can re-run. */
     legacyUuid: text("legacy_uuid").unique(),
+    /** Which notification kinds are also emailed. A missing kind takes its default; read it with notificationPrefs() from @gge/contracts. */
+    notificationPrefs: jsonb("notification_prefs").notNull().default({}),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
 }, t => [
@@ -235,3 +238,34 @@ export const centrifugoOutbox = pgTable("centrifugo_outbox", {
     partition: bigint("partition", { mode: "number" }).notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [index("centrifugo_outbox_partition_id").on(t.partition, t.id)])
+
+/**
+ * Something that stopped a bot until its owner acts. Write rows with insertNotification() from ./notifications.ts.
+ * The API's notification mailer sends each one once, which the email_* columns track.
+ */
+export const notifications = pgTable("notifications", {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** null once the account is removed; `data` keeps its name. */
+    accountId: uuid("account_id").references(() => gameAccounts.id, { onDelete: "set null" }),
+    /** A NotificationKind from @gge/contracts. */
+    kind: text("kind").notNull(),
+    /** That kind's details and a snapshot of the account, as NotificationContent describes. */
+    data: jsonb("data").notNull(),
+    /** One per event, so reporting it twice makes one row. */
+    dedupKey: text("dedup_key").notNull(),
+    createdAt: createdAt(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    /** An EmailState from @gge/contracts. */
+    emailState: text("email_state").notNull().default("pending"),
+    /** Set while a mailer is sending this row; a claim older than the lease is taken over. */
+    emailClaimedAt: timestamp("email_claimed_at", { withTimezone: true }),
+    emailedAt: timestamp("emailed_at", { withTimezone: true }),
+    emailAttempts: integer("email_attempts").notNull().default(0),
+    /** Why the row was skipped, or the last delivery failure. */
+    emailError: text("email_error"),
+}, t => [
+    unique("notifications_user_dedup").on(t.userId, t.dedupKey),
+    index("notifications_user_id").on(t.userId, t.id.desc()),
+    index("notifications_email_pending").on(t.createdAt).where(sql`${t.emailState} = 'pending'`),
+])

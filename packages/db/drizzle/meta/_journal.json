@@ -92,6 +92,13 @@
       "when": 1794823726344,
       "tag": "0012_centrifugo_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794836551706,
+      "tag": "0013_notifications",
+      "breakpoints": true
     }
   ]
 }

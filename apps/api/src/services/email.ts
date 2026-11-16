@@ -12,7 +12,7 @@ export function clientLink(ctx: Pick<Ctx, "env">, path: string, params: Record<s
 
 /** Sends one templated email. A delivery failure is logged and audited, never thrown: callers answer the same either way. */
 export async function sendEmail<K extends EmailKind>(
-    ctx: Pick<Ctx, "db" | "mailer" | "req">,
+    ctx: Pick<Ctx, "db" | "mailer" | "log">,
     kind: K,
     to: string,
     data: TemplateData<K>,
@@ -23,7 +23,7 @@ export async function sendEmail<K extends EmailKind>(
         await ctx.mailer.send({ to, tag: kind, ...rendered })
         return true
     } catch (error) {
-        ctx.req.log.error({ err: error, kind }, "email delivery failed")
+        ctx.log.error({ err: error, kind }, "email delivery failed")
         await audit(ctx.db, { actorId, action: "email.send_failed", meta: { kind } }).catch(() => {})
         return false
     }

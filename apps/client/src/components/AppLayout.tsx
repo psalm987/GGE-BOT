@@ -4,7 +4,8 @@ import type { ReactNode } from "react"
 import { useNavigate } from "react-router"
 import { CampaignLayout } from "@gge/ui"
 import { useLogout, useMe } from "../auth.tsx"
-import { useRealtime, useRealtimeState } from "../realtime.ts"
+import { useRealtimeState } from "../realtime.ts"
+import { NotificationBell } from "./NotificationBell.tsx"
 
 const ROUTES = { accounts: "/", settings: "/settings" } as const
 
@@ -20,7 +21,6 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     const me = useMe()
     const logout = useLogout()
     const phone = !Grid.useBreakpoint().md
-    useRealtime(me.data?.id)
     const reconnecting = useRealtimeState() === "polling"
     async function signOut() {
         await logout.mutateAsync({})
@@ -50,6 +50,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
                     )}
                 </span>
                 {extra}
+                <NotificationBell />
             </>}>
             {children}
         </CampaignLayout>

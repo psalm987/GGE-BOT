@@ -1,6 +1,6 @@
 import { createRequire } from "node:module"
 import type { BotSpec } from "./specs.ts"
-import type { StatusPatch } from "./store.ts"
+import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
 
 const require = createRequire(import.meta.url)
@@ -73,6 +73,8 @@ type Bot = {
     retryTimer?: NodeJS.Timeout
     terminal?: Terminal
     failure?: Failure
+    /** The newest run's id, which names that run's ending in a notification. */
+    runId?: Promise<number | undefined>
     /** Settles once the current worker's exit has been recorded. */
     exited?: Promise<void>
 }
@@ -84,7 +86,7 @@ export type SupervisorDeps = {
         closeRun(id: number | undefined, reason: string, error?: string | null): Promise<void>
         setStatus(accountId: string, patch: StatusPatch): Promise<void>
         touchHeartbeat(accountId: string): Promise<void>
-        stopAccount(accountId: string): Promise<unknown>
+        endAccount(accountId: string, ending: AccountEnding): Promise<void>
         log(accountId: string, level: number, parts: unknown, message: string): void
     }
     openPassword: (sealed: Buffer) => string
@@ -344,7 +346,7 @@ export class Supervisor {
         this.lastStart.set(id, bot.startedAt)
         bot.terminal = undefined
         bot.failure = undefined
-        const runId = this.deps.store.openRun(id)
+        const runId = bot.runId = this.deps.store.openRun(id)
         worker.on("message", message => this.onMessage(bot, message))
         worker.on("error", error => {
             // Emitted before "exit", so onExit records it as the run's error.
@@ -381,12 +383,10 @@ export class Supervisor {
                 const state = payload as { state: string; reason: string; bannedUntil?: number }
                 if (state.state === "banned" || state.state === "auth_failed") {
                     bot.terminal = state as Terminal
-                    this.track(store.setStatus(id, {
-                        actualState: state.state,
-                        lastError: state.reason,
-                        bannedUntil: state.bannedUntil ? new Date(state.bannedUntil) : null,
-                    }))
-                    this.track(store.stopAccount(id))
+                    const bannedUntil = state.bannedUntil ? new Date(state.bannedUntil) : null
+                    this.end(bot, { actualState: state.state, lastError: state.reason, bannedUntil }, state.state === "banned"
+                        ? { kind: "banned", bannedUntil: bannedUntil?.toISOString() ?? null }
+                        : { kind: "auth_failed", lastError: state.reason })
                     this.forget(bot, state.state)
                 } else {
                     bot.failure = { endReason: "error", message: state.reason }
@@ -397,11 +397,18 @@ export class Supervisor {
             case Action.KillBot:
                 // Sent after a BotState, or alone by the shutoff timer plugin.
                 if (!bot.terminal) {
-                    this.track(store.stopAccount(id))
+                    // No status here: the worker's exit writes "stopped".
+                    this.end(bot, {}, { kind: "shutoff" })
                     this.forget(bot, "shutoff")
                 }
                 break
         }
+    }
+
+    /** Stops the account for good and tells its owner why, as one write. */
+    private end(bot: Bot, status: Omit<AccountEnding, "notification">, notice: EndNotice) {
+        const { runId } = bot
+        this.track((async () => this.deps.store.endAccount(bot.spec.accountId, { ...status, notification: { ...notice, runId: await runId } }))())
     }
 
     private forget(bot: Bot, reason: EndReason) {
@@ -460,11 +467,8 @@ export class Supervisor {
     }
 
     private giveUpOn(bot: Bot, failures: number, why: string) {
-        const id = bot.spec.accountId
-        const { store } = this.deps
-        this.bots.delete(id)
-        this.track(store.setStatus(id, { actualState: "crash_loop", lastError: `Stopped after ${failures} failed starts in a row: ${why}` })
-            .then(() => store.stopAccount(id)))
+        this.bots.delete(bot.spec.accountId)
+        this.end(bot, { actualState: "crash_loop", lastError: `Stopped after ${failures} failed starts in a row: ${why}` }, { kind: "crash_loop", failures, lastError: why })
     }
 
     private async scheduleRetry(bot: Bot, why: string) {

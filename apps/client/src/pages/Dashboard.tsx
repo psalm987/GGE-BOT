@@ -3,7 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Button, Col, Grid, Popconfirm, Row, Select, Space, Statistic, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "react-router"
 import { planRunsMessage, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
@@ -28,6 +29,21 @@ export function Dashboard() {
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
     const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
+
+    // A notification links here as /?account=<id>. The id is taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
+    const [params, setParams] = useSearchParams()
+    const wanted = params.get("account")
+    useEffect(() => {
+        if (!wanted || !accounts.data)
+            return
+        const account = accounts.data.find(a => a.id === wanted)
+        if (account)
+            setDrawer({ open: true, account })
+        setParams(current => {
+            current.delete("account")
+            return current
+        }, { replace: true })
+    }, [wanted, accounts.data, setParams])
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()

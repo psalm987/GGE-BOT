@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest"
+import { notificationPrefs } from "../src/notifications.ts"
 import { BotChannelEvent, UserEvent, botChannel, userChannel } from "../src/realtime.ts"
 
 const accountId = "7f6fd670-065e-4904-ac1f-4182677aa76b"
@@ -28,5 +29,46 @@ describe("realtime events", () => {
         expect(UserEvent.safeParse({ v: 2, kind: "account", accountId, desiredState: "stopped" }).success).toBe(false)
         expect(UserEvent.safeParse({ v: 1, kind: "notification", accountId }).success).toBe(false)
         expect(UserEvent.safeParse({ v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt: "yesterday", lastError: null, bannedUntil: null } }).success).toBe(false)
+    })
+})
+
+describe("notification events", () => {
+    const notification = {
+        id: 4, kind: "banned", accountId, createdAt: new Date("2031-02-03T04:05:06.000Z"), readAt: null,
+        data: { accountName: "Hero", serverLabel: "India 1", bannedUntil: "2031-03-01T00:00:00.000Z" },
+    }
+
+    test("a notification read off the wire has real dates and keeps the account's snapshot", () => {
+        const event = { v: 1, kind: "notification", notification }
+        expect(UserEvent.parse(overTheWire(event))).toEqual(event)
+    })
+
+    test("a notification for a removed account is still readable", () => {
+        const event = { v: 1, kind: "notification", notification: { ...notification, accountId: null } }
+        expect(UserEvent.parse(overTheWire(event))).toEqual(event)
+    })
+
+    test("each kind must carry its own details", () => {
+        const crashLoop = { ...notification, kind: "crash_loop" }
+        expect(UserEvent.safeParse({ v: 1, kind: "notification", notification: crashLoop }).success).toBe(false)
+        expect(UserEvent.safeParse({ v: 1, kind: "notification", notification: { ...crashLoop, data: { accountName: "Hero", serverLabel: "India 1", failures: 8, lastError: "boom" } } }).success).toBe(true)
+    })
+
+    test("marking read names some notifications or all of them, never neither", () => {
+        expect(UserEvent.parse({ v: 1, kind: "notifications_read", ids: [4, 5] })).toEqual({ v: 1, kind: "notifications_read", ids: [4, 5] })
+        expect(UserEvent.parse({ v: 1, kind: "notifications_read", all: true })).toEqual({ v: 1, kind: "notifications_read", all: true })
+        expect(UserEvent.safeParse({ v: 1, kind: "notifications_read" }).success).toBe(false)
+        expect(UserEvent.safeParse({ v: 1, kind: "notifications_read", ids: [] }).success).toBe(false)
+    })
+})
+
+describe("email preferences", () => {
+    test("a kind the player never chose takes its default, and shutoff emails start off", () => {
+        expect(notificationPrefs({})).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false })
+        expect(notificationPrefs({ banned: false, shutoff: true })).toEqual({ banned: false, auth_failed: true, crash_loop: true, shutoff: true })
+    })
+
+    test("a stored value that isn't preferences falls back to the defaults", () => {
+        expect(notificationPrefs("nonsense")).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false })
     })
 })

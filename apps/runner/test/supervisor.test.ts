@@ -1,14 +1,15 @@
+import { EventEmitter } from "node:events"
 import { fileURLToPath } from "node:url"
 import { Worker } from "node:worker_threads"
 import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
-import type { PluginCatalogEntry } from "@gge/contracts"
+import { UserEvent, userChannel, type PluginCatalogEntry } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
-import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
+import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
 import { loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
-import { Supervisor } from "../src/supervisor.ts"
+import { Supervisor, type WorkerLike } from "../src/supervisor.ts"
 
 const fakeBot = fileURLToPath(new URL("./fixtures/fake-bot.mjs", import.meta.url))
 const keys = generateSealKeyPair()
@@ -98,6 +99,14 @@ const status = async (id: string) => (await db.select().from(botStatus).where(eq
 const runs = (id: string) => db.select().from(botRuns).where(eq(botRuns.accountId, id)).orderBy(asc(botRuns.id))
 const logs = async (id: string) => (await db.select().from(botLogs).where(eq(botLogs.accountId, id)).orderBy(asc(botLogs.id))).map(l => l.message)
 const desired = async (id: string) => (await db.select().from(gameAccounts).where(eq(gameAccounts.id, id)))[0]?.desiredState
+
+const notified = (id: string) => db.select().from(notifications).where(eq(notifications.accountId, id)).orderBy(asc(notifications.id))
+/** The notification events Centrifugo would deliver to this test's owner. */
+async function notificationEvents() {
+    const rows = await db.select().from(centrifugoOutbox)
+        .where(sql`${centrifugoOutbox.payload}->>'channel' = ${userChannel(ownerId)}`).orderBy(asc(centrifugoOutbox.id))
+    return rows.map(r => UserEvent.parse((r.payload as { data: unknown }).data)).flatMap(e => e.kind === "notification" ? [e.notification] : [])
+}
 
 describe("starting and stopping", () => {
     test("starts every wanted account with its decrypted password and plugins, one login at a time", async () => {
@@ -254,6 +263,69 @@ describe("when a bot ends on its own", () => {
         expect((await runs(id)).map(r => r.endReason)).toEqual(["auth_failed"])
     })
 
+    test("a rejected password notifies the owner once, naming the account", async () => {
+        const id = await addAccount("authfail-note")
+        await reconcile()
+        await until(async () => (await notified(id)).length)
+        await until(async () => (await runs(id))[0]?.endedAt)
+
+        const [run] = await runs(id)
+        expect(await notified(id)).toMatchObject([{
+            userId: ownerId, kind: "auth_failed", dedupKey: `auth_failed:${id}:${run!.id}`, readAt: null, emailState: "pending",
+            data: { accountName: "authfail-note", serverLabel: "India 1", lastError: "INVALID_PASSWORD" },
+        }])
+        expect(await notificationEvents()).toMatchObject([{ kind: "auth_failed", accountId: id, data: { accountName: "authfail-note" } }])
+        expect((await status(id))?.actualState).toBe("auth_failed")
+        expect(await desired(id)).toBe("stopped")
+    })
+
+    test("a ban notifies the owner with when it ends", async () => {
+        const id = await addAccount("banned-note")
+        await reconcile()
+        await until(async () => (await notified(id)).length)
+
+        expect(await notified(id)).toMatchObject([{ kind: "banned", data: { accountName: "banned-note", serverLabel: "India 1", bannedUntil: "2030-01-01T00:00:00.000Z" } }])
+        expect(await notificationEvents()).toMatchObject([{ kind: "banned", accountId: id }])
+        expect((await status(id))?.actualState).toBe("banned")
+        expect(await desired(id)).toBe("stopped")
+    })
+
+    test("a worker that reports its ban twice notifies the owner once", async () => {
+        // A real worker's second message can be lost to terminate(), so this one is scripted to deliver both.
+        const worker = new EventEmitter() as EventEmitter & WorkerLike
+        worker.postMessage = () => {}
+        worker.terminate = async () => { worker.emit("exit", 1); return 1 }
+        const reports: string[] = []
+        supervisor = makeSupervisor({
+            spawn: () => worker,
+            store: { ...store, endAccount: (accountId, ending) => { reports.push(accountId); return store.endAccount(accountId, ending) } },
+        })
+        const id = await addAccount("banned-twice")
+        await reconcile()
+        await until(() => supervisor.running === 1)
+        const ban = [20, { state: "banned", reason: "IS_BANNED" }]
+        worker.emit("message", ban)
+        worker.emit("message", ban)
+        await supervisor.stopAll("deploy")
+
+        expect(reports).toEqual([id, id])
+        expect(await notified(id)).toHaveLength(1)
+        expect(await notificationEvents()).toHaveLength(1)
+        expect((await runs(id)).map(r => r.endReason)).toEqual(["banned"])
+    })
+
+    test("the shutoff timer notifies the owner and leaves the status as a plain stop", async () => {
+        const id = await addAccount("shutoff-note")
+        await reconcile()
+        await until(async () => (await notified(id)).length)
+        await until(async () => (await status(id))?.actualState === "stopped")
+
+        expect(await notified(id)).toMatchObject([{ kind: "shutoff", data: { accountName: "shutoff-note", serverLabel: "India 1" } }])
+        expect(await notificationEvents()).toMatchObject([{ kind: "shutoff", accountId: id }])
+        expect((await status(id))?.lastError).toBeNull()
+        expect(await desired(id)).toBe("stopped")
+    })
+
     test("a ban is stored with when it ends and is not retried", async () => {
         const id = await addAccount("banned-x")
         await reconcile()
@@ -356,6 +428,19 @@ describe("giving up on an account that can't start", () => {
         await settle()
         expect(spawned).toHaveLength(3)
         expect((await runs(id)).map(r => r.endReason)).toEqual(["crash", "crash", "crash"])
+    })
+
+    test("giving up notifies the owner once, with how often it failed and the last reason", async () => {
+        supervisor = makeSupervisor(quick)
+        const id = await addAccount("fatal-note")
+        await reconcile()
+        await until(async () => (await notified(id)).length)
+        await settle()
+
+        expect(await notified(id)).toMatchObject([{ kind: "crash_loop", data: { accountName: "fatal-note", serverLabel: "India 1", failures: 3, lastError: "tooManyImportantErrors" } }])
+        expect(await notificationEvents()).toMatchObject([{ kind: "crash_loop", accountId: id }])
+        expect((await status(id))?.actualState).toBe("crash_loop")
+        expect(await desired(id)).toBe("stopped")
     })
 
     test("the last failure's reason is the one reported", async () => {

@@ -1,4 +1,4 @@
-import type { FastifyReply, FastifyRequest } from "fastify"
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify"
 import type { Db } from "@gge/db"
 import type { Env } from "./env.ts"
 import type { Mailer } from "./services/mailer.ts"
@@ -9,6 +9,8 @@ export type Ctx = {
     env: Env
     req: FastifyRequest
     reply: FastifyReply
+    /** This request's logger. */
+    log: FastifyBaseLogger
     /**
      * `ip` caps every login and signup attempt per IP, generously (shared NATs). Failed password
      * checks are capped strictly per username and IP in `user`, and per username across all IPs in

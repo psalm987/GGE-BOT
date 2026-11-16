@@ -10,10 +10,26 @@ import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
+import { clientLink } from "./services/email.ts"
 import { logMailer, type Mailer } from "./services/mailer.ts"
+import { createNotificationMailer, type NotificationMailer } from "./services/notification-mailer.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
-export async function buildServer({ db, env, logger = true, mailer }: { db: Db; env: Env; logger?: boolean; mailer?: Mailer }): Promise<FastifyInstance> {
+declare module "fastify" {
+    interface FastifyInstance {
+        /** Emails players about new notifications. It polls on its own unless the server was built with `mailWorker: false`. */
+        notificationMailer: NotificationMailer
+    }
+}
+
+export async function buildServer({ db, env, logger = true, mailer: givenMailer, mailWorker = true }: {
+    db: Db
+    env: Env
+    logger?: boolean
+    mailer?: Mailer
+    /** False leaves the notification mailer idle, for a caller that runs its rounds itself. */
+    mailWorker?: boolean
+}): Promise<FastifyInstance> {
     // Caddy sits in front of us (the edge, or behind Dokploy's Traefik with trusted_proxies set); trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
     Sentry.setupFastifyErrorHandler(app)
@@ -22,6 +38,13 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
     await app.register(metricsPlugin.default, { endpoint: "/metrics", routeMetrics: { routeBlacklist: ["/metrics", "/healthz"] } })
     // oRPC reads the raw body itself.
     app.addContentTypeParser("*", (_req, _payload, done) => done(null, undefined))
+
+    const mailer = givenMailer ?? logMailer(app.log)
+    const notificationMailer = createNotificationMailer({ db, mailer, log: app.log, clientUrl: clientLink({ env }, "/", {}) })
+    app.decorate("notificationMailer", notificationMailer)
+    app.addHook("onClose", () => notificationMailer.stop())
+    if (mailWorker)
+        notificationMailer.start()
 
     const limits = {
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
@@ -45,7 +68,7 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
             // call whose Origin isn't one of our apps.
             if (!origins.includes(req.headers.origin ?? ""))
                 return reply.status(403).send({ message: "Origin not allowed" })
-            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, limits, mailer: mailer ?? logMailer(app.log) } })
+            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, log: req.log, limits, mailer } })
             if (!matched)
                 return reply.status(404).send({ message: "Not found" })
         })
