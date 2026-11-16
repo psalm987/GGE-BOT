@@ -1,0 +1,37 @@
+{
+  "http_server": { "port": 8000 },
+  "client": { "allowed_origins": [] },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "personal",
+        "allow_user_limited_channels": true,
+        "history_size": 50,
+        "history_ttl": "300s",
+        "force_recovery": true
+      },
+      {
+        "name": "bot",
+        "history_size": 200,
+        "history_ttl": "600s",
+        "force_recovery": true
+      }
+    ]
+  },
+  "consumers": [
+    {
+      "enabled": true,
+      "name": "outbox",
+      "type": "postgresql",
+      "postgresql": {
+        "outbox_table_name": "centrifugo_outbox",
+        "num_partitions": 1,
+        "partition_notification_channel": "centrifugo_partition_change"
+      }
+    }
+  ],
+  "health": { "enabled": true },
+  "prometheus": { "enabled": true },
+  "http_api": { "disabled": true },
+  "admin": { "enabled": false }
+}

@@ -31,6 +31,9 @@ app.{$DOMAIN} {
 	handle /healthz {
 		reverse_proxy api:3000
 	}
+	handle /connection/websocket {
+		reverse_proxy centrifugo:8000
+	}
 	handle {
 		root * /srv/client
 		import spa
@@ -41,6 +44,9 @@ admin.{$DOMAIN} {
 	import security
 	handle /admin/rpc/* {
 		reverse_proxy api:3000
+	}
+	handle /connection/websocket {
+		reverse_proxy centrifugo:8000
 	}
 	handle {
 		root * /srv/admin

@@ -1,7 +1,10 @@
 // Local stack: Postgres (throwaway unless DATABASE_URL is set), migrations,
 // demo data, the API and the web apps. Usage: pnpm dev [--runner]
 // --runner also starts the bot runner. Without it nothing contacts the game.
+// Centrifugo (live updates) starts too when CENTRIFUGO_BIN names its binary or `centrifugo` is on PATH.
+// GGE_DEV_PORT_SHIFT=10 moves every port up by 10, for when the usual ones are taken.
 import { spawn, type ChildProcess } from "node:child_process"
+import { randomBytes } from "node:crypto"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import path from "node:path"
@@ -18,7 +21,15 @@ import { readServers } from "@gge/runner/src/game-data.ts"
 
 const root = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..")
 const withRunner = process.argv.includes("--runner")
-const API_PORT = 3000
+const portShift = Number(process.env.GGE_DEV_PORT_SHIFT ?? 0)
+const API_PORT = 3000 + portShift
+const CLIENT_PORT = 5173 + portShift
+const ADMIN_PORT = 5174 + portShift
+const CENTRIFUGO_PORT = 8000 + portShift
+const CLIENT_ORIGIN = `http://localhost:${CLIENT_PORT}`
+const ADMIN_ORIGIN = `http://localhost:${ADMIN_PORT}`
+const centrifugoBin = process.env.CENTRIFUGO_BIN
+    ?? process.env.PATH?.split(path.delimiter).map(dir => path.join(dir, "centrifugo")).find(existsSync)
 // The seeded admin's authenticator secret, so a person or a script can sign in without enrolling.
 // .claude/skills/verify/scripts/dev-totp.cjs holds the same value.
 const DEV_ADMIN_TOTP_SECRET = "GGEBOTDEVADMINTOTPSECRET23456767"
@@ -95,41 +106,71 @@ const env = {
     SEAL_PUBLIC_KEY: keys.publicKey,
     SEAL_PRIVATE_KEY: keys.privateKey,
     TOTP_ENCRYPTION_KEY: totpKey,
-    CLIENT_ORIGINS: "http://localhost:5173",
-    ADMIN_ORIGINS: "http://localhost:5174",
+    CLIENT_ORIGINS: CLIENT_ORIGIN,
+    ADMIN_ORIGINS: ADMIN_ORIGIN,
     PORT: String(API_PORT),
     HOST: "127.0.0.1",
     COOKIE_SECURE: "false",
+    // The Vite configs read these three.
+    GGE_DEV_API_URL: `http://localhost:${API_PORT}`,
+    GGE_DEV_CENTRIFUGO_URL: `http://localhost:${CENTRIFUGO_PORT}`,
+    VITE_CLIENT_URL: CLIENT_ORIGIN,
+    // Without Centrifugo the API has no secret, so it tells the apps live updates are off.
+    ...(centrifugoBin && { CENTRIFUGO_TOKEN_SECRET: process.env.CENTRIFUGO_TOKEN_SECRET ?? randomBytes(32).toString("hex") }),
     ...(dataDir && { GGE_DATA_DIR: dataDir, REFRESH_GAME_DATA: "false" }),
 }
 
 const children: ChildProcess[] = []
-const run = (name: string, cmd: string, args: string[], cwd: string) => {
-    const child = spawn(cmd, args, { cwd, env, stdio: ["ignore", "inherit", "inherit"] })
-    child.on("exit", code => code && console.error(`${name} exited with ${code}`))
-    children.push(child)
-}
-run("api", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/api"))
-run("client", "pnpm", ["exec", "vite", "--port", "5173", "--strictPort"], path.join(root, "apps/client"))
-if (existsSync(path.join(root, "apps/admin/package.json")))
-    run("admin", "pnpm", ["exec", "vite", "--port", "5174", "--strictPort"], path.join(root, "apps/admin"))
-if (withRunner)
-    run("runner", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/runner"))
-
-console.log(`
-  Player app   http://localhost:5173   demo / demo-password
-  Admin app    http://localhost:5174   admin / demo-password
-               authenticator key ${DEV_ADMIN_TOTP_SECRET} (add it to an authenticator app for the 6-digit code)
-  Postgres     ${pg.url}
-  API          http://localhost:${API_PORT}${seeded ? "\n  (seeded demo data)" : ""}${withRunner ? "" : "\n  Runner off: pass --runner to run bots."}
-`)
-
-const stop = async () => {
+let stopping = false
+const stop = async (exitCode = 0) => {
+    if (stopping)
+        return
+    stopping = true
     children.forEach(c => c.kill("SIGTERM"))
     await new Promise(r => setTimeout(r, 1500))
     await db.$pool.end()
     await pg.stop()
-    process.exit(0)
+    process.exit(exitCode)
 }
-process.once("SIGINT", stop)
-process.once("SIGTERM", stop)
+process.once("SIGINT", () => void stop())
+process.once("SIGTERM", () => void stop())
+
+let alive = 0
+const run = (name: string, cmd: string, args: string[], cwd: string, extraEnv: Record<string, string> = {}) => {
+    const child = spawn(cmd, args, { cwd, env: { ...env, ...extraEnv }, stdio: ["ignore", "inherit", "inherit"] })
+    alive++
+    // "error" (the command couldn't start) and "exit" never both fire for one child.
+    const ended = (why: string) => {
+        if (!stopping)
+            console.error(`${name} ${why}`)
+        // With nothing left to serve, stop Postgres too instead of leaving it running.
+        if (--alive === 0)
+            void stop(1)
+    }
+    child.on("error", error => ended(`could not start: ${error.message}`))
+    child.on("exit", (code, signal) => ended(`exited with ${code ?? signal}`))
+    children.push(child)
+}
+run("api", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/api"))
+run("client", "pnpm", ["exec", "vite", "--port", String(CLIENT_PORT), "--strictPort"], path.join(root, "apps/client"))
+if (existsSync(path.join(root, "apps/admin/package.json")))
+    run("admin", "pnpm", ["exec", "vite", "--port", String(ADMIN_PORT), "--strictPort"], path.join(root, "apps/admin"))
+if (withRunner)
+    run("runner", "node", ["--import", "./src/instrument.ts", "src/main.ts"], path.join(root, "apps/runner"))
+if (centrifugoBin)
+    run("centrifugo", centrifugoBin, ["--config", path.join(root, "infra/centrifugo/config.json")], root, {
+        CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: env.CENTRIFUGO_TOKEN_SECRET!,
+        CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: `${CLIENT_ORIGIN} ${ADMIN_ORIGIN}`,
+        CENTRIFUGO_CONSUMERS_OUTBOX_POSTGRESQL_DSN: pg.url,
+        CENTRIFUGO_HTTP_SERVER_ADDRESS: "127.0.0.1",
+        CENTRIFUGO_HTTP_SERVER_PORT: String(CENTRIFUGO_PORT),
+    })
+
+console.log(`
+  Player app   ${CLIENT_ORIGIN}   demo / demo-password
+  Admin app    ${ADMIN_ORIGIN}   admin / demo-password
+               authenticator key ${DEV_ADMIN_TOTP_SECRET} (add it to an authenticator app for the 6-digit code)
+  Postgres     ${pg.url}
+  API          http://localhost:${API_PORT}${seeded ? "\n  (seeded demo data)" : ""}${withRunner ? "" : "\n  Runner off: pass --runner to run bots."}
+  ${centrifugoBin ? `Centrifugo   http://localhost:${CENTRIFUGO_PORT}` : "Centrifugo not found (set CENTRIFUGO_BIN or put it on PATH): live updates fall back."}
+`)

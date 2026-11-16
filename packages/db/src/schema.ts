@@ -222,3 +222,16 @@ export const appSettings = pgTable("app_settings", {
     attackPluginCap: attackPluginCap("attack_plugin_cap").notNull().default("4"),
     updatedAt: updatedAt(),
 }, t => [check("app_settings_single_row", sql`${t.id} = 1`)])
+
+/**
+ * Commands for Centrifugo's PostgreSQL consumer, which reads them in id order and deletes each once processed.
+ * The columns are the ones it requires. Write rows with publish() from ./outbox.ts, in the transaction that changed the data.
+ */
+export const centrifugoOutbox = pgTable("centrifugo_outbox", {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    method: text("method").notNull(),
+    payload: jsonb("payload").notNull(),
+    /** Always 0: one partition keeps every event in one order. */
+    partition: bigint("partition", { mode: "number" }).notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("centrifugo_outbox_partition_id").on(t.partition, t.id)])

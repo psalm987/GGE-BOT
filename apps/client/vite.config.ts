@@ -14,10 +14,17 @@ const sentry = sentryVitePlugin({
     telemetry: false,
 })
 
-// In development the API runs on :3000; the proxy keeps the browser's Origin
-// (http://localhost:5173), which the API must list in CLIENT_ORIGINS.
+// In development the API runs on :3000 and Centrifugo on :8000 (`pnpm dev` passes other
+// addresses when it shifts ports). The proxy keeps the browser's Origin (http://localhost:5173),
+// which the API must list in CLIENT_ORIGINS and Centrifugo in its allowed origins.
 export default defineConfig({
     plugins: [react(), sentry],
-    server: { port: 5173, proxy: { "/rpc": { target: "http://localhost:3000" } } },
+    server: {
+        port: 5173,
+        proxy: {
+            "/rpc": { target: process.env.GGE_DEV_API_URL ?? "http://localhost:3000" },
+            "/connection": { target: process.env.GGE_DEV_CENTRIFUGO_URL ?? "http://localhost:8000", ws: true },
+        },
+    },
     build: { chunkSizeWarningLimit: 1500, sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false },
 })

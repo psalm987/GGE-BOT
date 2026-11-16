@@ -1,5 +1,6 @@
 import { eq, inArray, isNull, lt, sql } from "drizzle-orm"
-import { CHANNELS, botLogs, botRuns, botStatus, gameAccounts, runnerHeartbeat, type Db } from "@gge/db"
+import { botChannel, userChannel, type BotChannelEvent, type UserEvent } from "@gge/contracts"
+import { CHANNELS, botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, publish, publishMany, runnerHeartbeat, type Db } from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
@@ -14,6 +15,10 @@ const isMissingAccount = (error: unknown) =>
     ((error as { cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code) === "23503"
 
 export const LOG_RETENTION = { perAccount: 500, days: 7 }
+/** Centrifugo deletes outbox rows as it delivers them. Older rows mean it is down, and its clients refetch on reconnect anyway. */
+export const OUTBOX_MAX_AGE_MS = 3600_000
+
+const logParts = (parts: unknown) => Array.isArray(parts) ? parts as (string | number)[] : null
 
 export function createStore(db: Db, { flushMs = 500 } = {}) {
     let pending: { accountId: string; level: number; message: string; parts: unknown }[] = []
@@ -28,7 +33,17 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         const rows = batch.filter(l => ids.has(l.accountId))
         if (!rows.length)
             return
-        const inserted = await db.insert(botLogs).values(rows).returning({ id: botLogs.id, accountId: botLogs.accountId, ts: botLogs.ts })
+        const inserted = await db.transaction(async tx => {
+            const inserted = await tx.insert(botLogs).values(rows).returning({ id: botLogs.id, accountId: botLogs.accountId, ts: botLogs.ts })
+            await publishMany(tx, inserted.map((row, i) => ({
+                channel: botChannel(row.accountId),
+                data: {
+                    v: 1, kind: "log", accountId: row.accountId,
+                    line: { id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message, parts: logParts(rows[i]!.parts) },
+                } satisfies BotChannelEvent,
+            })))
+            return inserted
+        })
         for (const [i, row] of inserted.entries())
             await notify({ kind: "log", accountId: row.accountId, id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message.slice(0, 2000) })
     }
@@ -73,8 +88,15 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 ...(patch.heartbeat && { heartbeatAt: new Date() }),
             }
             try {
-                await db.insert(botStatus).values({ accountId, ...set })
-                    .onConflictDoUpdate({ target: botStatus.accountId, set })
+                await db.transaction(async tx => {
+                    const [status] = await tx.insert(botStatus).values({ accountId, ...set })
+                        .onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
+                    const [account] = await tx.select({ ownerId: gameAccounts.ownerId }).from(gameAccounts).where(eq(gameAccounts.id, accountId))
+                    await publish(tx, userChannel(account!.ownerId), {
+                        v: 1, kind: "status", accountId,
+                        status: { actualState: status!.actualState, heartbeatAt: status!.heartbeatAt, lastError: status!.lastError, bannedUntil: status!.bannedUntil },
+                    } satisfies UserEvent)
+                })
                 await notify({ kind: "status", accountId })
             } catch (error) {
                 if (!isMissingAccount(error)) throw error
@@ -88,7 +110,12 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
 
         /** The runner itself decided this account must not run again until its owner acts. */
         async stopAccount(accountId: string) {
-            await db.update(gameAccounts).set({ desiredState: "stopped", updatedAt: new Date() }).where(eq(gameAccounts.id, accountId))
+            await db.transaction(async tx => {
+                const [account] = await tx.update(gameAccounts).set({ desiredState: "stopped", updatedAt: new Date() })
+                    .where(eq(gameAccounts.id, accountId)).returning({ ownerId: gameAccounts.ownerId })
+                if (account)
+                    await publish(tx, userChannel(account.ownerId), { v: 1, kind: "account", accountId, desiredState: "stopped" } satisfies UserEvent)
+            })
         },
 
         log(accountId: string, level: number, parts: unknown, message: string) {
@@ -119,6 +146,10 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                         select id, row_number() over (partition by account_id order by id desc) as n from ${botLogs}
                     ) ranked where n > ${perAccount}
                 ) old where l.id = old.id`)
+        },
+
+        async pruneOutbox(maxAgeMs = OUTBOX_MAX_AGE_MS) {
+            await db.delete(centrifugoOutbox).where(lt(centrifugoOutbox.createdAt, sql`now() - make_interval(secs => ${maxAgeMs / 1000})`))
         },
     }
 }

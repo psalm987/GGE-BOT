@@ -1,6 +1,7 @@
 import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
+import { RealtimeToken } from "./realtime.ts"
 import {
     AdminAccount, AdminLoginStep, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, SecondFactor, Server, Signup, TotpCode, UpdateAccount, UserStatus,
@@ -8,6 +9,7 @@ import {
 
 export * from "./entitlement.ts"
 export * from "./plugins.ts"
+export * from "./realtime.ts"
 export * from "./schemas.ts"
 
 const session = {
@@ -44,6 +46,13 @@ export const clientContract = {
         runs: oc.input(Id.extend({ limit: z.number().int().min(1).max(100).default(10) })).output(z.array(Run)),
         /** Live status changes and log lines for the caller's accounts. */
         events: oc.output(eventIterator(BotEvent)),
+    },
+    /** Tokens for the Centrifugo websocket at /connection/websocket. Both answer NOT_IMPLEMENTED on a deployment without Centrifugo. */
+    realtime: {
+        /** Opens the socket as the caller, which also lets it subscribe to its own userChannel. */
+        connectionToken: oc.output(RealtimeToken),
+        /** Lets the caller's socket subscribe to one of their accounts' botChannel. */
+        subscriptionToken: oc.input(z.object({ accountId: z.uuid() })).output(RealtimeToken),
     },
     plugins: {
         catalog: oc.output(z.array(PluginCatalogEntry)),

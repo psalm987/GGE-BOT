@@ -3,7 +3,7 @@
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "typecheck": { "dependsOn": ["^typecheck"] },
-    "test": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "test": { "dependsOn": ["^typecheck"], "outputs": [], "env": ["CENTRIFUGO_BIN"] },
     "test:formal": { "cache": false },
     "dev": { "cache": false, "persistent": true }
   }

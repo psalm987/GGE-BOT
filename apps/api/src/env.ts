@@ -25,6 +25,8 @@ const Env = z.object({
     TURNSTILE_SECRET_KEY: optional,
     /** Sender, e.g. "GGE Bot <noreply@example.com>"; the domain must be verified in Resend. */
     EMAIL_FROM: optional,
+    /** Signs the tokens browsers show Centrifugo; the same value as its CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY. Without it, the apps poll instead of getting live updates. */
+    CENTRIFUGO_TOKEN_SECRET: optional.pipe(z.string().min(32, "at least 32 characters (openssl rand -hex 32)").optional()),
 }).refine(env => !env.RESEND_API_KEY || env.EMAIL_FROM, { path: ["EMAIL_FROM"], message: "required when RESEND_API_KEY is set" })
 
 export type Env = z.infer<typeof Env>

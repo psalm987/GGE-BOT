@@ -10,6 +10,7 @@ import {
     createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import type { RawBotEvent } from "../services/bot-events.ts"
+import { connectionToken, subscriptionToken } from "../services/realtime.ts"
 import { addEmail, changePassword, resendVerification } from "./account.ts"
 import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
 
@@ -112,6 +113,14 @@ export const clientRouter = os.router({
                 if ((error as Error).name !== "AbortError")
                     throw error
             }
+        }),
+    },
+    realtime: {
+        connectionToken: os.realtime.connectionToken.use(verified).handler(({ context: { env, user } }) =>
+            connectionToken(env.CENTRIFUGO_TOKEN_SECRET, user.id)),
+        subscriptionToken: os.realtime.subscriptionToken.use(verified).handler(async ({ context: { db, env, user }, input }) => {
+            await getOwnedAccount(db, user.id, input.accountId)
+            return subscriptionToken(env.CENTRIFUGO_TOKEN_SECRET, user.id, input.accountId)
         }),
     },
     plugins: {

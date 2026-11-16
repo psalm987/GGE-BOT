@@ -17,6 +17,12 @@ const sentry = sentryVitePlugin({
 // The admin API is mounted at /admin/rpc and must list this origin in ADMIN_ORIGINS.
 export default defineConfig({
     plugins: [react(), sentry],
-    server: { port: 5174, proxy: { "/admin/rpc": { target: "http://localhost:3000" } } },
+    server: {
+        port: 5174,
+        proxy: {
+            "/admin/rpc": { target: process.env.GGE_DEV_API_URL ?? "http://localhost:3000" },
+            "/connection": { target: process.env.GGE_DEV_CENTRIFUGO_URL ?? "http://localhost:8000", ws: true },
+        },
+    },
     build: { chunkSizeWarningLimit: 1500, sourcemap: process.env.SENTRY_AUTH_TOKEN ? "hidden" : false },
 })

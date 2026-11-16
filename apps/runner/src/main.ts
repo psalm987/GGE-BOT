@@ -94,6 +94,7 @@ const timers = [
     }, LIVENESS.intervalMs),
     setInterval(() => void store.beat(startedAt, VERSION, supervisor.running).catch(e => console.error("heartbeat failed", e)), 10_000),
     setInterval(() => void store.pruneLogs().catch(e => console.error("log prune failed", e)), 3600_000),
+    setInterval(() => void store.pruneOutbox().catch(e => console.error("outbox prune failed", e)), 3600_000),
 ]
 await store.beat(startedAt, VERSION, 0)
 await reconcile()

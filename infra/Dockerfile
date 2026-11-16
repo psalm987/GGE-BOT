@@ -54,6 +54,10 @@ USER node
 FROM prom/prometheus:v3.5.0 AS prometheus
 COPY infra/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 
+# Keep this version in step with the release docs/development.md names for local use.
+FROM centrifugo/centrifugo:v6.10.2 AS centrifugo
+COPY infra/centrifugo/config.json /centrifugo/config.json
+
 FROM grafana/grafana:12.1.0 AS grafana
 # The entrypoint, running as grafana, adds the Discord files to alerting/.
 COPY --chown=grafana:root infra/grafana/provisioning /etc/grafana/provisioning

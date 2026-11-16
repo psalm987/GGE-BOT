@@ -5,6 +5,7 @@ import pg from "pg"
 import * as schema from "./schema.ts"
 
 export * from "./schema.ts"
+export * from "./outbox.ts"
 export { schema }
 
 export function createDb(connectionString: string) {

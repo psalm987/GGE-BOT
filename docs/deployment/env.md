@@ -11,6 +11,7 @@
 | `SEAL_PUBLIC_KEY` | api | yes | Seals game passwords on write. From `tools/dev/keygen.ts`. |
 | `SEAL_PRIVATE_KEY` | runner | yes | Opens game passwords to log bots in. Only the runner gets it. Back it up apart from the database. |
 | `TOTP_ENCRYPTION_KEY` | api | yes | Encrypts each admin's authenticator secret in the database. Base64 of exactly 32 bytes: `openssl rand -base64 32`, or the third line `tools/dev/keygen.ts` prints. If you lose or change it, no admin's authenticator code works and every admin must be reset with `reset-2fa` ([security.md](security.md#admin-two-factor-sign-in)). |
+| `CENTRIFUGO_TOKEN_SECRET` | api, centrifugo | yes | Signs the short-lived tokens that let a browser open the live-update socket. `openssl rand -hex 32`, at least 32 characters. If you change it, open sockets stay up until their tokens expire (15 minutes), then reconnect with new ones. |
 | `GRAFANA_ADMIN_PASSWORD` | grafana | yes | Grafana's `admin` login. |
 | `GRAFANA_ADMIN_USER` | grafana | no | Default `admin`. |
 | `GRAFANA_ALERT_DISCORD_WEBHOOK` | grafana | no | Discord webhook URL that receives every Grafana alert ([observability.md](observability.md#alerts)). Empty: alerts show in Grafana only. |
@@ -41,11 +42,16 @@
 | `DATABASE_URL` | api, runner, migrate | `postgres://gge@postgres:5432/gge`, with the password passed separately as `PGPASSWORD` so any characters work |
 | `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. Emailed links point at the first client origin. |
 | `PORT` | api | 3000 (internal) |
+| `CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY` | centrifugo | The value of `CENTRIFUGO_TOKEN_SECRET` |
+| `CENTRIFUGO_CLIENT_ALLOWED_ORIGINS` | centrifugo | `https://app.<DOMAIN> https://admin.<DOMAIN>`, separated by a space. A socket from any other origin is refused. |
+| `CENTRIFUGO_CONSUMERS_OUTBOX_POSTGRESQL_DSN` | centrifugo | `postgres://gge@postgres:5432/gge`, with the password passed as `PGPASSWORD`, as for the API |
 | `METRICS_PORT` | runner | 9464 (internal) |
 | `GGE_DATA_DIR` | runner | `/data`, the `gamedata` volume with items, language and server list |
 | `FONT_PATH` | runner | DejaVu Sans, installed in the image |
 
 Development-only switches: `COOKIE_SECURE=false` (api) lets cookies work over plain http; `REFRESH_GAME_DATA=false` (runner) skips downloading game data at boot. Never set either in production.
+
+The API itself starts without `CENTRIFUGO_TOKEN_SECRET`, as it does under `pnpm dev` when Centrifugo is not installed. It then answers `NOT_IMPLEMENTED` to both `realtime` token calls.
 
 ## Email (Resend)
 

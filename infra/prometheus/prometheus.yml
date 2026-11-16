@@ -9,3 +9,6 @@ scrape_configs:
   - job_name: runner
     static_configs:
       - targets: ["runner:9464"]
+  - job_name: centrifugo
+    static_configs:
+      - targets: ["centrifugo:8000"]

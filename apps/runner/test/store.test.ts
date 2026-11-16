@@ -1,0 +1,124 @@
+import { randomUUID } from "node:crypto"
+import { asc, eq, sql } from "drizzle-orm"
+import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
+import { BotChannelEvent, UserEvent, botChannel, userChannel } from "@gge/contracts"
+import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, publish, servers, users, type Db } from "@gge/db"
+import { createStore, type Store } from "../src/store.ts"
+
+let db: Db
+let store: Store
+let ownerId: string
+let accountId: string
+
+beforeAll(async () => {
+    db = createDb(inject("databaseUrl"))
+    await db.insert(servers).values({ id: 26, label: "India 1", wsHost: "in1.test", zone: "EmpireEx_26" }).onConflictDoNothing()
+})
+afterAll(() => db.$pool.end())
+
+beforeEach(async () => {
+    const name = `store-${randomUUID()}`
+    const [owner] = await db.insert(users).values({ username: name, passwordHash: "x" }).returning()
+    ownerId = owner!.id
+    const [account] = await db.insert(gameAccounts).values({ ownerId, name, serverId: 26, passwordSealed: Buffer.from("x") }).returning()
+    accountId = account!.id
+    store = createStore(db, { flushMs: 5 })
+})
+// Other test files reconcile every wanted account in this database, so leave none behind.
+afterEach(() => db.delete(users).where(eq(users.id, ownerId)))
+
+type Message = { channel: string; data: unknown }
+/** What Centrifugo would deliver on a channel, oldest first. */
+async function published(channel: string) {
+    const rows = await db.select().from(centrifugoOutbox)
+        .where(sql`${centrifugoOutbox.payload}->>'channel' = ${channel}`).orderBy(asc(centrifugoOutbox.id))
+    expect(rows.every(r => r.method === "publish" && r.partition === 0)).toBe(true)
+    return rows.map(r => (r.payload as Message).data)
+}
+const mentions = async (id: string) =>
+    (await db.select().from(centrifugoOutbox).where(sql`${centrifugoOutbox.payload}::text like ${`%${id}%`}`)).length
+
+test("a status change is published to the owner with the whole status", async () => {
+    const bannedUntil = new Date("2031-02-03T04:05:06.000Z")
+    await store.setStatus(accountId, { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeat: true })
+
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
+    expect(events).toEqual([{
+        v: 1, kind: "status", accountId,
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt },
+    }])
+    expect(saved!.heartbeatAt).toBeInstanceOf(Date)
+})
+
+test("a later partial change still publishes every status field", async () => {
+    await store.setStatus(accountId, { actualState: "error", lastError: "boom" })
+    await store.setStatus(accountId, { heartbeat: true })
+
+    const [, second] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(second).toMatchObject({ kind: "status", status: { actualState: "error", lastError: "boom", bannedUntil: null } })
+})
+
+test("flushed log lines are published to the account's channel with their parts", async () => {
+    store.log(accountId, 0, ["attackNomads", " started ", 3], "Attack Nomads started 3")
+    store.log(accountId, 2, "not a list", "plain")
+    await store.flushLogs()
+
+    const saved = await db.select().from(botLogs).where(eq(botLogs.accountId, accountId)).orderBy(asc(botLogs.id))
+    const events = (await published(botChannel(accountId))).map(data => BotChannelEvent.parse(data))
+    expect(events).toEqual([
+        { v: 1, kind: "log", accountId, line: { id: saved[0]!.id, ts: saved[0]!.ts, level: 0, message: "Attack Nomads started 3", parts: ["attackNomads", " started ", 3] } },
+        { v: 1, kind: "log", accountId, line: { id: saved[1]!.id, ts: saved[1]!.ts, level: 2, message: "plain", parts: null } },
+    ])
+    expect(await published(userChannel(ownerId))).toEqual([])
+})
+
+test("nothing is published for a deleted account, and its lines don't cost other accounts theirs", async () => {
+    const gone = randomUUID()
+    await store.setStatus(gone, { actualState: "running" })
+    await store.stopAccount(gone)
+    store.log(gone, 0, ["x"], "from a deleted account")
+    store.log(accountId, 0, ["y"], "from a live account")
+    await store.flushLogs()
+
+    expect(await mentions(gone)).toBe(0)
+    expect(await published(botChannel(accountId))).toHaveLength(1)
+})
+
+test("stopping an account on the runner's own decision tells its owner", async () => {
+    await store.stopAccount(accountId)
+
+    expect((await published(userChannel(ownerId))).map(data => UserEvent.parse(data)))
+        .toEqual([{ v: 1, kind: "account", accountId, desiredState: "stopped" }])
+    const [account] = await db.select().from(gameAccounts).where(eq(gameAccounts.id, accountId))
+    expect(account!.desiredState).toBe("stopped")
+})
+
+test("pruning removes only messages nobody collected for over an hour", async () => {
+    const channel = `test:${randomUUID()}`
+    await publish(db, channel, "fresh")
+    await publish(db, channel, "almost")
+    await publish(db, channel, "stale")
+    const age = (data: string, minutes: number) => db.update(centrifugoOutbox)
+        .set({ createdAt: sql`now() - make_interval(mins => ${minutes})` })
+        .where(sql`${centrifugoOutbox.payload} = ${JSON.stringify({ channel, data })}::jsonb`)
+    await age("almost", 59)
+    await age("stale", 61)
+
+    await store.pruneOutbox()
+
+    expect(await published(channel)).toEqual(["fresh", "almost"])
+})
+
+test("each new message wakes Centrifugo's consumer on its partition", async () => {
+    const listener = await db.$pool.connect()
+    try {
+        const woken: string[] = []
+        listener.on("notification", n => { if (n.channel === "centrifugo_partition_change") woken.push(n.payload!) })
+        await listener.query("listen centrifugo_partition_change")
+        await store.stopAccount(accountId)
+        await expect.poll(() => woken).toContain("0")
+    } finally {
+        listener.release(true)
+    }
+})

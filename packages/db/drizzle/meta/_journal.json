@@ -85,6 +85,13 @@
       "when": 1794819569124,
       "tag": "0011_admin_totp",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794823726344,
+      "tag": "0012_centrifugo_outbox",
+      "breakpoints": true
     }
   ]
 }

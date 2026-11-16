@@ -56,9 +56,30 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
+      CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET in Dokploy's Environment tab}
       PORT: "3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  # Pushes live updates to browsers over /connection/websocket. It reads the
+  # centrifugo_outbox table the runner writes, so it needs no other service.
+  centrifugo:
+    build: { context: .., dockerfile: infra/Dockerfile, target: centrifugo }
+    image: gge-centrifugo:${GGE_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET}
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: https://app.${DOMAIN} https://admin.${DOMAIN}
+      # The password comes from PGPASSWORD, as it does for the API and runner.
+      CENTRIFUGO_CONSUMERS_OUTBOX_POSTGRESQL_DSN: postgres://gge@postgres:5432/gge
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 6

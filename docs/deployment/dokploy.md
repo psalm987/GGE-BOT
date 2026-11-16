@@ -22,6 +22,8 @@ cd tools/dev && node keygen.ts
 
 It prints `SEAL_PUBLIC_KEY=…`, `SEAL_PRIVATE_KEY=…` and `TOTP_ENCRYPTION_KEY=…`. Keep the private key somewhere safe and separate from backups; without it no stored game password can be opened ([backup-restore.md](backup-restore.md)).
 
+Generate `CENTRIFUGO_TOKEN_SECRET` with `openssl rand -hex 32`. `POSTGRES_PASSWORD` takes the same command.
+
 ## 2. Create the compose service
 
 In Dokploy: **Projects → Create Project**, then inside it **Create Service → Compose**.
@@ -46,6 +48,7 @@ GRAFANA_ADMIN_PASSWORD=
 SEAL_PUBLIC_KEY=
 SEAL_PRIVATE_KEY=
 TOTP_ENCRYPTION_KEY=
+CENTRIFUGO_TOKEN_SECRET=
 MAX_ACCOUNTS=50
 START_GAP_MS=2000
 GAME_CLIENT_VERSION=

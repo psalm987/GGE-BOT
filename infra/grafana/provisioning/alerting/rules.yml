@@ -53,6 +53,29 @@ groups:
           - refId: C
             datasourceUid: __expr__
             model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [10] } }] }
+      - uid: gge-outbox-backlog
+        title: Live updates are not being delivered
+        condition: C
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: Over 5000 live updates are waiting in centrifugo_outbox, or the oldest has waited over 5 minutes. Centrifugo is down or can't reach Postgres; the apps fall back to polling.
+        data:
+          - refId: A
+            datasourceUid: gge-postgres
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              rawQuery: true
+              editorMode: code
+              format: table
+              rawSql: "select (count(*) > 5000 or coalesce(min(created_at) < now() - interval '5 minutes', false))::int as stuck from centrifugo_outbox"
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
       - uid: gge-eventloop-lag
         title: Event loop lag over 200 ms
         condition: C

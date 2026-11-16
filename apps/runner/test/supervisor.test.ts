@@ -224,7 +224,8 @@ describe("when a bot ends on its own", () => {
         const id = await addAccount("crash-loop")
         await reconcile()
         await until(async () => (await runs(id)).filter(r => r.endReason === "crash").length >= 2)
-        expect((await status(id))?.lastError).toMatch(/stopped unexpectedly; retrying in \d+s/)
+        // The run closes before the status is written, so wait for the status too.
+        await until(async () => /stopped unexpectedly; retrying in \d+s/.test((await status(id))?.lastError ?? ""))
     })
 
     test("a worker that runs out of memory is recorded as such and retried", async () => {

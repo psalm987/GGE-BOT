@@ -1,6 +1,6 @@
 # Metrics, dashboards and alerts
 
-Prometheus scrapes the API (`api:3000/metrics`) and the runner (`runner:9464/metrics`) every 15 seconds and keeps 15 days. Grafana at `https://grafana.<domain>` reads Prometheus and, for run history, Postgres. Neither metrics endpoint is reachable from outside: Caddy routes only the apps, `/rpc`, `/admin/rpc` and `/healthz`.
+Prometheus scrapes the API (`api:3000/metrics`), the runner (`runner:9464/metrics`) and Centrifugo (`centrifugo:8000/metrics`, job `centrifugo`) every 15 seconds and keeps 15 days. Grafana at `https://grafana.<domain>` reads Prometheus and, for run history, Postgres. Neither metrics endpoint is reachable from outside: Caddy routes only the apps, `/rpc`, `/admin/rpc`, `/healthz` and Centrifugo's `/connection/websocket`.
 
 Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in the GGE folder and are provisioned from `infra/grafana/dashboards/`; edit the JSON there, not in the UI.
 
@@ -53,13 +53,14 @@ The fleet is failing together when at least 5 accounts ended a run early in the 
 
 ## Alerts
 
-Three Grafana-managed rules are provisioned from `infra/grafana/provisioning/alerting/rules.yml`:
+Four Grafana-managed rules are provisioned from `infra/grafana/provisioning/alerting/rules.yml`:
 
 | Rule | Fires when |
 |---|---|
 | Runner stopped reporting | `runner_heartbeat.beat_at` is more than 2 minutes old for 2 minutes |
 | Bots are crashing | More than 10 runs ended in `crash`, `error` or `stale` in the last hour, for 10 minutes |
 | Event loop lag over 200 ms | API or runner p99 lag above 0.2 s for 5 minutes |
+| Live updates are not being delivered | `centrifugo_outbox` holds more than 5000 rows, or its oldest row is more than 5 minutes old, for 2 minutes. Centrifugo is down or can't reach Postgres. Check `docker compose logs centrifugo`. |
 
 To get them in Discord, create a webhook (channel settings, Integrations, Webhooks), put its URL in `GRAFANA_ALERT_DISCORD_WEBHOOK` and recreate the `grafana` service. On start the image then provisions a Discord contact point and makes it the default notification policy, so every alert, firing and resolved, posts to that channel. The provisioned policy can't be edited in the UI; change `infra/grafana/discord-alerting/` instead.
 

@@ -23,7 +23,7 @@ GGE Command runs Goodgame Empire bots for many players from one server. Players 
 | `packages/ui` | The theme and shared React components. |
 | `tools/dev` | `pnpm dev`: a local stack with demo data. |
 | `tools/import-sqlite` | One-shot import from the legacy `user.db`. |
-| `infra` | Docker Compose, Caddy, Prometheus and Grafana. |
+| `infra` | Docker Compose, Caddy, Centrifugo, Prometheus and Grafana. |
 
 ## How the pieces talk
 
@@ -34,6 +34,17 @@ The API and the runner never call each other. Postgres is the only channel.
 3. The runner reconciles: it loads every account that should run (wanted, with an active owner) and starts, restarts or stops workers to match. It also reconciles every 30 seconds in case a notification was missed.
 4. Workers report back through the runner, which writes `bot_status`, `bot_logs` and `bot_runs` and sends `NOTIFY gge_bot`.
 5. The API listens on `gge_bot` and streams each event to the player who owns that account.
+
+## Live updates
+
+Two paths carry status changes and log lines to the browser until milestone M9 removes the first one.
+
+- **`NOTIFY gge_bot`** is steps 4 and 5 above. The apps use this path today. It stops without an error if the API's listening connection drops.
+- **Centrifugo** is the replacement. In the transaction that saves a status or a batch of log lines, the runner also inserts one row per event into `centrifugo_outbox`. Centrifugo reads the rows in `id` order, delivers each to the websocket at `/connection/websocket`, and deletes it. The runner deletes rows older than one hour, so the table stays small while Centrifugo is down.
+
+A browser opens the socket with a token from `realtime.connectionToken`, valid for 15 minutes. Each player has one channel, `personal:user#<userId>`, that only that user can subscribe to. It carries the `UserEvent` schema: `status` and `account` events. Each account has a channel `bot:<accountId>` for log lines (`BotChannelEvent`). To subscribe to it, the browser needs a token from `realtime.subscriptionToken`, which the API gives only to the account's owner. `packages/contracts/src/realtime.ts` defines the channel names and both schemas.
+
+Centrifugo keeps a few minutes of history for each channel, so a socket that reconnects gets the events it missed. No app opens the socket yet.
 
 ## Bot lifecycle in the runner
 
