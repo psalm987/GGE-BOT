@@ -54,7 +54,7 @@ export function Accounts() {
                             { title: "Owner", dataIndex: "owner", render: (owner: string, a) => <Link to={`/users/${a.ownerId}`}>{owner}</Link> },
                             { title: "Server", dataIndex: "serverId", width: 90 },
                             { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
-                            { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> },
+                            { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
                             {
                                 title: "Last seen", key: "seen",
                                 render: (_, a) => a.status?.heartbeatAt

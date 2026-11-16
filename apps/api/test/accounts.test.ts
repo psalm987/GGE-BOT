@@ -90,6 +90,71 @@ describe("a player's accounts", () => {
     })
 })
 
+describe("run schedules", () => {
+    const HOUR = 3600_000
+    const hhmm = (at: number) => new Date(at).toISOString().slice(11, 16)
+    /** A daily UTC window from `fromHours` to `toHours` hours from now. */
+    const window = (fromHours: number, toHours: number) =>
+        ({ tz: "UTC", jitterMinutes: 0, windows: [{ days: [0, 1, 2, 3, 4, 5, 6], start: hhmm(Date.now() + fromHours * HOUR), end: hhmm(Date.now() + toHours * HOUR) }] })
+    const berlin = { tz: "Europe/Berlin", jitterMinutes: 12, windows: [{ days: [1, 3], start: "22:00", end: "02:30" }, { days: [6], start: "08:00", end: "12:00" }] }
+
+    test("create and update round-trip a schedule, and null removes it", async () => {
+        const p = await api.player()
+        const created = await p.api.accounts.create({ ...newAccount(), schedule: berlin })
+        expect(created.schedule).toEqual(berlin)
+        expect((await p.api.accounts.list())[0]!.schedule).toEqual(berlin)
+
+        const later = window(2, 3)
+        expect((await p.api.accounts.update({ id: created.id, schedule: later })).schedule).toEqual(later)
+        expect((await p.api.accounts.update({ id: created.id, serverId: 27 })).schedule).toEqual(later)
+        expect((await p.api.accounts.update({ id: created.id, schedule: null })).schedule).toBeNull()
+    })
+
+    test.each([
+        ["an unknown time zone", { ...berlin, tz: "Mars/Olympus" }, "Unknown time zone"],
+        ["a window that starts and ends at the same time", { ...berlin, windows: [{ days: [1], start: "08:00", end: "08:00" }] }, "A window can't start and end at the same time"],
+        ["a window with no days", { ...berlin, windows: [{ days: [], start: "08:00", end: "09:00" }] }, "Pick at least one day"],
+        ["no windows", { ...berlin, windows: [] }, "Add at least one window"],
+    ])("refuses %s and says why", async (_, schedule, message) => {
+        const p = await api.player()
+        const { id } = await p.api.accounts.create(newAccount())
+        const issues = (error: { data?: { issues?: { message: string }[] } }) => ({ code: (error as { code?: string }).code, messages: error.data?.issues?.map(i => i.message) })
+
+        expect(await p.api.accounts.update({ id, schedule }).then(() => "ok", issues)).toEqual({ code: "BAD_REQUEST", messages: [message] })
+        expect(await p.api.accounts.create({ ...newAccount(), schedule }).then(() => "ok", issues)).toEqual({ code: "BAD_REQUEST", messages: [message] })
+        expect((await p.api.accounts.list()).map(a => a.schedule)).toEqual([null])
+    })
+
+    test("a wanted account outside its window is sleeping until the window's next start", async () => {
+        const p = await api.player()
+        const schedule = window(2, 3)
+        const { id } = await p.api.accounts.create({ ...newAccount(), schedule })
+        expect((await p.api.accounts.list())[0]!.sleepingUntil).toBeNull()
+
+        await p.api.accounts.setDesiredState({ ids: [id], state: "running" })
+        const { sleepingUntil } = (await p.api.accounts.list())[0]!
+        const startsIn = sleepingUntil!.getTime() - Date.now()
+        expect(startsIn).toBeGreaterThan(1.9 * HOUR)
+        expect(startsIn).toBeLessThanOrEqual(2 * HOUR)
+        expect(hhmm(sleepingUntil!.getTime())).toBe(schedule.windows[0]!.start)
+
+        await p.api.accounts.setDesiredState({ ids: [id], state: "stopped" })
+        expect((await p.api.accounts.list())[0]!.sleepingUntil).toBeNull()
+    })
+
+    test("an account inside its window, or without a schedule, isn't sleeping", async () => {
+        const p = await api.player()
+        const inside = await p.api.accounts.create({ ...newAccount(), schedule: window(-1, 1) })
+        await p.api.accounts.setDesiredState({ ids: [inside.id], state: "running" })
+        expect((await p.api.accounts.list())[0]!.sleepingUntil).toBeNull()
+
+        await p.api.accounts.update({ id: inside.id, schedule: window(2, 3) })
+        expect((await p.api.accounts.list())[0]!.sleepingUntil).not.toBeNull()
+        await p.api.accounts.update({ id: inside.id, schedule: null })
+        expect((await p.api.accounts.list())[0]!.sleepingUntil).toBeNull()
+    })
+})
+
 describe("one player can't touch another's accounts", () => {
     test("update, remove and start on someone else's account change nothing", async () => {
         const owner = await api.player()

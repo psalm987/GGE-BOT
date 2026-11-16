@@ -18,6 +18,8 @@ export const palette = {
     azureText: "#6FA3F0",
     emeraldText: "#4CC07F",
     amber: "#F08C2E",
+    /** Resting, not failing: light enough to pass 4.5:1 as text on every ground. */
+    dusk: "#A99BEA",
     rule: "#4A3B26",
 } as const
 

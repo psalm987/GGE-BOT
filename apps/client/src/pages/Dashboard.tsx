@@ -11,12 +11,12 @@ import { messageOf, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
+import { needsAttention } from "../attention.ts"
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 dayjs.extend(relativeTime)
 
-const NEEDS_ATTENTION = new Set(["auth_failed", "banned", "error", "crash_loop"])
 const isRunning = (a: PublicAccount) => a.desiredState === "running"
 const twinKey = (a: Pick<PublicAccount, "serverId" | "name">) => `${a.serverId}:${a.name.toLowerCase()}`
 
@@ -53,7 +53,7 @@ export function Dashboard() {
         onMutate: async ({ ids, state }) => {
             await queryClient.cancelQueries({ queryKey: listKey })
             const previous = queryClient.getQueryData<PublicAccount[]>(listKey)
-            queryClient.setQueryData<PublicAccount[]>(listKey, list => list?.map(a => ids.includes(a.id) ? { ...a, desiredState: state } : a))
+            queryClient.setQueryData<PublicAccount[]>(listKey, list => list?.map(a => ids.includes(a.id) ? { ...a, desiredState: state, ...(state === "stopped" && { sleepingUntil: null }) } : a))
             return { previous }
         },
         onError: (error, _vars, context) => {
@@ -83,7 +83,7 @@ export function Dashboard() {
         : atLimit ? `Your plan allows ${limit} bot${limit === 1 ? "" : "s"}. Remove one to add another. Event twins are free.` : undefined
     const twinned = new Set(list.filter(a => a.isTwin).map(twinKey))
     const selectedOverLimit = list.some(a => selected.includes(a.id) && !a.entitled)
-    const attention = list.filter(a => a.status && NEEDS_ATTENTION.has(a.status.actualState)).length
+    const attention = list.filter(needsAttention).length
 
     return (
         <AppLayout
@@ -147,7 +147,7 @@ export function Dashboard() {
                             },
                             {
                                 title: "Status",
-                                render: (_, a) => a.entitled ? <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> : (
+                                render: (_, a) => a.entitled ? <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> : (
                                     <Tooltip title={planHint}>
                                         <Tag tabIndex={0} variant="outlined" style={{ color: palette.amber, borderColor: palette.amber, background: "transparent", fontWeight: 500 }}>Over plan limit</Tag>
                                     </Tooltip>

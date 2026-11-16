@@ -25,10 +25,25 @@ const call = async (path, body, cookie) => {
     return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
 }
 
-async function restoreIronhold() {
-    const { cookie } = await call("auth/login", { login: "demo", password: "demo-password" })
-    const list = (await call("accounts/list", {}, cookie)).json
-    await call("accounts/setDesiredState", { ids: [list.find(a => a.name === "Ironhold").id], state: "running" }, cookie)
+// A fresh sign-in each time: the run disables demo midway, which ends demo's sessions.
+const asDemo = async () => (await call("auth/login", { login: "demo", password: "demo-password" })).cookie
+const ironhold = async cookie => (await call("accounts/list", {}, cookie)).json.find(a => a.name === "Ironhold")
+
+/**
+ * Sets Ironhold running, with a schedule whose only window is two to three hours away, so it is sleeping.
+ * Returns the tag its rows should show, in this machine's time as the browser formats it, and how to start it and take the schedule off again.
+ */
+async function restoreIronholdAsleep() {
+    const cookie = await asDemo()
+    const { id } = await ironhold(cookie)
+    const hour = new Date().getUTCHours()
+    const clock = hours => `${String((hour + hours) % 24).padStart(2, "0")}:15`
+    await call("accounts/update", { id, schedule: { tz: "UTC", jitterMinutes: 0, windows: [{ days: [0, 1, 2, 3, 4, 5, 6], start: clock(2), end: clock(3) }] } }, cookie)
+    const start = async () => call("accounts/setDesiredState", { ids: [id], state: "running" }, await asDemo())
+    await start()
+    const until = new Date((await ironhold(cookie)).sleepingUntil)
+    const tag = `Sleeping until ${until.toLocaleDateString("en-US", { weekday: "short" })} ${String(until.getHours()).padStart(2, "0")}:${String(until.getMinutes()).padStart(2, "0")}`
+    return { tag, start, clearSchedule: async () => call("accounts/update", { id, schedule: null }, await asDemo()) }
 }
 
 async function signIn(page, username) {
@@ -56,7 +71,7 @@ const nav = (page, name) => page.getByRole("menuitem", { name }).click()
 const confirm = (page, name) => page.locator(".ant-popover").getByRole("button", { name, exact: true }).click()
 
 ;(async () => {
-    await restoreIronhold()
+    const asleep = await restoreIronholdAsleep()
     const browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 
@@ -99,6 +114,8 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await nav(page, "Accounts")
     const iron = page.getByRole("row").filter({ hasText: "Ironhold" })
     await iron.waitFor()
+    await iron.getByText(asleep.tag, { exact: true }).waitFor()
+    assert(true, `the Accounts table shows a started account outside its schedule as "${asleep.tag}"`)
     await axe(page, "accounts")
     await page.screenshot({ path: `${out}/admin-accounts-1440.png` })
     await iron.getByRole("button", { name: "Force stop" }).click()
@@ -106,6 +123,7 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await page.getByText("Account stopped").waitFor()
     await iron.getByRole("button", { name: "Force stop" }).waitFor({ state: "detached" })
     assert(true, "Ironhold force-stopped; the action disappears")
+    assert(await iron.getByText("Sleeping").count() === 0, "a force-stopped account is no longer shown as sleeping")
 
     await nav(page, "Users")
     const demo = () => page.getByRole("row").filter({ hasText: "demo" }).filter({ hasText: /Player/ })
@@ -237,8 +255,11 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
 
     await page.getByRole("tab", { name: "Accounts" }).click()
     await page.waitForFunction(() => location.search.includes("tab=accounts"))
+    await asleep.start()
+    await page.reload()
     const ironRow = page.getByRole("row").filter({ hasText: "Ironhold" })
-    await ironRow.waitFor()
+    await ironRow.getByText(asleep.tag, { exact: true }).waitFor()
+    assert(true, `the user page's Accounts tab shows "${asleep.tag}" for the same account`)
     for (const name of ["Ravenmoor", "Brightwater", "Newkeep"])
         assert(await page.getByRole("row").filter({ hasText: name }).count() === 1, `the Accounts tab lists demo's ${name}`)
     await page.getByRole("button", { name: "Show runs and logs of Ironhold" }).click()
@@ -298,11 +319,13 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     for (const [path, file] of [["/", "overview"], ["/users", "users"], ["/accounts", "accounts"], ["/audit", "audit"], ["/settings", "settings"], [accountsUrl, "user page"]]) {
         await page.goto(base + path)
         await page.locator(".ant-layout-header").waitFor()
+        if (file === "accounts" || file === "user page") await page.getByText(asleep.tag, { exact: true }).waitFor()
         await page.waitForTimeout(900)
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
         assert(overflow === 0, `no horizontal overflow at 390 on ${file} (diff ${overflow})`)
-        if (file === "overview" || file === "users") await page.screenshot({ path: `${out}/admin-${file}-390.png` })
+        if (file === "overview" || file === "users" || file === "accounts" || file === "user page") await page.screenshot({ path: `${out}/admin-${file.replace(" ", "-")}-390.png` })
     }
+    await asleep.clearSchedule()
 
     await browser.close()
     console.log("ALL OK")

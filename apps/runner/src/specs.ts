@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto"
 import { and, eq, inArray } from "drizzle-orm"
 import {
-    TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, entitledAccountIds, type OptionValue, type PluginSettings,
+    TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, entitledAccountIds, scheduleState, storedSchedule,
+    type OptionValue, type PluginSettings,
 } from "@gge/contracts"
-import { appSettings, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botStatus, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "./catalog.ts"
 
 export type WorkerPlugins = Record<string, Record<string, OptionValue> & { state: true; filename: string }>
@@ -26,15 +27,47 @@ export type BotSpec = {
     refusal?: string
 }
 
-export async function loadSpecs(db: Db, registry: PluginRegistry): Promise<Map<string, BotSpec>> {
+/** What the database wants at one moment. */
+export type Wanted = {
+    /** The accounts to run. */
+    specs: Map<string, BotSpec>
+    /** The wanted accounts that are outside their schedule. */
+    sleeping: Set<string>
+    /** The sleeping accounts whose status still shows an error from before they slept. */
+    staleErrors: Set<string>
+    /** The next time any wanted account's schedule starts or stops it; null when none does within scheduleState's horizon. */
+    nextChange: Date | null
+}
+
+/**
+ * How long to wait before a reconcile for the schedule edge at `nextChange`, a second late so the edge has passed.
+ * Undefined when there is no edge within `withinMs`, which the periodic reconcile covers.
+ */
+export function edgeDelayMs(nextChange: Date | null, now: number, withinMs: number) {
+    if (!nextChange)
+        return undefined
+    const delay = Math.max(0, nextChange.getTime() - now) + 1000
+    return delay < withinMs ? delay : undefined
+}
+
+export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date()): Promise<Wanted> {
     const wanted = await db
-        .select({ account: gameAccounts, server: servers, attackPluginCap: users.attackPluginCap, owner: { role: users.role, maxBots: users.maxBots } })
+        .select({ account: gameAccounts, server: servers, attackPluginCap: users.attackPluginCap, owner: { role: users.role, maxBots: users.maxBots }, actualState: botStatus.actualState })
         .from(gameAccounts)
         .innerJoin(users, eq(users.id, gameAccounts.ownerId))
         .innerJoin(servers, eq(servers.id, gameAccounts.serverId))
+        .leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id))
         .where(and(eq(gameAccounts.desiredState, "running"), eq(users.status, "active")))
     const entitled = await entitledAmong(db, wanted)
-    const rows = wanted.filter(r => entitled.has(r.account.id))
+    // The plan was applied first, so a sleeping account keeps its place in it.
+    const allowed = wanted.filter(r => entitled.has(r.account.id))
+        .map(r => ({ ...r, ...scheduleState(storedSchedule(r.account.schedule), now, r.account.id) }))
+    const asleep = allowed.filter(r => !r.active)
+    const sleeping = new Set(asleep.map(r => r.account.id))
+    const staleErrors = new Set(asleep.filter(r => r.actualState === "error").map(r => r.account.id))
+    const edges = allowed.flatMap(r => r.nextChange ? [r.nextChange.getTime()] : [])
+    const nextChange = edges.length ? new Date(Math.min(...edges)) : null
+    const rows = allowed.filter(r => r.active)
     const ids = rows.map(r => r.account.id)
     const settings = ids.length ? await db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : []
 
@@ -66,7 +99,7 @@ export async function loadSpecs(db: Db, registry: PluginRegistry): Promise<Map<s
             ...overCap(registry, saved, attackPluginLimit(attackPluginCap ?? defaults?.attackPluginCap ?? "4")),
         })
     }
-    return specs
+    return { specs, sleeping, staleErrors, nextChange }
 }
 
 /**

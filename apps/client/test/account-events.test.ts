@@ -4,7 +4,7 @@ import { applyUserEvent } from "../src/account-events.ts"
 
 const account = (id: string, over: Partial<PublicAccount> = {}): PublicAccount => ({
     id, name: "Hero", serverId: 26, desiredState: "stopped", externalEvent: false, plugins: {}, status: null,
-    createdAt: new Date(0), isTwin: false, entitled: true, ...over,
+    createdAt: new Date(0), isTwin: false, entitled: true, schedule: null, sleepingUntil: null, ...over,
 })
 const A = "11111111-1111-4111-8111-111111111111"
 const B = "22222222-2222-4222-8222-222222222222"
@@ -38,4 +38,13 @@ test("an event for an account that isn't listed changes nothing", () => {
 
 test("with no list loaded yet there is nothing to patch", () => {
     expect(applyUserEvent(undefined, fromWire({ kind: "account", accountId: A, desiredState: "running" }))).toBeUndefined()
+})
+
+test("stopping a sleeping account ends the sleep, and starting one leaves that to the server", () => {
+    const sleepingUntil = new Date("2031-02-03T08:00:00.000Z")
+    const [stopped] = applyUserEvent([account(A, { desiredState: "running", sleepingUntil })], fromWire({ kind: "account", accountId: A, desiredState: "stopped" }))!
+    expect(stopped!.sleepingUntil).toBeNull()
+
+    const [started] = applyUserEvent([account(A)], fromWire({ kind: "account", accountId: A, desiredState: "running" }))!
+    expect(started!.sleepingUntil).toBeNull()
 })

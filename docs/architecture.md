@@ -90,8 +90,44 @@ The runner deletes read notifications after 30 days and every notification after
 | Worker reports `banned` or `auth_failed` | Stop the account (`desired_state = 'stopped'`); wait for the owner to act. |
 | Shutoff timer plugin fires | Stop the account. |
 | Account deleted, stopped, or owner disabled | Stop the worker. |
+| The account's run window closes | Stop the worker and record the run as `schedule`. The account stays wanted. |
+| The account's run window opens | Queue a start, as for any wanted account. |
 
 Every worker start is a `bot_runs` row, closed with the reason it ended.
+
+## Run schedules
+
+A player can limit an account to run windows, so the bot keeps the hours a person would. The schedule is the `game_accounts.schedule` JSON column. `null` means the account runs whenever it is started.
+
+```json
+{ "tz": "Europe/Berlin", "jitterMinutes": 10, "windows": [{ "days": [1, 2, 3, 4, 5], "start": "18:00", "end": "01:30" }] }
+```
+
+- `tz` is an IANA time zone. Every time in the schedule is wall-clock time in that zone.
+- `days` are the weekdays a window starts on, where 0 is Sunday and 6 is Saturday.
+- An `end` at or before `start` is on the next day. The window above starts on Friday at 18:00 and ends on Saturday at 01:30. A window whose `start` equals its `end` is refused.
+- A schedule holds 1 to 14 windows. Windows that touch or overlap count as one stretch.
+
+**One function decides.** `scheduleState(schedule, now, accountId)` in `packages/contracts/src/schedule.ts` returns whether the account is inside a window and when that next changes. The runner, the API and the Schedule tab's preview all call it, so they agree.
+
+**Sleeping is derived, never stored.** An account is sleeping when `desired_state` is `running` and `scheduleState` says that the account is outside its windows. There is no `actual_state` for it.
+
+- The runner leaves a sleeping account out of the accounts to run. Its reconcile then stops the worker when a window closes and starts one when a window opens. A stop for the schedule writes `actual_state = 'stopped'` and clears `last_error`.
+- The reconcile runs on every change and every 30 seconds. Each one also finds the next start or stop among the wanted accounts. If that is less than 30 seconds away, the runner times one more reconcile for a second after it, so a window opens and closes on time.
+- A sleeping account has no worker, so it takes no place under `MAX_ACCOUNTS`. A pending retry is cancelled and its backoff starts again.
+- Failures still count across a sleep. The runner keeps each account's run of failures apart from its worker, so an account that fails in every short window is given up on after 8 failures over 30 minutes, like any other. The run of failures ends when a run lasts 10 minutes, the account's login changes, the owner stops the account, or the runner gives up.
+- An error on a sleeping account is about a window that has closed. When an account that was refused, was waiting for room or was retrying goes to sleep, the runner writes `actual_state = 'stopped'` and clears `last_error` once. The player app leaves sleeping accounts out of **Need attention**.
+- A sleeping account still counts toward its owner's plan. The plan is applied before the schedule, so a sleeping account never gives its place to a newer one.
+- An event twin follows its own schedule, not its main's.
+- The API returns `sleepingUntil`, the next start, on each account. The player app and the admin app's account tables show it as **Sleeping until Tue 08:07**, in the viewer's own time.
+- A new account can be given a schedule when it is added. Its jitter depends on the account id, which doesn't exist yet, so the preview there shows the times as set and says by how much they vary.
+
+**Jitter.** Each time a window comes round, its start and its end each move by a whole number of minutes between `-jitterMinutes` and `+jitterMinutes`. The amount is a hash of the account id, the local date the window starts on, the window's position in the list and the edge, so it differs from day to day and stays fixed within a day. Jitter never shortens a window below one minute. If jitter pushes two windows into each other, they run as one stretch.
+
+**Daylight saving.** Two rules cover the days the clocks change.
+
+- A time the clocks skip means the first instant after the skip. In Europe/Berlin on 2026-03-29, a 02:30 start is 03:00.
+- A time the clocks show twice means the first of the two. In Europe/Berlin on 2026-10-25, a 02:30 start is the earlier 02:30, so a window from 02:30 to 03:30 lasts two hours.
 
 ## Secrets
 

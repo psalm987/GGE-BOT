@@ -1,5 +1,6 @@
 import * as z from "zod"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
+import { Schedule } from "./schedule.ts"
 
 export const Role = z.enum(["user", "admin"])
 export const UserStatus = z.enum(["active", "disabled"])
@@ -45,6 +46,10 @@ export const PublicAccount = z.object({
     isTwin: z.boolean(),
     /** False when the owner's plan doesn't cover this account, so it can't run. */
     entitled: z.boolean(),
+    /** When the account may run; null for whenever it is wanted. */
+    schedule: Schedule.nullable(),
+    /** Set while the account is wanted but outside its schedule: when it next starts. */
+    sleepingUntil: z.date().nullable(),
 })
 export type PublicAccount = z.infer<typeof PublicAccount>
 
@@ -57,9 +62,10 @@ export const CreateAccount = z.object({
     password: GamePassword,
     externalEvent: z.boolean().default(false),
     plugins: PluginSettings.default({}),
+    schedule: Schedule.nullable().default(null),
 })
 
-/** password is write-only: omit it to keep the stored one. */
+/** password is write-only: omit it to keep the stored one. Omit schedule to keep it; null removes it. */
 export const UpdateAccount = z.object({
     id: z.uuid(),
     name: AccountName.optional(),
@@ -67,6 +73,7 @@ export const UpdateAccount = z.object({
     password: GamePassword.optional(),
     externalEvent: z.boolean().optional(),
     plugins: PluginSettings.optional(),
+    schedule: Schedule.nullable().optional(),
 })
 
 export const Ids = z.object({ ids: z.array(z.uuid()).min(1).max(200) })

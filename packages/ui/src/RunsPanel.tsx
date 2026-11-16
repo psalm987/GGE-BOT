@@ -17,6 +17,7 @@ const REASONS: Record<string, { label: string; color?: string }> = {
     shutoff: { label: "Shutoff timer" },
     deploy: { label: "Server restart" },
     runner_lost: { label: "Runner lost", color: "orange" },
+    schedule: { label: "Window closed" },
 }
 
 const humanize = (ms: number) => {

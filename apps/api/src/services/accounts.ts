@@ -3,8 +3,9 @@ import { and, asc, desc, eq, inArray, lt, type SQL } from "drizzle-orm"
 import { appSettings, botLogs, botRuns, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
-    PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, twinMainIds, userChannel,
-    type PlanOwner, type PluginCatalogEntry, type PluginSettings, type PublicAccount, type UserEvent,
+    PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState, storedSchedule,
+    twinMainIds, userChannel,
+    type PlanOwner, type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 
@@ -100,6 +101,13 @@ async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: () => Prom
 
 const bots = (n: number) => `${n} bot${n === 1 ? "" : "s"}`
 
+/** The account's schedule, and when it next starts if it is wanted but outside its windows right now. Sleeping is worked out here, never stored. */
+function scheduleOf(account: { id: string; desiredState: "running" | "stopped"; schedule: unknown }, now: Date) {
+    const schedule = storedSchedule(account.schedule)
+    const { active, nextChange } = scheduleState(schedule, now, account.id)
+    return { schedule, sleepingUntil: account.desiredState === "running" && !active ? nextChange : null }
+}
+
 /** The only way an account leaves the API: no password, sealed or not. */
 export async function listAccounts(db: Db, where: SQL | undefined, page?: { limit: number; offset: number }): Promise<(PublicAccount & { ownerId: string })[]> {
     const query = db
@@ -115,6 +123,7 @@ export async function listAccounts(db: Db, where: SQL | undefined, page?: { limi
         ids.length ? db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : [],
         planStanding(db, [...new Set(rows.map(r => r.account.ownerId))]),
     ])
+    const now = new Date()
     return rows.map(({ account, status }) => ({
         id: account.id,
         ownerId: account.ownerId,
@@ -125,6 +134,7 @@ export async function listAccounts(db: Db, where: SQL | undefined, page?: { limi
         createdAt: account.createdAt,
         isTwin: standing.twins.has(account.id),
         entitled: standing.entitled.has(account.id),
+        ...scheduleOf(account, now),
         plugins: Object.fromEntries(settings
             .filter(s => s.accountId === account.id)
             .map(s => [s.pluginKey, { enabled: s.enabled, options: s.options as PluginSettings[string]["options"] }])),
@@ -159,7 +169,7 @@ async function replaceSettings(db: Pick<Db, "insert" | "delete">, accountId: str
 }
 
 export async function createAccount(db: Db, sealKey: string, ownerId: string,
-    input: { name: string; serverId: number; password: string; externalEvent: boolean; plugins: PluginSettings }) {
+    input: { name: string; serverId: number; password: string; externalEvent: boolean; plugins: PluginSettings; schedule: Schedule | null }) {
     await assertServer(db, input.serverId)
     const settings = await validSettings(db, ownerId, input.plugins)
     const id = await db.transaction(tx => keepWithinPlan(tx, ownerId, async () => {
@@ -169,6 +179,7 @@ export async function createAccount(db: Db, sealKey: string, ownerId: string,
             serverId: input.serverId,
             passwordSealed: sealFor(sealKey, input.password),
             externalEvent: input.externalEvent,
+            schedule: input.schedule,
         }).returning({ id: gameAccounts.id })
         await replaceSettings(tx, account!.id, settings)
         return account!.id
@@ -177,7 +188,7 @@ export async function createAccount(db: Db, sealKey: string, ownerId: string,
 }
 
 export async function updateAccount(db: Db, sealKey: string, ownerId: string,
-    input: { id: string; name?: string; serverId?: number; password?: string; externalEvent?: boolean; plugins?: PluginSettings }) {
+    input: { id: string; name?: string; serverId?: number; password?: string; externalEvent?: boolean; plugins?: PluginSettings; schedule?: Schedule | null }) {
     await getOwnedAccount(db, ownerId, input.id)
     if (input.serverId !== undefined)
         await assertServer(db, input.serverId)
@@ -188,6 +199,7 @@ export async function updateAccount(db: Db, sealKey: string, ownerId: string,
             ...(input.serverId !== undefined && { serverId: input.serverId }),
             ...(input.externalEvent !== undefined && { externalEvent: input.externalEvent }),
             ...(input.password !== undefined && { passwordSealed: sealFor(sealKey, input.password) }),
+            ...(input.schedule !== undefined && { schedule: input.schedule }),
             updatedAt: new Date(),
         }).where(ownedBy(ownerId, [input.id]))
         if (settings)

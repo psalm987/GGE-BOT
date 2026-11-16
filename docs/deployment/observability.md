@@ -28,7 +28,7 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 
 No metric carries an account id or name. Per-account detail (status, logs, run history) lives in Postgres and the apps.
 
-Run history is product data, not a metric: every bot start is a `bot_runs` row with `started_at`, `ended_at` and `end_reason` (`stopped`, `restart`, `crash`, `error`, `stale`, `banned`, `auth_failed`, `shutoff`, `deploy`, `runner_lost`). Players see their last runs in the account drawer; the admin overview and the Fleet dashboard aggregate them.
+Run history is product data, not a metric: every bot start is a `bot_runs` row with `started_at`, `ended_at` and `end_reason` (`stopped`, `restart`, `crash`, `error`, `stale`, `banned`, `auth_failed`, `shutoff`, `deploy`, `runner_lost`, `schedule`). `schedule` means that the account's run window closed, which is a normal stop and not a failure. Players see their last runs in the account drawer; the admin overview and the Fleet dashboard aggregate them.
 
 ## Liveness
 

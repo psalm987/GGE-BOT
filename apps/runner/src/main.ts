@@ -10,7 +10,7 @@ import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
 import { prunes, runPrunes } from "./maintenance.ts"
 import { createMetrics, serveMetrics, type MetricBatch } from "./metrics.ts"
-import { loadSpecs } from "./specs.ts"
+import { edgeDelayMs, loadSpecs } from "./specs.ts"
 import { createStore } from "./store.ts"
 import { LIVENESS, Supervisor } from "./supervisor.ts"
 
@@ -69,6 +69,8 @@ const metricsServer = await serveMetrics(metrics.registry, env.METRICS_PORT)
 
 let reconciling: Promise<void> | undefined
 let again = false
+/** Fires a reconcile just after the next schedule edge, so a window doesn't wait for the 30-second one. */
+let edgeTimer: NodeJS.Timeout | undefined
 async function reconcile() {
     if (reconciling) {
         again = true
@@ -77,7 +79,11 @@ async function reconcile() {
     reconciling = (async () => {
         do {
             again = false
-            supervisor.reconcile(await loadSpecs(db, registry))
+            const wanted = await loadSpecs(db, registry)
+            supervisor.reconcile(wanted)
+            clearTimeout(edgeTimer)
+            const delay = edgeDelayMs(wanted.nextChange, Date.now(), LIVENESS.intervalMs)
+            edgeTimer = delay === undefined ? undefined : setTimeout(() => void reconcile(), delay)
         } while (again)
     })().catch(error => console.error("reconcile failed", error)).finally(() => { reconciling = undefined })
     return reconciling
@@ -103,6 +109,7 @@ console.log(`runner ${VERSION} started`)
 for (const signal of ["SIGTERM", "SIGINT"] as const)
     process.once(signal, async () => {
         timers.forEach(clearInterval)
+        clearTimeout(edgeTimer)
         metricsServer.close()
         await supervisor.stopAll("deploy")
         await store.flushLogs()

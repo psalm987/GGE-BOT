@@ -7,7 +7,8 @@ export function applyUserEvent(accounts: PublicAccount[] | undefined, event: Acc
             return account
         switch (event.kind) {
             case "status": return { ...account, status: event.status }
-            case "account": return { ...account, desiredState: event.desiredState }
+            // A stopped account isn't sleeping. A started one may be; only the server's answer says.
+            case "account": return { ...account, desiredState: event.desiredState, ...(event.desiredState === "stopped" && { sleepingUntil: null }) }
         }
     })
 }

@@ -91,8 +91,14 @@ export function useRealtime(userId: string | undefined, onNotification: (notific
             const event = parse(UserEvent, data)
             if (!event)
                 return
-            if (event.kind === "status" || event.kind === "account")
-                return patchQuery<PublicAccount[]>(queryClient, listKey, accounts => applyUserEvent(accounts, event))
+            if (event.kind === "status" || event.kind === "account") {
+                const before = queryClient.getQueryData<PublicAccount[]>(listKey)?.find(a => a.id === event.accountId)
+                patchQuery<PublicAccount[]>(queryClient, listKey, accounts => applyUserEvent(accounts, event))
+                // Whether a scheduled account is sleeping comes from the server's clock, which no event carries, so a change of state asks again.
+                if (before?.schedule && (event.kind === "account" || event.status.actualState !== before.status?.actualState))
+                    void queryClient.invalidateQueries({ queryKey: listKey })
+                return
+            }
             patchQuery<NotificationPages>(queryClient, notificationsQuery.queryKey, loaded => applyNotificationEvent(loaded, event))
             if (event.kind === "notification")
                 notify.current(event.notification)

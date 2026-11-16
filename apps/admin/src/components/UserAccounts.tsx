@@ -56,7 +56,7 @@ export function UserAccounts({ userId }: { userId: string }) {
                         { title: "Name", dataIndex: "name", render: (n: string) => <Typography.Text strong>{n}</Typography.Text> },
                         { title: "Server", dataIndex: "serverId", width: 90 },
                         { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
-                        { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> },
+                        { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
                         {
                             title: "", key: "actions", align: "right",
                             render: (_, a) => (

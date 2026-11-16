@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import type { BotSpec } from "./specs.ts"
+import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
 
@@ -17,7 +17,11 @@ export interface WorkerLike {
     getHeapStatistics?(): Promise<{ used_heap_size: number }>
 }
 
-export type EndReason = "stopped" | "restart" | "crash" | "error" | "stale" | "banned" | "auth_failed" | "shutoff" | "deploy" | "runner_lost"
+/** `schedule` is a stop because the account's run window closed; the account is still wanted. */
+export type EndReason = "stopped" | "restart" | "crash" | "error" | "stale" | "banned" | "auth_failed" | "shutoff" | "deploy" | "runner_lost" | "schedule"
+
+/** The status a stop on purpose leaves. An error from the window that just closed says nothing about the next one. */
+const stoppedBy = (reason: EndReason): StatusPatch => reason === "schedule" ? { actualState: "stopped", lastError: null } : { actualState: "stopped" }
 
 type Terminal = { state: "banned" | "auth_failed"; reason: string; bannedUntil?: number }
 
@@ -68,8 +72,6 @@ type Bot = {
     lastBeat?: number
     /** Unexpected exits in a row, which set the retry delay; reset once a run lasts stableMs. */
     attempt: number
-    /** Failures in a row that count toward giving up; cleared once a run lasts stableMs. */
-    streak?: { count: number; since: number }
     retryTimer?: NodeJS.Timeout
     terminal?: Terminal
     failure?: Failure
@@ -100,6 +102,8 @@ export type SupervisorDeps = {
     liveness?: Partial<typeof LIVENESS>
     giveUp?: Partial<typeof GIVE_UP>
     eventTimeoutMs?: number
+    /** The clock, in ms since the epoch. */
+    now?: () => number
     logger?: Pick<Console, "warn" | "error">
     /** Receives each worker's metric batch. */
     onMetrics?: (batch: never) => void
@@ -130,6 +134,14 @@ export class Supervisor {
     /** Wanted accounts left unstarted for lack of room, told so once. */
     private readonly atCapacity = new Set<string>()
     private readonly refused = new Set<string>()
+    /**
+     * Failures in a row that count toward giving up, by account id. A streak outlives the bot, so sleeping between
+     * run windows doesn't end it. It ends when a run lasts stableMs, the account's login changes, the account is
+     * no longer wanted, or the runner gives up.
+     */
+    private readonly streaks = new Map<string, { count: number; since: number; restartKey: string }>()
+    /** Sleeping accounts whose stale error is being cleared right now. */
+    private readonly clearing = new Set<string>()
     /** Set by stopAll: a reconcile still in flight must not start bots during shutdown. */
     private closed = false
     private readonly endReasons = new WeakMap<WorkerLike, EndReason>()
@@ -144,6 +156,7 @@ export class Supervisor {
     private readonly lastStart = new Map<string, number>()
     private readonly lastEarlyEnd = new Map<string, number>()
     private readonly log: Pick<Console, "warn" | "error">
+    private readonly now: () => number
 
     private readonly deps: SupervisorDeps
 
@@ -154,6 +167,7 @@ export class Supervisor {
         this.liveness = { ...LIVENESS, ...deps.liveness }
         this.giveUp = { ...GIVE_UP, ...deps.giveUp }
         this.log = deps.logger ?? console
+        this.now = deps.now ?? Date.now
     }
 
     get running() {
@@ -167,14 +181,22 @@ export class Supervisor {
         return stats.flatMap(s => s.status === "fulfilled" ? [s.value.used_heap_size] : [])
     }
 
-    reconcile(specs: Map<string, BotSpec>) {
+    reconcile({ specs, sleeping, staleErrors }: Wanted) {
         if (this.closed)
             return
+        // A bot's own stop clears its status, so only accounts without one are cleared here.
+        for (const id of staleErrors)
+            if (!this.bots.has(id))
+                this.clearStaleError(id)
         for (const [id, bot] of this.bots)
             if (!specs.has(id)) {
+                // Dropping the bot drops its retry timer and backoff with it. Its failure streak stays while it sleeps.
                 this.bots.delete(id)
-                this.track(this.stop(bot, "stopped"))
+                this.track(this.stop(bot, sleeping.has(id) ? "schedule" : "stopped"))
             }
+        for (const id of this.streaks.keys())
+            if (!specs.has(id) && !sleeping.has(id))
+                this.streaks.delete(id)
         for (const id of this.atCapacity)
             if (!specs.has(id))
                 this.atCapacity.delete(id)
@@ -206,7 +228,6 @@ export class Supervisor {
             } else if (bot.spec.restartKey !== spec.restartKey) {
                 bot.spec = spec
                 bot.attempt = 0
-                bot.streak = undefined
                 this.track(this.restart(bot))
             } else if (bot.spec.optionsKey !== spec.optionsKey) {
                 bot.spec = spec
@@ -215,6 +236,14 @@ export class Supervisor {
                 bot.spec = spec
             }
         }
+    }
+
+    /** A sleeping account's status still says error, which is about a window that has closed. */
+    private clearStaleError(id: string) {
+        if (this.clearing.has(id))
+            return
+        this.clearing.add(id)
+        this.track(this.deps.store.setStatus(id, stoppedBy("schedule")).finally(() => this.clearing.delete(id)))
     }
 
     private tellRefused(id: string, reason: string) {
@@ -242,7 +271,7 @@ export class Supervisor {
      * recorded as "stale" and retried. Call every LIVENESS.intervalMs.
      * Returns the accounts it ended.
      */
-    checkLiveness(now = Date.now()) {
+    checkLiveness(now = this.now()) {
         const { intervalMs, staleMs, maxLagMs } = this.liveness
         const late = this.lastLivenessCheck !== undefined && now - this.lastLivenessCheck > intervalMs + maxLagMs
         this.lastLivenessCheck = now
@@ -299,7 +328,7 @@ export class Supervisor {
         const worker = bot.worker
         if (!worker) {
             if (!bot.terminal && reason !== "restart")
-                await this.deps.store.setStatus(bot.spec.accountId, { actualState: "stopped" })
+                await this.deps.store.setStatus(bot.spec.accountId, stoppedBy(reason))
             return
         }
         this.endReasons.set(worker, reason)
@@ -342,7 +371,7 @@ export class Supervisor {
 
         const worker = this.deps.spawn(workerData)
         bot.worker = worker
-        bot.startedAt = bot.lastBeat = Date.now()
+        bot.startedAt = bot.lastBeat = this.now()
         this.lastStart.set(id, bot.startedAt)
         bot.terminal = undefined
         bot.failure = undefined
@@ -361,7 +390,7 @@ export class Supervisor {
     private onMessage(bot: Bot, [type, payload, extra]: unknown[]) {
         const id = bot.spec.accountId
         const { store } = this.deps
-        bot.lastBeat = Date.now()
+        bot.lastBeat = this.now()
         switch (type) {
             case Action.Heartbeat:
                 if ((payload as { phase?: string }).phase === "running")
@@ -426,15 +455,15 @@ export class Supervisor {
             bot.worker = undefined
         if (intended) {
             if (intended !== "restart" && !bot.terminal)
-                await this.deps.store.setStatus(bot.spec.accountId, { actualState: "stopped" })
+                await this.deps.store.setStatus(bot.spec.accountId, stoppedBy(intended))
             return
         }
         if (bot.terminal || this.bots.get(bot.spec.accountId) !== bot)
             return
-        const now = Date.now()
+        const now = this.now()
         if (now - (bot.startedAt ?? 0) > this.stableMs) {
             bot.attempt = 0
-            bot.streak = undefined
+            this.streaks.delete(bot.spec.accountId)
         } else {
             this.lastEarlyEnd.set(bot.spec.accountId, now)
         }
@@ -443,13 +472,17 @@ export class Supervisor {
 
     /** A start or run failed: retry it, unless this account has now failed often enough to give up on. */
     private async failed(bot: Bot, why: string) {
-        const now = Date.now()
+        const now = this.now()
+        const { accountId, restartKey } = bot.spec
         bot.failure = undefined
         if (blameFor(why) === "account") {
-            bot.streak ??= { count: 0, since: now }
-            bot.streak.count++
-            if (bot.streak.count >= this.giveUp.failures && now - bot.streak.since >= this.giveUp.minAgeMs && !this.fleetOutage(now))
-                return this.giveUpOn(bot, bot.streak.count, why)
+            let streak = this.streaks.get(accountId)
+            // A changed login is a new thing to try, so what failed before it doesn't count.
+            if (streak?.restartKey !== restartKey)
+                this.streaks.set(accountId, streak = { count: 0, since: now, restartKey })
+            streak.count++
+            if (streak.count >= this.giveUp.failures && now - streak.since >= this.giveUp.minAgeMs && !this.fleetOutage(now))
+                return this.giveUpOn(bot, streak.count, why)
         }
         await this.scheduleRetry(bot, why)
     }
@@ -468,6 +501,7 @@ export class Supervisor {
 
     private giveUpOn(bot: Bot, failures: number, why: string) {
         this.bots.delete(bot.spec.accountId)
+        this.streaks.delete(bot.spec.accountId)
         this.end(bot, { actualState: "crash_loop", lastError: `Stopped after ${failures} failed starts in a row: ${why}` }, { kind: "crash_loop", failures, lastError: why })
     }
 

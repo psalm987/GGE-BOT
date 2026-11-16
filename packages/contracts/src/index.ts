@@ -14,6 +14,7 @@ export * from "./entitlement.ts"
 export * from "./notifications.ts"
 export * from "./plugins.ts"
 export * from "./realtime.ts"
+export * from "./schedule.ts"
 export * from "./schemas.ts"
 
 const session = {

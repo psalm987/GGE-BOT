@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url"
 import { Worker } from "node:worker_threads"
 import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
-import { UserEvent, userChannel, type PluginCatalogEntry } from "@gge/contracts"
+import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
-import { loadSpecs } from "../src/specs.ts"
+import { edgeDelayMs, loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
 import { Supervisor, type WorkerLike } from "../src/supervisor.ts"
 
@@ -72,9 +72,9 @@ afterEach(async () => {
     await db.delete(users).where(eq(users.id, ownerId))
 })
 
-async function addAccount(name: string, { running = true, externalEvent = false, serverId = 26 } = {}) {
+async function addAccount(name: string, { running = true, externalEvent = false, serverId = 26, schedule = null as Schedule | null } = {}) {
     const [account] = await db.insert(gameAccounts).values({
-        ownerId, name, serverId, externalEvent,
+        ownerId, name, serverId, externalEvent, schedule,
         passwordSealed: sealFor(keys.publicKey, `pw-${name}`),
         desiredState: running ? "running" : "stopped",
     }).returning()
@@ -605,7 +605,7 @@ describe("plan limits", () => {
         const first = await addAccount("ok-plan-first")
         const twin = await addAccount("ok-plan-first", { externalEvent: true })
         const extra = await addAccount("ok-plan-extra")
-        const specs = await loadSpecs(db, registry)
+        const { specs } = await loadSpecs(db, registry)
         expect([...specs.keys()].sort()).toEqual([first, twin].sort())
         expect(specs.has(extra)).toBe(false)
     })
@@ -623,5 +623,286 @@ describe("plan limits", () => {
         expect(supervisor.running).toBe(1)
         expect((await status(oldest))?.actualState).toBe("running")
         expect(await desired(newest)).toBe("running")
+    })
+})
+
+describe("run windows", () => {
+    // 2026-06-15 is a Monday.
+    const office: Schedule = { tz: "UTC", jitterMinutes: 0, windows: [{ days: [1, 2, 3, 4, 5], start: "09:00", end: "17:00" }] }
+    const before = new Date("2026-06-15T08:00:00Z")
+    const inside = new Date("2026-06-15T12:00:00Z")
+    const after = new Date("2026-06-15T17:00:30Z")
+    const reconcileAt = async (now: Date) => supervisor.reconcile(await loadSpecs(db, registry, now))
+    const settle = () => new Promise(r => setTimeout(r, 300))
+
+    test("a running account is stopped when its window closes, and its run says the window closed", async () => {
+        const id = await addAccount("ok-window-ends", { schedule: office })
+        await reconcileAt(inside)
+        await until(async () => (await status(id))?.actualState === "running")
+
+        await reconcileAt(after)
+        await until(async () => (await status(id))?.actualState === "stopped")
+        expect((await runs(id)).map(r => r.endReason)).toEqual(["schedule"])
+        expect((await status(id))?.lastError).toBeNull()
+        expect(supervisor.bots.size).toBe(0)
+        expect(await desired(id)).toBe("running")
+    })
+
+    test("an account outside its window starts when the window opens", async () => {
+        const id = await addAccount("ok-window-opens", { schedule: office })
+        await reconcileAt(before)
+        await settle()
+        expect(spawned).toHaveLength(0)
+        expect(await status(id)).toBeUndefined()
+
+        await reconcileAt(inside)
+        await until(async () => (await status(id))?.actualState === "running")
+        expect(await runs(id)).toHaveLength(1)
+    })
+
+    test("going to sleep cancels a pending retry, and the failures before it still count after it", async () => {
+        supervisor = makeSupervisor({ backoff: { baseMs: 300, maxMs: 300 }, giveUp: { failures: 3, minAgeMs: 0 } })
+        const id = await addAccount("crash-then-sleep", { schedule: office })
+        await reconcileAt(inside)
+        await until(async () => (await runs(id)).filter(r => r.endedAt).length === 2)
+
+        await reconcileAt(after)
+        await until(async () => (await status(id))?.actualState === "stopped")
+        expect((await status(id))?.lastError).toBeNull()
+        await new Promise(r => setTimeout(r, 600))
+        expect(spawned).toHaveLength(2)
+        expect(await desired(id)).toBe("running")
+
+        await reconcileAt(inside)
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect((await status(id))?.lastError).toBe("Stopped after 3 failed starts in a row: The bot stopped unexpectedly")
+        expect(spawned).toHaveLength(3)
+    })
+
+    describe("an account that fails in every short window", () => {
+        // Four windows on the Monday, each shorter than the 30 minutes a streak must last before the runner gives up.
+        const short: Schedule = { tz: "UTC", jitterMinutes: 0, windows: ["09:00", "09:10", "09:20", "09:31"].map(start => ({ days: [1], start, end: start.replace(/\d$/, "5") })) }
+        const at = (time: string) => Date.parse(`2026-06-15T${time}:00Z`)
+        let clock: number
+        /** Set while the next worker to start should count as a stable run: the clock passes stableMs before its exit is handled. */
+        let stableNext: boolean
+        const crashes = async (id: string) => (await runs(id)).filter(r => r.endReason === "crash").length
+        const reconcileNow = async () => supervisor.reconcile(await loadSpecs(db, registry, new Date(clock)))
+
+        beforeEach(() => {
+            stableNext = false
+            // The real GIVE_UP: 8 failures over at least 30 minutes. The first retry waits at least 100 ms, so a sleep lands between crashes.
+            supervisor = makeSupervisor({
+                backoff: { baseMs: 200, maxMs: 400 },
+                now: () => clock,
+                spawn: workerData => {
+                    const worker = new Worker(fakeBot, { workerData })
+                    if (stableNext) {
+                        stableNext = false
+                        // Registered before the supervisor's own exit listener, so it runs first.
+                        worker.once("exit", () => { clock += 11 * 60_000 })
+                    }
+                    return worker
+                },
+            })
+        })
+
+        /** Opens the window that starts at `time`, lets the account crash twice in it, then closes it. */
+        async function crashTwiceIn(id: string, time: string) {
+            clock = at(time) + 30_000
+            const before = await crashes(id)
+            await reconcileNow()
+            await until(async () => await crashes(id) >= before + 2)
+            clock += 5 * 60_000
+            await reconcileNow()
+            await until(async () => (await status(id))?.actualState === "stopped")
+        }
+
+        test("is given up on once it has failed 8 times in a row over 30 minutes", async () => {
+            const id = await addAccount("crash-windowed", { schedule: short })
+            for (const time of ["09:00", "09:10", "09:20"])
+                await crashTwiceIn(id, time)
+            expect(await crashes(id)).toBeGreaterThanOrEqual(6)
+            expect(await desired(id)).toBe("running")
+            expect(await notified(id)).toEqual([])
+
+            clock = at("09:31") + 30_000
+            await reconcileNow()
+            await until(async () => (await status(id))?.actualState === "crash_loop")
+            const failures = await crashes(id)
+            expect(failures).toBeGreaterThanOrEqual(8)
+            expect((await status(id))?.lastError).toBe(`Stopped after ${failures} failed starts in a row: The bot stopped unexpectedly`)
+            await until(async () => (await desired(id)) === "stopped")
+        })
+
+        test("is kept when it ran stably in between", async () => {
+            const id = await addAccount("crash-windowed-stable", { schedule: short })
+            for (const time of ["09:00", "09:10", "09:20"])
+                await crashTwiceIn(id, time)
+            const before = await crashes(id)
+
+            clock = at("09:31") + 30_000
+            stableNext = true
+            await reconcileNow()
+            // Without the stable run the second of these would be the eighth in a row, 31 minutes in.
+            await until(async () => await crashes(id) >= before + 4)
+            expect((await status(id))?.actualState).not.toBe("crash_loop")
+            expect(await desired(id)).toBe("running")
+            expect(await notified(id)).toEqual([])
+        })
+    })
+
+    test("the owner stopping a sleeping account ends its run of failures", async () => {
+        supervisor = makeSupervisor({ backoff: { baseMs: 300, maxMs: 300 }, giveUp: { failures: 3, minAgeMs: 0 } })
+        const id = await addAccount("crash-stopped-asleep", { schedule: office })
+        await reconcileAt(inside)
+        await until(async () => (await runs(id)).filter(r => r.endedAt).length === 2)
+        await reconcileAt(after)
+        await until(async () => (await status(id))?.actualState === "stopped")
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, id))
+        await reconcileAt(after)
+        await db.update(gameAccounts).set({ desiredState: "running" }).where(eq(gameAccounts.id, id))
+        await reconcileAt(inside)
+
+        // A third failure in a row would end the account; after the owner's stop it is the first.
+        await until(async () => (await runs(id)).filter(r => r.endedAt).length === 3)
+        await until(async () => (await status(id))?.lastError?.includes("retrying"))
+        expect(await desired(id)).toBe("running")
+    })
+
+    describe("an error left on an account that goes to sleep", () => {
+        let stoppedWrites: string[]
+        const counting = () => {
+            stoppedWrites = []
+            const setStatus = store.setStatus
+            return { ...store, setStatus: (id: string, patch: Parameters<typeof setStatus>[1]) => {
+                if (patch.actualState === "stopped")
+                    stoppedWrites.push(id)
+                return setStatus(id, patch)
+            } }
+        }
+        const reconcileWith = async (plugins: PluginRegistry, now: Date) => supervisor.reconcile(await loadSpecs(db, plugins, now))
+
+        test("a refused account that goes to sleep is marked stopped once, with the error gone", async () => {
+            const raids = ["raidA", "raidB", "raidC", "raidD", "raidE"]
+            const capped: PluginRegistry = {
+                catalog: [...catalog, ...raids.map(key => ({ key, force: false, hidden: false, options: [], category: "attack" as const }))],
+                filenames: new Map([...registry.filenames, ...raids.map(key => [key, `plugins/attack/${key}`] as const)]),
+            }
+            supervisor = makeSupervisor({ store: counting() })
+            const id = await addAccount("ok-refused-sleeper", { schedule: office })
+            await db.insert(pluginSettings).values(raids.map(pluginKey => ({ accountId: id, pluginKey, enabled: true, options: {} })))
+            await reconcileWith(capped, inside)
+            await until(async () => (await status(id))?.actualState === "error")
+            expect(spawned).toHaveLength(0)
+
+            await reconcileWith(capped, after)
+            await until(async () => (await status(id))?.actualState === "stopped")
+            expect((await status(id))?.lastError).toBeNull()
+            await reconcileWith(capped, after)
+            await reconcileWith(capped, after)
+            await settle()
+            expect(stoppedWrites).toEqual([id])
+
+            // The refusal comes back with the next window.
+            await reconcileWith(capped, inside)
+            await until(async () => (await status(id))?.actualState === "error")
+        })
+
+        test("an account waiting for room that goes to sleep is marked stopped once", async () => {
+            supervisor = makeSupervisor({ maxAccounts: 1, store: counting() })
+            const first = await addAccount("ok-room-taken")
+            const waiting = await addAccount("ok-room-sleeper", { schedule: office })
+            await reconcileAt(inside)
+            await until(async () => (await status(waiting))?.lastError === "The runner is at capacity")
+            await until(async () => (await status(first))?.actualState === "running")
+
+            await reconcileAt(after)
+            await until(async () => (await status(waiting))?.actualState === "stopped")
+            expect((await status(waiting))?.lastError).toBeNull()
+            await reconcileAt(after)
+            await settle()
+            expect(stoppedWrites).toEqual([waiting])
+        })
+
+        test("an error found on an account that is already asleep is cleared", async () => {
+            const id = await addAccount("ok-found-asleep", { schedule: office })
+            await store.setStatus(id, { actualState: "error", lastError: "The bot stopped unexpectedly; retrying in 5s" })
+            const asleep = await loadSpecs(db, registry, before)
+            expect([...asleep.staleErrors]).toEqual([id])
+            supervisor.reconcile(asleep)
+            await until(async () => (await status(id))?.actualState === "stopped")
+            expect((await status(id))?.lastError).toBeNull()
+            expect((await loadSpecs(db, registry, before)).staleErrors.size).toBe(0)
+        })
+    })
+
+    test("the next schedule edge is the earliest among wanted accounts, awake or asleep", async () => {
+        const evening: Schedule = { tz: "UTC", jitterMinutes: 0, windows: [{ days: [1], start: "20:00", end: "21:00" }] }
+        await addAccount("ok-edge-none")
+        expect((await loadSpecs(db, registry, inside)).nextChange).toBeNull()
+
+        await addAccount("ok-edge-evening", { schedule: evening })
+        expect((await loadSpecs(db, registry, inside)).nextChange).toEqual(new Date("2026-06-15T20:00:00Z"))
+
+        await addAccount("ok-edge-office", { schedule: office })
+        // At noon the office account is awake and stops at 17:00, before the evening one starts.
+        expect((await loadSpecs(db, registry, inside)).nextChange).toEqual(new Date("2026-06-15T17:00:00Z"))
+        // At 08:00 both are asleep, and the office one starts first.
+        expect((await loadSpecs(db, registry, before)).nextChange).toEqual(new Date("2026-06-15T09:00:00Z"))
+
+        await addAccount("ok-edge-unwanted", { running: false, schedule: { ...office, windows: [{ days: [1], start: "08:30", end: "08:40" }] } })
+        expect((await loadSpecs(db, registry, before)).nextChange).toEqual(new Date("2026-06-15T09:00:00Z"))
+    })
+
+    test.each([
+        ["an edge 12 s away is reconciled a second after it", 12_000, 13_000],
+        ["an edge that has just passed is reconciled in a second", -50, 1000],
+        ["an edge beyond the periodic reconcile is left to it", 29_500, undefined],
+        ["an edge hours away is left to it", 5 * 3600_000, undefined],
+    ])("%s", (_, away, delay) => {
+        const now = Date.parse("2026-06-15T12:00:00Z")
+        expect(edgeDelayMs(new Date(now + away), now, 30_000)).toBe(delay)
+    })
+
+    test("with no schedule edge ahead nothing is timed", () => {
+        expect(edgeDelayMs(null, Date.now(), 30_000)).toBeUndefined()
+    })
+
+    test("an account without a schedule runs at any time", async () => {
+        const id = await addAccount("ok-no-schedule")
+        expect((await loadSpecs(db, registry, before)).sleeping.size).toBe(0)
+        await reconcileAt(before)
+        await until(async () => (await status(id))?.actualState === "running")
+        await reconcileAt(after)
+        await settle()
+        expect((await status(id))?.actualState).toBe("running")
+        expect(await runs(id)).toMatchObject([{ endReason: null }])
+    })
+
+    test("a sleeping account takes no room on the runner", async () => {
+        supervisor = makeSupervisor({ maxAccounts: 1 })
+        const sleeper = await addAccount("ok-room-sleeper", { schedule: office })
+        const awake = await addAccount("ok-room-awake")
+        await reconcileAt(before)
+        await until(async () => (await status(awake))?.actualState === "running")
+        expect(await status(sleeper)).toBeUndefined()
+    })
+
+    test("a sleeping account keeps its place in the plan, and an event twin follows its own schedule", async () => {
+        await db.update(users).set({ maxBots: 1 }).where(eq(users.id, ownerId))
+        const main = await addAccount("ok-plan-sleeper", { schedule: office })
+        const twin = await addAccount("ok-plan-sleeper", { externalEvent: true })
+        const extra = await addAccount("ok-plan-waiting")
+
+        const asleep = await loadSpecs(db, registry, before)
+        expect([...asleep.sleeping]).toEqual([main])
+        expect([...asleep.specs.keys()]).toEqual([twin])
+        expect(asleep.specs.has(extra)).toBe(false)
+
+        const awake = await loadSpecs(db, registry, inside)
+        expect(awake.sleeping.size).toBe(0)
+        expect([...awake.specs.keys()].sort()).toEqual([main, twin].sort())
     })
 })

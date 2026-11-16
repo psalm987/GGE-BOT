@@ -31,12 +31,14 @@ async function setMaxBots(username, maxBots) {
     await call("users/setMaxBots", { id: user.id, maxBots })
 }
 
-async function addAccount(page, accountName) {
+/** Fills the open add-account drawer and submits it. `beforeAdding` runs on the filled drawer first. */
+async function addAccount(page, accountName, beforeAdding = async () => {}) {
     await page.getByLabel("Game account name").fill(accountName)
     await page.getByLabel("Server").click()
     await page.keyboard.type("Germany")
     await page.locator(".ant-select-item-option", { hasText: "Germany 1" }).click()
     await page.getByLabel("Game password").fill("hunter2")
+    await beforeAdding()
     await page.getByRole("button", { name: "Add account", exact: true }).last().click()
     await page.getByText(`${accountName} added`).waitFor()
     await drawerClosed(page)
@@ -248,11 +250,125 @@ function emailedLink(address) {
     assert(await page.getByRole("button", { name: `Add event twin for ${gale}` }).count() === 0, "a main that has its twin offers no second one")
     await page.screenshot({ path: `${out}/12-event-twin-at-limit.png` })
 
+    const WIDE = { width: 1440, height: 900 }, PHONE = { width: 390, height: 844 }
+    const noOverflow = async (target, what) => assert(await target.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, `no horizontal overflow on ${what} at 390`)
+    /** A screenshot at 1440 and at 390, with the overflow check at 390. Leaves the page wide. */
+    const bothWidths = async (target, file, what) => {
+        await target.setViewportSize(WIDE)
+        await target.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true })
+        await target.setViewportSize(PHONE)
+        await target.waitForTimeout(300)
+        await noOverflow(target, what)
+        await target.screenshot({ path: `${out}/${file}-390.png`, fullPage: true })
+        await target.setViewportSize(WIDE)
+    }
+
+    const mainRow = galeRows.first()
+    await mainRow.getByRole("button", { name: `Start ${gale}` }).click()
+    await mainRow.getByRole("button", { name: "Stop" }).waitFor()
+    const drawer = page.getByRole("dialog")
+    const scheduleSwitch = drawer.getByRole("switch", { name: "Run on a schedule" })
+    const openSchedule = async () => {
+        await mainRow.getByRole("button", { name: `Edit ${gale}` }).click()
+        await drawer.getByRole("tab", { name: "Schedule" }).click()
+        await scheduleSwitch.waitFor()
+    }
+    const windowBox = n => drawer.getByRole("group", { name: `Window ${n}`, exact: true })
+    const setTime = async (n, label, value) => {
+        const input = windowBox(n).getByLabel(label, { exact: true })
+        await input.click()
+        await input.fill(value)
+        await input.press("Enter")
+    }
+    const nextStart = async () => (await drawer.getByText(/^Next start: /).innerText()).match(/^Next start: (\w{3} \d\d:\d\d) \(your time\)$/)[1]
+    await openSchedule()
+    assert(!(await scheduleSwitch.isChecked()) && await drawer.getByText("Without a schedule the bot runs whenever it is started.").isVisible(), "an account starts with no schedule")
+    await scheduleSwitch.click()
+    const { zone, hour } = await page.evaluate(() => ({ zone: Intl.DateTimeFormat().resolvedOptions().timeZone, hour: new Date().getHours() }))
+    assert(await drawer.locator(`.ant-select-content[title="${zone}"]`).count() === 1, `the time zone defaults to the browser's (${zone})`)
+    // Two to three hours from now, so the account is outside its window whatever the time of day.
+    const clock = hours => `${String((hour + hours) % 24).padStart(2, "0")}:15`
+    await setTime(1, "From", clock(2))
+    await setTime(1, "to", clock(3))
+    await drawer.getByRole("slider").focus()
+    for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight")
+    assert(await drawer.getByText("Vary start and stop times by up to 15 minutes each day").isVisible(), "the jitter slider says how far times vary")
+    await drawer.getByRole("button", { name: "Add window" }).click()
+    await setTime(2, "From", "23:00")
+    await setTime(2, "to", "01:00")
+    assert(await windowBox(2).getByText("ends next day").isVisible(), "a window that ends at or before its start says it ends next day")
+    await axe(page, "schedule tab")
+    await bothWidths(page, "15-schedule-tab", "the Schedule tab")
+    await setTime(2, "to", "23:00")
+    assert(await windowBox(2).getByRole("alert").innerText() === "A window can't start and end at the same time", "a window that starts and ends at the same time is flagged")
+    assert(await drawer.getByText(/^Next start: /).count() === 0, "an invalid schedule shows no preview")
+    await drawer.getByRole("button", { name: "Save changes" }).click()
+    await drawer.getByText("Fix the schedule before saving").waitFor()
+    assert(await drawer.isVisible(), "an invalid schedule isn't saved")
+    await drawer.getByRole("button", { name: "Remove window 2" }).click()
+    assert(await windowBox(2).count() === 0, "a window can be removed")
+    const when = await nextStart()
+    assert(true, `the preview reads "Next start: ${when} (your time)"`)
+    await drawer.getByRole("button", { name: "Save changes" }).click()
+    await page.getByText(`${gale} saved`).waitFor()
+    await drawerClosed(page)
+    const sleeping = mainRow.getByText(`Sleeping until ${when}`)
+    await sleeping.waitFor()
+    assert(true, `the started account's row shows "Sleeping until ${when}", the time the preview gave`)
+    // The tag fades from the colour of the state it replaced, so the colour is read once the fade is over.
+    const tagColour = () => sleeping.evaluate(el => getComputedStyle(el.closest(".ant-tag")).color)
+    for (let i = 0; i < 20 && await tagColour() !== "rgb(169, 155, 234)"; i++) await page.waitForTimeout(100)
+    assert(await tagColour() === "rgb(169, 155, 234)", "sleeping has its own calm colour, not the error one")
+    assert(await twinRow.getByText("Sleeping").count() === 0, "the event twin doesn't follow its main's schedule")
+    await bothWidths(page, "16-sleeping-row", "the roster with a sleeping account")
+    await page.reload()
+    await mainRow.getByText(`Sleeping until ${when}`).waitFor()
+    await openSchedule()
+    assert(await drawer.getByText(`Sleeping until ${when}`).isVisible(), "the drawer shows the same sleeping status")
+    assert(await scheduleSwitch.isChecked()
+        && await windowBox(1).getByLabel("From", { exact: true }).inputValue() === clock(2) && await windowBox(1).getByLabel("to", { exact: true }).inputValue() === clock(3)
+        && await drawer.getByText("up to 15 minutes each day").isVisible() && await nextStart() === when, "the schedule survives a reload, and its preview still matches")
+    await bothWidths(page, "17-sleeping-drawer", "the drawer of a sleeping account")
+    await scheduleSwitch.click()
+    await drawer.getByRole("button", { name: "Save changes" }).click()
+    await page.getByText(`${gale} saved`).last().waitFor()
+    await drawerClosed(page)
+    await mainRow.getByText("Stopped").waitFor()
+    assert(await mainRow.getByText("Sleeping").count() === 0, "turning the schedule off clears the sleeping state")
+    await mainRow.getByRole("button", { name: "Stop" }).click()
+    await mainRow.getByRole("button", { name: `Start ${gale}` }).waitFor()
+    await page.setViewportSize({ width: 1280, height: 860 })
+
     await setMaxBots(name, 2)
     await page.reload()
     await page.getByRole("button", { name: "Add account", exact: true }).click()
     const hail = `Hail${name}`
-    await addAccount(page, hail)
+    let hailStart
+    await addAccount(page, hail, async () => {
+        assert(await drawer.getByRole("tab").count() === 0 && !(await scheduleSwitch.isChecked()), "the add-account drawer offers a schedule as a section, off to begin with")
+        await scheduleSwitch.click()
+        await setTime(1, "From", clock(2))
+        await setTime(1, "to", clock(3))
+        const approximate = await drawer.getByText(/^Next start: /).innerText()
+        assert(new RegExp(`^Next start: about \\w{3} ${clock(2)} \\(your time\\)\\. It varies by up to 10 minutes; the exact time shows once the account is added\\.$`).test(approximate),
+            `before the account exists the preview gives the set time and says it varies ("${approximate}")`)
+        await axe(page, "add-account drawer with a schedule")
+        await bothWidths(page, "18-new-account-schedule", "the add-account drawer with a schedule")
+        await page.setViewportSize({ width: 1280, height: 860 })
+        await drawer.getByRole("slider").focus()
+        for (let i = 0; i < 10; i++) await page.keyboard.press("ArrowLeft")
+        await drawer.getByText("Vary start and stop times by up to 0 minutes each day").waitFor()
+        hailStart = await nextStart()
+        assert(hailStart.endsWith(clock(2)), `with no variation the preview is exact: "Next start: ${hailStart} (your time)"`)
+    })
+    const newRow = page.getByRole("row", { name: new RegExp(hail) })
+    await newRow.getByRole("button", { name: `Start ${hail}` }).click()
+    await newRow.getByText(`Sleeping until ${hailStart}`).waitFor()
+    assert(true, `an account added with a schedule and then started shows "Sleeping until ${hailStart}" on its row`)
+    assert(/Need attention\s*0/.test(await page.locator(".ant-statistic").filter({ hasText: "Need attention" }).textContent()), "a sleeping account isn't counted under Need attention")
+    await page.screenshot({ path: `${out}/19-new-account-sleeping.png` })
+    await newRow.getByRole("button", { name: "Stop" }).click()
+    await newRow.getByRole("button", { name: `Start ${hail}` }).waitFor()
     await setMaxBots(name, 1)
     await page.reload()
     const hailRow = page.getByRole("row", { name: new RegExp(hail) })
@@ -296,18 +412,6 @@ function emailedLink(address) {
     assert(true, "the Run history tab lists the account's runs")
     await seeded.close()
 
-    const WIDE = { width: 1440, height: 900 }, PHONE = { width: 390, height: 844 }
-    const noOverflow = async (target, what) => assert(await target.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, `no horizontal overflow on ${what} at 390`)
-    /** A screenshot at 1440 and at 390, with the overflow check at 390. Leaves the page wide. */
-    const bothWidths = async (target, file, what) => {
-        await target.setViewportSize(WIDE)
-        await target.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true })
-        await target.setViewportSize(PHONE)
-        await target.waitForTimeout(300)
-        await noOverflow(target, what)
-        await target.screenshot({ path: `${out}/${file}-390.png`, fullPage: true })
-        await target.setViewportSize(WIDE)
-    }
     const signIn = async (target, login) => {
         await target.goto(`${CLIENT_URL}/login`)
         await target.getByLabel("Username or email").fill(login)
