@@ -23,7 +23,7 @@
 | `INBOUND_STALE_MS` | runner | no | Milliseconds of silence from the game after which a logged-in bot reconnects. Off when unset. Set it to about 3× the p99 of `bot_inbound_gap_seconds` ([observability.md](observability.md#liveness)). |
 | `AUDIT_RETENTION_DAYS` | runner | no | Days to keep audit log entries. Default 365. The runner deletes older entries hourly ([operations.md](operations.md#disk)). |
 | `PROXY_REQUIRED` | runner | no | `true` stops an account that has no proxy from connecting directly. The account doesn't start and shows "No proxy is free". Default `false` ([operations.md](operations.md#proxies)). |
-| `BOT_HUMANIZE` | runner | no | Comma list of humanization flags to turn on: `pin_jitter`, `measured_timing`, `lognormal_delays`, `map_grid`. Empty: all off. The runner refuses to start on an unknown name ([observability.md](observability.md#humanization-flags)). |
+| `BOT_HUMANIZE` | runner | no | Comma list of humanization flags to turn on: `pin_jitter`, `measured_timing`, `lognormal_delays`, `map_grid`, `nch`, `login_sequence`, `attack_dialog`. Empty: all off. The runner refuses to start on an unknown name ([observability.md](observability.md#humanization-flags)). |
 | `BOT_HUMANIZE_ACCOUNTS` | runner | no | Comma list of account ids that get the `BOT_HUMANIZE` flags. Empty: every account. |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |

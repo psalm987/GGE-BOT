@@ -11,15 +11,16 @@ const SERVER = {
  * Runs the real ggeBot.js in a worker against a scripted fake game socket.
  * With `realSocket` the bot opens a real `ws` connection instead, and only what it tells its parent can be checked.
  */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, pinIntervalMs, humanize, gameClientBuild, connect = true, proxyUrl, realSocket = false } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, pinIntervalMs, nchIntervalMs, humanize, gameClientBuild, connect = true, proxyUrl, realSocket = false, surviveExit = false } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
             control: port2,
             connect,
             realSocket,
+            surviveExit,
             ...(proxyUrl && { proxyUrl }),
-            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs, pinIntervalMs, humanize, gameClientBuild },
+            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs, pinIntervalMs, nchIntervalMs, humanize, gameClientBuild },
             name: "tester",
             pass: "pw",
             gameURL: "fake.invalid",
@@ -71,9 +72,9 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             port1.postMessage({ type: "wait", key, timeout, id })
         }),
         async login() {
-            await session.until(() => session.sent.some(m => m.includes('action="verChk"')))
+            await session.until(() => session.sent.some(m => /action=["']verChk/.test(m)))
             session.frame(SERVER.apiOK)
-            await session.until(() => session.sent.some(m => m.includes('action="login"')))
+            await session.until(() => session.sent.some(m => /action=["']login/.test(m)))
             session.frame(SERVER.joinOK)
             session.xt("vck", 0)
             await session.until(() => session.sentXT("lli").length === 1)

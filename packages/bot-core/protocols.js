@@ -18,7 +18,7 @@ const myCache = new NodeCache({useClones : false})
 
 let generals = []
 
-xtHandler.on("gie", obj => generals = obj.G)
+xtHandler.on("gie", obj => generals = obj.G ?? generals)
 
 const AreaType = Object.freeze({
     barron: 2,

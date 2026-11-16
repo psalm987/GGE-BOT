@@ -341,6 +341,10 @@ describe("humanization flags", () => {
     const pinTimes = () => bot.sentAt.filter((_, i) => bot.sent[i] === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")
     const gaps = times => times.slice(1).map((at, i) => at - times[i])
     const roundTripRes = "<msg t='sys'><body action='roundTripRes' r='1'></body></msg>"
+    const NCH = "%xt%EmpireEx_1%nch%1%"
+    const PIN = "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%"
+    const timesOf = frame => bot.sentAt.filter((_, i) => bot.sent[i] === frame)
+    const sentAtOf = cmd => bot.sentAt[bot.sent.findIndex(m => m.split("%")[3] === cmd)]
 
     test("with every flag off the bot sends the frames it always has", async () => {
         bot = startBot({ pinIntervalMs: 200 })
@@ -429,5 +433,143 @@ describe("humanization flags", () => {
         await bot.login()
 
         expect(lliOf(bot.sentXT("lli")[0])).toMatchObject({ CONM: 50, RTM: 25 })
+    }, 15000)
+
+    test("with nch an empty nch follows the login, then one about every interval", async () => {
+        bot = startBot({ nchIntervalMs: 300, humanize: { nch: true } })
+        await bot.login()
+        await sleep(400)
+        expect(timesOf(NCH)).toEqual([])
+        bot.xt("lli", 0)
+        await sleep(4500)
+
+        const waits = gaps(timesOf(NCH))
+        expect(waits.length).toBeGreaterThanOrEqual(10)
+        expect(waits.length).toBeLessThanOrEqual(18)
+        expect(Math.min(...waits)).toBeGreaterThanOrEqual(300 - 3 * 37.5 - 5)
+        expect(Math.max(...waits) - Math.min(...waits)).toBeGreaterThan(20)
+        expect(bot.sent.filter(m => m.includes("%nch%")).every(m => m === NCH)).toBe(true)
+        expect(bot.sentXT("gbl")).toEqual([])
+    }, 15000)
+
+    test("a second successful login does not start a second nch loop", async () => {
+        bot = startBot({ nchIntervalMs: 200, humanize: { nch: true } })
+        await bot.login()
+        bot.xt("lli", 0)
+        bot.xt("lli", 0)
+        await sleep(1500)
+
+        expect(timesOf(NCH).length).toBeGreaterThanOrEqual(5)
+        expect(timesOf(NCH).length).toBeLessThanOrEqual(9)
+    }, 15000)
+
+    test("the nch loop stops when the bot exits, while timers nobody stops keep running", async () => {
+        bot = startBot({ surviveExit: true, nchIntervalMs: 500, pinIntervalMs: 500, humanize: { nch: true } })
+        await bot.login()
+        bot.xt("lli", 0)
+        await bot.until(() => timesOf(NCH).length >= 3, 4000)
+        bot.serverClose(1006)
+        await bot.until(() => bot.botStates().length > 0)
+        await sleep(50)
+        const [nchBefore, pinsBefore] = [timesOf(NCH).length, timesOf(PIN).length]
+        await sleep(2000)
+
+        expect(timesOf(NCH).length).toBe(nchBefore)
+        expect(timesOf(PIN).length).toBeGreaterThan(pinsBefore + 2)
+    }, 15000)
+
+    test("unanswered nch frames neither count as timeouts nor hide a silent connection", async () => {
+        bot = startBot({ inboundStaleMs: 3000, nchIntervalMs: 250, humanize: { nch: true } })
+        await bot.login()
+        bot.xt("lli", 0)
+        await bot.until(() => bot.exited, 10000)
+
+        expect(timesOf(NCH).length).toBeGreaterThan(8)
+        expect(bot.botStates()).toEqual([{ state: "error", reason: "CONNECTION_STALE" }])
+    }, 15000)
+
+    /** The 2026-11-13 capture's login, with its zone and player name replaced by the harness's. */
+    const CAPTURED_LOGIN = [
+        "<msg t='sys'><body action='verChk' r='0'><ver v='166' /></body></msg>",
+        "<msg t='sys'><body action='login' r='0'><login z='EmpireEx_1'><nick><![CDATA[]]></nick><pword><![CDATA[1172014%en%0]]></pword></login></body></msg>",
+        "<msg t='sys'><body action='autoJoin' r='-1'></body></msg>",
+        "<msg t='sys'><body action='roundTrip' r='1'></body></msg>",
+        "vck",
+        '%xt%EmpireEx_1%vln%1%{"NOM":"tester"}%',
+        "lli",
+    ]
+    const CAPTURED_BURST = [
+        "%xt%EmpireEx_1%gbl%1%{}%",
+        '%xt%EmpireEx_1%jca%1%{"CID":-1,"KID":0}%',
+        "%xt%EmpireEx_1%alb%1%{}%",
+        "%xt%EmpireEx_1%sli%1%{}%",
+        "%xt%EmpireEx_1%gie%1%{}%",
+        "%xt%EmpireEx_1%asc%1%{}%",
+        "%xt%EmpireEx_1%sie%1%{}%",
+        '%xt%EmpireEx_1%ffi%1%{"FIDS":[1]}%',
+        "%xt%EmpireEx_1%kli%1%{}%",
+        "%xt%EmpireEx_1%gcs%1%{}%",
+    ]
+    /** Answers the way the game does, including the `rlu` that makes the bot send `autoJoin`. */
+    async function loginLikeTheGame() {
+        await bot.until(() => bot.sent.length === 1)
+        bot.frame("<msg t='sys'><body action='apiOK' r='0'></body></msg>")
+        await bot.until(() => bot.sent.some(m => m.includes("action='login'")))
+        bot.xt("rlu", 0)
+        await bot.until(() => bot.sent.some(m => m.includes("action='autoJoin'")))
+        bot.frame("<msg t='sys'><body action='joinOK' r='1'><pid id='0'/><vars /><uLs r='1'></uLs></body></msg>")
+        await bot.until(() => bot.sentXT("vck").length === 1)
+        bot.xt("vck", 0)
+        await bot.until(() => bot.sentXT("lli").length === 1)
+        bot.xt("lli", 0)
+        await bot.until(() => bot.sentXT("gcs").length === 1, 4000)
+    }
+    const withoutPins = () => bot.sent.filter(m => m !== PIN)
+
+    test("with login_sequence and nch the login and the burst after it are the captured client's, frame for frame", async () => {
+        bot = startBot({ timeoutMultiplier: 0.05, pinIntervalMs: 500, nchIntervalMs: 60_000, humanize: { login_sequence: true, nch: true } })
+        await loginLikeTheGame()
+
+        const sent = withoutPins()
+        expect(sent.slice(0, 4)).toEqual(CAPTURED_LOGIN.slice(0, 4))
+        expect(sent[4]).toMatch(/^%xt%EmpireEx_1%vck%1%1172014%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
+        expect(sent[5]).toBe(CAPTURED_LOGIN[5])
+        expect(sent[6]).toBe('%xt%EmpireEx_1%lli%1%{"CONM":212,"RTM":25,"ID":0,"PL":1,"NOM":"tester","PW":"pw","LT":null,"LANG":"en","DID":"0","AID":"1745592024940879420","KID":"","REF":"https://empire.goodgamestudios.com","GCI":"","SID":9,"PLFID":1}%')
+        expect(sent.slice(7)).toEqual([NCH, ...CAPTURED_BURST])
+        // The pin loop runs from the connection, so a login slower than one interval has a pin before its lli, as the capture has.
+        expect(bot.sent.indexOf(PIN)).toBeLessThan(bot.sent.findIndex(m => m.includes("%lli%")))
+
+        expect(sentAtOf("vln") - sentAtOf("vck")).toBeGreaterThanOrEqual(6000 * 0.05)
+        expect(sentAtOf("lli") - sentAtOf("vln")).toBeGreaterThanOrEqual(8000 * 0.05)
+        expect(sentAtOf("lli") - sentAtOf("vck")).toBeLessThan(90_000 * 0.05 / 2)
+        expect(sentAtOf("nch") - sentAtOf("lli")).toBeGreaterThanOrEqual(2000 * 0.05)
+        expect(sentAtOf("gcs") - sentAtOf("kli")).toBeGreaterThanOrEqual(6000 * 0.05)
+    }, 15000)
+
+    test("with login_sequence the login completes, and replies to the burst change nothing", async () => {
+        bot = startBot({ humanize: { login_sequence: true } })
+        await loginLikeTheGame()
+        for (const cmd of ["vln", "gbl", "jaa", "alb", "sli", "gie", "asc", "sie", "ffi", "kli", "gcs"]) {
+            bot.xt(cmd, 0)
+            bot.xt(cmd, code("LORD_IS_USED"))
+        }
+        await bot.until(() => bot.loads === 1)
+        await sleep(300)
+
+        expect(withoutPins().slice(7)).toEqual(CAPTURED_BURST)
+        expect(bot.toParent.some(m => m[0] === ActionType.Started)).toBe(true)
+        expect(bot.heartbeats().at(-1).phase).toBe("running")
+        expect(bot.loads).toBe(1)
+        expect(bot.botStates()).toEqual([])
+        expect(bot.exited).toBe(false)
+    }, 15000)
+
+    test("with login_sequence a second successful login does not send the burst again", async () => {
+        bot = startBot({ humanize: { login_sequence: true } })
+        await loginLikeTheGame()
+        bot.xt("lli", 0)
+        await sleep(600)
+
+        expect(withoutPins().slice(7)).toEqual(CAPTURED_BURST)
     }, 15000)
 })

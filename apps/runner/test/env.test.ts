@@ -50,7 +50,7 @@ describe("parseEnv", () => {
     test("no humanize flag is on unless BOT_HUMANIZE names it", () => {
         for (const env of [parseEnv(required), parseEnv({ ...required, BOT_HUMANIZE: "", BOT_HUMANIZE_ACCOUNTS: "" })]) {
             expect(env).toMatchObject({ BOT_HUMANIZE: [], BOT_HUMANIZE_ACCOUNTS: [] })
-            expect(humanizeFor(env)("a1")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
+            expect(humanizeFor(env)("a1")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false, nch: false, login_sequence: false, attack_dialog: false })
         }
     })
 
@@ -60,13 +60,20 @@ describe("parseEnv", () => {
         expect(() => parseEnv({ ...required, BOT_HUMANIZE: "everything" })).toThrow()
     })
 
+    test("the protocol flags nch, login_sequence and attack_dialog are accepted, each on its own", () => {
+        const env = parseEnv({ ...required, BOT_HUMANIZE: "nch,login_sequence,attack_dialog" })
+        expect(env.BOT_HUMANIZE).toEqual(["nch", "login_sequence", "attack_dialog"])
+        expect(humanizeFor(env)("a1")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false, nch: true, login_sequence: true, attack_dialog: true })
+        expect(humanizeFor(parseEnv({ ...required, BOT_HUMANIZE: "nch" }))("a1")).toMatchObject({ nch: true, login_sequence: false, attack_dialog: false })
+    })
+
     test("the flags apply to every account, or only to the ones BOT_HUMANIZE_ACCOUNTS lists", () => {
         const everyone = humanizeFor(parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter,lognormal_delays" }))
-        expect(everyone("a1")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false })
+        expect(everyone("a1")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false, nch: false, login_sequence: false, attack_dialog: false })
 
         const some = humanizeFor(parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter,lognormal_delays", BOT_HUMANIZE_ACCOUNTS: "a1, a2" }))
-        expect(some("a2")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false })
-        expect(some("a3")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
+        expect(some("a2")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false, nch: false, login_sequence: false, attack_dialog: false })
+        expect(some("a3")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false, nch: false, login_sequence: false, attack_dialog: false })
     })
 
     test("an audit retention that is not a positive integer is refused", () => {

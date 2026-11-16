@@ -15,6 +15,7 @@ const ActionType = require("./actions.json")
 const err = require("./err.json")
 const metrics = require("./metrics.js")
 const { jittered, loginTiming } = require("./timing.js")
+const { pause } = require("./pacing.js")
 
 const timeoutMultiplier = ggeConfig.timeoutMultiplier ?? 1
 const humanize = ggeConfig.humanize ?? {}
@@ -25,6 +26,8 @@ const humanize = ggeConfig.humanize ?? {}
 const clientBuild = ggeConfig.gameClientBuild ?? 1172014
 /** The real client sends one random `vck` number per session, in JavaScript's own exponent form, and reuses it. */
 const versionCheckNonce = String(Math.random() * Number.MAX_VALUE)
+/** A pause a person would leave, scaled like every other wait so that it stays inside the login deadline. */
+const humanPause = (minMs, maxMs) => pause(minMs * timeoutMultiplier, maxMs * timeoutMultiplier)
 const limiter = new RateLimiter({ tokensPerInterval: 5, interval: "sec" })
 const events = new EventEmitter()
 const xtHandler = new EventEmitter()
@@ -78,7 +81,7 @@ async function sendXT(cmdName, paramObj) {
     await metrics.time("bot_send_wait_seconds", {}, limiter.removeTokens(1))
     requestCount++
     metrics.count("bot_messages_total", { direction: "out", command: cmdName })
-    send(`%xt%${botConfig.gameServer}%${cmdName}%1%${paramObj}%`)
+    send(`%xt%${botConfig.gameServer}%${cmdName}%1%${paramObj === undefined ? "" : `${paramObj}%`}`)
 }
 
 const liveness = { phase: "connecting", lastInbound: Date.now(), lastOutbound: Date.now(), longestGap: 0 }
@@ -87,6 +90,9 @@ function send(frame) {
     liveness.lastOutbound = Date.now()
     webSocket.send(frame)
 }
+
+/** The real client writes its XML frames with single quotes and a space before `/>`. */
+const sendSys = frame => send(humanize.login_sequence ? frame.replaceAll('"', "'").replace("'/>", "' />") : frame)
 
 function heartbeat() {
     const now = Date.now()
@@ -250,7 +256,10 @@ module.exports = {
 webSocket.onopen = () => {
     measured.connectMs = performance.now() - socketCreatedAt
     liveness.phase = "login"
-    send(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
+    sendSys(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
+    // The client's pin loop runs from the moment it connects, so a slow login has a pin before its `lli`.
+    if (humanize.login_sequence)
+        startPinging()
 }
 let errorCount = 0
 
@@ -291,14 +300,14 @@ webSocket.onmessage = ({data : message}) => {
     else if (message[0] == "<") {
         switch (message.match(/action='(\w+)'/)?.[1]) {
             case "apiOK":
-                send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[${clientBuild}%en%0]]></pword></login></body></msg>`)
+                sendSys(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[${clientBuild}%en%0]]></pword></login></body></msg>`)
                 break
             case "apiKO":
                 exitWorker("CLIENT_VERSION_REJECTED")
                 break
             case "joinOK":
                 roundTripSentAt = performance.now()
-                send('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
+                sendSys('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
                 sendXT("vck", `${clientBuild}%web-html5%<RoundHouseKick>%${versionCheckNonce}`)
                 break
             case "roundTripRes":
@@ -339,7 +348,7 @@ events.once("load", async () => {
     getStormStats()
 })
 
-xtHandler.on("rlu", () => send('<msg t="sys"><body action="autoJoin" r="-1"></body></msg>'))
+xtHandler.on("rlu", () => sendSys('<msg t="sys"><body action="autoJoin" r="-1"></body></msg>'))
 xtHandler.on("gal", obj => {
     playerInfo.alliance.id = Number(obj.AID)
     playerInfo.alliance.rank = Number(obj.R)
@@ -434,7 +443,19 @@ async function retry() {
     }))
     events.emit("sentLLI")
 }
-xtHandler.on("vck", retry)
+
+/**
+ * The login form as a person fills it in: the client checks the name once it
+ * is typed (`vln`) and logs in when the button is pressed. Nothing waits for
+ * the `vln` answer, which the 2026-11-13 capture does not hold.
+ */
+async function typedLogin() {
+    await humanPause(6000, 12000)
+    await sendXT("vln", JSON.stringify({ NOM: botConfig.name }))
+    await humanPause(8000, 16000)
+    retry()
+}
+xtHandler.on("vck", humanize.login_sequence ? typedLogin : retry)
 
 let pinging = false
 function startPinging() {
@@ -447,6 +468,45 @@ function startPinging() {
         jittered(pin, everyMs, everyMs / 10)
     else
         setInterval(pin, everyMs).unref()
+}
+
+let stopNch = () => {}
+let nchStarted = false
+/**
+ * The client's second heartbeat: an `nch` with no payload about every 32 s
+ * (78 gaps in the 2026-11-13 capture: mean 32.0 s, sd 4.1 s). Nothing waits
+ * for an answer, so a server that sends none costs no timeout.
+ */
+function startNch() {
+    if (nchStarted)
+        return
+    nchStarted = true
+    const everyMs = ggeConfig.nchIntervalMs ?? 32_000
+    stopNch = jittered(() => sendXT("nch"), everyMs, everyMs / 8)
+    return sendXT("nch")
+}
+events.on("unload", () => stopNch())
+
+/** What the client asks for once it is logged in, in its order. No payload holds anything of the account's. */
+const LOGIN_BURST = [
+    ["gbl", {}], ["jca", { CID: -1, KID: 0 }], ["alb", {}], ["sli", {}], ["gie", {}],
+    ["asc", {}], ["sie", {}], ["ffi", { FIDS: [1] }], ["kli", {}],
+]
+let greeted = false
+/** The first `nch` and the burst leave together, as in the capture, and `gcs` a little later. Nothing waits for a reply. */
+async function afterLogin() {
+    if (greeted)
+        return
+    greeted = true
+    await humanPause(2000, 4000)
+    if (humanize.nch)
+        await startNch()
+    if (!humanize.login_sequence)
+        return
+    for (const [cmd, params] of LOGIN_BURST)
+        await sendXT(cmd, JSON.stringify(params))
+    await humanPause(6000, 12000)
+    await sendXT("gcs", JSON.stringify({}))
 }
 
 let loginAttempts = 0
@@ -493,6 +553,8 @@ xtHandler.on("lli", async (obj, r) => {
         })
         events.emit("earlyLoad")
         startPinging()
+        if (humanize.nch || humanize.login_sequence)
+            afterLogin()
         return
     }
 

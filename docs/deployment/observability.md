@@ -72,7 +72,7 @@ Changes that alter how bots talk to the game (scheduling, caching, request sizes
 
 ### Humanization flags
 
-Four flags change traffic that a real game client would never send. All are off by default. `BOT_HUMANIZE` on the runner turns them on by name, and each one has its own number to watch.
+Seven flags change traffic that a real game client would never send. All are off by default. `BOT_HUMANIZE` on the runner turns them on by name, and each one has its own number to watch.
 
 | Flag | What changes | What to compare before and after |
 |---|---|---|
@@ -80,6 +80,9 @@ Four flags change traffic that a real game client would never send. All are off 
 | `measured_timing` | The login reports the connect time and the round-trip time that this connection took, instead of 212 ms and 25 ms for every bot. The connect time is kept between 50 and 3000 ms and the round trip between 5 and 1000 ms. | Logins still succeed: no rise in runs that end as `auth_failed` or `error`. |
 | `lognormal_delays` | The wait between two attacks follows a log-normal curve across the configured range, never below `attackDelaySeconds`. About 3% of waits are a break 2 to 6 times as long. | The rate of `bot_messages_total{direction="out",command="cra"}`. Expect about 8% fewer attacks per hour from a bot whose attack queue is always full. |
 | `map_grid` | Map scans ask for 13×13-tile boxes on the client's grid, up to 49 around the castle, and stop at 30 targets. Without the flag a scan is one 101×101 request, or 169 of them for fortresses and storm forts. A grid scan that finds nothing falls back to the old scan and logs "The grid scan found no targets". | The rate of `gaa` in `bot_messages_total`, the hit ratio of `bot_gaa_cache_total`, and the rate of `cra`. Fortress bots should send fewer `gaa`, and nomad, samurai, Berimond, and robber-baron bots more. |
+| `nch` | After login the bot sends the client's second keep-alive, an `nch` with no payload, about every 32 seconds give or take 4. Without the flag the bot never sends `nch`. The bot does not wait for a reply. | `bot_messages_total{direction="out",command="nch"}` is near two per bot per minute. `bot_inbound_gap_seconds` does not grow. |
+| `login_sequence` | The login follows the client's. The XML frames use the client's quoting. The `pin` loop starts when the socket opens. The bot sends a `vln` name check 6 to 12 seconds after `vck`, and `lli` 8 to 16 seconds after `vln`. After login it sends the client's ten requests: `gbl`, `jca`, `alb`, `sli`, `gie`, `asc`, `sie`, `ffi`, `kli`, and `gcs`. A login takes 14 to 28 seconds longer, and `TIMEOUT_MULTIPLIER` scales these waits. | Logins still succeed: no rise in runs that end as `auth_failed` or as `error` with `LOGIN_TIMEOUT`. |
+| `attack_dialog` | Before each `cra` the bot sends `adi`, `gas`, and `gdi`, as the client does while a player sets up an attack. The three requests add 5 to 17 seconds to each attack. The bot does not wait for their replies. | The rates of `adi`, `gas`, and `gdi` in `bot_messages_total` equal the rate of `cra`. Expect fewer attacks per hour from a bot whose attack queue is always full. No rise in `LORD_IS_USED` in the logs. |
 
 For every flag, also compare the runs that end as `banned`. A lower ban rate is the reason the flags exist, and bans are rare, so 24 hours on a few accounts cannot show a difference. Use the short trial to find breakage and the fleet-wide weeks to judge bans.
 

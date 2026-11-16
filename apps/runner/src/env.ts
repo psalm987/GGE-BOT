@@ -4,7 +4,7 @@ import * as z from "zod"
 const optional = z.string().transform(s => s || undefined).optional()
 
 /** Each makes one part of a bot's traffic look less mechanical. All are off unless named in BOT_HUMANIZE. */
-export const HUMANIZE_FLAGS = ["pin_jitter", "measured_timing", "lognormal_delays", "map_grid"] as const
+export const HUMANIZE_FLAGS = ["pin_jitter", "measured_timing", "lognormal_delays", "map_grid", "nch", "login_sequence", "attack_dialog"] as const
 export type Humanize = Record<typeof HUMANIZE_FLAGS[number], boolean>
 
 const commaList = z.string().optional().transform(s => (s ?? "").split(",").map(part => part.trim()).filter(Boolean))

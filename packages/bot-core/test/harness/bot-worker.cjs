@@ -34,6 +34,10 @@ Module._load = function (request, parent, isMain) {
     return originalLoad.call(this, request, parent, isMain)
 }
 
+// Lets a test see what the bot leaves running after it has said it is exiting.
+if (workerData.surviveExit)
+    process.exit = () => {}
+
 const bot = require(path.join(repo, "ggeBot.js"))
 bot.events.on("load", () => control.postMessage({ type: "load" }))
 

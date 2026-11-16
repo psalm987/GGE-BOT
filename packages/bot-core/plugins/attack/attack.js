@@ -216,7 +216,7 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
     return attackTarget
 }
 
-const { boxMullerRandom, sleep } = require("../../pacing.js")
+const { boxMullerRandom, sleep, pause } = require("../../pacing.js")
 const { lognormalDelay } = require("../../timing.js")
 const humanize = require("../../config.js").humanize ?? {}
 
@@ -345,7 +345,23 @@ const attackShape = attackInfo => ({
     courtyard: slotTotal(attackInfo.RW),
 })
 
+/**
+ * What the client sends while a player sets an attack up: `adi` when the army
+ * screen opens, `gas` as it loads, and `gdi` when the travel dialog opens. The
+ * 2026-11-13 capture holds no server frames, so nothing here waits for a reply.
+ */
+async function openAttackDialog({ SX, SY, TX, TY, KID }) {
+    await sendXT("adi", JSON.stringify({ SX, SY, TX, TY, KID }))
+    await pause(800, 2500)
+    await sendXT("gas", JSON.stringify({}))
+    await pause(3000, 9000)
+    await sendXT("gdi", JSON.stringify({ PID: playerInfo.playerID }))
+    await pause(1500, 5000)
+}
+
 async function sendAttack(attackInfo, kingdomID, x, y, context = {}) {
+    if (humanize.attack_dialog)
+        await openAttackDialog(attackInfo)
     await sendXT("cra", JSON.stringify(attackInfo))
     let obj, result
     try {

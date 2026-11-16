@@ -133,8 +133,8 @@ describe("starting and stopping", () => {
         await until(async () => (await status(chosen))?.actualState === "running" && (await status(other))?.actualState === "running")
 
         const humanize = (name: string) => (spawned.find(d => d.name === name)!.ggeConfig as { humanize: unknown }).humanize
-        expect(humanize("ok-chosen")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: false, map_grid: true })
-        expect(humanize("ok-other")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
+        expect(humanize("ok-chosen")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: false, map_grid: true, nch: false, login_sequence: false, attack_dialog: false })
+        expect(humanize("ok-other")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false, nch: false, login_sequence: false, attack_dialog: false })
         expect(spawned[0]!.ggeConfig).toMatchObject({ exitOnFatal: true })
     })
 
