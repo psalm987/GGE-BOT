@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm"
 import { CHANNELS, createDb, servers } from "@gge/db"
 import { openSealed } from "@gge/crypto"
 import { publishCatalog, readPluginRegistry } from "./catalog.ts"
-import { parseEnv, workerConfig } from "./env.ts"
+import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
 import { readServers, refreshGameData } from "./game-data.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
@@ -33,6 +33,7 @@ const supervisor = new Supervisor({
     openSealed: sealed => openSealed(env.SEAL_PRIVATE_KEY, sealed),
     renderLog: createLogRenderer(),
     ggeConfig,
+    humanizeFor: humanizeFor(env),
     startGapMs: env.START_GAP_MS,
     maxAccounts: env.MAX_ACCOUNTS,
 })

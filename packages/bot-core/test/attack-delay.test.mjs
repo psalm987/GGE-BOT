@@ -4,22 +4,26 @@ import { afterEach, test, expect, vi } from "vitest"
 const require = createRequire(import.meta.url)
 const { loadModule, fakeBot } = require("./harness/load.cjs")
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+})
 
-function loadAttack(options) {
+function loadAttack(options, humanize) {
     const bot = fakeBot()
     bot.botConfig.plugins.attack = { attackLimit: "", ...options }
+    bot.botConfig.ggeConfig = { humanize }
     return loadModule("plugins/attack/attack.js", { bot }).mod
 }
 
-async function secondAttackStartsAt(options) {
+async function secondAttackStartsAt(options, humanize) {
     vi.useFakeTimers()
-    const { waitToAttack } = loadAttack(options)
+    const { waitToAttack } = loadAttack(options, humanize)
     let secondRanAt
     const start = Date.now()
     waitToAttack(() => true)
     waitToAttack(() => { secondRanAt = Date.now() - start; return true })
-    for (let t = 0; t < 10_000 && secondRanAt === undefined; t += 50)
+    for (let t = 0; t < 400_000 && secondRanAt === undefined; t += 50)
         await vi.advanceTimersByTimeAsync(50)
     return secondRanAt
 }
@@ -33,6 +37,35 @@ test("whole-second delays are honoured", async () => {
 test("fractional delays are not truncated (attack.js:272 parseInt)", async () => {
     const at = await secondAttackStartsAt({ attackDelaySeconds: "4.5", attackDelayRandomizationSeconds: "0" })
     expect(at).toBeGreaterThanOrEqual(4500)
+})
+
+test("with lognormal_delays off the delay stays inside the configured range", async () => {
+    for (let i = 0; i < 10; i++) {
+        const at = await secondAttackStartsAt({ attackDelaySeconds: "20", attackDelayRandomizationSeconds: "15" })
+        expect(at).toBeGreaterThanOrEqual(20_000)
+        expect(at).toBeLessThan(35_100)
+    }
+}, 30_000)
+
+test("with lognormal_delays on the delay is never shorter than the configured one", async () => {
+    for (let i = 0; i < 10; i++) {
+        const at = await secondAttackStartsAt({ attackDelaySeconds: "20", attackDelayRandomizationSeconds: "15" }, { lognormal_delays: true })
+        expect(at).toBeGreaterThanOrEqual(20_000)
+        expect(at).toBeLessThan(6 * 60_000)
+    }
+}, 30_000)
+
+test("with lognormal_delays on a break makes the next attack wait 2 to 6 times as long", async () => {
+    const options = { attackDelaySeconds: "3", attackDelayRandomizationSeconds: "0" }
+    vi.spyOn(Math, "random").mockReturnValue(0.5)
+    const usual = await secondAttackStartsAt(options, { lognormal_delays: true })
+    expect(usual).toBeGreaterThanOrEqual(3000)
+    expect(usual).toBeLessThan(3100)
+
+    vi.spyOn(Math, "random").mockReturnValue(0.01)
+    const afterBreak = await secondAttackStartsAt(options, { lognormal_delays: true })
+    expect(afterBreak).toBeGreaterThanOrEqual(6120)
+    expect(afterBreak).toBeLessThan(6220)
 })
 
 function loadAttackWithBot(options) {

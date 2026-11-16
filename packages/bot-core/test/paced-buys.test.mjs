@@ -18,7 +18,7 @@ test("Storm Forts buys from one snapshot, spaced out, even when resourceUpdate f
     const protocols = {
         KingdomID: { stormIslands: 4 }, AreaType: { stormTower: 30, externalKingdom: 12 },
         castles: [castle], movements: [], movementEvents: new EventEmitter(),
-        spiralCoordinates: () => [], ClientCommands: new Proxy({}, { get: () => never }),
+        ClientCommands: new Proxy({}, { get: () => never }),
     }
     const bot = fakeBot()
     const sentAt = []

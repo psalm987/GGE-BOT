@@ -11,7 +11,7 @@ const SERVER = {
  * Runs the real ggeBot.js in a worker against a scripted fake game socket.
  * With `realSocket` the bot opens a real `ws` connection instead, and only what it tells its parent can be checked.
  */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, connect = true, proxyUrl, realSocket = false } = {}) {
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, pinIntervalMs, humanize, gameClientBuild, connect = true, proxyUrl, realSocket = false } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
@@ -19,7 +19,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             connect,
             realSocket,
             ...(proxyUrl && { proxyUrl }),
-            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs },
+            ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs, pinIntervalMs, humanize, gameClientBuild },
             name: "tester",
             pass: "pw",
             gameURL: "fake.invalid",
@@ -34,6 +34,8 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
     let chatter
     const session = {
         sent: [],
+        /** When the bot sent each frame of `sent`, on the worker's clock. */
+        sentAt: [],
         toParent: [],
         /** How the bot built its game socket: the URL and its agent's class name, null for a direct connection. */
         socket: undefined,
@@ -85,7 +87,10 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
     }
 
     port1.on("message", m => {
-        if (m.type === "sent") session.sent.push(m.msg)
+        if (m.type === "sent") {
+            session.sent.push(m.msg)
+            session.sentAt.push(m.at)
+        }
         if (m.type === "socket") session.socket = { url: m.url, agent: m.agent }
         if (m.type === "load") session.loads++
         if (m.type === "paused") session.paused = true

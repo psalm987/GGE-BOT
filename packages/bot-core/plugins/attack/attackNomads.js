@@ -73,6 +73,7 @@ const { spendSkip } = require("../skips.js")
 const { movementEvents, AreaType, KingdomID, castles, ClientCommands } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { areasAround } = require("../../mapScan.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 
 const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
@@ -158,9 +159,7 @@ events.on("eventStart", async eventInfo => {
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
-    const areas = (await ClientCommands.getAreaInfo(kingdomID,
-        castle.areaInfo.x - 50, castle.areaInfo.y - 50,
-        castle.areaInfo.x + 50, castle.areaInfo.y + 50)).areaInfo.filter(ai => ai.type == type)
+    const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
         .sort((a, b) =>
             (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
             (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))

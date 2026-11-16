@@ -1,6 +1,7 @@
 const { parentPort } = require("node:worker_threads")
 const EventEmitter = require("node:events")
 const NodeCache = require("node-cache")
+const { spiralCoordinates } = require("./mapScan.js")
 const { RateLimiter } = require("limiter")
 const { waitForResult, sendXT, xtHandler, events, status, playerInfo } = require("./ggeBot.js")
 const currencies = require("./paths.js").loadItem("currencies")
@@ -19,39 +20,6 @@ let generals = []
 
 xtHandler.on("gie", obj => generals = obj.G)
 
-function spiralCoordinates(n) {
-    if (n === 0) return { x: 0, y: 0 }
-
-    const k = Math.ceil((Math.sqrt(n + 1) - 1) / 2)
-    const layerStart = (2 * (k - 1) + 1) ** 2
-    const offset = n - layerStart
-    const sideLength = 2 * k
-    const side = Math.floor(offset / sideLength)
-    const posInSide = offset % sideLength
-
-    let x, y
-
-    switch (side) {
-        case 0:
-            x = k
-            y = -k + 1 + posInSide
-            break
-        case 1:
-            x = k - 1 - posInSide
-            y = k
-            break
-        case 2:
-            x = -k
-            y = k - 1 - posInSide
-            break
-        case 3:
-            x = -k + 1 + posInSide
-            y = -k
-            break
-    }
-
-    return { x, y }
-}
 const AreaType = Object.freeze({
     barron: 2,
     outpost: 4,
@@ -284,7 +252,7 @@ let currentCastle = undefined
  * @param {Number} toY 
  * @returns {Promise<import("./protocols.js").ClassTypes.ServerGetAreaInfo>}
  */
-async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache) {
+async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache, acceptEmpty = false) {
     useCache ??= true
     const key = `${kingdomID}_${fromX}_${fromY}_${toX}_${toY}`
     let response = myCache.get(key)
@@ -308,7 +276,7 @@ async function getAreaInfo(kingdomID, fromX, fromY, toX, toY, useCache) {
 
             let ai = obj.AI[0]
             if (ai == undefined)
-                return false
+                return acceptEmpty
 
             let x = ai[1]
             let y = ai[2]

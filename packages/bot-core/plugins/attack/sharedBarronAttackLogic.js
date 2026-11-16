@@ -15,6 +15,7 @@ const {
     getTotalAmountToolsFlank, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
+const { areasAround } = require("../../mapScan.js")
 const err = require("../../err.json")
 const minTroopCount = 80
 const troopBlackList = [277]
@@ -35,10 +36,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
 
     do {
         try {
-            var areas = (await ClientCommands.getAreaInfo(kingdomID,
-                castle.areaInfo.x - 50, castle.areaInfo.y - 50,
-                castle.areaInfo.x + 50, castle.areaInfo.y + 50))
-                .areaInfo.filter(ai => ai.type == type).sort((a, b) =>
+            var areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort((a, b) =>
                     (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
                     (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
             break

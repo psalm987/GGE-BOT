@@ -69,3 +69,25 @@ With the variable empty, Grafana evaluates the rules but delivers nowhere. They 
 ## Measuring a change to the bot
 
 Changes that alter how bots talk to the game (scheduling, caching, request sizes) should quote numbers. Record at least 24 hours on the current version from Game traffic (messages per second by command, reply time p95, cache hit ratio) and Fleet (crashes, heap), deploy, record the same window, and put both in the pull request. A difference smaller than the day-to-day spread of the baseline is not a result.
+
+### Humanization flags
+
+Four flags change traffic that a real game client would never send. All are off by default. `BOT_HUMANIZE` on the runner turns them on by name, and each one has its own number to watch.
+
+| Flag | What changes | What to compare before and after |
+|---|---|---|
+| `pin_jitter` | The keep-alive `pin` goes out every 60 seconds give or take 6, instead of exactly every 60. | `bot_messages_total{direction="out",command="pin"}` stays near one per bot per minute. `bot_inbound_gap_seconds` does not grow. |
+| `measured_timing` | The login reports the connect time and the round-trip time that this connection took, instead of 212 ms and 25 ms for every bot. The connect time is kept between 50 and 3000 ms and the round trip between 5 and 1000 ms. | Logins still succeed: no rise in runs that end as `auth_failed` or `error`. |
+| `lognormal_delays` | The wait between two attacks follows a log-normal curve across the configured range, never below `attackDelaySeconds`. About 3% of waits are a break 2 to 6 times as long. | The rate of `bot_messages_total{direction="out",command="cra"}`. Expect about 8% fewer attacks per hour from a bot whose attack queue is always full. |
+| `map_grid` | Map scans ask for 13×13-tile boxes on the client's grid, up to 49 around the castle, and stop at 30 targets. Without the flag a scan is one 101×101 request, or 169 of them for fortresses and storm forts. A grid scan that finds nothing falls back to the old scan and logs "The grid scan found no targets". | The rate of `gaa` in `bot_messages_total`, the hit ratio of `bot_gaa_cache_total`, and the rate of `cra`. Fortress bots should send fewer `gaa`, and nomad, samurai, Berimond, and robber-baron bots more. |
+
+For every flag, also compare the runs that end as `banned`. A lower ban rate is the reason the flags exist, and bans are rare, so 24 hours on a few accounts cannot show a difference. Use the short trial to find breakage and the fleet-wide weeks to judge bans.
+
+To try a flag on a few accounts:
+
+1. Record 24 hours of the numbers above with the flag off.
+2. Set `BOT_HUMANIZE` to the flag and `BOT_HUMANIZE_ACCOUNTS` to a comma list of account ids, then restart the runner. Accounts that are not on the list keep every flag off.
+3. Record the same window and compare. Metrics carry no account label, so the fleet numbers move only by the share of accounts on the list. Judge the listed accounts themselves by their run history (`end_reason` in `bot_runs`) and their logs.
+4. To apply the flag to every account, empty `BOT_HUMANIZE_ACCOUNTS` and restart the runner.
+
+Turn on one flag at a time. Two flags changed together cannot be told apart in the numbers.

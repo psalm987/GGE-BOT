@@ -18,10 +18,13 @@
 | `MAX_ACCOUNTS` | runner | no | Most bots the runner will run at once. Default 50. Accounts past it show "The runner is at capacity". |
 | `START_GAP_MS` | runner | no | Milliseconds between two bot logins. Default 2000. |
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |
+| `GAME_CLIENT_BUILD` | runner | no | The HTML5 client build number the bot sends at login, as the real client does. Default 1172014, from a November 2026 capture. Update it with `GAME_CLIENT_VERSION`: the number is the first field of the client's `login` password and `vck` frames in the browser's websocket traffic. |
 | `WORKER_MAX_OLD_MB` | runner | no | Heap cap per bot, in MB. Default 512. A bot that goes over is stopped and retried, and its run says "The bot ran out of memory". |
 | `INBOUND_STALE_MS` | runner | no | Milliseconds of silence from the game after which a logged-in bot reconnects. Off when unset. Set it to about 3× the p99 of `bot_inbound_gap_seconds` ([observability.md](observability.md#liveness)). |
 | `AUDIT_RETENTION_DAYS` | runner | no | Days to keep audit log entries. Default 365. The runner deletes older entries hourly ([operations.md](operations.md#disk)). |
 | `PROXY_REQUIRED` | runner | no | `true` stops an account that has no proxy from connecting directly. The account doesn't start and shows "No proxy is free". Default `false` ([operations.md](operations.md#proxies)). |
+| `BOT_HUMANIZE` | runner | no | Comma list of humanization flags to turn on: `pin_jitter`, `measured_timing`, `lognormal_delays`, `map_grid`. Empty: all off. The runner refuses to start on an unknown name ([observability.md](observability.md#humanization-flags)). |
+| `BOT_HUMANIZE_ACCOUNTS` | runner | no | Comma list of account ids that get the `BOT_HUMANIZE` flags. Empty: every account. |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |

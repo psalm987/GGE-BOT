@@ -111,6 +111,8 @@ export type SupervisorDeps = {
     openSealed: (sealed: Buffer) => string
     renderLog: (parts: unknown) => string
     ggeConfig: Record<string, unknown>
+    /** The humanize flags an account's worker gets as ggeConfig.humanize. */
+    humanizeFor?: (accountId: string) => Record<string, boolean>
     startGapMs: number
     maxAccounts: number
     backoff?: { baseMs: number; maxMs: number }
@@ -369,7 +371,7 @@ export class Supervisor {
             return
         const spec = bot.spec
         const { openSealed } = this.deps
-        let workerData: Record<string, unknown> = workerDataFor(spec, openSealed(spec.passwordSealed), this.deps.ggeConfig, spec.proxy ? openSealed(spec.proxy.urlSealed) : undefined)
+        let workerData: Record<string, unknown> = workerDataFor(spec, openSealed(spec.passwordSealed), { ...this.deps.ggeConfig, humanize: this.deps.humanizeFor?.(spec.accountId) ?? {} }, spec.proxy ? openSealed(spec.proxy.urlSealed) : undefined)
         bot.proxyId = spec.proxy?.id
         if (spec.externalEvent) {
             let lookupFailure: string | undefined

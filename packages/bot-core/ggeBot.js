@@ -14,8 +14,17 @@ const ggeConfig = require("./config.js")
 const ActionType = require("./actions.json")
 const err = require("./err.json")
 const metrics = require("./metrics.js")
+const { jittered, loginTiming } = require("./timing.js")
 
 const timeoutMultiplier = ggeConfig.timeoutMultiplier ?? 1
+const humanize = ggeConfig.humanize ?? {}
+/**
+ * The HTML5 client's build number, which it sends at login and in `vck` (1172014 in the 2026-11-13 capture).
+ * Sending `undefined` there marked every bot.
+ */
+const clientBuild = ggeConfig.gameClientBuild ?? 1172014
+/** The real client sends one random `vck` number per session, in JavaScript's own exponent form, and reuses it. */
+const versionCheckNonce = String(Math.random() * Number.MAX_VALUE)
 const limiter = new RateLimiter({ tokensPerInterval: 5, interval: "sec" })
 const events = new EventEmitter()
 const xtHandler = new EventEmitter()
@@ -196,6 +205,9 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
 })
 
 const proxy = botConfig.proxyUrl ? require("./proxy.js").connectVia(botConfig.proxyUrl, botConfig.gameURL, 30 * 1000 * timeoutMultiplier) : undefined
+const measured = { connectMs: undefined, roundTripMs: undefined }
+const socketCreatedAt = performance.now()
+let roundTripSentAt
 const webSocket = new WebSocket(`wss://${botConfig.gameURL}/`, {
     skipUTF8Validation: ggeConfig.skipUTF8Validation ? true : false,
     ...(proxy && { agent: proxy.agent })
@@ -236,6 +248,7 @@ module.exports = {
 }
 
 webSocket.onopen = () => {
+    measured.connectMs = performance.now() - socketCreatedAt
     liveness.phase = "login"
     send(`<msg t="sys"><body action="verChk" r="0"><ver v="${ggeConfig.gameClientVersion ?? 166}"/></body></msg>`)
 }
@@ -278,16 +291,18 @@ webSocket.onmessage = ({data : message}) => {
     else if (message[0] == "<") {
         switch (message.match(/action='(\w+)'/)?.[1]) {
             case "apiOK":
-                send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[undefined%en%0]]></pword></login></body></msg>`)
+                send(`<msg t="sys"><body action="login" r="0"><login z="${botConfig.gameServer}"><nick><![CDATA[]]></nick><pword><![CDATA[${clientBuild}%en%0]]></pword></login></body></msg>`)
                 break
             case "apiKO":
                 exitWorker("CLIENT_VERSION_REJECTED")
                 break
             case "joinOK":
+                roundTripSentAt = performance.now()
                 send('<msg t="sys"><body action="roundTrip" r="1"></body></msg>')
-                sendXT("vck", `undefined%web-html5%<RoundHouseKick>%${(Math.random() * Number.MAX_VALUE).toFixed()}`)
+                sendXT("vck", `${clientBuild}%web-html5%<RoundHouseKick>%${versionCheckNonce}`)
                 break
             case "roundTripRes":
+                measured.roundTripMs = performance.now() - roundTripSentAt
                 break
             default:
                 console.debug("unknown system message", message)
@@ -402,8 +417,7 @@ async function retry() {
         sendXT("tlep", JSON.stringify({ TLT: botConfig.tempServerData.glt.TLT }))
     }
     sendXT("lli", JSON.stringify({
-        CONM: 212,
-        RTM: 25,
+        ...loginTiming(humanize.measured_timing ? measured : undefined),
         ID: 0,
         PL: 1,
         NOM: botConfig.name,
@@ -421,6 +435,19 @@ async function retry() {
     events.emit("sentLLI")
 }
 xtHandler.on("vck", retry)
+
+let pinging = false
+function startPinging() {
+    if (pinging)
+        return
+    pinging = true
+    const pin = () => sendXT("pin", "<RoundHouseKick>")
+    const everyMs = ggeConfig.pinIntervalMs ?? 60_000
+    if (humanize.pin_jitter)
+        jittered(pin, everyMs, everyMs / 10)
+    else
+        setInterval(pin, everyMs).unref()
+}
 
 let loginAttempts = 0
 xtHandler.on("lli", async (obj, r) => {
@@ -465,7 +492,7 @@ xtHandler.on("lli", async (obj, r) => {
             start(4500)
         })
         events.emit("earlyLoad")
-        setInterval(() => sendXT("pin", "<RoundHouseKick>"), 1000 * 60).unref()
+        startPinging()
         return
     }
 

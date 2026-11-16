@@ -335,3 +335,99 @@ describe("liveness", () => {
         expect(Math.max(...gaps())).toBeLessThan(3)
     }, 15000)
 })
+
+describe("humanization flags", () => {
+    const lliOf = frame => JSON.parse(frame.split("%")[5])
+    const pinTimes = () => bot.sentAt.filter((_, i) => bot.sent[i] === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")
+    const gaps = times => times.slice(1).map((at, i) => at - times[i])
+    const roundTripRes = "<msg t='sys'><body action='roundTripRes' r='1'></body></msg>"
+
+    test("with every flag off the bot sends the frames it always has", async () => {
+        bot = startBot({ pinIntervalMs: 200 })
+        await bot.login()
+        bot.frame(roundTripRes)
+        bot.xt("lli", 0)
+        await sleep(1500)
+
+        expect(bot.sent.slice(0, 3)).toEqual([
+            '<msg t="sys"><body action="verChk" r="0"><ver v="166"/></body></msg>',
+            '<msg t="sys"><body action="login" r="0"><login z="EmpireEx_1"><nick><![CDATA[]]></nick><pword><![CDATA[1172014%en%0]]></pword></login></body></msg>',
+            '<msg t="sys"><body action="roundTrip" r="1"></body></msg>',
+        ])
+        expect(bot.sent[3]).toMatch(/^%xt%EmpireEx_1%vck%1%1172014%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
+        expect(bot.sent[4]).toBe('%xt%EmpireEx_1%lli%1%{"CONM":212,"RTM":25,"ID":0,"PL":1,"NOM":"tester","PW":"pw","LT":null,"LANG":"en","DID":"0","AID":"1745592024940879420","KID":"","REF":"https://empire.goodgamestudios.com","GCI":"","SID":9,"PLFID":1}%')
+        expect(bot.sent.slice(5).every(frame => frame === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")).toBe(true)
+        expect(pinTimes().length).toBeGreaterThanOrEqual(5)
+        expect(pinTimes().length).toBeLessThanOrEqual(8)
+    }, 15000)
+
+    test("the configured client build goes where the real client puts it, and one vck number lasts the session", async () => {
+        bot = startBot({ gameClientBuild: 1180000 })
+        await bot.login()
+        bot.frame("<msg t='sys'><body action='joinOK' r='1'><pid id='0'/><vars /><uLs r='1'></uLs></body></msg>")
+        await bot.until(() => bot.sentXT("vck").length === 2)
+
+        expect(bot.sent.find(m => m.includes('action="login"'))).toContain("<pword><![CDATA[1180000%en%0]]></pword>")
+        const [first, second] = bot.sentXT("vck")
+        expect(first).toMatch(/%vck%1%1180000%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
+        expect(second).toBe(first)
+    }, 15000)
+
+    test("a second successful login does not start a second pin loop", async () => {
+        for (const humanize of [undefined, { pin_jitter: true }]) {
+            bot = startBot({ pinIntervalMs: 200, humanize })
+            await bot.login()
+            bot.xt("lli", 0)
+            bot.xt("lli", 0)
+            await sleep(1500)
+
+            expect(pinTimes().length).toBeGreaterThanOrEqual(5)
+            expect(pinTimes().length).toBeLessThanOrEqual(9)
+            await bot.stop()
+        }
+    }, 15000)
+
+    test("with pin_jitter the gap between pins varies around the interval", async () => {
+        bot = startBot({ pinIntervalMs: 300, humanize: { pin_jitter: true } })
+        await bot.login()
+        bot.xt("lli", 0)
+        await sleep(4500)
+
+        const waits = gaps(pinTimes())
+        expect(waits.length).toBeGreaterThanOrEqual(10)
+        expect(waits.length).toBeLessThanOrEqual(18)
+        expect(Math.min(...waits)).toBeGreaterThanOrEqual(300 - 3 * 30 - 5)
+        expect(Math.max(...waits) - Math.min(...waits)).toBeGreaterThan(20)
+    }, 15000)
+
+    test("with measured_timing the login reports how long this connection and its round trip took", async () => {
+        bot = startBot({ connect: false, timeoutMultiplier: 0.05, humanize: { measured_timing: true } })
+        await bot.until(() => bot.socket)
+        await sleep(300)
+        bot.connect()
+        await bot.until(() => bot.sent.some(m => m.includes('action="verChk"')))
+        bot.frame("<msg t='sys'><body action='apiOK' r='0'></body></msg>")
+        await bot.until(() => bot.sent.some(m => m.includes('action="login"')))
+        bot.frame("<msg t='sys'><body action='joinOK' r='1'><pid id='0'/><vars /><uLs r='1'></uLs></body></msg>")
+        await bot.until(() => bot.sent.some(m => m.includes('action="roundTrip"')))
+        await sleep(120)
+        bot.frame(roundTripRes)
+        bot.xt("vck", 0)
+        await bot.until(() => bot.sentXT("lli").length === 1)
+
+        const { CONM, RTM, ...rest } = lliOf(bot.sentXT("lli")[0])
+        expect(Number.isInteger(CONM) && Number.isInteger(RTM)).toBe(true)
+        expect(CONM).toBeGreaterThanOrEqual(290)
+        expect(CONM).toBeLessThan(1500)
+        expect(RTM).toBeGreaterThanOrEqual(110)
+        expect(RTM).toBeLessThan(900)
+        expect(rest).toMatchObject({ NOM: "tester", PW: "pw", SID: 9 })
+    }, 15000)
+
+    test("with measured_timing a connection too fast to be a browser's reports the floor, and an unanswered round trip the old value", async () => {
+        bot = startBot({ humanize: { measured_timing: true } })
+        await bot.login()
+
+        expect(lliOf(bot.sentXT("lli")[0])).toMatchObject({ CONM: 50, RTM: 25 })
+    }, 15000)
+})

@@ -217,6 +217,8 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
 }
 
 const { boxMullerRandom, sleep } = require("../../pacing.js")
+const { lognormalDelay } = require("../../timing.js")
+const humanize = require("../../config.js").humanize ?? {}
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const attacks = []
@@ -301,7 +303,7 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         }
         const baseDelay = parseFloat(pluginOptions.attackDelaySeconds)
         const variance = parseFloat(pluginOptions.attackDelayRandomizationSeconds)
-        const naturalDelay = boxMullerRandom(baseDelay * 1000, (baseDelay + variance) * 1000, 1)
+        const naturalDelay = (humanize.lognormal_delays ? lognormalDelay : boxMullerRandom)(baseDelay * 1000, (baseDelay + variance) * 1000)
 
         turnRejected = false
         let ret, threw = false

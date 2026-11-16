@@ -4,7 +4,8 @@ if (require('node:worker_threads').isMainThread)
     }
 
 const pretty = require('pretty-time')
-const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID, spiralCoordinates } = require('../../protocols')
+const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID } = require('../../protocols')
+const { mapGrid, scanGrid, wholeMapRects } = require('../../mapScan.js')
 const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
@@ -141,42 +142,22 @@ async function fortressHit(kingdomID, level, options) {
         }
     }
 
-    done:
-    for (let i = 0, j = 0; i < 13 * 13; i++) {
-        let rX, rY
-        let rect
-        do {
+    const byDistance = (a, b) =>
+        (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
+        (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))
 
-            ({ x: rX, y: rY } = spiralCoordinates(j++))
-            rX *= 100
-            rY *= 100
-
-            rect = {
-                x: castle.areaInfo.x + rX - 50,
-                y: castle.areaInfo.y + rY - 50,
-                w: castle.areaInfo.x + rX + 50,
-                h: castle.areaInfo.y + rY + 50
-            }
-            if (j > Math.pow(13 * 13, 2))
-                break done
-        } while ((castle.areaInfo.x + rX) <= -50 ||
-        (castle.areaInfo.y + rY) <= -50 || (castle.areaInfo.x + rX) >= (1286 + 50) || (castle.areaInfo.y + rY) >= (1286 + 50))
-
-        rect.x = rect.x < 0 ? 0 : rect.x
-        rect.y = rect.y < 0 ? 0 : rect.y
-        rect.w = rect.w < 0 ? 0 : rect.w
-        rect.h = rect.h < 0 ? 0 : rect.h
-        rect.x = rect.x > 1286 ? 1286 : rect.x
-        rect.y = rect.y > 1286 ? 1286 : rect.y
-        rect.w = rect.w > 1286 ? 1286 : rect.w
-        rect.h = rect.h > 1286 ? 1286 : rect.h
-
-        areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).areaInfo.filter(e => e.type == type))
-
-        areas.sort((a, b) =>
-            (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
-            (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
+    if (mapGrid) {
+        areas.push(...await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, e => e.type == type))
+        areas.sort(byDistance)
         while (await sendHit());
+    }
+    if (areas.length == 0) {
+        for (const rect of wholeMapRects(castle.areaInfo.x, castle.areaInfo.y)) {
+            areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).areaInfo.filter(e => e.type == type))
+
+            areas.sort(byDistance)
+            while (await sendHit());
+        }
     }
 
     while (true) {

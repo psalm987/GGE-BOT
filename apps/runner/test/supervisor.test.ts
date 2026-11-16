@@ -7,6 +7,7 @@ import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
+import { humanizeFor, parseEnv } from "../src/env.ts"
 import { edgeDelayMs, loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
 import { Supervisor, type WorkerLike } from "../src/supervisor.ts"
@@ -121,6 +122,20 @@ describe("starting and stopping", () => {
         expect(await until(async () => (await logs(a)).includes("password ok") && logs(a))).not.toContain("password WRONG")
         expect((await runs(a))).toHaveLength(1)
         expect(metricBatches).toContainEqual({ counters: [["bot_messages_total", { direction: "out", command: "lli" }, 1]], observations: [] })
+    })
+
+    test("each worker gets the humanize flags of its own account", async () => {
+        const chosen = await addAccount("ok-chosen")
+        const other = await addAccount("ok-other")
+        const env = parseEnv({ DATABASE_URL: "postgres://x", SEAL_PRIVATE_KEY: "k", BOT_HUMANIZE: "pin_jitter,map_grid", BOT_HUMANIZE_ACCOUNTS: chosen })
+        supervisor = makeSupervisor({ humanizeFor: humanizeFor(env) })
+        await reconcile()
+        await until(async () => (await status(chosen))?.actualState === "running" && (await status(other))?.actualState === "running")
+
+        const humanize = (name: string) => (spawned.find(d => d.name === name)!.ggeConfig as { humanize: unknown }).humanize
+        expect(humanize("ok-chosen")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: false, map_grid: true })
+        expect(humanize("ok-other")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
+        expect(spawned[0]!.ggeConfig).toMatchObject({ exitOnFatal: true })
     })
 
     test("stopping in the database stops the worker and closes its run", async () => {

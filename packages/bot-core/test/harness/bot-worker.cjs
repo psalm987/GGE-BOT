@@ -18,7 +18,7 @@ class FakeWebSocket {
         this.readyState = 1
         this.onopen?.()
     }
-    send(msg) { control.postMessage({ type: "sent", msg }) }
+    send(msg) { control.postMessage({ type: "sent", msg, at: performance.now() }) }
     pause() { control.postMessage({ type: "paused" }) }
     close() { control.postMessage({ type: "closed" }); this.onclose?.({ code: 1005 }) }
 }

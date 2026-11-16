@@ -47,7 +47,8 @@ if (require('node:worker_threads').isMainThread) {
 }
 
 
-const { movementEvents, ClientCommands, AreaType, KingdomID, movements, spiralCoordinates, castles } = require("../../protocols.js")
+const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles } = require("../../protocols.js")
+const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
 const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler } = require("../../ggeBot.js")
@@ -300,56 +301,39 @@ events.once("load", async () => {
             }
         }
     }
-    done:
-    for (let i = 0, j = 0; i < 13 * 13; i++) {
-        let rX, rY
-        let rect
-        do {
+    const byDistance = (a, b) =>
+        (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
+        (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))
+    const byLevelThenHitsLeft = (a, b) => {
+        if ((a.extraData[2] % 10) > (b.extraData[2] % 10))
+            return -1
+        if ((a.extraData[2] % 10) < (b.extraData[2] % 10))
+            return 1
+        //hits left
+        if (a.extraData[4] < b.extraData[4])
+            return -1
+        if (a.extraData[4] > b.extraData[4])
+            return 1
 
-            ({ x: rX, y: rY } = spiralCoordinates(j++))
-            rX *= 100
-            rY *= 100
+        return 0
+    }
 
-            rect = {
-                x: castle.areaInfo.x + rX - 50,
-                y: castle.areaInfo.y + rY - 50,
-                w: castle.areaInfo.x + rX + 50,
-                h: castle.areaInfo.y + rY + 50
-            }
-            if (j > Math.pow(13 * 13, 2))
-                break done
-        } while ((castle.areaInfo.x + rX) <= -50 || (castle.areaInfo.y + rY) <= -50 || (castle.areaInfo.x + rX) >= (1286 + 50) || (castle.areaInfo.y + rY) >= (1286 + 50))
-        rect.x = rect.x < 0 ? 0 : rect.x
-        rect.y = rect.y < 0 ? 0 : rect.y
-        rect.w = rect.w < 0 ? 0 : rect.w
-        rect.h = rect.h < 0 ? 0 : rect.h
-        rect.x = rect.x > 1286 ? 1286 : rect.x
-        rect.y = rect.y > 1286 ? 1286 : rect.y
-        rect.w = rect.w > 1286 ? 1286 : rect.w
-        rect.h = rect.h > 1286 ? 1286 : rect.h
-        
-        areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h))
-            .areaInfo.filter(ai => ai.type == type).sort((a, b) =>
-            (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
-            (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))))
-
-        if (areas.every(ai => ![7, 8, 9].includes(ai.extraData[2]))) //Find and hit a good one before continuing scanning
-            continue
-
-        areas.sort((a, b) => {
-            if ((a.extraData[2] % 10) > (b.extraData[2] % 10))
-                return -1
-            if ((a.extraData[2] % 10) < (b.extraData[2] % 10))
-                return 1
-            //hits left
-            if (a.extraData[4] < b.extraData[4])
-                return -1
-            if (a.extraData[4] > b.extraData[4])
-                return 1
-
-            return 0
-        })
+    if (mapGrid) {
+        areas.push(...(await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort(byDistance))
+        areas.sort(byLevelThenHitsLeft)
         while (await sendHit());
+    }
+    if (areas.length == 0) {
+        for (const rect of wholeMapRects(castle.areaInfo.x, castle.areaInfo.y)) {
+            areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h))
+                .areaInfo.filter(ai => ai.type == type).sort(byDistance))
+
+            if (areas.every(ai => ![7, 8, 9].includes(ai.extraData[2]))) //Find and hit a good one before continuing scanning
+                continue
+
+            areas.sort(byLevelThenHitsLeft)
+            while (await sendHit());
+        }
     }
 
     while (true) {

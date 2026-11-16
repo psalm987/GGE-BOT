@@ -115,6 +115,7 @@
 	"shuttingDownEvent": "Shutting down event reason: ",
 	"eventEnded": "Event Ended",
 	"hittingTargetAttack": "Hitting target ",
+	"mapGridFoundNothing": "The grid scan found no targets near the castle; falling back to the wide scan.",
 	"tillImpactAttack": " till impact",
 	"broughtCoins": "Brought Coins",
 	"broughtDeco": "Brought Deco",

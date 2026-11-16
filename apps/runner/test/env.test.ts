@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { parseEnv } from "../src/env.ts"
+import { humanizeFor, parseEnv } from "../src/env.ts"
 
 const required = { DATABASE_URL: "postgres://x", SEAL_PRIVATE_KEY: "k" }
 
@@ -7,6 +7,12 @@ describe("parseEnv", () => {
     test("empty optional variables from compose count as unset", () => {
         const env = parseEnv({ ...required, GAME_CLIENT_VERSION: "", DISCORD_TOKEN: "", DISCORD_CLIENT_ID: "", FONT_PATH: "" })
         expect(env).toMatchObject({ GAME_CLIENT_VERSION: undefined, DISCORD_TOKEN: undefined, DISCORD_CLIENT_ID: undefined, FONT_PATH: undefined })
+    })
+
+    test("the client build is unset by default and read as a number when set", () => {
+        expect(parseEnv({ ...required, GAME_CLIENT_BUILD: "" }).GAME_CLIENT_BUILD).toBeUndefined()
+        expect(parseEnv({ ...required, GAME_CLIENT_BUILD: "1180000" }).GAME_CLIENT_BUILD).toBe(1180000)
+        expect(() => parseEnv({ ...required, GAME_CLIENT_BUILD: "abc" })).toThrow()
     })
 
     test("a set client version is read as a number", () => {
@@ -39,6 +45,28 @@ describe("parseEnv", () => {
         expect(parseEnv({ ...required, PROXY_REQUIRED: "" }).PROXY_REQUIRED).toBe(false)
         expect(parseEnv({ ...required, PROXY_REQUIRED: "true" }).PROXY_REQUIRED).toBe(true)
         expect(() => parseEnv({ ...required, PROXY_REQUIRED: "maybe" })).toThrow()
+    })
+
+    test("no humanize flag is on unless BOT_HUMANIZE names it", () => {
+        for (const env of [parseEnv(required), parseEnv({ ...required, BOT_HUMANIZE: "", BOT_HUMANIZE_ACCOUNTS: "" })]) {
+            expect(env).toMatchObject({ BOT_HUMANIZE: [], BOT_HUMANIZE_ACCOUNTS: [] })
+            expect(humanizeFor(env)("a1")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
+        }
+    })
+
+    test("BOT_HUMANIZE is a comma list of flag names, and an unknown name is refused", () => {
+        expect(parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter, map_grid," }).BOT_HUMANIZE).toEqual(["pin_jitter", "map_grid"])
+        expect(() => parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter,pin-jitter" })).toThrow()
+        expect(() => parseEnv({ ...required, BOT_HUMANIZE: "everything" })).toThrow()
+    })
+
+    test("the flags apply to every account, or only to the ones BOT_HUMANIZE_ACCOUNTS lists", () => {
+        const everyone = humanizeFor(parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter,lognormal_delays" }))
+        expect(everyone("a1")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false })
+
+        const some = humanizeFor(parseEnv({ ...required, BOT_HUMANIZE: "pin_jitter,lognormal_delays", BOT_HUMANIZE_ACCOUNTS: "a1, a2" }))
+        expect(some("a2")).toEqual({ pin_jitter: true, measured_timing: false, lognormal_delays: true, map_grid: false })
+        expect(some("a3")).toEqual({ pin_jitter: false, measured_timing: false, lognormal_delays: false, map_grid: false })
     })
 
     test("an audit retention that is not a positive integer is refused", () => {
