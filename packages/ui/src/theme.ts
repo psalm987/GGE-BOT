@@ -38,6 +38,7 @@ export const campaignTheme: ThemeConfig = {
         colorTextSecondary: palette.muted,
         // antd draws these at reduced opacity by default, which fails contrast on the dark grounds.
         colorTextDescription: palette.muted,
+        colorTextPlaceholder: palette.muted,
         colorTextTertiary: palette.muted,
         colorBorder: palette.rule,
         colorBorderSecondary: "#3A2E1F",

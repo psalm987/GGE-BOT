@@ -16,7 +16,7 @@ const withAttackPlugins = (n: number) => ({
     name: `acc${Math.random().toString(36).slice(2, 8)}`, serverId: 26, password: "pw", externalEvent: false,
     plugins: Object.fromEntries(attackKeys.slice(0, n).map(key => [key, { enabled: true, options: {} }])),
 })
-const userId = async (username: string) => (await admin.api.users.list({ search: username })).find(u => u.username === username)!.id
+const userId = async (username: string) => (await admin.api.users.list({ search: username })).items.find(u => u.username === username)!.id
 const errorOf = (promise: Promise<unknown>) => promise.then(() => null, (e: { code: string; message: string }) => e)
 
 describe("attack plugin cap", () => {
@@ -44,7 +44,7 @@ describe("attack plugin cap", () => {
         await admin.api.users.setAttackPluginCap({ id, cap: "none" })
         expect(await p.api.plugins.attackLimit()).toBeNull()
         expect(await errorOf(p.api.accounts.create(withAttackPlugins(7)))).toBeNull()
-        expect((await admin.api.users.list({ search: "uncapped" }))[0]!.attackPluginCap).toBe("none")
+        expect((await admin.api.users.list({ search: "uncapped" })).items[0]!.attackPluginCap).toBe("none")
         const entry = (await admin.api.audit.list({ limit: 20 })).find(e => e.action === "admin.user.attack_plugin_cap")
         expect(entry?.meta).toEqual({ from: null, to: "none" })
 

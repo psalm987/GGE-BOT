@@ -74,6 +74,10 @@ export const Id = z.object({ id: z.uuid() })
 
 export const Server = z.object({ id: z.number().int(), label: z.string() })
 
+/** One page of a server-side list. */
+export const Page = z.object({ limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) })
+export const Search = z.string().trim().max(64).optional()
+
 export const AdminUser = PublicUser.extend({
     status: UserStatus,
     /** null: the user follows the global default. */

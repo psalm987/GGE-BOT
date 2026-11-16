@@ -10,7 +10,7 @@ beforeAll(async () => {
 afterAll(() => api.close())
 
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
-const userId = async (username: string) => (await admin.api.users.list({ search: username })).find(u => u.username === username)!.id
+const userId = async (username: string) => (await admin.api.users.list({ search: username })).items.find(u => u.username === username)!.id
 
 describe("managing users", () => {
     test("disabling a player ends their sessions and stops their bots", async () => {
@@ -21,7 +21,7 @@ describe("managing users", () => {
         await admin.api.users.setStatus({ id: await userId("rowdy"), status: "disabled" })
 
         expect(await p.api.auth.me()).toBeNull()
-        const all = await admin.api.accounts.list()
+        const all = (await admin.api.accounts.list({})).items
         expect(all.find(a => a.id === id)).toMatchObject({ owner: "rowdy", desiredState: "stopped" })
     })
 
@@ -30,7 +30,7 @@ describe("managing users", () => {
         await admin.api.users.setMaxBots({ id: await userId("counted"), maxBots: 2 })
         await p.api.accounts.create({ name: "C1", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
         await p.api.accounts.create({ name: "C2", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
-        const [row] = await admin.api.users.list({ search: "counted" })
+        const [row] = (await admin.api.users.list({ search: "counted" })).items
         expect(row).toMatchObject({ username: "counted", accountCount: 2, maxBots: 2 })
     })
 
@@ -53,7 +53,7 @@ describe("managing users", () => {
         await p.api.accounts.setDesiredState({ ids: [id], state: "running" })
         await admin.api.accounts.forceStop({ id })
         expect((await p.api.accounts.list())[0]!.desiredState).toBe("stopped")
-        expect(allStrings(await admin.api.accounts.list()).join(" ")).not.toContain("leak-check-pw")
+        expect(allStrings((await admin.api.accounts.list({})).items).join(" ")).not.toContain("leak-check-pw")
     })
 })
 

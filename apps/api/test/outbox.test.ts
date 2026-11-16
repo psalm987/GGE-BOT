@@ -92,7 +92,7 @@ describe("starting and stopping tells the owner's other tabs", () => {
         await admin.api.accounts.forceStop({ id })
 
         expect((await accountEvents(await idOf(p))).at(-1)).toEqual({ v: 1, kind: "account", accountId: id, desiredState: "stopped" })
-        const boss = (await admin.api.users.list({ search: "boss" }))[0]!.id
+        const boss = (await admin.api.users.list({ search: "boss" })).items[0]!.id
         expect(await accountEvents(boss)).toEqual([])
     })
 

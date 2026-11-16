@@ -8,6 +8,7 @@ import { parseEnv, workerConfig } from "./env.ts"
 import { readServers, refreshGameData } from "./game-data.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
+import { prunes, runPrunes } from "./maintenance.ts"
 import { createMetrics, serveMetrics, type MetricBatch } from "./metrics.ts"
 import { loadSpecs } from "./specs.ts"
 import { createStore } from "./store.ts"
@@ -93,9 +94,7 @@ const timers = [
         void reconcile()
     }, LIVENESS.intervalMs),
     setInterval(() => void store.beat(startedAt, VERSION, supervisor.running).catch(e => console.error("heartbeat failed", e)), 10_000),
-    setInterval(() => void store.pruneLogs().catch(e => console.error("log prune failed", e)), 3600_000),
-    setInterval(() => void store.pruneOutbox().catch(e => console.error("outbox prune failed", e)), 3600_000),
-    setInterval(() => void store.pruneNotifications().catch(e => console.error("notification prune failed", e)), 3600_000),
+    setInterval(() => void runPrunes(prunes(db, { auditDays: env.AUDIT_RETENTION_DAYS })), 3600_000),
 ]
 await store.beat(startedAt, VERSION, 0)
 await reconcile()

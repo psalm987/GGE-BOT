@@ -113,7 +113,7 @@ describe("setting up an authenticator at first sign-in", () => {
 
     test("a code is refused for an admin who hasn't finished enrolling", async () => {
         await api.player("halfway")
-        await boss.api.users.setRole({ id: (await boss.api.users.list({ search: "halfway" }))[0]!.id, role: "admin" })
+        await boss.api.users.setRole({ id: (await boss.api.users.list({ search: "halfway" })).items[0]!.id, role: "admin" })
         const browser = await pastPassword("halfway")
         expect(browser.step).toBe("enroll")
         expect(await codeOf(browser.api.auth.verifyTotp({ code: "123456" }))).toBe("FORBIDDEN")
@@ -230,7 +230,7 @@ describe("resetting an admin's two-factor sign-in", () => {
         const target = await enrollThroughSignIn("locked")
         const asPlayer = api.client()
         await asPlayer.api.auth.login({ login: "locked", password: PASSWORD })
-        const row = async () => (await boss.api.users.list({ search: "locked" }))[0]!
+        const row = async () => (await boss.api.users.list({ search: "locked" })).items[0]!
         expect(await row()).toMatchObject({ totpEnabled: true })
 
         await boss.api.users.resetTotp({ id: target.user.id })
@@ -251,7 +251,7 @@ describe("resetting an admin's two-factor sign-in", () => {
     test("an admin can't reset their own, and a missing user is reported", async () => {
         const me = (await boss.api.auth.me())!.id
         expect(await codeOf(boss.api.users.resetTotp({ id: me }))).toBe("BAD_REQUEST")
-        expect((await boss.api.users.list({ search: "boss" }))[0]).toMatchObject({ totpEnabled: true })
+        expect((await boss.api.users.list({ search: "boss" })).items[0]).toMatchObject({ totpEnabled: true })
         expect(await codeOf(boss.api.users.resetTotp({ id: crypto.randomUUID() }))).toBe("NOT_FOUND")
     })
 

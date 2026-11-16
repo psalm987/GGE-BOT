@@ -27,7 +27,7 @@ async function setMaxBots(username, maxBots) {
         const res = await fetch(`${API_URL}/admin/rpc/${path}`, { method: "POST", headers: { origin: ADMIN_URL, "content-type": "application/json", cookie: adminCookie }, body: JSON.stringify({ json: body }) })
         return (await res.json()).json
     }
-    const user = (await call("users/list", { search: username })).find(u => u.username === username)
+    const user = (await call("users/list", { search: username })).items.find(u => u.username === username)
     await call("users/setMaxBots", { id: user.id, maxBots })
 }
 

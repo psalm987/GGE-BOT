@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
 import { BotChannelEvent, Notification, UserEvent, botChannel, userChannel } from "@gge/contracts"
-import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, publish, servers, users, type Db } from "@gge/db"
+import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
 import { createStore, type Store } from "../src/store.ts"
 
 let db: Db
@@ -137,40 +137,6 @@ test("a notification outlives its account and keeps the account's name", async (
     await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
 
     expect(await mine()).toMatchObject([{ accountId: null, kind: "crash_loop", data: { accountName: account!.name, failures: 8, lastError: "boom" } }])
-})
-
-test("pruning removes read notifications after 30 days and unread ones after 180", async () => {
-    const add = async (label: string, days: number, read: boolean) => {
-        await db.insert(notifications).values({
-            userId: ownerId, accountId, kind: "shutoff", data: { accountName: label, serverLabel: "India 1" }, dedupKey: label,
-            createdAt: sql`now() - make_interval(days => ${days})`, readAt: read ? new Date() : null,
-        })
-    }
-    await add("read, 29 days", 29, true)
-    await add("read, 31 days", 31, true)
-    await add("unread, 31 days", 31, false)
-    await add("unread, 179 days", 179, false)
-    await add("unread, 181 days", 181, false)
-
-    await store.pruneNotifications()
-
-    expect((await mine()).map(row => row.dedupKey)).toEqual(["read, 29 days", "unread, 31 days", "unread, 179 days"])
-})
-
-test("pruning removes only messages nobody collected for over an hour", async () => {
-    const channel = `test:${randomUUID()}`
-    await publish(db, channel, "fresh")
-    await publish(db, channel, "almost")
-    await publish(db, channel, "stale")
-    const age = (data: string, minutes: number) => db.update(centrifugoOutbox)
-        .set({ createdAt: sql`now() - make_interval(mins => ${minutes})` })
-        .where(sql`${centrifugoOutbox.payload} = ${JSON.stringify({ channel, data })}::jsonb`)
-    await age("almost", 59)
-    await age("stale", 61)
-
-    await store.pruneOutbox()
-
-    expect(await published(channel)).toEqual(["fresh", "almost"])
 })
 
 test("each new message wakes Centrifugo's consumer on its partition", async () => {

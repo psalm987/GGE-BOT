@@ -1,5 +1,5 @@
 import { implement, ORPCError } from "@orpc/server"
-import { and, count, desc, eq, gt, ilike, inArray, lt, sql } from "drizzle-orm"
+import { and, count, desc, eq, gt, ilike, inArray, lt, or, sql } from "drizzle-orm"
 import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, userTotp, users } from "@gge/db"
 import { adminContract } from "@gge/contracts"
 import { resetSecondFactor } from "../auth/second-factor.ts"
@@ -9,6 +9,9 @@ import { audit } from "../services/audit.ts"
 import { listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
+
+/** A LIKE pattern for "contains", with `%`, `_` and backslash in the text matched literally. */
+const contains = (text: string) => `%${text.replace(/[%_\\]/g, "\\$&")}%`
 
 const os = implement(adminContract).$context<Ctx>()
 
@@ -63,18 +66,29 @@ export const adminRouter = os.router({
         }
     }),
     users: {
-        list: os.users.list.use(admin).handler(({ context: { db }, input }) =>
-            db.select({
-                id: users.id, username: users.username, role: users.role, email: users.email,
-                emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
-                attackPluginCap: users.attackPluginCap,
-                accountCount: count(gameAccounts.id),
-                totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
-            }).from(users)
-                .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
-                .where(input.search ? ilike(users.username, `%${input.search.replace(/[%_\\]/g, "\\$&")}%`) : undefined)
-                .groupBy(users.id)
-                .orderBy(users.createdAt)),
+        list: os.users.list.use(admin).handler(async ({ context: { db }, input }) => {
+            const where = and(
+                input.search ? ilike(users.username, contains(input.search)) : undefined,
+                input.role ? eq(users.role, input.role) : undefined,
+                input.status ? eq(users.status, input.status) : undefined,
+            )
+            const [items, [total]] = await Promise.all([
+                db.select({
+                    id: users.id, username: users.username, role: users.role, email: users.email,
+                    emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
+                    attackPluginCap: users.attackPluginCap,
+                    accountCount: count(gameAccounts.id),
+                    totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
+                }).from(users)
+                    .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
+                    .where(where)
+                    .groupBy(users.id)
+                    .orderBy(desc(users.createdAt), users.id)
+                    .limit(input.limit).offset(input.offset),
+                db.select({ n: count() }).from(users).where(where),
+            ])
+            return { items, total: total!.n }
+        }),
         setStatus: os.users.setStatus.use(admin).handler(async ({ context: { db, user }, input }) => {
             notSelf(user.id, input.id, "You can't disable yourself")
             const [changed] = await db.update(users).set({ status: input.status, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
@@ -139,9 +153,25 @@ export const adminRouter = os.router({
         }),
     },
     accounts: {
-        list: os.accounts.list.use(admin).handler(async ({ context: { db } }) => {
-            const owners = new Map((await db.select({ id: users.id, username: users.username }).from(users)).map(u => [u.id, u.username]))
-            return (await listAccounts(db, undefined)).map(({ plugins: _, ownerId, ...account }) => ({ ...account, owner: owners.get(ownerId) ?? "?" }))
+        list: os.accounts.list.use(admin).handler(async ({ context: { db }, input }) => {
+            const where = and(
+                input.search ? or(
+                    ilike(gameAccounts.name, contains(input.search)),
+                    inArray(gameAccounts.ownerId, db.select({ id: users.id }).from(users).where(ilike(users.username, contains(input.search)))),
+                ) : undefined,
+                input.ownerId ? eq(gameAccounts.ownerId, input.ownerId) : undefined,
+                input.state ? eq(botStatus.actualState, input.state) : undefined,
+            )
+            const [rows, [total]] = await Promise.all([
+                listAccounts(db, where, input),
+                db.select({ n: count() }).from(gameAccounts).leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id)).where(where),
+            ])
+            const owners = new Map((await db.select({ id: users.id, username: users.username }).from(users)
+                .where(inArray(users.id, [...new Set(rows.map(r => r.ownerId))]))).map(u => [u.id, u.username]))
+            return {
+                items: rows.map(({ plugins: _, ownerId, ...account }) => ({ ...account, owner: owners.get(ownerId) ?? "?" })),
+                total: total!.n,
+            }
         }),
         forceStop: os.accounts.forceStop.use(admin).handler(async ({ context: { db, user }, input }) => {
             const changed = await setDesiredState(db, eq(gameAccounts.id, input.id), "stopped")

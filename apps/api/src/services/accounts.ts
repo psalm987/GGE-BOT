@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server"
-import { and, asc, eq, inArray, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import { appSettings, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
@@ -101,13 +101,15 @@ async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: () => Prom
 const bots = (n: number) => `${n} bot${n === 1 ? "" : "s"}`
 
 /** The only way an account leaves the API: no password, sealed or not. */
-export async function listAccounts(db: Db, where: SQL | undefined): Promise<(PublicAccount & { ownerId: string })[]> {
-    const rows = await db
+export async function listAccounts(db: Db, where: SQL | undefined, page?: { limit: number; offset: number }): Promise<(PublicAccount & { ownerId: string })[]> {
+    const query = db
         .select({ account: gameAccounts, status: botStatus })
         .from(gameAccounts)
         .leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id))
         .where(where)
-        .orderBy(asc(gameAccounts.createdAt))
+    const rows = await (page
+        ? query.orderBy(desc(gameAccounts.createdAt), gameAccounts.id).limit(page.limit).offset(page.offset)
+        : query.orderBy(asc(gameAccounts.createdAt)))
     const ids = rows.map(r => r.account.id)
     const [settings, standing] = await Promise.all([
         ids.length ? db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : [],

@@ -4,8 +4,8 @@ import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    AdminAccount, AdminLoginStep, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
-    Overview, PublicAccount, PublicUser, Role, Run, SecondFactor, Server, Signup, TotpCode, UpdateAccount, UserStatus,
+    ActualState, AdminAccount, AdminLoginStep, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
+    Overview, Page, PublicAccount, PublicUser, Role, Run, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./entitlement.ts"
@@ -90,7 +90,9 @@ export const adminContract = {
     },
     overview: oc.output(Overview),
     users: {
-        list: oc.input(z.object({ search: z.string().trim().max(64).optional() })).output(z.array(AdminUser)),
+        /** `search` matches a username, case-insensitively, anywhere in it. Newest first. */
+        list: oc.input(Page.extend({ search: Search, role: Role.optional(), status: UserStatus.optional() }))
+            .output(z.object({ items: z.array(AdminUser), total: z.number().int() })),
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         setMaxBots: oc.input(Id.extend({ maxBots: z.number().int().min(0).max(50) })).output(z.void()),
@@ -105,7 +107,9 @@ export const adminContract = {
         setAttackPluginCap: oc.input(z.object({ cap: AttackPluginCap })).output(z.void()),
     },
     accounts: {
-        list: oc.output(z.array(AdminAccount)),
+        /** `search` matches an account name or its owner's username. `state` is the actual state. Newest first. */
+        list: oc.input(Page.extend({ search: Search, ownerId: z.uuid().optional(), state: ActualState.optional() }))
+            .output(z.object({ items: z.array(AdminAccount), total: z.number().int() })),
         forceStop: oc.input(Id).output(z.void()),
     },
     audit: {

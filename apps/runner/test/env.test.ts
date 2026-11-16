@@ -27,4 +27,15 @@ describe("parseEnv", () => {
         expect(parseEnv(required).WORKER_MAX_OLD_MB).toBe(512)
         expect(parseEnv({ ...required, WORKER_MAX_OLD_MB: "1024" }).WORKER_MAX_OLD_MB).toBe(1024)
     })
+
+    test("audit entries are kept 365 days unless configured", () => {
+        expect(parseEnv(required).AUDIT_RETENTION_DAYS).toBe(365)
+        expect(parseEnv({ ...required, AUDIT_RETENTION_DAYS: "" }).AUDIT_RETENTION_DAYS).toBe(365)
+        expect(parseEnv({ ...required, AUDIT_RETENTION_DAYS: "30" }).AUDIT_RETENTION_DAYS).toBe(30)
+    })
+
+    test("an audit retention that is not a positive integer is refused", () => {
+        for (const value of ["0", "-1", "1.5", "abc"])
+            expect(() => parseEnv({ ...required, AUDIT_RETENTION_DAYS: value }), value).toThrow()
+    })
 })

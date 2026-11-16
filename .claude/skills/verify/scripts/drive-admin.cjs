@@ -150,6 +150,67 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await page.screenshot({ path: `${out}/admin-users-1440.png` })
     await axe(page, "users")
 
+    const names = async () => (await page.locator(".ant-table-tbody tr.ant-table-row td:first-child").allTextContents()).map(t => t.trim())
+    /** The table's first-column texts as soon as `ok` accepts them, so a request still in flight has landed; the last texts if none do within 8 s. */
+    const rowsUntil = async ok => {
+        let rows = await names()
+        for (let i = 0; i < 32 && !ok(rows); i++) { await page.waitForTimeout(250); rows = await names() }
+        return rows
+    }
+    const is = expected => rows => JSON.stringify(rows) === JSON.stringify(expected)
+    const urlHas = part => page.waitForFunction(p => location.search.includes(p), part)
+
+    await page.goto(`${base}/users?size=1`)
+    await page.locator(".ant-table-tbody tr.ant-table-row").first().waitFor()
+    const pageOne = await rowsUntil(r => r.length === 1)
+    assert(pageOne.length === 1, `page size 1 in the URL shows 1 user (${pageOne})`)
+    await page.locator(".ant-pagination-item-2").click()
+    await urlHas("page=2")
+    const pageTwo = await rowsUntil(r => r.length > 0 && r.every(n => !pageOne.includes(n)))
+    assert(pageTwo.length > 0 && pageTwo.every(n => !pageOne.includes(n)), `page 2 shows different users (${pageTwo})`)
+    await page.reload()
+    await page.locator(".ant-table-tbody tr.ant-table-row").first().waitFor()
+    assert(is(pageTwo)(await rowsUntil(is(pageTwo))), "reload keeps page 2")
+
+    await page.goto(`${base}/users`)
+    await page.getByLabel("Search users").fill("demo")
+    await urlHas("q=demo")
+    { const got = await rowsUntil(is(["demo"])); assert(is(["demo"])(got), `search narrows the table to the matching user (${got})`) }
+    await page.reload()
+    assert(await page.getByLabel("Search users").inputValue() === "demo", "reload keeps the search text")
+    assert(is(["demo"])(await rowsUntil(is(["demo"]))), "reload keeps the search result")
+    await page.goto(`${base}/users?size=1&page=2&q=m`)
+    await page.locator(".ant-table-tbody tr.ant-table-row").first().waitFor()
+    await page.getByLabel("Search users").fill("demo")
+    await page.waitForFunction(() => !location.search.includes("page="))
+    assert(is(["demo"])(await rowsUntil(is(["demo"]))), "changing the search returns to page 1")
+
+    await page.goto(`${base}/users`)
+    const allUsers = await rowsUntil(r => r.length > 1)
+    await page.getByLabel("Filter by role").click()
+    await page.locator(".ant-select-item-option").filter({ hasText: "Admin" }).click()
+    await urlHas("role=admin")
+    const adminsOnly = await rowsUntil(r => r.length < allUsers.length)
+    assert(adminsOnly.length > 0 && adminsOnly.length < allUsers.length, `the role filter narrows the table (${allUsers.length} to ${adminsOnly.length})`)
+    assert(await page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: /Player/ }).count() === 0, "only admins are listed under the Admin filter")
+    await axe(page, "users search and filters")
+    await page.screenshot({ path: `${out}/admin-users-filtered-1440.png` })
+
+    await page.goto(`${base}/accounts?size=1`)
+    await page.locator(".ant-table-tbody tr.ant-table-row").first().waitFor()
+    await page.getByLabel("Search accounts").fill("zzz-no-such-account")
+    await page.getByText("No game accounts").waitFor()
+    assert(true, "an account search with no match shows the empty state, with the search box still there")
+    await page.getByLabel("Search accounts").fill("Ironhold")
+    await page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: "Ironhold" }).waitFor()
+    await page.getByLabel("Filter by state").click()
+    await page.locator(".ant-select-item-option").filter({ hasText: "Banned" }).click()
+    await urlHas("state=banned")
+    await page.waitForTimeout(700)
+    assert(await page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: "Ironhold" }).count() === 0, "the state filter removes accounts in other states")
+    await axe(page, "accounts search and filters")
+    await nav(page, "Users")
+
     await nav(page, "Audit")
     await page.getByRole("heading", { name: "Audit log" }).waitFor()
     await page.getByText("user.disable").first().waitFor()

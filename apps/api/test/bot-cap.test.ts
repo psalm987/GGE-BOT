@@ -14,7 +14,7 @@ afterAll(() => api.close())
 
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 const newAccount = () => ({ name: `acc${Math.random().toString(36).slice(2, 8)}`, serverId: 26, password: "pw", externalEvent: false, plugins: {} })
-const userId = async (username: string) => (await admin.api.users.list({ search: username })).find(u => u.username === username)!.id
+const userId = async (username: string) => (await admin.api.users.list({ search: username })).items.find(u => u.username === username)!.id
 
 describe("one bot per player", () => {
     test("a new player gets one bot, with the limit explained when they ask for a second", async () => {

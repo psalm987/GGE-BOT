@@ -58,4 +58,16 @@ The runner takes a Postgres advisory lock at start. A second runner (for example
 
 ## Disk
 
-Postgres, Prometheus (15 days) and the backups volume grow. `docker system df -v` shows volume sizes. Bot logs and notifications are pruned hourly (a read notification after 30 days, any notification after 180); audit log and run history are kept.
+Postgres, Prometheus (15 days) and the backups volume grow. `docker system df -v` shows volume sizes. The runner deletes old rows once an hour, in batches so no single delete holds a long lock:
+
+| Data | Kept |
+|---|---|
+| Bot logs | 7 days, and at most the newest 500 lines per account |
+| Run history | 90 days from start. A run that is still open is never deleted. |
+| Audit log | `AUDIT_RETENTION_DAYS` days (default 365) |
+| Notifications | Read: 30 days. Any: 180 days. |
+| Sessions, sign-in challenges | Until they expire |
+| Email tokens | 1 day past expiry |
+| Live-update outbox | 1 hour |
+
+To keep the audit log longer or shorter, set `AUDIT_RETENTION_DAYS` in `infra/.env` and run `dc up -d runner`. The next hourly run applies it.

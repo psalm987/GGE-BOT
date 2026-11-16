@@ -1,7 +1,7 @@
-import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { eq, inArray, isNull, sql } from "drizzle-orm"
 import { botChannel, userChannel, type BotChannelEvent, type NotificationContent, type UserEvent } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, insertNotification, notifications, publish, publishMany, runnerHeartbeat, servers, type Db,
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
@@ -25,12 +25,6 @@ export type AccountEnding = Pick<StatusPatch, "actualState" | "lastError" | "ban
 
 const isMissingAccount = (error: unknown) =>
     ((error as { cause?: { code?: string } })?.cause?.code ?? (error as { code?: string })?.code) === "23503"
-
-export const LOG_RETENTION = { perAccount: 500, days: 7 }
-/** Centrifugo deletes outbox rows as it delivers them. Older rows mean it is down, and its clients refetch on reconnect anyway. */
-export const OUTBOX_MAX_AGE_MS = 3600_000
-/** A read notification is kept this long, and any notification no longer than `anyDays`. */
-export const NOTIFICATION_RETENTION = { readDays: 30, anyDays: 180 }
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0]
 
@@ -168,27 +162,6 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         async recoverFromLastRun() {
             await db.update(botRuns).set({ endedAt: new Date(), endReason: "runner_lost" }).where(isNull(botRuns.endedAt))
             await db.update(botStatus).set({ actualState: "stopped" }).where(inArray(botStatus.actualState, ["starting", "running"]))
-        },
-
-        async pruneLogs({ perAccount, days } = LOG_RETENTION) {
-            await db.delete(botLogs).where(lt(botLogs.ts, sql`now() - make_interval(days => ${days})`))
-            await db.execute(sql`
-                delete from ${botLogs} l using (
-                    select id from (
-                        select id, row_number() over (partition by account_id order by id desc) as n from ${botLogs}
-                    ) ranked where n > ${perAccount}
-                ) old where l.id = old.id`)
-        },
-
-        async pruneNotifications({ readDays, anyDays } = NOTIFICATION_RETENTION) {
-            await db.delete(notifications).where(or(
-                and(isNotNull(notifications.readAt), lt(notifications.createdAt, sql`now() - make_interval(days => ${readDays})`)),
-                lt(notifications.createdAt, sql`now() - make_interval(days => ${anyDays})`),
-            ))
-        },
-
-        async pruneOutbox(maxAgeMs = OUTBOX_MAX_AGE_MS) {
-            await db.delete(centrifugoOutbox).where(lt(centrifugoOutbox.createdAt, sql`now() - make_interval(secs => ${maxAgeMs / 1000})`))
         },
     }
 }

@@ -23,6 +23,8 @@ const Env = z.object({
     /** V8 old-space cap per bot worker; a leaking bot dies alone instead of taking the runner with it. */
     WORKER_MAX_OLD_MB: z.coerce.number().int().positive().default(512),
     /** Inbound silence after which a logged-in bot reconnects. Unset: never; pick it from bot_inbound_gap_seconds. */
+    /** Audit entries older than this many days are deleted hourly. */
+    AUDIT_RETENTION_DAYS: optional.pipe(z.coerce.number<string>().int().positive().default(365)),
     INBOUND_STALE_MS: optional.pipe(z.coerce.number<string>().int().positive().optional()),
 })
 
