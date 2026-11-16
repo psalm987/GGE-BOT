@@ -10,7 +10,6 @@ import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
-import { createBotEventHub } from "./services/bot-events.ts"
 import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
@@ -24,8 +23,6 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
     // oRPC reads the raw body itself.
     app.addContentTypeParser("*", (_req, _payload, done) => done(null, undefined))
 
-    const hub = await createBotEventHub(env.DATABASE_URL, app.log)
-    app.addHook("onClose", () => hub.close())
     const limits = {
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),
         user: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
@@ -48,7 +45,7 @@ export async function buildServer({ db, env, logger = true, mailer }: { db: Db; 
             // call whose Origin isn't one of our apps.
             if (!origins.includes(req.headers.origin ?? ""))
                 return reply.status(403).send({ message: "Origin not allowed" })
-            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, limits, mailer: mailer ?? logMailer(app.log), botEvents: hub.emitter } })
+            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, limits, mailer: mailer ?? logMailer(app.log) } })
             if (!matched)
                 return reply.status(404).send({ message: "Not found" })
         })

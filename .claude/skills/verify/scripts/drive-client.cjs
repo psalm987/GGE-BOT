@@ -166,8 +166,26 @@ function emailedLink(address) {
     await page.reload()
     await page.getByRole("row", { name: new RegExp(`Storm${name}`) }).getByRole("button", { name: "Stop" }).waitFor()
     assert(true, "desired state persisted across reload")
-    await page.getByRole("row", { name: new RegExp(`Storm${name}`) }).getByRole("button", { name: "Stop" }).click()
-    await page.getByRole("row", { name: new RegExp(`Storm${name}`) }).getByRole("button", { name: "Start" }).waitFor()
+    const liveStatus = await page.evaluate(async () => (await fetch("/rpc/realtime/connectionToken", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status)
+    if (liveStatus === 200) {
+        // browser.newPage() owns its context, so the second tab is a context that shares the first one's session cookie.
+        const tab = await (await browser.newContext({ storageState: await page.context().storageState() })).newPage()
+        const events = []
+        tab.on("websocket", ws => ws.on("framereceived", frame => events.push(String(frame.payload))))
+        await tab.goto(CLIENT_URL)
+        const tabRow = tab.getByRole("row", { name: new RegExp(`Storm${name}`) })
+        await tabRow.getByRole("button", { name: "Stop" }).waitFor()
+        await tab.waitForTimeout(1000)
+        await row.getByRole("button", { name: "Stop" }).click()
+        await tabRow.getByRole("button", { name: "Start" }).waitFor({ timeout: 5000 })
+        assert(events.some(frame => /"kind": ?"account"/.test(frame) && /"desiredState": ?"stopped"/.test(frame)), "a second tab shows the stop live, from a websocket event")
+        assert(await tab.getByRole("status").locator(".ant-tag").count() === 0, "no Reconnecting badge while live")
+        await tab.close()
+    } else {
+        assert(liveStatus === 501, "Centrifugo isn't running, so the API says live updates are off (the second-tab check is skipped)")
+        await row.getByRole("button", { name: "Stop" }).click()
+    }
+    await row.getByRole("button", { name: "Start" }).waitFor()
 
     await page.getByRole("button", { name: `Edit Storm${name}` }).click()
     await page.getByLabel("Game account name").fill(`Storm${name} Keep`)

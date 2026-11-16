@@ -1,9 +1,9 @@
-import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
+import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { RealtimeToken } from "./realtime.ts"
 import {
-    AdminAccount, AdminLoginStep, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
+    AdminAccount, AdminLoginStep, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
     Overview, PublicAccount, PublicUser, Role, Run, SecondFactor, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -44,8 +44,6 @@ export const clientContract = {
         logs: oc.input(Id.extend({ before: z.number().int().optional(), limit: z.number().int().min(1).max(500).default(100) }))
             .output(z.array(LogLine)),
         runs: oc.input(Id.extend({ limit: z.number().int().min(1).max(100).default(10) })).output(z.array(Run)),
-        /** Live status changes and log lines for the caller's accounts. */
-        events: oc.output(eventIterator(BotEvent)),
     },
     /** Tokens for the Centrifugo websocket at /connection/websocket. Both answer NOT_IMPLEMENTED on a deployment without Centrifugo. */
     realtime: {

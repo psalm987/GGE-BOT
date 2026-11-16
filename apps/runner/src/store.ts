@@ -1,6 +1,6 @@
 import { eq, inArray, isNull, lt, sql } from "drizzle-orm"
 import { botChannel, userChannel, type BotChannelEvent, type UserEvent } from "@gge/contracts"
-import { CHANNELS, botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, publish, publishMany, runnerHeartbeat, type Db } from "@gge/db"
+import { botLogs, botRuns, botStatus, centrifugoOutbox, gameAccounts, publish, publishMany, runnerHeartbeat, type Db } from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
@@ -24,16 +24,13 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
     let pending: { accountId: string; level: number; message: string; parts: unknown }[] = []
     let timer: NodeJS.Timeout | undefined
 
-    const notify = (payload: object) =>
-        db.execute(sql`select pg_notify(${CHANNELS.bot}, ${JSON.stringify(payload).slice(0, 7900)})`)
-
     async function insertLogs(batch: typeof pending) {
         const ids = new Set((await db.select({ id: gameAccounts.id }).from(gameAccounts)
             .where(inArray(gameAccounts.id, [...new Set(batch.map(l => l.accountId))]))).map(r => r.id))
         const rows = batch.filter(l => ids.has(l.accountId))
         if (!rows.length)
             return
-        const inserted = await db.transaction(async tx => {
+        await db.transaction(async tx => {
             const inserted = await tx.insert(botLogs).values(rows).returning({ id: botLogs.id, accountId: botLogs.accountId, ts: botLogs.ts })
             await publishMany(tx, inserted.map((row, i) => ({
                 channel: botChannel(row.accountId),
@@ -42,10 +39,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     line: { id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message, parts: logParts(rows[i]!.parts) },
                 } satisfies BotChannelEvent,
             })))
-            return inserted
         })
-        for (const [i, row] of inserted.entries())
-            await notify({ kind: "log", accountId: row.accountId, id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message.slice(0, 2000) })
     }
 
     async function flushLogs() {
@@ -97,13 +91,12 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                         status: { actualState: status!.actualState, heartbeatAt: status!.heartbeatAt, lastError: status!.lastError, bannedUntil: status!.bannedUntil },
                     } satisfies UserEvent)
                 })
-                await notify({ kind: "status", accountId })
             } catch (error) {
                 if (!isMissingAccount(error)) throw error
             }
         },
 
-        /** Records that the bot is alive. No notify: nothing a subscriber shows has changed, and every bot does this twice a minute. */
+        /** Records that the bot is alive. No event: nothing a subscriber shows has changed, and every bot does this twice a minute. */
         async touchHeartbeat(accountId: string) {
             await db.update(botStatus).set({ heartbeatAt: new Date() }).where(eq(botStatus.accountId, accountId))
         },

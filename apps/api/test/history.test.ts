@@ -1,6 +1,5 @@
-import { sql } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { CHANNELS, botLogs, botRuns, botStatus, runnerHeartbeat } from "@gge/db"
+import { botLogs, botRuns, botStatus, runnerHeartbeat } from "@gge/db"
 import { startApi, type Api } from "./harness.ts"
 
 let api: Api
@@ -9,64 +8,6 @@ afterAll(() => api.close())
 
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 const newAccount = (name: string) => ({ name, serverId: 26, password: "pw", externalEvent: false, plugins: {} })
-const announce = (payload: object) => api.db.execute(sql`select pg_notify(${CHANNELS.bot}, ${JSON.stringify(payload)})`)
-
-/** Collects events from a stream until `count` arrive or `ms` pass. */
-async function collect<T>(stream: AsyncIterator<T>, count: number, ms = 2000) {
-    const seen: T[] = []
-    const deadline = Date.now() + ms
-    while (seen.length < count && Date.now() < deadline) {
-        const next = await Promise.race([stream.next(), new Promise<null>(r => setTimeout(() => r(null), deadline - Date.now()))])
-        if (!next || next.done) break
-        seen.push(next.value)
-    }
-    return seen
-}
-
-describe("live bot events", () => {
-    test("a player sees status and log events for their own accounts only", async () => {
-        const alice = await api.player()
-        const bob = await api.player()
-        const mine = await alice.api.accounts.create(newAccount("alice-bot"))
-        const theirs = await bob.api.accounts.create(newAccount("bob-bot"))
-
-        const stream = await alice.api.accounts.events()
-        await new Promise(r => setTimeout(r, 150))
-
-        await api.db.insert(botStatus).values([
-            { accountId: theirs.id, actualState: "running" },
-            { accountId: mine.id, actualState: "running", heartbeatAt: new Date() },
-        ])
-        await announce({ kind: "status", accountId: theirs.id })
-        await announce({ kind: "log", accountId: theirs.id, id: 1, ts: new Date().toISOString(), level: 0, message: "bob's secret" })
-        await announce({ kind: "status", accountId: mine.id })
-        await announce({ kind: "log", accountId: mine.id, id: 2, ts: new Date().toISOString(), level: 1, message: "Logged in" })
-
-        const events = await collect(stream, 3, 1500)
-        await stream.return?.()
-        expect(events).toEqual([
-            { kind: "status", accountId: mine.id, status: expect.objectContaining({ actualState: "running" }) },
-            { kind: "log", accountId: mine.id, line: expect.objectContaining({ id: 2, level: 1, message: "Logged in" }) },
-        ])
-    })
-
-    test("an account added after the stream opened still streams", async () => {
-        const carol = await api.player()
-        const stream = await carol.api.accounts.events()
-        await new Promise(r => setTimeout(r, 150))
-
-        const late = await carol.api.accounts.create(newAccount("carol-late"))
-        await announce({ kind: "log", accountId: late.id, id: 3, ts: new Date().toISOString(), level: 0, message: "hello" })
-
-        const [event] = await collect(stream, 1)
-        await stream.return?.()
-        expect(event).toMatchObject({ kind: "log", accountId: late.id })
-    })
-
-    test("signed-out callers can't open the stream", async () => {
-        expect(await codeOf(api.client().api.accounts.events())).toBe("UNAUTHORIZED")
-    })
-})
 
 describe("history", () => {
     test("logs and runs come back newest first, only to the account's owner", async () => {

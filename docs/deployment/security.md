@@ -53,10 +53,21 @@ Set `TOTP_ENCRYPTION_KEY` before you deploy; the API refuses to start without it
 - Email links carry a random 32-byte token. Only its SHA-256 is stored, a token works once, a new request replaces older ones, and it dies if the account's email changed after it was issued. Verification links last 24 hours, reset links 1 hour.
 - Password reset is offered only for verified addresses and answers the same for every address. Requests are throttled per IP and per address (3 per 15 minutes). A reset, or a password change in Settings, ends sessions (all of them for a reset, all but the current one for a change) and sends a notice email. Admins reset through the player app's forgot-password page.
 - Users can add an email only while they have none and can't change it afterwards.
-- Every account query is scoped to the signed-in owner; the live event stream filters by ownership. Integration tests break the ownership filter and the Origin check on purpose to prove they are enforced.
+- Every account query is scoped to the signed-in owner. Integration tests break the ownership filter and the Origin check on purpose to prove they are enforced.
 - Input is validated by the contract's Zod schemas; output is shaped by them too, so fields the contract doesn't declare are never sent.
 - Disabling a user or changing their role ends their sessions at once; disabling also stops their bots. A demoted admin keeps their authenticator, so promoting them again doesn't ask them to enroll.
 - Every admin action and every account start, stop, create, update and remove is written to the audit log with its actor.
+
+## Live updates
+
+The browser gets status changes and log lines from Centrifugo over a websocket at `/connection/websocket`. The socket carries no cookie. Two kinds of token, both signed by the API with `CENTRIFUGO_TOKEN_SECRET` (HS256) and valid for 15 minutes, decide what a socket can see.
+
+- **Connection token** (`realtime.connectionToken`). It names the signed-in player. Centrifugo lets a socket subscribe to `personal:user#<userId>` only when the ID matches the token, so a player can't read another player's status events.
+- **Subscription token** (`realtime.subscriptionToken`). It names one `bot:<accountId>` channel, which carries that account's log lines. The API signs one only for the account's owner. It answers `NOT_FOUND` for another player's account exactly as it does for an account that doesn't exist.
+- Both need a signed-in player with a verified email. The app asks for a new token before the old one expires, and a session that has ended doesn't get one.
+- **A session that ends loses its sockets at once.** Sign-out, a password change or reset, an admin's **Revoke sessions**, a role change, and disabling a user each queue a `disconnect` for that user in the same transaction. Centrifugo closes every socket the user has. A browser that is still signed in reconnects with a new token. A browser whose session ended gets `UNAUTHORIZED`, stops, and shows the sign-in page.
+- If Centrifugo is down when the session ends, the `disconnect` waits in the outbox. If Centrifugo stays down for more than an hour, the runner deletes the row. The browser can then reconnect with the token it already has until that token expires, at most 15 minutes after the API signed it.
+- Centrifugo's HTTP API and admin UI are off. The only way to publish is a row in `centrifugo_outbox`, so publishing needs database access.
 
 ## Host
 

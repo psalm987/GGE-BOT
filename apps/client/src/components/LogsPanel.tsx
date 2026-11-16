@@ -2,10 +2,10 @@ import { CloseCircleFilled, InfoCircleFilled, WarningFilled } from "@ant-design/
 import { useQuery } from "@tanstack/react-query"
 import { Button, Empty, Spin, Typography } from "antd"
 import dayjs from "dayjs"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { client, orpc } from "../api.ts"
 import { renderParts, useLanguage } from "../i18n.ts"
-import { onLiveLog } from "../live.ts"
+import { useBotLog } from "../realtime.ts"
 
 type Line = { id: number; ts: Date; level: number; message: string; parts?: (string | number)[] | null }
 
@@ -19,12 +19,10 @@ const LEVELS = [
 export function LogsPanel({ accountId }: { accountId: string }) {
     const language = useLanguage()
     const history = useQuery(orpc.accounts.logs.queryOptions({ input: { id: accountId, limit: 100 } }))
-    const [live, setLive] = useState<Line[]>([])
+    const live = useBotLog(accountId)
     const [older, setOlder] = useState<Line[]>([])
     const [loadingOlder, setLoadingOlder] = useState(false)
     const [exhausted, setExhausted] = useState(false)
-
-    useEffect(() => onLiveLog(accountId, line => setLive(lines => [line, ...lines].slice(0, 500))), [accountId])
 
     const known = new Set([...(history.data ?? []), ...older].map(l => l.id))
     const lines: Line[] = [...live.filter(l => !known.has(l.id)), ...(history.data ?? []), ...older]

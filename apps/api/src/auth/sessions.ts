@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto"
 import { and, eq, gt, ne, sql } from "drizzle-orm"
-import { sessions, users, type Db } from "@gge/db"
+import { disconnectUser, sessions, users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
 
 export type Audience = "client" | "admin"
@@ -50,8 +50,15 @@ export async function findSessionUser(db: Db, token: string, audience: Audience)
     return row.user
 }
 
-export const deleteSession = (db: Db, token: string) => db.delete(sessions).where(eq(sessions.id, hashToken(token)))
+/** Ends one session and closes the user's live connections; a tab that is still signed in elsewhere reconnects. */
+export const deleteSession = (db: Pick<Db, "transaction">, token: string) => db.transaction(async tx => {
+    const [ended] = await tx.delete(sessions).where(eq(sessions.id, hashToken(token))).returning({ userId: sessions.userId })
+    if (ended)
+        await disconnectUser(tx, ended.userId)
+})
 
-/** Deletes the user's sessions, all but `except` (a session id) when given. */
-export const revokeUserSessions = (db: Pick<Db, "delete">, userId: string, { except }: { except?: string } = {}) =>
-    db.delete(sessions).where(and(eq(sessions.userId, userId), except ? ne(sessions.id, except) : undefined))
+/** Deletes the user's sessions, all but `except` (a session id) when given, and closes their live connections. */
+export const revokeUserSessions = (db: Pick<Db, "transaction">, userId: string, { except }: { except?: string } = {}) => db.transaction(async tx => {
+    await tx.delete(sessions).where(and(eq(sessions.userId, userId), except ? ne(sessions.id, except) : undefined))
+    await disconnectUser(tx, userId)
+})

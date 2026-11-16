@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url"
 import { Worker } from "node:worker_threads"
-import { asc, eq } from "drizzle-orm"
+import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
 import type { PluginCatalogEntry } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
-import { CHANNELS, botLogs, botRuns, botStatus, createDb, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
+import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
 import { loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
@@ -326,26 +326,17 @@ describe("a bot that stops responding", () => {
         expect(supervisor.checkLiveness(t0 + 1501 + 1500)).toEqual([id])
     })
 
-    test("heartbeats from a running bot keep its last-seen time fresh without notifying subscribers", async () => {
+    test("heartbeats from a running bot keep its last-seen time fresh without publishing a status event", async () => {
         const id = await addAccount("ok-seen")
         await reconcile()
         await until(async () => (await status(id))?.actualState === "running")
-        const listener = await db.$pool.connect()
-        try {
-            const notified: string[] = []
-            listener.on("notification", n => {
-                const event = JSON.parse(n.payload!) as { kind: string; accountId: string }
-                if (event.kind === "status" && event.accountId === id)
-                    notified.push(n.payload!)
-            })
-            await listener.query(`listen ${CHANNELS.bot}`)
-            const before = (await status(id))!.heartbeatAt!
+        const statusEvents = async () => (await db.select().from(centrifugoOutbox)
+            .where(sql`${centrifugoOutbox.payload}->'data'->>'kind' = 'status' and ${centrifugoOutbox.payload}->'data'->>'accountId' = ${id}`)).length
+        const published = await statusEvents()
+        const before = (await status(id))!.heartbeatAt!
 
-            await until(async () => (await status(id))!.heartbeatAt!.getTime() > before.getTime() + 150)
-            expect(notified).toEqual([])
-        } finally {
-            listener.release(true)
-        }
+        await until(async () => (await status(id))!.heartbeatAt!.getTime() > before.getTime() + 150)
+        expect(await statusEvents()).toBe(published)
     })
 })
 

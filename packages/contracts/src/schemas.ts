@@ -113,12 +113,6 @@ export const Run = z.object({
     error: z.string().nullable(),
 })
 
-export const BotEvent = z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("status"), accountId: z.uuid(), status: BotStatus }),
-    z.object({ kind: z.literal("log"), accountId: z.uuid(), line: LogLine.omit({ parts: true }) }),
-])
-export type BotEvent = z.infer<typeof BotEvent>
-
 export const Overview = z.object({
     users: z.number().int(),
     accounts: z.number().int(),

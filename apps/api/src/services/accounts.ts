@@ -1,10 +1,10 @@
 import { ORPCError } from "@orpc/server"
 import { and, asc, eq, inArray, type SQL } from "drizzle-orm"
-import { appSettings, botStatus, gameAccounts, pluginCatalog, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
-    PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, twinMainIds,
-    type PlanOwner, type PluginCatalogEntry, type PluginSettings, type PublicAccount,
+    PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, twinMainIds, userChannel,
+    type PlanOwner, type PluginCatalogEntry, type PluginSettings, type PublicAccount, type UserEvent,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 
@@ -198,8 +198,17 @@ export async function removeAccounts(db: Db, ownerId: string, ids: string[]) {
     return db.delete(gameAccounts).where(ownedBy(ownerId, ids)).returning({ id: gameAccounts.id })
 }
 
-export async function setDesiredState(db: Pick<Db, "update">, where: SQL | undefined, state: "running" | "stopped") {
-    return db.update(gameAccounts).set({ desiredState: state, updatedAt: new Date() }).where(where).returning({ id: gameAccounts.id })
+/** Starts or stops the matching accounts and tells each owner's open tabs, both or neither. */
+export async function setDesiredState(db: Pick<Db, "transaction">, where: SQL | undefined, state: "running" | "stopped") {
+    return db.transaction(async tx => {
+        const changed = await tx.update(gameAccounts).set({ desiredState: state, updatedAt: new Date() }).where(where)
+            .returning({ id: gameAccounts.id, ownerId: gameAccounts.ownerId })
+        await publishMany(tx, changed.map(account => ({
+            channel: userChannel(account.ownerId),
+            data: { v: 1, kind: "account", accountId: account.id, desiredState: state } satisfies UserEvent,
+        })))
+        return changed
+    })
 }
 
 /** Starts the owner's listed accounts, all or none: refused if any of them is beyond what the plan runs. */
@@ -215,7 +224,7 @@ export async function startAccounts(db: Db, ownerId: string, ids: string[]) {
 }
 
 /** Stops the owner's running accounts their plan no longer covers. Call it in the transaction that changed the plan. */
-export async function stopUnentitled(tx: Pick<Db, "select" | "update">, ownerId: string): Promise<string[]> {
+export async function stopUnentitled(tx: Pick<Db, "select" | "transaction">, ownerId: string): Promise<string[]> {
     const owner = await lockPlan(tx, ownerId)
     const accounts = await ownerAccounts(tx, ownerId)
     const entitled = entitledAccountIds(owner, accounts)

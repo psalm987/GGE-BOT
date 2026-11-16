@@ -12,7 +12,7 @@ pnpm dev --runner   # the same, plus the bot runner (it will log real accounts i
 
 ## Live updates (Centrifugo)
 
-`pnpm dev` also starts [Centrifugo](https://centrifugal.dev) when `CENTRIFUGO_BIN` names its binary or `centrifugo` is on `PATH`. Without it, `pnpm dev` prints one line that says so, and the API answers `NOT_IMPLEMENTED` to the `realtime` token calls. Use the release that `infra/Dockerfile` pins, v6.10.2, from the [Centrifugo releases page](https://github.com/centrifugal/centrifugo/releases).
+`pnpm dev` also starts [Centrifugo](https://centrifugal.dev) when `CENTRIFUGO_BIN` names its binary or `centrifugo` is on `PATH`. Without it, `pnpm dev` prints one line that says so, and the API answers `NOT_IMPLEMENTED` to the `realtime` token calls. The player app then refetches the account list every 15 seconds instead. Use the release that `infra/Dockerfile` pins, v6.10.2, from the [Centrifugo releases page](https://github.com/centrifugal/centrifugo/releases).
 
 With `CENTRIFUGO_BIN` set, `pnpm test` also runs `apps/runner/test/realtime-e2e.test.ts`, which sends a status change and a log line through a real Centrifugo to a websocket.
 

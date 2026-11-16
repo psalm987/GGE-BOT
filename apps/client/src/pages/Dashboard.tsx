@@ -11,7 +11,7 @@ import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n.ts"
-import { useLiveBotEvents } from "../live.ts"
+import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 dayjs.extend(relativeTime)
 
@@ -23,12 +23,11 @@ export function Dashboard() {
     const { message } = App.useApp()
     const language = useLanguage()
     const phone = !Grid.useBreakpoint().md
-    const accounts = useQuery(orpc.accounts.list.queryOptions())
+    const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), refetchInterval: pollInterval(useRealtimeState()) })
     const servers = useQuery(orpc.servers.list.queryOptions())
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
     const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
-    useLiveBotEvents(true)
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()
