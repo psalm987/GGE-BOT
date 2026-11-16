@@ -1,17 +1,26 @@
 import { implement, ORPCError } from "@orpc/server"
-import { and, count, desc, eq, gt, ilike, inArray, lt, or, sql } from "drizzle-orm"
-import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, userTotp, users } from "@gge/db"
+import { and, count, desc, eq, gt, ilike, inArray, like, lt, max, or, sql } from "drizzle-orm"
+import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, sessions, userTotp, users, type Db } from "@gge/db"
 import { adminContract } from "@gge/contracts"
 import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
-import { listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
+import { accountLogs, accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
 
 /** A LIKE pattern for "contains", with `%`, `_` and backslash in the text matched literally. */
 const contains = (text: string) => `%${text.replace(/[%_\\]/g, "\\$&")}%`
+
+/** Every `AdminUser` column, with the account count; filter, then group by user id. */
+const adminUsers = (db: Db) => db.select({
+    id: users.id, username: users.username, role: users.role, email: users.email,
+    emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
+    attackPluginCap: users.attackPluginCap,
+    accountCount: count(gameAccounts.id),
+    totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
+}).from(users).leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
 
 const os = implement(adminContract).$context<Ctx>()
 
@@ -73,14 +82,7 @@ export const adminRouter = os.router({
                 input.status ? eq(users.status, input.status) : undefined,
             )
             const [items, [total]] = await Promise.all([
-                db.select({
-                    id: users.id, username: users.username, role: users.role, email: users.email,
-                    emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
-                    attackPluginCap: users.attackPluginCap,
-                    accountCount: count(gameAccounts.id),
-                    totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
-                }).from(users)
-                    .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
+                adminUsers(db)
                     .where(where)
                     .groupBy(users.id)
                     .orderBy(desc(users.createdAt), users.id)
@@ -88,6 +90,18 @@ export const adminRouter = os.router({
                 db.select({ n: count() }).from(users).where(where),
             ])
             return { items, total: total!.n }
+        }),
+        get: os.users.get.use(admin).handler(async ({ context: { db }, input }) => {
+            const [user] = await adminUsers(db).where(eq(users.id, input.id)).groupBy(users.id)
+            if (!user)
+                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            const [[login], live] = await Promise.all([
+                db.select({ ts: max(auditLog.ts) }).from(auditLog).where(and(eq(auditLog.actorId, input.id), like(auditLog.action, "auth.login.%"))),
+                db.select({ audience: sessions.audience, n: count() }).from(sessions)
+                    .where(and(eq(sessions.userId, input.id), gt(sessions.expiresAt, sql`now()`))).groupBy(sessions.audience),
+            ])
+            const sessionsOf = (audience: "client" | "admin") => live.find(row => row.audience === audience)?.n ?? 0
+            return { ...user, lastLoginAt: login?.ts ?? null, sessions: { client: sessionsOf("client"), admin: sessionsOf("admin") } }
         }),
         setStatus: os.users.setStatus.use(admin).handler(async ({ context: { db, user }, input }) => {
             notSelf(user.id, input.id, "You can't disable yourself")
@@ -169,7 +183,7 @@ export const adminRouter = os.router({
             const owners = new Map((await db.select({ id: users.id, username: users.username }).from(users)
                 .where(inArray(users.id, [...new Set(rows.map(r => r.ownerId))]))).map(u => [u.id, u.username]))
             return {
-                items: rows.map(({ plugins: _, ownerId, ...account }) => ({ ...account, owner: owners.get(ownerId) ?? "?" })),
+                items: rows.map(({ plugins: _, ...account }) => ({ ...account, owner: owners.get(account.ownerId) ?? "?" })),
                 total: total!.n,
             }
         }),
@@ -179,6 +193,8 @@ export const adminRouter = os.router({
                 throw new ORPCError("NOT_FOUND", { message: "No such account" })
             await audit(db, { actorId: user.id, action: "account.force_stop", targetType: "account", targetId: input.id })
         }),
+        logs: os.accounts.logs.use(admin).handler(({ context: { db }, input }) => accountLogs(db, input.id, input)),
+        runs: os.accounts.runs.use(admin).handler(({ context: { db }, input }) => accountRuns(db, input.id, input.limit)),
     },
     audit: {
         list: os.audit.list.use(admin).handler(({ context: { db }, input }) =>
@@ -186,7 +202,10 @@ export const adminRouter = os.router({
                 id: auditLog.id, actor: users.username, action: auditLog.action, targetType: auditLog.targetType,
                 targetId: auditLog.targetId, meta: auditLog.meta, ts: auditLog.ts,
             }).from(auditLog).leftJoin(users, eq(users.id, auditLog.actorId))
-                .where(input.before ? lt(auditLog.id, input.before) : undefined)
+                .where(and(
+                    input.before ? lt(auditLog.id, input.before) : undefined,
+                    or(input.actorId ? eq(auditLog.actorId, input.actorId) : undefined, input.targetId ? eq(auditLog.targetId, input.targetId) : undefined),
+                ))
                 .orderBy(desc(auditLog.id)).limit(input.limit)),
     },
 })

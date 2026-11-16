@@ -88,7 +88,14 @@ export const AdminUser = PublicUser.extend({
     totpEnabled: z.boolean(),
 })
 
-export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ owner: z.string() })
+export const AdminUserDetail = AdminUser.extend({
+    /** The latest `auth.login.*` audit entry by this user. */
+    lastLoginAt: z.date().nullable(),
+    /** Unexpired sessions, per app. */
+    sessions: z.object({ client: z.number().int(), admin: z.number().int() }),
+})
+
+export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ ownerId: z.uuid(), owner: z.string() })
 
 export const AuditEntry = z.object({
     id: z.number().int(),
@@ -116,6 +123,9 @@ export const Run = z.object({
     endReason: z.string().nullable(),
     error: z.string().nullable(),
 })
+
+export const LogsInput = Id.extend({ before: z.number().int().optional(), limit: z.number().int().min(1).max(500).default(100) })
+export const RunsInput = Id.extend({ limit: z.number().int().min(1).max(100).default(10) })
 
 export const Overview = z.object({
     users: z.number().int(),

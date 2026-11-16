@@ -1,11 +1,11 @@
 import { implement, ORPCError } from "@orpc/server"
-import { and, asc, desc, eq, lt } from "drizzle-orm"
-import { botLogs, botRuns, servers } from "@gge/db"
+import { asc } from "drizzle-orm"
+import { servers } from "@gge/db"
 import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import {
-    createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
+    accountLogs, accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { connectionToken, subscriptionToken } from "../services/realtime.ts"
@@ -79,15 +79,11 @@ export const clientRouter = os.router({
         }),
         logs: os.accounts.logs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)
-            const rows = await db.select().from(botLogs)
-                .where(and(eq(botLogs.accountId, input.id), input.before ? lt(botLogs.id, input.before) : undefined))
-                .orderBy(desc(botLogs.id)).limit(input.limit)
-            return rows.map(r => ({ id: r.id, ts: r.ts, level: r.level, message: r.message, parts: Array.isArray(r.parts) ? r.parts : null }))
+            return accountLogs(db, input.id, input)
         }),
         runs: os.accounts.runs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)
-            return db.select({ id: botRuns.id, startedAt: botRuns.startedAt, endedAt: botRuns.endedAt, endReason: botRuns.endReason, error: botRuns.error })
-                .from(botRuns).where(eq(botRuns.accountId, input.id)).orderBy(desc(botRuns.id)).limit(input.limit)
+            return accountRuns(db, input.id, input.limit)
         }),
     },
     realtime: {

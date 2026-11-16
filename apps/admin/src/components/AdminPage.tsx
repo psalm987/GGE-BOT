@@ -19,7 +19,7 @@ export function AdminPage({ title, extra, children }: { title: string; extra?: R
     const { pathname } = useLocation()
     const me = useMe()
     const logout = useLogout()
-    const active = NAV.find(n => n.path === pathname) ?? NAV[0]!
+    const active = NAV.find(n => n.path !== "/" && pathname.startsWith(n.path)) ?? NAV[0]!
     return (
         <CampaignLayout
             product="GGE Command"

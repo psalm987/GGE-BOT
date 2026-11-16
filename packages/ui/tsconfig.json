@@ -3,6 +3,8 @@
   "compilerOptions": {
     "lib": ["es2024", "dom", "dom.iterable"],
     "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "types": []
   },
   "include": ["src"]

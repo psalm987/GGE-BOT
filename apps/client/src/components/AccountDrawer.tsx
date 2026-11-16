@@ -3,9 +3,8 @@ import { App, Alert, Button, Drawer, Form, Grid, Input, Select, Space, Switch, T
 import { useEffect } from "react"
 import type { PublicAccount } from "@gge/contracts"
 import { messageOf, orpc, queryClient } from "../api.ts"
-import { LogsPanel } from "./LogsPanel.tsx"
+import { AccountLogs, AccountRuns } from "./AccountHistory.tsx"
 import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues } from "./PluginSettingsForm.tsx"
-import { RunsPanel } from "./RunsPanel.tsx"
 
 type Values = { name: string; serverId: number; password?: string; externalEvent: boolean; plugins: PluginFormValues }
 
@@ -101,8 +100,8 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
             {isNew ? settings : (
                 <Tabs items={[
                     { key: "settings", label: "Settings", children: settings },
-                    { key: "logs", label: "Logs", children: <LogsPanel accountId={account.id} /> },
-                    { key: "runs", label: "Run history", children: <RunsPanel accountId={account.id} /> },
+                    { key: "logs", label: "Logs", children: <AccountLogs key={account.id} accountId={account.id} /> },
+                    { key: "runs", label: "Run history", children: <AccountRuns accountId={account.id} /> },
                 ]} />
             )}
         </Drawer>

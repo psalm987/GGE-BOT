@@ -1,12 +1,13 @@
-import { StopOutlined } from "@ant-design/icons"
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Flex, Input, Popconfirm, Select, Table, Tooltip, Typography } from "antd"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { Flex, Input, Select, Table, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect } from "react"
+import { Link } from "react-router"
 import { CrestEmpty, ParchmentCard, SigilStatus } from "@gge/ui"
-import { client, messageOf, orpc, queryClient } from "../api.ts"
+import { client, orpc } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
+import { ForceStopButton } from "../components/ForceStopButton.tsx"
 import { useListParams } from "../components/useListParams.ts"
 
 dayjs.extend(relativeTime)
@@ -20,7 +21,6 @@ const STATES = [
 const FILTERS = { state: STATES.map(s => s.value) } as const
 
 export function Accounts() {
-    const { message } = App.useApp()
     const list = useListParams(FILTERS)
     const { state } = list.values
     const accounts = useQuery(orpc.accounts.list.queryOptions({
@@ -31,10 +31,6 @@ export function Accounts() {
     const total = accounts.data?.total ?? 0
     const { clampTo } = list
     useEffect(() => { if (accounts.data && !accounts.isPlaceholderData) clampTo(accounts.data.total) }, [accounts.data, accounts.isPlaceholderData, clampTo])
-    const forceStop = useMutation(orpc.accounts.forceStop.mutationOptions({
-        onSuccess: () => { message.success("Account stopped"); void queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() }) },
-        onError: error => message.error(messageOf(error)),
-    }))
 
     return (
         <AdminPage title="Accounts">
@@ -55,7 +51,7 @@ export function Accounts() {
                         onChange={({ current, pageSize }) => list.setPage(current ?? 1, pageSize ?? list.size)}
                         columns={[
                             { title: "Name", dataIndex: "name", render: (n: string) => <Typography.Text strong>{n}</Typography.Text> },
-                            { title: "Owner", dataIndex: "owner" },
+                            { title: "Owner", dataIndex: "owner", render: (owner: string, a) => <Link to={`/users/${a.ownerId}`}>{owner}</Link> },
                             { title: "Server", dataIndex: "serverId", width: 90 },
                             { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
                             { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} /> },
@@ -67,12 +63,7 @@ export function Accounts() {
                             },
                             {
                                 title: "", key: "actions", align: "right",
-                                render: (_, a) => a.desiredState === "running" && (
-                                    <Popconfirm title={`Force stop ${a.name}?`} description="The bot stops now and the account is set to stopped. Its owner can start it again." okText="Force stop" okButtonProps={{ danger: true }}
-                                        onConfirm={() => forceStop.mutate({ id: a.id })}>
-                                        <Button danger icon={<StopOutlined />}>Force stop</Button>
-                                    </Popconfirm>
-                                ),
+                                render: (_, a) => <ForceStopButton account={a} />,
                             },
                         ]} />
                 )}

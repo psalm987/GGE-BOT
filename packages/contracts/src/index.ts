@@ -4,8 +4,8 @@ import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, AdminLoginStep, AdminUser, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
-    Overview, Page, PublicAccount, PublicUser, Role, Run, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
+    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
+    LogsInput, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./entitlement.ts"
@@ -53,9 +53,8 @@ export const clientContract = {
         update: oc.input(UpdateAccount).output(PublicAccount),
         remove: oc.input(Ids).output(z.void()),
         setDesiredState: oc.input(Ids.extend({ state: DesiredState })).output(z.void()),
-        logs: oc.input(Id.extend({ before: z.number().int().optional(), limit: z.number().int().min(1).max(500).default(100) }))
-            .output(z.array(LogLine)),
-        runs: oc.input(Id.extend({ limit: z.number().int().min(1).max(100).default(10) })).output(z.array(Run)),
+        logs: oc.input(LogsInput).output(z.array(LogLine)),
+        runs: oc.input(RunsInput).output(z.array(Run)),
     },
     /** Tokens for the Centrifugo websocket at /connection/websocket. Both answer NOT_IMPLEMENTED on a deployment without Centrifugo. */
     realtime: {
@@ -93,6 +92,7 @@ export const adminContract = {
         /** `search` matches a username, case-insensitively, anywhere in it. Newest first. */
         list: oc.input(Page.extend({ search: Search, role: Role.optional(), status: UserStatus.optional() }))
             .output(z.object({ items: z.array(AdminUser), total: z.number().int() })),
+        get: oc.input(Id).output(AdminUserDetail),
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         setMaxBots: oc.input(Id.extend({ maxBots: z.number().int().min(0).max(50) })).output(z.void()),
@@ -111,9 +111,13 @@ export const adminContract = {
         list: oc.input(Page.extend({ search: Search, ownerId: z.uuid().optional(), state: ActualState.optional() }))
             .output(z.object({ items: z.array(AdminAccount), total: z.number().int() })),
         forceStop: oc.input(Id).output(z.void()),
+        /** Any account's log and runs, paged like the owner's. */
+        logs: oc.input(LogsInput).output(z.array(LogLine)),
+        runs: oc.input(RunsInput).output(z.array(Run)),
     },
     audit: {
-        list: oc.input(z.object({ limit: z.number().int().min(1).max(500).default(100), before: z.number().int().optional() }))
+        /** `actorId` and `targetId` together match entries by or about that user. */
+        list: oc.input(z.object({ limit: z.number().int().min(1).max(500).default(100), before: z.number().int().optional(), actorId: z.uuid().optional(), targetId: z.uuid().optional() }))
             .output(z.array(AuditEntry)),
     },
 }

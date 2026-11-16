@@ -114,9 +114,12 @@ export function useRealtime(userId: string | undefined, onNotification: (notific
 
 export type LiveLine = BotChannelEvent["line"]
 
-/** One account's log lines as they happen, newest first, since this was mounted. */
+/**
+ * One account's log lines as they happen, newest first, since this was mounted.
+ * `gaps` counts the times the connection missed events, so a viewer knows to fetch the log again.
+ */
 export function useBotLog(accountId: string) {
-    const [log, setLog] = useState<{ accountId: string; lines: LiveLine[] }>({ accountId, lines: [] })
+    const [log, setLog] = useState<{ accountId: string; lines: LiveLine[]; gaps: number }>({ accountId, lines: [], gaps: 0 })
     useEffect(() => {
         const subscription = centrifuge.newSubscription(botChannel(accountId), {
             getToken: () => tokenFrom(() => client.realtime.subscriptionToken({ accountId })),
@@ -124,17 +127,16 @@ export function useBotLog(accountId: string) {
         subscription.on("publication", ({ data }) => {
             const line = parse(BotChannelEvent, data)?.line
             if (line)
-                setLog(log => ({ accountId, lines: [line, ...(log.accountId === accountId ? log.lines : [])].slice(0, 500) }))
+                setLog(log => ({ accountId, gaps: log.gaps, lines: [line, ...(log.accountId === accountId ? log.lines : [])].slice(0, 500) }))
         })
         subscription.on("subscribed", ctx => {
             if (!missedEvents(ctx))
                 return
             // The fetched page is the truth again; lines from before the gap would sit above a hole.
-            setLog({ accountId, lines: [] })
-            void queryClient.invalidateQueries({ queryKey: orpc.accounts.logs.key({ input: { id: accountId } }) })
+            setLog(log => ({ accountId, lines: [], gaps: log.gaps + 1 }))
         })
         subscription.subscribe()
         return () => centrifuge.removeSubscription(subscription)
     }, [accountId])
-    return log.accountId === accountId ? log.lines : []
+    return { lines: log.accountId === accountId ? log.lines : [], gaps: log.accountId === accountId ? log.gaps : 0 }
 }
