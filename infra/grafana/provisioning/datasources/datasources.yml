@@ -10,7 +10,7 @@ datasources:
     uid: gge-postgres
     type: grafana-postgresql-datasource
     url: postgres:5432
-    user: gge
+    user: $GGE_DB_USER
     secureJsonData:
       password: $GGE_DB_PASSWORD
     jsonData:

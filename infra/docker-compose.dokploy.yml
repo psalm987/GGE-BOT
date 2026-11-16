@@ -40,6 +40,8 @@ services:
       # pg reads PGPASSWORD; inside the URL, a "/", "#" or "?" in it breaks parsing.
       DATABASE_URL: postgres://gge@postgres:5432/gge
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      # Set: migrate creates or updates the read-only grafana_ro role with this password.
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
@@ -149,7 +151,10 @@ services:
       GF_SERVER_ROOT_URL: https://grafana.${DOMAIN}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GGE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # With GRAFANA_DB_PASSWORD set, Grafana reads Postgres as grafana_ro and never sees POSTGRES_PASSWORD.
+      # Unset, GGE_DB_USER is empty and entrypoint.sh falls back to gge.
+      GGE_DB_USER: ${GRAFANA_DB_PASSWORD:+grafana_ro}
+      GGE_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-${POSTGRES_PASSWORD}}
       GRAFANA_ALERT_DISCORD_WEBHOOK: ${GRAFANA_ALERT_DISCORD_WEBHOOK:-}
     volumes: [grafana:/var/lib/grafana]
     expose: ["3000"]
