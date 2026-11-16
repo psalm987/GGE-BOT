@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { isEncryptionKey } from "@gge/crypto"
 
 const origins = z.string().transform(s => s.split(",").map(o => o.trim()).filter(Boolean))
 
@@ -9,6 +10,8 @@ const Env = z.object({
     DATABASE_URL: z.string().min(1),
     /** @gge/crypto public key. The API seals game passwords; it cannot open them. */
     SEAL_PUBLIC_KEY: z.string().min(1),
+    /** Encrypts admins' authenticator secrets at rest. Base64 of exactly 32 bytes. */
+    TOTP_ENCRYPTION_KEY: z.string().refine(isEncryptionKey, "must be base64 of exactly 32 bytes (openssl rand -base64 32)"),
     /** Origins allowed to call /rpc and /admin/rpc, e.g. https://app.example.com. Links in emails point at the first client origin. */
     CLIENT_ORIGINS: origins.pipe(z.array(z.url()).min(1)),
     ADMIN_ORIGINS: origins,

@@ -6,6 +6,7 @@
     "start": "node --import ./src/instrument.ts src/main.ts",
     "migrate": "node src/cli/migrate.ts",
     "create-admin": "node src/cli/create-admin.ts",
+    "reset-2fa": "node src/cli/reset-2fa.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },

@@ -24,7 +24,7 @@ Before you start, know that running bots against Goodgame Empire breaks its term
    cp infra/.env.example infra/.env
    openssl rand -hex 32   # use one for POSTGRES_PASSWORD, another for GRAFANA_ADMIN_PASSWORD
    ```
-3. Generate the game-password key pair and paste both lines into `infra/.env`.
+3. Generate the game-password key pair and the key for admin authenticator secrets, and paste all three lines into `infra/.env`.
    ```sh
    docker compose --env-file infra/.env -f infra/docker-compose.yml run --rm --no-deps migrate node tools/dev/keygen.ts
    ```
@@ -39,7 +39,7 @@ Before you start, know that running bots against Goodgame Empire breaks its term
    docker compose --env-file infra/.env -f infra/docker-compose.yml exec -e GGE_ADMIN_PASSWORD='a long password' api \
      node apps/api/src/cli/create-admin.ts --username yourname
    ```
-6. Sign in at `https://admin.<domain>`. Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
+6. Sign in at `https://admin.<domain>`. The first sign-in asks you to set up an authenticator app and shows your recovery codes once ([security.md](security.md#admin-two-factor-sign-in)). Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
 
 ## Check it
 

@@ -68,3 +68,40 @@ export function openSealed(privateKeyBase64: string, sealed: Uint8Array): string
     decipher.setAuthTag(box.subarray(box.length - TAG))
     return Buffer.concat([decipher.update(box.subarray(HEADER, box.length - TAG)), decipher.final()]).toString("utf8")
 }
+
+// Secret box: AES-256-GCM under one symmetric key, for a service that must read back what it stored.
+//   [version 1][nonce 12][ciphertext][tag 16]
+const KEY_BOX_VERSION = 1
+const KEY_BOX_HEADER = 1 + 12
+
+/** A new key for encryptWithKey: 32 random bytes, base64. */
+export const generateEncryptionKey = () => randomBytes(32).toString("base64")
+
+export function isEncryptionKey(keyBase64: string) {
+    return Buffer.from(keyBase64, "base64").length === 32
+}
+
+function symmetricKey(keyBase64: string) {
+    if (!isEncryptionKey(keyBase64))
+        throw new Error("encryption key must be 32 bytes, base64")
+    return Buffer.from(keyBase64, "base64")
+}
+
+/** `aad` names what the box belongs to (e.g. `totp:<userId>`); a box moved to another owner won't open. */
+export function encryptWithKey(keyBase64: string, plaintext: Uint8Array, aad: string): Buffer {
+    const nonce = randomBytes(12)
+    const cipher = createCipheriv("aes-256-gcm", symmetricKey(keyBase64), nonce)
+    cipher.setAAD(Buffer.from(aad, "utf8"))
+    const body = Buffer.concat([cipher.update(plaintext), cipher.final()])
+    return Buffer.concat([Buffer.of(KEY_BOX_VERSION), nonce, body, cipher.getAuthTag()])
+}
+
+export function decryptWithKey(keyBase64: string, encrypted: Uint8Array, aad: string): Buffer {
+    const box = Buffer.from(encrypted)
+    if (box.length < KEY_BOX_HEADER + TAG || box[0] !== KEY_BOX_VERSION)
+        throw new Error("not an encrypted box")
+    const decipher = createDecipheriv("aes-256-gcm", symmetricKey(keyBase64), box.subarray(1, KEY_BOX_HEADER))
+    decipher.setAAD(Buffer.from(aad, "utf8"))
+    decipher.setAuthTag(box.subarray(box.length - TAG))
+    return Buffer.concat([decipher.update(box.subarray(KEY_BOX_HEADER, box.length - TAG)), decipher.final()])
+}

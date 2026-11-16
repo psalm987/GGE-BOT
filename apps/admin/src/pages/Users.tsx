@@ -1,10 +1,11 @@
-import { CheckCircleOutlined, CrownOutlined, LogoutOutlined, StopOutlined, UserOutlined } from "@ant-design/icons"
+import { CheckCircleOutlined, CrownOutlined, LogoutOutlined, SafetyOutlined, StopOutlined, UserOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Button, Input, InputNumber, Popconfirm, Select, Space, Table, Tag, Typography } from "antd"
 import dayjs from "dayjs"
 import { useState } from "react"
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
 import { client, messageOf, orpc, queryClient } from "../api.ts"
+import { useMe } from "../auth.tsx"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 import { ATTACK_CAP_OPTIONS } from "./Settings.tsx"
 
@@ -26,6 +27,8 @@ export function Users() {
     const defaults = useQuery(orpc.settings.get.queryOptions())
     const defaultLabel = ATTACK_CAP_OPTIONS.find(o => o.value === defaults.data?.attackPluginCap)?.label ?? "…"
     const revoke = useMutation(orpc.users.revokeSessions.mutationOptions(settle("Signed out everywhere")))
+    const resetTotp = useMutation(orpc.users.resetTotp.mutationOptions(settle("Two-factor sign-in reset")))
+    const me = useMe().data
     const list = users.data ?? []
 
     return (
@@ -85,6 +88,13 @@ export function Users() {
                                             {u.role === "admin" ? "Make player" : "Make admin"}
                                         </Button>
                                         <Button icon={<LogoutOutlined />} aria-label={`Sign ${u.username} out everywhere`} onClick={() => revoke.mutate({ id: u.id })}>Sign out everywhere</Button>
+                                        {u.totpEnabled && u.id !== me?.id && (
+                                            <Popconfirm title={`Reset 2FA for ${u.username}?`} okText="Reset 2FA" okButtonProps={{ danger: true }}
+                                                description="Their authenticator and recovery codes stop working and they're signed out of the admin app. They set up a new authenticator at their next sign-in."
+                                                onConfirm={() => resetTotp.mutate({ id: u.id })}>
+                                                <Button icon={<SafetyOutlined />} aria-label={`Reset 2FA for ${u.username}`}>Reset 2FA</Button>
+                                            </Popconfirm>
+                                        )}
                                     </Space>
                                 ),
                             },

@@ -10,6 +10,7 @@
 | `POSTGRES_PASSWORD` | postgres, api, runner, migrate, grafana, backup | yes | Database password. `openssl rand -hex 32`. |
 | `SEAL_PUBLIC_KEY` | api | yes | Seals game passwords on write. From `tools/dev/keygen.ts`. |
 | `SEAL_PRIVATE_KEY` | runner | yes | Opens game passwords to log bots in. Only the runner gets it. Back it up apart from the database. |
+| `TOTP_ENCRYPTION_KEY` | api | yes | Encrypts each admin's authenticator secret in the database. Base64 of exactly 32 bytes: `openssl rand -base64 32`, or the third line `tools/dev/keygen.ts` prints. If you lose or change it, no admin's authenticator code works and every admin must be reset with `reset-2fa` ([security.md](security.md#admin-two-factor-sign-in)). |
 | `GRAFANA_ADMIN_PASSWORD` | grafana | yes | Grafana's `admin` login. |
 | `GRAFANA_ADMIN_USER` | grafana | no | Default `admin`. |
 | `GRAFANA_ALERT_DISCORD_WEBHOOK` | grafana | no | Discord webhook URL that receives every Grafana alert ([observability.md](observability.md#alerts)). Empty: alerts show in Grafana only. |

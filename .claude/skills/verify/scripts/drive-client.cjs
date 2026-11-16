@@ -3,6 +3,7 @@
 const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
+const { adminSessionCookie } = require("./dev-totp.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -18,15 +19,16 @@ async function axe(page, name) {
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
 
-/** Signs in as the seeded admin and sets a player's bot limit through the admin API. */
+let adminCookie
+/** Sets a player's bot limit through the admin API, as the seeded admin (signed in once per run). */
 async function setMaxBots(username, maxBots) {
-    const call = async (path, body, cookie) => {
-        const res = await fetch(`${API_URL}/admin/rpc/${path}`, { method: "POST", headers: { origin: ADMIN_URL, "content-type": "application/json", ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
-        return { json: (await res.json()).json, cookie: res.headers.getSetCookie()[0]?.split(";")[0] }
+    adminCookie ??= await adminSessionCookie({ apiUrl: API_URL, adminUrl: ADMIN_URL })
+    const call = async (path, body) => {
+        const res = await fetch(`${API_URL}/admin/rpc/${path}`, { method: "POST", headers: { origin: ADMIN_URL, "content-type": "application/json", cookie: adminCookie }, body: JSON.stringify({ json: body }) })
+        return (await res.json()).json
     }
-    const { cookie } = await call("auth/login", { login: "admin", password: "demo-password" })
-    const user = (await call("users/list", { search: username }, cookie)).json.find(u => u.username === username)
-    await call("users/setMaxBots", { id: user.id, maxBots }, cookie)
+    const user = (await call("users/list", { search: username })).find(u => u.username === username)
+    await call("users/setMaxBots", { id: user.id, maxBots })
 }
 
 async function addAccount(page, accountName) {
@@ -242,4 +244,5 @@ function emailedLink(address) {
     await page.screenshot({ path: `${out}/13b-over-plan-limit-390.png`, fullPage: true })
     await axe(page, "dashboard over limit 390")
     await browser.close()
+    console.log("ALL OK")
 })().catch(e => { console.error(e.message); process.exit(1) })

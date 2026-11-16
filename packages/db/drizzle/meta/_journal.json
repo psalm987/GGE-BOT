@@ -78,6 +78,13 @@
       "when": 1794814098948,
       "tag": "0010_plan_limit_notify",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794819569124,
+      "tag": "0011_admin_totp",
+      "breakpoints": true
     }
   ]
 }

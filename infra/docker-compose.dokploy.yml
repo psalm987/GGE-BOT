@@ -50,6 +50,7 @@ services:
     environment:
       <<: *node-env
       SEAL_PUBLIC_KEY: ${SEAL_PUBLIC_KEY:?set SEAL_PUBLIC_KEY in Dokploy's Environment tab}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?set TOTP_ENCRYPTION_KEY in Dokploy's Environment tab}
       CLIENT_ORIGINS: https://app.${DOMAIN}
       ADMIN_ORIGINS: https://admin.${DOMAIN}
       RESEND_API_KEY: ${RESEND_API_KEY:-}

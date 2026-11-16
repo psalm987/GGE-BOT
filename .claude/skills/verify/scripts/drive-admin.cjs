@@ -3,6 +3,7 @@
 const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
+const { nextCode } = require("./dev-totp.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -37,6 +38,20 @@ async function signIn(page, username) {
     await page.getByRole("button", { name: "Sign in" }).click()
 }
 
+/** Types a current authenticator code and submits; true when the API took it. Another run may have just spent this step's code, so callers retry. */
+async function submitCode(page, button, procedure) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await page.getByLabel("Authenticator code").fill(await nextCode())
+        const [response] = await Promise.all([
+            page.waitForResponse(r => r.url().endsWith(`/admin/rpc/${procedure}`)),
+            page.getByRole("button", { name: button, exact: true }).click(),
+        ])
+        if (response.ok())
+            return
+    }
+    throw new Error(`FAILED: ${procedure} refused three authenticator codes`)
+}
+
 const nav = (page, name) => page.getByRole("menuitem", { name }).click()
 const confirm = (page, name) => page.locator(".ant-popover").getByRole("button", { name, exact: true }).click()
 
@@ -55,7 +70,23 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     assert(/not an admin/i.test(alert), `player demo is refused: "${alert}"`)
 
     await signIn(page, "admin")
+    await page.getByRole("heading", { name: "Two-factor sign-in" }).waitFor()
+    assert(await page.getByLabel("Authenticator code").getAttribute("autocomplete") === "one-time-code", "the right password leads to the authenticator code step, not into the app")
+    await axe(page, "two-factor code")
+    await page.screenshot({ path: `${out}/admin-2fa-code-1440.png` })
+    await page.getByRole("button", { name: "Use a recovery code" }).click()
+    await page.getByLabel("Recovery code").waitFor()
+    assert(await page.getByLabel("Authenticator code").count() === 0, "Use a recovery code swaps the code field for a recovery code field")
+    await axe(page, "two-factor recovery code")
+    await page.screenshot({ path: `${out}/admin-2fa-recovery-1440.png` })
+    await page.getByRole("button", { name: "Use an authenticator code" }).click()
+    await page.getByLabel("Authenticator code").fill("12345")
+    await page.getByRole("button", { name: "Verify" }).click()
+    await page.getByText("Enter the 6-digit code").waitFor()
+    assert(true, "a 5-digit code is caught in the form")
+    await submitCode(page, "Verify", "auth/verifyTotp")
     await page.getByRole("heading", { name: "Overview" }).waitFor()
+    assert(true, "a current authenticator code signs the admin in")
     await page.getByText("Game accounts").first().waitFor()
     assert(await page.getByText("The runner isn't reporting").isVisible(), "overview shows the runner warning")
     const stat = await page.locator(".ant-statistic").filter({ hasText: "Users" }).first().textContent()
@@ -108,6 +139,7 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await page.getByText("Bot limit updated").waitFor()
     assert(true, "demo's limit and bots restored")
     const self = page.getByRole("row").filter({ hasText: "admin" }).filter({ hasText: /Admin/ }).first()
+    assert(await self.getByRole("button", { name: /Reset 2FA/ }).count() === 0, "an admin gets no Reset 2FA action on their own row")
     await self.getByRole("button", { name: "Disable" }).click()
     await confirm(page, "Disable")
     await page.waitForTimeout(1500)
@@ -122,14 +154,30 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     await page.getByRole("heading", { name: "Audit log" }).waitFor()
     await page.getByText("user.disable").first().waitFor()
     const text = await page.locator("tbody").textContent()
-    for (const a of ["user.disable", "user.enable"]) assert(text.includes(a), `audit shows ${a}`)
+    for (const a of ["user.disable", "user.enable", "auth.login.admin"]) assert(text.includes(a), `audit shows ${a}`)
     assert(text.includes("admin"), "audit shows actor admin")
     assert(text.includes("account.force_stop"), "audit shows account.force_stop")
     await axe(page, "audit")
     await page.screenshot({ path: `${out}/admin-audit-1440.png` })
 
+    await nav(page, "Settings")
+    await page.getByRole("button", { name: "Regenerate recovery codes" }).click()
+    const dialog = page.getByRole("dialog", { name: "Regenerate recovery codes" })
+    await dialog.getByLabel("Authenticator code").waitFor()
+    await axe(page, "settings regenerate recovery codes")
+    await page.screenshot({ path: `${out}/admin-settings-regenerate-1440.png` })
+    await submitCode(page, "Regenerate", "security/regenerateRecoveryCodes")
+    const fresh = page.getByRole("dialog", { name: "Your new recovery codes" })
+    await fresh.getByText("Shown once").waitFor()
+    const codes = await fresh.getByRole("list", { name: "Recovery codes" }).getByRole("listitem").allTextContents()
+    assert(codes.length === 10 && codes.every(c => /^[a-z2-9]{5}-[a-z2-9]{5}$/.test(c)), `regenerating with a current code shows 10 new recovery codes once (${codes.length})`)
+    await axe(page, "settings new recovery codes")
+    await page.screenshot({ path: `${out}/admin-settings-recovery-codes-1440.png` })
+    await fresh.getByRole("button", { name: "I've saved them" }).click()
+    await fresh.waitFor({ state: "hidden" })
+
     await page.setViewportSize({ width: 390, height: 844 })
-    for (const [path, file] of [["/", "overview"], ["/users", "users"], ["/accounts", "accounts"], ["/audit", "audit"]]) {
+    for (const [path, file] of [["/", "overview"], ["/users", "users"], ["/accounts", "accounts"], ["/audit", "audit"], ["/settings", "settings"]]) {
         await page.goto(base + path)
         await page.locator(".ant-layout-header").waitFor()
         await page.waitForTimeout(900)

@@ -41,10 +41,10 @@ describe("managing users", () => {
         expect(await codeOf(admin.api.overview())).toBe("ok")
     })
 
-    test("promoting a player lets them into the admin app", async () => {
+    test("promoting a player lets them start admin sign-in, which sends them to set up an authenticator", async () => {
         await api.player("promoted")
         await admin.api.users.setRole({ id: await userId("promoted"), role: "admin" })
-        expect(await codeOf(api.admin().api.auth.login({ login: "promoted", password: PASSWORD }))).toBe("ok")
+        expect(await api.admin().api.auth.login({ login: "promoted", password: PASSWORD })).toEqual({ step: "enroll" })
     })
 
     test("force stop works on any player's account and the admin view shows no passwords", async () => {

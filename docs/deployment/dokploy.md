@@ -20,7 +20,7 @@ pnpm install
 cd tools/dev && node keygen.ts
 ```
 
-It prints `SEAL_PUBLIC_KEY=…` and `SEAL_PRIVATE_KEY=…`. Keep the private key somewhere safe and separate from backups; without it no stored game password can be opened ([backup-restore.md](backup-restore.md)).
+It prints `SEAL_PUBLIC_KEY=…`, `SEAL_PRIVATE_KEY=…` and `TOTP_ENCRYPTION_KEY=…`. Keep the private key somewhere safe and separate from backups; without it no stored game password can be opened ([backup-restore.md](backup-restore.md)).
 
 ## 2. Create the compose service
 
@@ -45,6 +45,7 @@ POSTGRES_PASSWORD=
 GRAFANA_ADMIN_PASSWORD=
 SEAL_PUBLIC_KEY=
 SEAL_PRIVATE_KEY=
+TOTP_ENCRYPTION_KEY=
 MAX_ACCOUNTS=50
 START_GAP_MS=2000
 GAME_CLIENT_VERSION=
@@ -90,7 +91,7 @@ Open the **api** container's terminal (in the service, **Docker** or **Logs → 
 GGE_ADMIN_PASSWORD='a long password' node apps/api/src/cli/create-admin.ts --username yourname
 ```
 
-Sign in at `https://admin.<domain>`. Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
+Sign in at `https://admin.<domain>`. The first sign-in asks you to set up an authenticator app and shows your recovery codes once ([security.md](security.md#admin-two-factor-sign-in)). Players sign up themselves at `https://app.<domain>` and can run bots once they confirm their email.
 
 ## Check it
 

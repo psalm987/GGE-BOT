@@ -24,10 +24,10 @@ function setSessionCookie(ctx: Ctx, audience: Audience, token: string) {
     })
 }
 
-const publicUser = (user: typeof users.$inferSelect): PublicUser =>
+export const publicUser = (user: typeof users.$inferSelect): PublicUser =>
     ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, maxBots: user.maxBots })
 
-async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
+export async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
     const token = await createSession(ctx.db, { userId: user.id, audience, ip: ctx.req.ip, userAgent: ctx.req.headers["user-agent"] })
     setSessionCookie(ctx, audience, token)
     return user
@@ -54,8 +54,10 @@ export async function currentUser(ctx: Ctx, audience: Audience) {
     return token ? findSessionUser(ctx.db, token, audience) : null
 }
 
-export async function login(ctx: Ctx, audience: Audience, input: { login: string; password: string }) {
-    const tooMany = () => new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+export const tooMany = () => new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+
+/** The user behind a correct username and password who may use this app. Starts no session. */
+export async function verifyCredentials(ctx: Ctx, audience: Audience, input: { login: string; password: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip))
         throw tooMany()
     const name = input.login.toLowerCase()
@@ -85,9 +87,13 @@ export async function login(ctx: Ctx, audience: Audience, input: { login: string
 
     if (user.passwordAlgo === "pbkdf2-legacy")
         await storePassword(ctx.db, user.id, input.password)
+    return user
+}
 
-    await audit(ctx.db, { actorId: user.id, action: `auth.login.${audience}` })
-    return startSession(ctx, audience, publicUser(user))
+export async function login(ctx: Ctx, input: { login: string; password: string }) {
+    const user = await verifyCredentials(ctx, "client", input)
+    await audit(ctx.db, { actorId: user.id, action: "auth.login.client" })
+    return startSession(ctx, "client", publicUser(user))
 }
 
 export async function logout(ctx: Ctx, audience: Audience) {

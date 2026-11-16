@@ -32,7 +32,7 @@ const verified = authed.concat(async ({ context, next }) => {
 export const clientRouter = os.router({
     auth: {
         signup: os.auth.signup.handler(({ context, input }) => signup(context, input)),
-        login: os.auth.login.handler(({ context, input }) => login(context, "client", input)),
+        login: os.auth.login.handler(({ context, input }) => login(context, input)),
         logout: os.auth.logout.handler(({ context }) => logout(context, "client")),
         me: os.auth.me.handler(async ({ context }) => await currentUser(context, "client")),
         requestPasswordReset: os.auth.requestPasswordReset.handler(({ context, input }) => requestPasswordReset(context, input)),

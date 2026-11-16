@@ -9,14 +9,19 @@ import { fileURLToPath } from "node:url"
 import { sql } from "drizzle-orm"
 import { botLogs, botRuns, botStatus, createDb, gameAccounts, pluginSettings, runMigrations, servers, users } from "@gge/db"
 import { startTestPostgres } from "@gge/db/testing"
-import { generateSealKeyPair, sealFor } from "@gge/crypto"
+import { generateEncryptionKey, generateSealKeyPair, sealFor } from "@gge/crypto"
 import { hashPassword } from "@gge/api/src/auth/passwords.ts"
+import { storeConfirmedSecret } from "@gge/api/src/auth/second-factor.ts"
+import { base32Decode } from "@gge/api/src/auth/totp.ts"
 import { publishCatalog, readPluginRegistry } from "@gge/runner/src/catalog.ts"
 import { readServers } from "@gge/runner/src/game-data.ts"
 
 const root = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..")
 const withRunner = process.argv.includes("--runner")
 const API_PORT = 3000
+// The seeded admin's authenticator secret, so a person or a script can sign in without enrolling.
+// .claude/skills/verify/scripts/dev-totp.cjs holds the same value.
+const DEV_ADMIN_TOTP_SECRET = "GGEBOTDEVADMINTOTPSECRET23456767"
 
 const pg = process.env.DATABASE_URL ? { url: process.env.DATABASE_URL, stop: async () => {} } : await startTestPostgres()
 const db = createDb(pg.url)
@@ -24,6 +29,7 @@ await runMigrations(db)
 const keys = process.env.SEAL_PRIVATE_KEY && process.env.SEAL_PUBLIC_KEY
     ? { publicKey: process.env.SEAL_PUBLIC_KEY, privateKey: process.env.SEAL_PRIVATE_KEY }
     : generateSealKeyPair()
+const totpKey = process.env.TOTP_ENCRYPTION_KEY ?? generateEncryptionKey()
 
 const dataDir = [process.env.GGE_DATA_DIR, path.join(root, "data"), path.join(homedir(), ".cache/gge-bot-verify/seed")]
     .find(d => d && existsSync(path.join(d, "1.xml")))
@@ -41,7 +47,8 @@ async function seed() {
 
     const passwordHash = await hashPassword("demo-password")
     const verified = new Date()
-    await db.insert(users).values({ username: "admin", email: "admin@example.test", emailVerifiedAt: verified, passwordHash, role: "admin" })
+    const [admin] = await db.insert(users).values({ username: "admin", email: "admin@example.test", emailVerifiedAt: verified, passwordHash, role: "admin" }).returning()
+    await storeConfirmedSecret(db, totpKey, admin!.id, base32Decode(DEV_ADMIN_TOTP_SECRET))
     const [player] = await db.insert(users).values({ username: "demo", email: "demo@example.test", emailVerifiedAt: verified, passwordHash }).returning()
 
     const serverId = serverRows.find(s => s.label.includes("Germany"))?.id ?? serverRows[0]!.id
@@ -87,6 +94,7 @@ const env = {
     DATABASE_URL: pg.url,
     SEAL_PUBLIC_KEY: keys.publicKey,
     SEAL_PRIVATE_KEY: keys.privateKey,
+    TOTP_ENCRYPTION_KEY: totpKey,
     CLIENT_ORIGINS: "http://localhost:5173",
     ADMIN_ORIGINS: "http://localhost:5174",
     PORT: String(API_PORT),
@@ -111,6 +119,8 @@ if (withRunner)
 console.log(`
   Player app   http://localhost:5173   demo / demo-password
   Admin app    http://localhost:5174   admin / demo-password
+               authenticator key ${DEV_ADMIN_TOTP_SECRET} (add it to an authenticator app for the 6-digit code)
+  Postgres     ${pg.url}
   API          http://localhost:${API_PORT}${seeded ? "\n  (seeded demo data)" : ""}${withRunner ? "" : "\n  Runner off: pass --runner to run bots."}
 `)
 

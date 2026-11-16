@@ -9,8 +9,38 @@
 | Game passwords | write-only | no | sealed bytes only | yes (opens them to log in) |
 | Panel passwords | no | no | argon2id hashes | no |
 | Session tokens | their own cookie | their own cookie | SHA-256 only | no |
+| Admin authenticator secrets | no | shown once, at setup | encrypted bytes, and the key that opens them | no |
+| Admin recovery codes | no | shown once | SHA-256 only | no |
 
 Game passwords are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). The API holds only the public key; only the runner holds `SEAL_PRIVATE_KEY`. A stolen database or API host does not reveal game passwords. A stolen runner host plus database does: protect the runner host and the key as the most sensitive parts of the deployment.
+
+## Admin two-factor sign-in
+
+A stolen admin password alone does not open the admin app. Every admin sign-in takes the password and then a second factor: a 6-digit code from an authenticator app (TOTP, RFC 6238), or a recovery code. The player app is unchanged, so an admin signs in there with the password alone and gets a player session.
+
+- **First sign-in.** An admin with no authenticator is shown a QR code and a setup key after the password. The first correct code turns two-factor sign-in on and shows 10 recovery codes once.
+- **The password step starts no session.** It sets a 5-minute `gge_admin_mfa` cookie (`HttpOnly`, `SameSite=Strict`, sent only to `/admin/rpc`) that the code step must present. A new password step replaces the older one.
+- **Wrong codes.** 5 wrong codes end the attempt and the admin starts again from the password. Across attempts, 10 wrong codes in 15 minutes lock that admin's code step until the window ends. Someone who knows the password can use this cap to keep the admin out, so treat a locked code step as a sign that the password leaked.
+- **Replay.** A code works once. The API accepts the codes for the previous, current and next 30-second step, then refuses that step and every older one.
+- **Recovery codes.** Each works once. Using one writes `auth.recovery_code.used` to the audit log and emails the admin. An admin makes a new set under **Settings** in the admin app with a current code; the old set stops working.
+- **Storage.** Secrets are encrypted with `TOTP_ENCRYPTION_KEY` (AES-256-GCM, bound to the user ID). Unlike game passwords, the API can open them, because it must check codes. A stolen database without the key reveals no secret. Recovery codes are stored as SHA-256 hashes.
+
+### Reset an admin who lost their authenticator
+
+If another admin can sign in, they click **Reset 2FA** on the **Users** page. Otherwise, run the command on the host:
+
+```sh
+docker compose --env-file infra/.env -f infra/docker-compose.yml exec api \
+  node apps/api/src/cli/reset-2fa.ts --username yourname
+```
+
+Both delete the admin's authenticator and recovery codes and end their admin sessions. Their player sessions stay. At the next admin sign-in they set up a new authenticator. Both write `admin.user.totp_reset` to the audit log; the command's entry has no actor and `via: cli`. An admin can't reset their own in the app.
+
+The reset removes the second factor, so the password is all that guards the account until the admin enrolls again. Have them sign in straight away.
+
+### Upgrading from a version without two-factor sign-in
+
+Set `TOTP_ENCRYPTION_KEY` before you deploy; the API refuses to start without it. The migration signs every admin out once. Each admin then signs in with the password and sets up an authenticator. Until an admin does, their password alone is enough to enroll, so have every admin sign in soon after the upgrade.
 
 ## Requests
 
@@ -25,7 +55,7 @@ Game passwords are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). 
 - Users can add an email only while they have none and can't change it afterwards.
 - Every account query is scoped to the signed-in owner; the live event stream filters by ownership. Integration tests break the ownership filter and the Origin check on purpose to prove they are enforced.
 - Input is validated by the contract's Zod schemas; output is shaped by them too, so fields the contract doesn't declare are never sent.
-- Disabling a user or changing their role ends their sessions at once; disabling also stops their bots.
+- Disabling a user or changing their role ends their sessions at once; disabling also stops their bots. A demoted admin keeps their authenticator, so promoting them again doesn't ask them to enroll.
 - Every admin action and every account start, stop, create, update and remove is written to the audit log with its actor.
 
 ## Host
@@ -38,6 +68,7 @@ Game passwords are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). 
 ## Known limits
 
 - Discord: when `DISCORD_TOKEN` is set, each bot opens its own Discord connection with the same token. A single shared client is planned.
-- Rate limits are in memory in the single API process; running two API replicas would split them.
+- Rate limits are in memory in the single API process; running two API replicas would split them, and a restart clears them.
+- An admin who never signed in after two-factor sign-in arrived, or who was just reset, is guarded by the password alone until they enroll.
 - There is no automatic re-seal for key rotation ([backup-restore.md](backup-restore.md)).
 - Botting breaks Goodgame Empire's terms of service. Accounts can be banned; the runner stops a banned account and never retries it on its own.

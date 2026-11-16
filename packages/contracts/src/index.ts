@@ -2,16 +2,15 @@ import { eventIterator, oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import {
-    AdminAccount, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
-    Overview, PublicAccount, PublicUser, Role, Run, Server, Signup, UpdateAccount, UserStatus,
+    AdminAccount, AdminLoginStep, AdminUser, AuditEntry, BotEvent, CreateAccount, Credentials, DesiredState, Email, Id, Ids, NewPassword, LogLine,
+    Overview, PublicAccount, PublicUser, Role, Run, SecondFactor, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./entitlement.ts"
 export * from "./plugins.ts"
 export * from "./schemas.ts"
 
-const auth = {
-    login: oc.input(Credentials).output(PublicUser),
+const session = {
     logout: oc.output(z.void()),
     me: oc.output(PublicUser.nullable()),
 }
@@ -19,7 +18,8 @@ const auth = {
 /** What the player app (app.<domain>) calls, mounted at /rpc. */
 export const clientContract = {
     auth: {
-        ...auth,
+        ...session,
+        login: oc.input(Credentials).output(PublicUser),
         signup: oc.input(Signup).output(PublicUser),
         /** Always succeeds, so the answer never says whether the address has an account. */
         requestPasswordReset: oc.input(z.object({ email: Email })).output(z.object({ ok: z.literal(true) })),
@@ -55,7 +55,20 @@ export const clientContract = {
 
 /** What the admin app (admin.<domain>) calls, mounted at /admin/rpc. */
 export const adminContract = {
-    auth,
+    auth: {
+        ...session,
+        /** The password alone never starts an admin session: it sets a short-lived challenge cookie and says which step is next. */
+        login: oc.input(Credentials).output(AdminLoginStep),
+        verifyTotp: oc.input(SecondFactor).output(PublicUser),
+        /** First sign-in only: a new secret to add to an authenticator app. */
+        enrollStart: oc.output(z.object({ otpauthUri: z.string(), secret: z.string() })),
+        /** The recovery codes are shown this once and can't be read again. */
+        enrollConfirm: oc.input(z.object({ code: TotpCode })).output(z.object({ user: PublicUser, recoveryCodes: z.array(z.string()) })),
+    },
+    security: {
+        /** Replaces the caller's recovery codes; the old ones stop working. */
+        regenerateRecoveryCodes: oc.input(z.object({ code: TotpCode })).output(z.array(z.string())),
+    },
     overview: oc.output(Overview),
     users: {
         list: oc.input(z.object({ search: z.string().trim().max(64).optional() })).output(z.array(AdminUser)),
@@ -65,6 +78,8 @@ export const adminContract = {
         /** null clears the override, so the user follows the global default. */
         setAttackPluginCap: oc.input(Id.extend({ cap: AttackPluginCap.nullable() })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
+        /** Forgets another user's authenticator and recovery codes, so their next admin sign-in sets up a new one. */
+        resetTotp: oc.input(Id).output(z.void()),
     },
     settings: {
         get: oc.output(z.object({ attackPluginCap: AttackPluginCap })),

@@ -15,6 +15,13 @@ const LoginPassword = z.string().min(1).max(200)
 export const Credentials = z.object({ login: z.string().trim().min(1).max(254), password: LoginPassword })
 export const Signup = z.object({ username: Username, email: Email, password: NewPassword, turnstileToken: z.string().max(2048).optional() })
 
+/** Authenticator codes are often typed or pasted as "123 456". */
+export const TotpCode = z.string().max(32).transform(s => s.replace(/\s/g, "")).pipe(z.string().regex(/^\d{6}$/, "Enter the 6-digit code"))
+/** Either a current authenticator code or one of the one-time recovery codes. */
+export const SecondFactor = z.union([z.object({ code: TotpCode }), z.object({ recoveryCode: z.string().trim().min(1).max(64) })])
+/** What an admin owes after the password: a code, or first setting up an authenticator. */
+export const AdminLoginStep = z.object({ step: z.enum(["totp", "enroll"]) })
+
 export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int() })
 export type PublicUser = z.infer<typeof PublicUser>
 
@@ -73,6 +80,8 @@ export const AdminUser = PublicUser.extend({
     attackPluginCap: AttackPluginCap.nullable(),
     createdAt: z.date(),
     accountCount: z.number().int(),
+    /** True once the user has set up an authenticator for admin sign-in. */
+    totpEnabled: z.boolean(),
 })
 
 export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ owner: z.string() })

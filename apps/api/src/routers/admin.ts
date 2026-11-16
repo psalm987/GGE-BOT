@@ -1,12 +1,14 @@
 import { implement, ORPCError } from "@orpc/server"
 import { and, count, desc, eq, gt, ilike, inArray, lt, sql } from "drizzle-orm"
-import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, users } from "@gge/db"
+import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, userTotp, users } from "@gge/db"
 import { adminContract } from "@gge/contracts"
+import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
-import { currentUser, login, logout } from "./auth.ts"
+import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
+import { currentUser, logout } from "./auth.ts"
 
 const os = implement(adminContract).$context<Ctx>()
 
@@ -26,12 +28,18 @@ function notSelf(actorId: string, targetId: string, message: string) {
 
 export const adminRouter = os.router({
     auth: {
-        login: os.auth.login.handler(({ context, input }) => login(context, "admin", input)),
+        login: os.auth.login.handler(({ context, input }) => adminLogin(context, input)),
+        verifyTotp: os.auth.verifyTotp.handler(({ context, input }) => verifyTotp(context, input)),
+        enrollStart: os.auth.enrollStart.handler(({ context }) => enrollStart(context)),
+        enrollConfirm: os.auth.enrollConfirm.handler(({ context, input }) => enrollConfirm(context, input)),
         logout: os.auth.logout.handler(({ context }) => logout(context, "admin")),
         me: os.auth.me.handler(async ({ context }) => {
             const user = await currentUser(context, "admin")
             return user?.role === "admin" ? user : null
         }),
+    },
+    security: {
+        regenerateRecoveryCodes: os.security.regenerateRecoveryCodes.use(admin).handler(({ context, input }) => regenerateRecoveryCodes(context, context.user, input)),
     },
     overview: os.overview.use(admin).handler(async ({ context: { db } }) => {
         const dayAgo = sql`now() - interval '24 hours'`
@@ -61,6 +69,7 @@ export const adminRouter = os.router({
                 emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
                 attackPluginCap: users.attackPluginCap,
                 accountCount: count(gameAccounts.id),
+                totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
             }).from(users)
                 .leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
                 .where(input.search ? ilike(users.username, `%${input.search.replace(/[%_\\]/g, "\\$&")}%`) : undefined)
@@ -107,6 +116,14 @@ export const adminRouter = os.router({
         revokeSessions: os.users.revokeSessions.use(admin).handler(async ({ context: { db, user }, input }) => {
             await revokeUserSessions(db, input.id)
             await audit(db, { actorId: user.id, action: "user.revoke_sessions", targetType: "user", targetId: input.id })
+        }),
+        resetTotp: os.users.resetTotp.use(admin).handler(async ({ context: { db, user }, input }) => {
+            notSelf(user.id, input.id, "You can't reset your own two-factor sign-in")
+            const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.id))
+            if (!target)
+                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            await resetSecondFactor(db, input.id)
+            await audit(db, { actorId: user.id, action: "admin.user.totp_reset", targetType: "user", targetId: input.id })
         }),
     },
     settings: {

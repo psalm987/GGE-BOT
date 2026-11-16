@@ -4,8 +4,10 @@ import { eq, sql } from "drizzle-orm"
 import { inject } from "vitest"
 import type { AdminApi, ClientApi } from "@gge/contracts"
 import { appSettings, createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
-import { generateSealKeyPair } from "@gge/crypto"
+import { generateEncryptionKey, generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
+import { storeConfirmedSecret } from "../src/auth/second-factor.ts"
+import { generateTotpSecret, stepAt, totpCode } from "../src/auth/totp.ts"
 import type { Env } from "../src/env.ts"
 import type { Mailer, MailMessage } from "../src/services/mailer.ts"
 import { buildServer } from "../src/server.ts"
@@ -13,6 +15,10 @@ import { buildServer } from "../src/server.ts"
 export const CLIENT_ORIGIN = "https://app.test"
 export const ADMIN_ORIGIN = "https://admin.test"
 export const PASSWORD = "correct horse battery"
+
+/** The code an authenticator holding `secret` shows at `step`; the current step when omitted. */
+export const codeFor = (secret: Uint8Array, step = stepAt(Date.now())) => totpCode(secret, step)
+export const currentStep = () => stepAt(Date.now())
 
 export const catalog = [
     { key: "attack", force: true, hidden: false, options: [{ type: "Text", key: "attackDelaySeconds", default: "4.5" }] },
@@ -52,6 +58,7 @@ export async function startApi(env: Partial<Env> = {}) {
     await db.insert(pluginCatalog).values(catalog)
     await db.insert(appSettings).values({ id: 1, attackPluginCap: "4" }).onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: "4" } })
     const keys = generateSealKeyPair()
+    const totpKey = generateEncryptionKey()
     const sent: MailMessage[] = []
     let mailFailing = false
     const mailer: Mailer = {
@@ -63,7 +70,7 @@ export async function startApi(env: Partial<Env> = {}) {
     }
     const app = await buildServer({
         db, logger: false, mailer,
-        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
+        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, TOTP_ENCRYPTION_KEY: totpKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
     const baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`
@@ -101,15 +108,30 @@ export async function startApi(env: Partial<Env> = {}) {
     }
     const lastToken = (to: string) => lastLink(to)?.searchParams.get("token") ?? undefined
 
+    /** An admin who has never signed in to the admin app, so has no authenticator yet. */
+    async function newAdmin(username: string, email?: string) {
+        const [user] = await db.insert(users).values({ username, email, passwordHash: await hashPassword(PASSWORD), role: "admin" }).returning()
+        return user!.id
+    }
+
+    /** An admin who has already set up an authenticator, and that authenticator's secret. */
+    async function enrolledAdmin(username: string) {
+        const id = await newAdmin(username)
+        const secret = generateTotpSecret()
+        await storeConfirmedSecret(db, totpKey, id, secret)
+        return { id, secret }
+    }
+
     async function signedInAdmin() {
-        await db.insert(users).values({ username: "boss", passwordHash: await hashPassword(PASSWORD), role: "admin" })
+        const { secret } = await enrolledAdmin("boss")
         const a = admin()
         await a.api.auth.login({ login: "boss", password: PASSWORD })
-        return a
+        await a.api.auth.verifyTotp({ code: codeFor(secret) })
+        return { ...a, secret }
     }
 
     return {
-        db, keys, baseUrl, app, client, admin, signup, player, signedInAdmin, sent, lastLink, lastToken, failMail: (failing: boolean) => { mailFailing = failing },
+        db, keys, baseUrl, app, client, admin, signup, player, newAdmin, enrolledAdmin, signedInAdmin, sent, lastLink, lastToken, failMail: (failing: boolean) => { mailFailing = failing },
         close: async () => { await app.close(); await db.$pool.end() },
         accountRows: () => db.select().from(gameAccounts),
     }

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm"
 import {
+    bigint,
     bigserial,
     boolean,
     check,
@@ -81,6 +82,35 @@ export const emailTokens = pgTable("email_tokens", {
     usedAt: timestamp("used_at", { withTimezone: true }),
     createdAt: createdAt(),
 }, t => [index("email_tokens_user").on(t.userId)])
+
+/** An admin's authenticator secret. `confirmedAt` null: enrollment started, no code proven yet. */
+export const userTotp = pgTable("user_totp", {
+    userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+    /** Encrypted with TOTP_ENCRYPTION_KEY (@gge/crypto encryptWithKey), bound to this user. */
+    secretEnc: bytea("secret_enc").notNull(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    /** The newest 30-second step a code was accepted for; a code for this step or an older one is a replay. */
+    lastStep: bigint("last_step", { mode: "number" }).notNull().default(0),
+    createdAt: createdAt(),
+})
+
+export const recoveryCodes = pgTable("recovery_codes", {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** sha256 of the code without dashes, hex. The code itself is never stored. */
+    codeHash: text("code_hash").notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+}, t => [index("recovery_codes_user").on(t.userId)])
+
+/** An admin who passed the password step and still owes a second factor. */
+export const loginChallenges = pgTable("login_challenges", {
+    /** sha256 of the cookie token, hex. The token itself is never stored. */
+    id: text("id").primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    ip: text("ip"),
+})
 
 /** Game servers from the GGE network file (1.xml), refreshed by the runner. */
 export const servers = pgTable("servers", {
