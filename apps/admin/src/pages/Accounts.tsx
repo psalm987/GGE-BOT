@@ -8,6 +8,7 @@ import { CrestEmpty, ParchmentCard, SigilStatus } from "@gge/ui"
 import { client, orpc } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 import { ForceStopButton } from "../components/ForceStopButton.tsx"
+import { ProxySelect } from "../components/ProxySelect.tsx"
 import { useListParams } from "../components/useListParams.ts"
 
 dayjs.extend(relativeTime)
@@ -46,7 +47,7 @@ export function Accounts() {
                 {!accounts.isPending && !accounts.error && total === 0 ? (
                     <CrestEmpty title="No game accounts" hint={list.search || state ? "Try a different search or filter." : "Players haven't added any yet."} />
                 ) : (
-                    <Table<Account> rowKey="id" loading={accounts.isFetching} dataSource={rows} scroll={{ x: 900 }}
+                    <Table<Account> rowKey="id" loading={accounts.isFetching} dataSource={rows} scroll={{ x: 1100 }}
                         pagination={{ current: list.page, pageSize: list.size, total, showSizeChanger: true, showTotal: n => `${n} accounts`, hideOnSinglePage: total <= Math.min(list.size, 10) }}
                         onChange={({ current, pageSize }) => list.setPage(current ?? 1, pageSize ?? list.size)}
                         columns={[
@@ -55,6 +56,7 @@ export function Accounts() {
                             { title: "Server", dataIndex: "serverId", width: 90 },
                             { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
                             { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
+                            { title: "Proxy", key: "proxy", width: 210, render: (_, a) => <ProxySelect account={a} /> },
                             {
                                 title: "Last seen", key: "seen",
                                 render: (_, a) => a.status?.heartbeatAt

@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto"
 import { and, eq, inArray } from "drizzle-orm"
 import {
-    TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, entitledAccountIds, scheduleState, storedSchedule,
+    NO_PROXY_FREE, TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, scheduleState, storedSchedule,
     type OptionValue, type PluginSettings,
 } from "@gge/contracts"
 import { appSettings, botStatus, gameAccounts, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "./catalog.ts"
+import { planStanding } from "./plan.ts"
+import { enabledProxiesOf, type SpecProxy } from "./proxies.ts"
 
 export type WorkerPlugins = Record<string, Record<string, OptionValue> & { state: true; filename: string }>
 
@@ -19,7 +21,9 @@ export type BotSpec = {
     externalEvent: boolean
     passwordSealed: Buffer
     plugins: WorkerPlugins
-    /** Changes here need a fresh login: credentials, server, event mode, the set of plugins. */
+    /** The proxy the bot connects through; null connects directly. An event twin has its main's. */
+    proxy: SpecProxy | null
+    /** Changes here need a fresh login: credentials, server, event mode, the set of plugins, the proxy. */
     restartKey: string
     /** Changes here are pushed into the running worker. */
     optionsKey: string
@@ -50,7 +54,8 @@ export function edgeDelayMs(nextChange: Date | null, now: number, withinMs: numb
     return delay < withinMs ? delay : undefined
 }
 
-export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date()): Promise<Wanted> {
+/** `proxyRequired` refuses to run an account that has no proxy instead of connecting it directly. */
+export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date(), { proxyRequired = false } = {}): Promise<Wanted> {
     const wanted = await db
         .select({ account: gameAccounts, server: servers, attackPluginCap: users.attackPluginCap, owner: { role: users.role, maxBots: users.maxBots }, actualState: botStatus.actualState })
         .from(gameAccounts)
@@ -58,7 +63,7 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
         .innerJoin(servers, eq(servers.id, gameAccounts.serverId))
         .leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id))
         .where(and(eq(gameAccounts.desiredState, "running"), eq(users.status, "active")))
-    const entitled = await entitledAmong(db, wanted)
+    const { entitled, mainOf } = await planStanding(db, new Map(wanted.map(r => [r.account.ownerId, r.owner])))
     // The plan was applied first, so a sleeping account keeps its place in it.
     const allowed = wanted.filter(r => entitled.has(r.account.id))
         .map(r => ({ ...r, ...scheduleState(storedSchedule(r.account.schedule), now, r.account.id) }))
@@ -72,6 +77,8 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
     const settings = ids.length ? await db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : []
 
     const [defaults] = await db.select({ attackPluginCap: appSettings.attackPluginCap }).from(appSettings)
+    const proxyHolder = (accountId: string) => mainOf.get(accountId) ?? accountId
+    const proxyOf = await enabledProxiesOf(db, ids.map(proxyHolder))
 
     const specs = new Map<string, BotSpec>()
     for (const { account, server, attackPluginCap } of rows) {
@@ -84,7 +91,7 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
             if (filename)
                 plugins[key] = { ...config, filename }
         }
-        const sealedHash = createHash("sha256").update(account.passwordSealed).digest("hex")
+        const proxy = proxyOf.get(proxyHolder(account.id)) ?? null
         specs.set(account.id, {
             accountId: account.id,
             name: account.name,
@@ -94,33 +101,20 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
             externalEvent: account.externalEvent,
             passwordSealed: account.passwordSealed,
             plugins,
-            restartKey: JSON.stringify([account.name, server.id, server.wsHost, server.zone, account.externalEvent, sealedHash, Object.keys(plugins).sort()]),
+            proxy,
+            restartKey: JSON.stringify([
+                account.name, server.id, server.wsHost, server.zone, account.externalEvent, sha256(account.passwordSealed), Object.keys(plugins).sort(),
+                proxy && [proxy.id, sha256(proxy.urlSealed)],
+            ]),
             optionsKey: JSON.stringify(plugins),
+            ...(proxyRequired && !proxy && { refusal: NO_PROXY_FREE }),
             ...overCap(registry, saved, attackPluginLimit(attackPluginCap ?? defaults?.attackPluginCap ?? "4")),
         })
     }
     return { specs, sleeping, staleErrors, nextChange }
 }
 
-/**
- * The API already refuses to start accounts beyond a plan, but a demotion, a
- * lowered limit or a direct SQL edit can leave them wanted, so the runner
- * checks again against each owner's full account list.
- */
-async function entitledAmong(db: Db, wanted: { account: { ownerId: string }; owner: { role: "user" | "admin"; maxBots: number } }[]) {
-    const owners = new Map(wanted.map(r => [r.account.ownerId, r.owner]))
-    if (!owners.size)
-        return new Set<string>()
-    const accounts = await db
-        .select({ ownerId: gameAccounts.ownerId, id: gameAccounts.id, serverId: gameAccounts.serverId, name: gameAccounts.name, externalEvent: gameAccounts.externalEvent, createdAt: gameAccounts.createdAt })
-        .from(gameAccounts)
-        .where(inArray(gameAccounts.ownerId, [...owners.keys()]))
-    const entitled = new Set<string>()
-    for (const [ownerId, mine] of Map.groupBy(accounts, a => a.ownerId))
-        for (const id of entitledAccountIds(owners.get(ownerId)!, mine))
-            entitled.add(id)
-    return entitled
-}
+const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex")
 
 function overCap(registry: PluginRegistry, saved: PluginSettings, limit: number | null) {
     const enabled = enabledAttackPlugins(registry.catalog, saved)

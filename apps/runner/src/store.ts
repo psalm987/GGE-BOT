@@ -1,7 +1,7 @@
 import { eq, inArray, isNull, sql } from "drizzle-orm"
-import { botChannel, userChannel, type BotChannelEvent, type NotificationContent, type UserEvent } from "@gge/contracts"
+import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type NotificationContent, type UserEvent } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, publish, publishMany, runnerHeartbeat, servers, type Db,
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
@@ -141,6 +141,29 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     // Without a run there is nothing to recognise a repeat by, so each report stands alone.
                     dedupKey: `${kind}:${accountId}:${runId ?? `at-${Date.now()}`}`,
                 })
+            })
+        },
+
+        /** A bot logged in through this proxy, which ends its run of failures. */
+        async proxyOk(proxyId: string) {
+            await db.update(proxies).set({ consecutiveFailures: 0, lastOkAt: new Date() }).where(eq(proxies.id, proxyId))
+        },
+
+        /**
+         * A bot couldn't connect through this proxy. The proxy is turned off at PROXY_MAX_FAILURES in a row.
+         * With `counts` false the error is recorded and the count stays where it is.
+         */
+        async proxyFailed(proxyId: string, error: string, { counts }: { counts: boolean }) {
+            await db.transaction(async tx => {
+                const [proxy] = await tx.update(proxies)
+                    .set({ lastError: error, lastErrorAt: new Date(), ...(counts && { consecutiveFailures: sql`${proxies.consecutiveFailures} + 1` }) })
+                    .where(eq(proxies.id, proxyId))
+                    .returning({ failures: proxies.consecutiveFailures, enabled: proxies.enabled })
+                // A separate write, so only the one that turns the proxy off touches `enabled` and wakes the runner.
+                if (proxy?.enabled && proxy.failures >= PROXY_MAX_FAILURES)
+                    await tx.update(proxies)
+                        .set({ enabled: false, disabledReason: `Turned off after ${proxy.failures} failed connections in a row: ${error}`, updatedAt: new Date() })
+                        .where(eq(proxies.id, proxyId))
             })
         },
 

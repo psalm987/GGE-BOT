@@ -6,8 +6,9 @@ const { control } = workerData
 const repo = path.resolve(__dirname, "..", "..")
 
 class FakeWebSocket {
-    constructor(url) {
+    constructor(url, options) {
         this.url = url
+        control.postMessage({ type: "socket", url, agent: options?.agent?.constructor.name ?? null })
         FakeWebSocket.instance = this
         this.readyState = 0
         if (workerData.connect)
@@ -24,7 +25,7 @@ class FakeWebSocket {
 
 const originalLoad = Module._load
 Module._load = function (request, parent, isMain) {
-    if (request === "ws")
+    if (request === "ws" && !workerData.realSocket)
         return FakeWebSocket
     if (/(^|\/)protocols(\.js)?$/.test(request))
         return { KingdomID: {}, castles: [] }

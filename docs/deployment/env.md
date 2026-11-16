@@ -21,6 +21,7 @@
 | `WORKER_MAX_OLD_MB` | runner | no | Heap cap per bot, in MB. Default 512. A bot that goes over is stopped and retried, and its run says "The bot ran out of memory". |
 | `INBOUND_STALE_MS` | runner | no | Milliseconds of silence from the game after which a logged-in bot reconnects. Off when unset. Set it to about 3× the p99 of `bot_inbound_gap_seconds` ([observability.md](observability.md#liveness)). |
 | `AUDIT_RETENTION_DAYS` | runner | no | Days to keep audit log entries. Default 365. The runner deletes older entries hourly ([operations.md](operations.md#disk)). |
+| `PROXY_REQUIRED` | runner | no | `true` stops an account that has no proxy from connecting directly. The account doesn't start and shows "No proxy is free". Default `false` ([operations.md](operations.md#proxies)). |
 | `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |

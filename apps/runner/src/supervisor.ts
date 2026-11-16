@@ -39,6 +39,9 @@ const EVENT_SERVER_NOT_FOUND = "Couldn't find the event server"
  */
 export type Blame = "account" | "outside"
 
+/** A worker's reason for failing to reach or sign in to its proxy starts with this. */
+const PROXY_FAILURE = "PROXY_"
+
 /**
  * Failures the account can't cause: the game, the network, the client version,
  * the event server or a proxy. They retry with backoff forever, so a game
@@ -46,7 +49,16 @@ export type Blame = "account" | "outside"
  */
 const OUTSIDE = {
     exact: ["CLIENT_VERSION_REJECTED", EVENT_SERVER_NOT_FOUND, "CONNECTION_STALE", "LOGIN_TIMEOUT", "TOO_MANY_TIMEOUTS"],
-    prefixes: ["PROXY_", "SOCKET_ERROR:"],
+    prefixes: [PROXY_FAILURE, "SOCKET_ERROR:"],
+}
+
+/** The short-lived worker that looks up the event server stopped, for the reason it reported. */
+class ProbeFailed extends Error {
+    readonly reason: string
+    constructor(reason: string) {
+        super(`the event server probe stopped: ${reason}`)
+        this.reason = reason
+    }
 }
 
 export function blameFor(why: string): Blame {
@@ -75,6 +87,8 @@ type Bot = {
     retryTimer?: NodeJS.Timeout
     terminal?: Terminal
     failure?: Failure
+    /** The proxy the newest worker connects through, which its outcome is reported against. */
+    proxyId?: string
     /** The newest run's id, which names that run's ending in a notification. */
     runId?: Promise<number | undefined>
     /** Settles once the current worker's exit has been recorded. */
@@ -89,9 +103,12 @@ export type SupervisorDeps = {
         setStatus(accountId: string, patch: StatusPatch): Promise<void>
         touchHeartbeat(accountId: string): Promise<void>
         endAccount(accountId: string, ending: AccountEnding): Promise<void>
+        proxyOk(proxyId: string): Promise<void>
+        proxyFailed(proxyId: string, error: string, options: { counts: boolean }): Promise<void>
         log(accountId: string, level: number, parts: unknown, message: string): void
     }
-    openPassword: (sealed: Buffer) => string
+    /** Opens a sealed game password or proxy URL. */
+    openSealed: (sealed: Buffer) => string
     renderLog: (parts: unknown) => string
     ggeConfig: Record<string, unknown>
     startGapMs: number
@@ -109,8 +126,9 @@ export type SupervisorDeps = {
     onMetrics?: (batch: never) => void
 }
 
-export function workerDataFor(spec: BotSpec, password: string, ggeConfig: Record<string, unknown>) {
+export function workerDataFor(spec: BotSpec, password: string, ggeConfig: Record<string, unknown>, proxyUrl?: string) {
     return {
+        ...(proxyUrl && { proxyUrl }),
         name: spec.name,
         pass: password,
         gameURL: spec.host,
@@ -350,16 +368,20 @@ export class Supervisor {
         if (!bot || bot.worker)
             return
         const spec = bot.spec
-        let workerData: Record<string, unknown> = workerDataFor(spec, this.deps.openPassword(spec.passwordSealed), this.deps.ggeConfig)
+        const { openSealed } = this.deps
+        let workerData: Record<string, unknown> = workerDataFor(spec, openSealed(spec.passwordSealed), this.deps.ggeConfig, spec.proxy ? openSealed(spec.proxy.urlSealed) : undefined)
+        bot.proxyId = spec.proxy?.id
         if (spec.externalEvent) {
+            let lookupFailure: string | undefined
             const target = await this.findEventServer(bot, workerData).catch(error => {
                 this.log.warn("event server lookup failed", error)
+                lookupFailure = error instanceof ProbeFailed ? error.reason : undefined
                 return null
             })
             if (this.bots.get(id) !== bot || bot.spec !== spec)
                 return
             if (!target)
-                return this.failed(bot, EVENT_SERVER_NOT_FOUND)
+                return this.failed(bot, lookupFailure?.startsWith(PROXY_FAILURE) ? lookupFailure : EVENT_SERVER_NOT_FOUND)
             workerData = { ...workerData, gameURL: target.host, gameServer: target.zone, tempServerData: target.data }
         }
         if (this.bots.get(id) !== bot || bot.worker)
@@ -407,6 +429,8 @@ export class Supervisor {
                 break
             case Action.Started:
                 this.track(store.setStatus(id, { actualState: "running", heartbeat: true }))
+                if (bot.proxyId)
+                    this.track(store.proxyOk(bot.proxyId))
                 break
             case Action.BotState: {
                 const state = payload as { state: string; reason: string; bannedUntil?: number }
@@ -475,6 +499,9 @@ export class Supervisor {
         const now = this.now()
         const { accountId, restartKey } = bot.spec
         bot.failure = undefined
+        // While most of the fleet is failing, the cause is more likely the game or the network than every proxy at once.
+        if (bot.proxyId && why.startsWith(PROXY_FAILURE))
+            this.track(this.deps.store.proxyFailed(bot.proxyId, why, { counts: !this.fleetOutage(now) }))
         if (blameFor(why) === "account") {
             let streak = this.streaks.get(accountId)
             // A changed login is a new thing to try, so what failed before it doesn't count.
@@ -550,6 +577,12 @@ export class Supervisor {
             const onMessage = ([type, payload]: unknown[]) => {
                 if (type === Action.Started)
                     worker.postMessage([Action.GetExternalEvent])
+                // A probe that reports why it is stopping will never answer.
+                if (waitForLogin && type === Action.BotState) {
+                    clearTimeout(timer)
+                    worker.off("message", onMessage)
+                    reject(new ProbeFailed((payload as { reason: string }).reason))
+                }
                 if (type === Action.GetExternalEvent) {
                     clearTimeout(timer)
                     worker.off("message", onMessage)

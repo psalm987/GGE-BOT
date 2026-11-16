@@ -195,8 +195,10 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
     xtHandler.addListener(key, helperFunction)
 })
 
+const proxy = botConfig.proxyUrl ? require("./proxy.js").connectVia(botConfig.proxyUrl, botConfig.gameURL, 30 * 1000 * timeoutMultiplier) : undefined
 const webSocket = new WebSocket(`wss://${botConfig.gameURL}/`, {
-    skipUTF8Validation: ggeConfig.skipUTF8Validation ? true : false
+    skipUTF8Validation: ggeConfig.skipUTF8Validation ? true : false,
+    ...(proxy && { agent: proxy.agent })
   })
 
 const status = {}
@@ -292,7 +294,7 @@ webSocket.onmessage = ({data : message}) => {
         }
     }
 }
-webSocket.onerror = event => exitWorker(`SOCKET_ERROR:${event.error?.code ?? event.message}`)
+webSocket.onerror = event => exitWorker(proxy?.failureOf(event.error) ?? `SOCKET_ERROR:${event.error?.code ?? event.message}`)
 webSocket.onclose = event => exitWorker(`SOCKET_ERROR:${event.code}`)
 
 const loginTimedOut = () => {

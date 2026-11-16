@@ -12,6 +12,7 @@ import { Accounts } from "./pages/Accounts.tsx"
 import { Audit } from "./pages/Audit.tsx"
 import { Login } from "./pages/Login.tsx"
 import { Overview } from "./pages/Overview.tsx"
+import { Proxies } from "./pages/Proxies.tsx"
 import { Settings } from "./pages/Settings.tsx"
 import { UserDetail } from "./pages/UserDetail.tsx"
 import { Users } from "./pages/Users.tsx"
@@ -33,6 +34,7 @@ createRoot(document.getElementById("root")!, {
                         <Route path="/users" element={guarded(<Users />)} />
                         <Route path="/users/:id" element={guarded(<UserDetail />)} />
                         <Route path="/accounts" element={guarded(<Accounts />)} />
+                        <Route path="/proxies" element={guarded(<Proxies />)} />
                         <Route path="/audit" element={guarded(<Audit />)} />
                         <Route path="/settings" element={guarded(<Settings />)} />
                         <Route path="*" element={<Navigate to="/" replace />} />

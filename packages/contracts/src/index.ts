@@ -3,6 +3,7 @@ import * as z from "zod"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
+import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
     ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LoginPassword, NewPassword, LogLine,
@@ -13,6 +14,7 @@ export * from "./data-export.ts"
 export * from "./entitlement.ts"
 export * from "./notifications.ts"
 export * from "./plugins.ts"
+export * from "./proxies.ts"
 export * from "./realtime.ts"
 export * from "./schedule.ts"
 export * from "./schemas.ts"
@@ -122,9 +124,22 @@ export const adminContract = {
         list: oc.input(Page.extend({ search: Search, ownerId: z.uuid().optional(), state: ActualState.optional() }))
             .output(z.object({ items: z.array(AdminAccount), total: z.number().int() })),
         forceStop: oc.input(Id).output(z.void()),
+        /**
+         * Pins the account to a proxy, even one already at its `maxAccounts`; null unpins it, and the runner picks one
+         * the next time the account starts. Refused for an event twin and for a proxy that is off.
+         */
+        setProxy: oc.input(Id.extend({ proxyId: z.uuid().nullable() })).output(z.void()),
         /** Any account's log and runs, paged like the owner's. */
         logs: oc.input(LogsInput).output(z.array(LogLine)),
         runs: oc.input(RunsInput).output(z.array(Run)),
+    },
+    /** The pool of proxies bots connect to the game through. No output ever carries a proxy's URL or credentials. */
+    proxies: {
+        list: oc.output(z.array(AdminProxy)),
+        create: oc.input(CreateProxy).output(AdminProxy),
+        update: oc.input(UpdateProxy).output(AdminProxy),
+        /** Its accounts are left without a proxy, and the runner assigns them another when they next start. */
+        remove: oc.input(Id).output(z.void()),
     },
     audit: {
         /** `actorId` and `targetId` together match entries by or about that user. */

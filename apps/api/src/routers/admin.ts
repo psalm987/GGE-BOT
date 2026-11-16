@@ -7,6 +7,7 @@ import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { accountLogs, accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
+import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
 
@@ -180,10 +181,16 @@ export const adminRouter = os.router({
                 listAccounts(db, where, input),
                 db.select({ n: count() }).from(gameAccounts).leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id)).where(where),
             ])
-            const owners = new Map((await db.select({ id: users.id, username: users.username }).from(users)
-                .where(inArray(users.id, [...new Set(rows.map(r => r.ownerId))]))).map(u => [u.id, u.username]))
+            const [ownerRows, proxyOf] = await Promise.all([
+                db.select({ id: users.id, username: users.username }).from(users).where(inArray(users.id, [...new Set(rows.map(r => r.ownerId))])),
+                proxiesOfAccounts(db, rows.map(r => r.id)),
+            ])
+            const owners = new Map(ownerRows.map(u => [u.id, u.username]))
             return {
-                items: rows.map(({ plugins: _, ...account }) => ({ ...account, owner: owners.get(account.ownerId) ?? "?" })),
+                items: rows.map(({ plugins: _, ...account }) => ({
+                    ...account, owner: owners.get(account.ownerId) ?? "?",
+                    proxyId: proxyOf.get(account.id)?.proxyId ?? null, proxyLabel: proxyOf.get(account.id)?.proxyLabel ?? null,
+                })),
                 total: total!.n,
             }
         }),
@@ -193,8 +200,31 @@ export const adminRouter = os.router({
                 throw new ORPCError("NOT_FOUND", { message: "No such account" })
             await audit(db, { actorId: user.id, action: "account.force_stop", targetType: "account", targetId: input.id })
         }),
+        setProxy: os.accounts.setProxy.use(admin).handler(async ({ context: { db, user }, input }) => {
+            await setAccountProxy(db, input.id, input.proxyId)
+            await audit(db, { actorId: user.id, action: "admin.account.set_proxy", targetType: "account", targetId: input.id, meta: { proxyId: input.proxyId } })
+        }),
         logs: os.accounts.logs.use(admin).handler(({ context: { db }, input }) => accountLogs(db, input.id, input)),
         runs: os.accounts.runs.use(admin).handler(({ context: { db }, input }) => accountRuns(db, input.id, input.limit)),
+    },
+    proxies: {
+        list: os.proxies.list.use(admin).handler(({ context: { db } }) => listProxies(db)),
+        create: os.proxies.create.use(admin).handler(async ({ context: { db, env, user }, input }) => {
+            const proxy = await createProxy(db, env.SEAL_PUBLIC_KEY, input)
+            await audit(db, { actorId: user.id, action: "admin.proxy.create", targetType: "proxy", targetId: proxy.id, meta: { label: proxy.label, hostHint: proxy.hostHint, maxAccounts: proxy.maxAccounts } })
+            return proxy
+        }),
+        update: os.proxies.update.use(admin).handler(async ({ context: { db, env, user }, input }) => {
+            const proxy = await updateProxy(db, env.SEAL_PUBLIC_KEY, input)
+            const { id, url, ...changed } = input
+            // The audit entry names the new host, never the URL.
+            await audit(db, { actorId: user.id, action: "admin.proxy.update", targetType: "proxy", targetId: id, meta: { ...changed, ...(url !== undefined && { hostHint: proxy.hostHint }) } })
+            return proxy
+        }),
+        remove: os.proxies.remove.use(admin).handler(async ({ context: { db, user }, input }) => {
+            const removed = await removeProxy(db, input.id)
+            await audit(db, { actorId: user.id, action: "admin.proxy.remove", targetType: "proxy", targetId: input.id, meta: removed })
+        }),
     },
     audit: {
         list: os.audit.list.use(admin).handler(({ context: { db }, input }) =>

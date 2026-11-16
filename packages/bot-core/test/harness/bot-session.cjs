@@ -7,13 +7,18 @@ const SERVER = {
     joinOK: "<msg t='sys'><body action='joinOK' r='1'><pid id='0'/><vars /><uLs r='1'></uLs></body></msg>",
 }
 
-/** Runs the real ggeBot.js in a worker against a scripted fake game socket. */
-function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, connect = true } = {}) {
+/**
+ * Runs the real ggeBot.js in a worker against a scripted fake game socket.
+ * With `realSocket` the bot opens a real `ws` connection instead, and only what it tells its parent can be checked.
+ */
+function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushMs = 100, inboundStaleMs, connect = true, proxyUrl, realSocket = false } = {}) {
     const { port1, port2 } = new MessageChannel()
     const worker = new Worker(path.join(__dirname, "bot-worker.cjs"), {
         workerData: {
             control: port2,
             connect,
+            realSocket,
+            ...(proxyUrl && { proxyUrl }),
             ggeConfig: { timeoutMultiplier, exitOnFatal, metricsFlushMs, inboundStaleMs },
             name: "tester",
             pass: "pw",
@@ -30,6 +35,10 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
     const session = {
         sent: [],
         toParent: [],
+        /** How the bot built its game socket: the URL and its agent's class name, null for a direct connection. */
+        socket: undefined,
+        /** Everything the worker printed. */
+        output: "",
         loads: 0,
         paused: false,
         closed: false,
@@ -77,6 +86,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
 
     port1.on("message", m => {
         if (m.type === "sent") session.sent.push(m.msg)
+        if (m.type === "socket") session.socket = { url: m.url, agent: m.agent }
         if (m.type === "load") session.loads++
         if (m.type === "paused") session.paused = true
         if (m.type === "closed") session.closed = true
@@ -84,6 +94,8 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
         if (m.type === "waited") session.waits.get(m.id)?.resolve(m)
     })
     worker.on("message", m => session.toParent.push(m))
+    for (const stream of [worker.stdout, worker.stderr])
+        stream.on("data", chunk => { session.output += chunk })
     worker.on("exit", () => { session.exited = true })
     return session
 }

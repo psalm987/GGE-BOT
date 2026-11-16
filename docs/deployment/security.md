@@ -7,12 +7,13 @@
 | Their own game accounts, status, logs | yes | yes (all accounts, no passwords) | yes | yes |
 | Other players' accounts | no | yes | yes | yes |
 | Game passwords | write-only | no | sealed bytes only | yes (opens them to log in) |
+| Proxy URLs and their credentials | no | write-only; they see `scheme://host:port` | sealed bytes, and `scheme://host:port` | yes (opens them to connect) |
 | Panel passwords | no | no | argon2id hashes | no |
 | Session tokens | their own cookie | their own cookie | SHA-256 only | no |
 | Admin authenticator secrets | no | shown once, at setup | encrypted bytes, and the key that opens them | no |
 | Admin recovery codes | no | shown once | SHA-256 only | no |
 
-Game passwords are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). The API holds only the public key; only the runner holds `SEAL_PRIVATE_KEY`. A stolen database or API host does not reveal game passwords. A stolen runner host plus database does: protect the runner host and the key as the most sensitive parts of the deployment.
+Game passwords and proxy URLs are sealed with an X25519 public key (HKDF-SHA256, AES-256-GCM). The API holds only the public key; only the runner holds `SEAL_PRIVATE_KEY`. A stolen database or API host does not reveal game passwords or proxy credentials. A stolen runner host plus database does: protect the runner host and the key as the most sensitive parts of the deployment.
 
 ## Admin two-factor sign-in
 

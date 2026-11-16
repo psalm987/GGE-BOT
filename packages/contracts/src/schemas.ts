@@ -102,7 +102,13 @@ export const AdminUserDetail = AdminUser.extend({
     sessions: z.object({ client: z.number().int(), admin: z.number().int() }),
 })
 
-export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({ ownerId: z.uuid(), owner: z.string() })
+export const AdminAccount = PublicAccount.omit({ plugins: true }).extend({
+    ownerId: z.uuid(),
+    owner: z.string(),
+    /** The proxy this account is assigned to; null for none. An event twin has none of its own and uses its main's. */
+    proxyId: z.uuid().nullable(),
+    proxyLabel: z.string().nullable(),
+})
 
 export const AuditEntry = z.object({
     id: z.number().int(),

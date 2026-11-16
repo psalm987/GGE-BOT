@@ -53,7 +53,7 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
             return new Worker(fakeBot, { workerData })
         },
         store,
-        openPassword: sealed => openSealed(keys.privateKey, sealed),
+        openSealed: sealed => openSealed(keys.privateKey, sealed),
         renderLog: parts => Array.isArray(parts) ? parts.join("") : String(parts),
         ggeConfig: { exitOnFatal: true },
         startGapMs: 50,

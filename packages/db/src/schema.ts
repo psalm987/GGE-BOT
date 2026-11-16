@@ -128,6 +128,30 @@ export const servers = pgTable("servers", {
     updatedAt: updatedAt(),
 })
 
+/**
+ * The pool of proxies bots connect to the game through. The runner assigns accounts (./apps/runner/src/proxies.ts),
+ * counts failures, and turns a proxy off after PROXY_MAX_FAILURES in a row.
+ */
+export const proxies = pgTable("proxies", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    label: text("label").notNull(),
+    /** The full URL with its credentials, sealed with @gge/crypto; only the runner holds the key that opens it. */
+    urlSealed: bytea("url_sealed").notNull(),
+    /** `scheme://host:port`, the only readable part of the URL. */
+    hostHint: text("host_hint").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    /** How many accounts the runner assigns on its own; an admin's manual pin may go over it. */
+    maxAccounts: integer("max_accounts").notNull().default(3),
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    lastOkAt: timestamp("last_ok_at", { withTimezone: true }),
+    lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    /** Why the runner turned the proxy off; null when an admin did, or it is on. */
+    disabledReason: text("disabled_reason"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+})
+
 export const gameAccounts = pgTable("game_accounts", {
     id: uuid("id").primaryKey().defaultRandom(),
     ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -139,6 +163,8 @@ export const gameAccounts = pgTable("game_accounts", {
     externalEvent: boolean("external_event").notNull().default(false),
     /** User-set run windows (Phase 4b); null runs whenever desired. */
     schedule: jsonb("schedule"),
+    /** The proxy this account connects through; null connects directly. Always null for an event twin, which uses its main's. */
+    proxyId: uuid("proxy_id").references(() => proxies.id, { onDelete: "set null" }),
     legacyId: integer("legacy_id").unique(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -146,6 +172,7 @@ export const gameAccounts = pgTable("game_accounts", {
     // A player may pair an account with its external-event twin (same name, same server).
     uniqueIndex("game_accounts_server_name").on(t.serverId, sql`lower(${t.name})`, t.externalEvent),
     index("game_accounts_owner").on(t.ownerId),
+    index("game_accounts_proxy").on(t.proxyId),
 ])
 
 export const pluginSettings = pgTable("plugin_settings", {

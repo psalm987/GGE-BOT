@@ -9,6 +9,7 @@ import { readServers, refreshGameData } from "./game-data.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
 import { prunes, runPrunes } from "./maintenance.ts"
+import { assignProxies } from "./proxies.ts"
 import { createMetrics, serveMetrics, type MetricBatch } from "./metrics.ts"
 import { edgeDelayMs, loadSpecs } from "./specs.ts"
 import { createStore } from "./store.ts"
@@ -29,7 +30,7 @@ const supervisor = new Supervisor({
     spawn: workerData => new Worker(ggeBotPath, { workerData, resourceLimits: { maxOldGenerationSizeMb: env.WORKER_MAX_OLD_MB } }),
     onMetrics: (batch: MetricBatch) => applyMetrics(batch),
     store,
-    openPassword: sealed => openSealed(env.SEAL_PRIVATE_KEY, sealed),
+    openSealed: sealed => openSealed(env.SEAL_PRIVATE_KEY, sealed),
     renderLog: createLogRenderer(),
     ggeConfig,
     startGapMs: env.START_GAP_MS,
@@ -79,7 +80,8 @@ async function reconcile() {
     reconciling = (async () => {
         do {
             again = false
-            const wanted = await loadSpecs(db, registry)
+            await assignProxies(db)
+            const wanted = await loadSpecs(db, registry, new Date(), { proxyRequired: env.PROXY_REQUIRED })
             supervisor.reconcile(wanted)
             clearTimeout(edgeTimer)
             const delay = edgeDelayMs(wanted.nextChange, Date.now(), LIVENESS.intervalMs)

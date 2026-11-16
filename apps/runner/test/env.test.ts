@@ -34,6 +34,13 @@ describe("parseEnv", () => {
         expect(parseEnv({ ...required, AUDIT_RETENTION_DAYS: "30" }).AUDIT_RETENTION_DAYS).toBe(30)
     })
 
+    test("a proxy is optional unless PROXY_REQUIRED is on", () => {
+        expect(parseEnv(required).PROXY_REQUIRED).toBe(false)
+        expect(parseEnv({ ...required, PROXY_REQUIRED: "" }).PROXY_REQUIRED).toBe(false)
+        expect(parseEnv({ ...required, PROXY_REQUIRED: "true" }).PROXY_REQUIRED).toBe(true)
+        expect(() => parseEnv({ ...required, PROXY_REQUIRED: "maybe" })).toThrow()
+    })
+
     test("an audit retention that is not a positive integer is refused", () => {
         for (const value of ["0", "-1", "1.5", "abc"])
             expect(() => parseEnv({ ...required, AUDIT_RETENTION_DAYS: value }), value).toThrow()

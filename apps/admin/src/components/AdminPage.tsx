@@ -1,4 +1,4 @@
-import { AuditOutlined, DashboardOutlined, SettingOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
+import { AuditOutlined, CloudServerOutlined, DashboardOutlined, SettingOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
 import { Alert, Button } from "antd"
 import type { ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router"
@@ -10,6 +10,7 @@ const NAV: (NavItem & { path: string })[] = [
     { key: "overview", path: "/", label: "Overview", icon: <DashboardOutlined /> },
     { key: "users", path: "/users", label: "Users", icon: <UserOutlined /> },
     { key: "accounts", path: "/accounts", label: "Accounts", icon: <TeamOutlined /> },
+    { key: "proxies", path: "/proxies", label: "Proxies", icon: <CloudServerOutlined /> },
     { key: "audit", path: "/audit", label: "Audit", icon: <AuditOutlined /> },
     { key: "settings", path: "/settings", label: "Settings", icon: <SettingOutlined /> },
 ]

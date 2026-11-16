@@ -39,6 +39,14 @@ switch (mode) {
     case "login":
         beat("login")
         break
+    case "proxyfail":
+        // Fails only through a proxy; connected directly it runs.
+        if (workerData.proxyUrl) {
+            later(10, () => post([20, { state: "error", reason: "PROXY_ECONNREFUSED" }]))
+            later(20, () => process.exit(0))
+            break
+        }
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))

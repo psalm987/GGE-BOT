@@ -7,6 +7,7 @@ import { CrestEmpty, LogsPanel, RunsPanel, SigilStatus } from "@gge/ui"
 import { client, orpc } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 import { ForceStopButton } from "./ForceStopButton.tsx"
+import { ProxySelect } from "./ProxySelect.tsx"
 
 type Account = Awaited<ReturnType<typeof client.accounts.list>>["items"][number]
 const REFRESH_MS = 10_000
@@ -50,13 +51,14 @@ export function UserAccounts({ userId }: { userId: string }) {
             {!accounts.isPending && !accounts.error && rows.length === 0 ? (
                 <CrestEmpty title="No game accounts" hint="This player hasn't added any yet." />
             ) : (
-                <Table<Account> rowKey="id" loading={accounts.isPending} dataSource={rows} pagination={false} scroll={{ x: 640 }}
+                <Table<Account> rowKey="id" loading={accounts.isPending} dataSource={rows} pagination={false} scroll={{ x: 860 }}
                     rowClassName={a => a.id === selected?.id ? "ant-table-row-selected" : ""}
                     columns={[
                         { title: "Name", dataIndex: "name", render: (n: string) => <Typography.Text strong>{n}</Typography.Text> },
                         { title: "Server", dataIndex: "serverId", width: 90 },
                         { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
                         { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
+                        { title: "Proxy", key: "proxy", width: 210, render: (_, a) => <ProxySelect account={a} /> },
                         {
                             title: "", key: "actions", align: "right",
                             render: (_, a) => (

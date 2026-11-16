@@ -26,6 +26,8 @@ const Env = z.object({
     /** Audit entries older than this many days are deleted hourly. */
     AUDIT_RETENTION_DAYS: optional.pipe(z.coerce.number<string>().int().positive().default(365)),
     INBOUND_STALE_MS: optional.pipe(z.coerce.number<string>().int().positive().optional()),
+    /** An account with no proxy to use doesn't start, instead of connecting from the runner's own address. */
+    PROXY_REQUIRED: optional.pipe(z.stringbool().default(false)),
 })
 
 export type Env = z.infer<typeof Env>
