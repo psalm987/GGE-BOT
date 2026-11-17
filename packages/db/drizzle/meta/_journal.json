@@ -127,6 +127,13 @@
       "when": 1794914064908,
       "tag": "0017_bot_logs_plugin",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794916184712,
+      "tag": "0018_plans",
+      "breakpoints": true
     }
   ]
 }

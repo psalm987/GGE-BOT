@@ -56,7 +56,7 @@ export async function startApi(env: Partial<Env> = {}) {
         { id: 27, label: "Germany 1", wsHost: "ep-live-de1-game.goodgamestudios.com", zone: "EmpireEx_27" },
     ])
     await db.insert(pluginCatalog).values(catalog)
-    await db.insert(appSettings).values({ id: 1, attackPluginCap: "4" }).onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: "4" } })
+    await db.insert(appSettings).values({ id: 1 }).onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: "4", billingLive: false } })
     const keys = generateSealKeyPair()
     const totpKey = generateEncryptionKey()
     const sent: MailMessage[] = []

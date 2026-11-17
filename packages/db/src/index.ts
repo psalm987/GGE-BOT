@@ -7,6 +7,7 @@ import * as schema from "./schema.ts"
 export * from "./schema.ts"
 export * from "./notifications.ts"
 export * from "./outbox.ts"
+export * from "./plans.ts"
 export * from "./grafana-role.ts"
 export { schema }
 

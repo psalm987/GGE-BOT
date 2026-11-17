@@ -5,7 +5,7 @@ import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
 import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
-import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, planPeriods, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
 import { DiscordHub } from "../src/discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
@@ -701,6 +701,83 @@ describe("plan limits", () => {
         expect(supervisor.running).toBe(1)
         expect((await status(oldest))?.actualState).toBe("running")
         expect(await desired(newest)).toBe("running")
+    })
+})
+
+describe("plan periods", () => {
+    const setBilling = (billingLive: boolean) => db.update(appSettings).set({ billingLive })
+    afterEach(() => setBilling(false))
+
+    const starts = new Date("2026-06-01T00:00:00Z")
+    const ends = new Date("2026-06-29T00:00:00Z")
+    const before = new Date("2026-06-28T23:00:00Z")
+    const after = new Date("2026-06-29T00:00:01Z")
+    const addPeriod = (startsAt: Date, endsAt: Date, planId: "basic" | "team" = "basic") =>
+        db.insert(planPeriods).values({ userId: ownerId, planId, startsAt, endsAt, source: "purchase" })
+
+    test("with billing off, periods change nothing: max_bots decides and no edge is set", async () => {
+        const first = await addAccount("ok-period-off-1")
+        const second = await addAccount("ok-period-off-2")
+        await addPeriod(starts, ends)
+        const { specs, nextChange } = await loadSpecs(db, registry, after)
+        expect([...specs.keys()].sort()).toEqual([first, second].sort())
+        expect(nextChange).toBeNull()
+    })
+
+    test("with billing live, an owner with no period runs nothing", async () => {
+        await addAccount("ok-period-none")
+        await setBilling(true)
+        const { specs, nextChange } = await loadSpecs(db, registry, before)
+        expect(specs.size).toBe(0)
+        expect(nextChange).toBeNull()
+    })
+
+    test("with billing live, the plan's account runs until the period ends, which is the next change", async () => {
+        const first = await addAccount("ok-period-first")
+        await addAccount("ok-period-extra")
+        await addPeriod(starts, ends)
+        await setBilling(true)
+
+        const covered = await loadSpecs(db, registry, before)
+        expect([...covered.specs.keys()]).toEqual([first])
+        expect(covered.nextChange).toEqual(ends)
+        expect(edgeDelayMs(covered.nextChange, before.getTime(), 2 * 60 * 60_000)).toBe(60 * 60_000 + 1000)
+
+        const expired = await loadSpecs(db, registry, after)
+        expect(expired.specs.size).toBe(0)
+        expect(expired.nextChange).toBeNull()
+    })
+
+    test("with billing live, a queued period keeps the account running and its start is the next change", async () => {
+        const first = await addAccount("ok-period-queued")
+        await addPeriod(starts, ends)
+        await addPeriod(ends, new Date("2026-07-27T00:00:00Z"), "team")
+        await setBilling(true)
+        expect((await loadSpecs(db, registry, before)).nextChange).toEqual(ends)
+        const next = await loadSpecs(db, registry, after)
+        expect([...next.specs.keys()]).toEqual([first])
+        expect(next.nextChange).toEqual(new Date("2026-07-27T00:00:00Z"))
+    })
+
+    test("with billing live, an override replaces the plan's size and an admin runs everything", async () => {
+        const ids = [await addAccount("ok-period-o1"), await addAccount("ok-period-o2"), await addAccount("ok-period-o3")]
+        await addPeriod(starts, ends)
+        await setBilling(true)
+        await db.update(users).set({ maxBotsOverride: 2 }).where(eq(users.id, ownerId))
+        expect([...(await loadSpecs(db, registry, before)).specs.keys()].sort()).toEqual(ids.slice(0, 2).sort())
+        await db.update(users).set({ role: "admin" }).where(eq(users.id, ownerId))
+        expect((await loadSpecs(db, registry, after)).specs.size).toBe(3)
+    })
+
+    test("a running bot is stopped by the reconcile after its owner's period ends", async () => {
+        const id = await addAccount("ok-period-stop")
+        await addPeriod(starts, ends)
+        await setBilling(true)
+        supervisor.reconcile(await loadSpecs(db, registry, before))
+        await until(async () => (await status(id))?.actualState === "running")
+        supervisor.reconcile(await loadSpecs(db, registry, after))
+        await until(async () => (await status(id))?.actualState === "stopped")
+        expect(await desired(id)).toBe("running")
     })
 })
 

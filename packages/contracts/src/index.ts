@@ -13,6 +13,7 @@ import {
 export * from "./data-export.ts"
 export * from "./entitlement.ts"
 export * from "./notifications.ts"
+export * from "./plans.ts"
 export * from "./plugins.ts"
 export * from "./proxies.ts"
 export * from "./realtime.ts"

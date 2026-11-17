@@ -18,6 +18,7 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
+import { PERIOD_SOURCES, PLAN_IDS } from "@gge/contracts"
 import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
@@ -50,6 +51,8 @@ export const users = pgTable("users", {
     status: userStatus("status").notNull().default("active"),
     /** Game accounts the user may own; admins are exempt. Admin-adjustable. */
     maxBots: integer("max_bots").notNull().default(1),
+    /** Replaces the plan's max_accounts for this user. Read only while app_settings.billing_live is on. */
+    maxBotsOverride: integer("max_bots_override"),
     /** Overrides app_settings.attack_plugin_cap for this user; null uses the default. Admin-adjustable. */
     attackPluginCap: attackPluginCap("attack_plugin_cap"),
     /** Users.uuid in the legacy user.db, so the importer can re-run. */
@@ -65,6 +68,7 @@ export const users = pgTable("users", {
 }, t => [
     check("users_locale_valid", sql`${t.locale} in (${localeCodes})`),
     check("users_detected_locale_valid", sql`${t.detectedLocale} in (${localeCodes})`),
+    check("users_max_bots_override_valid", sql`${t.maxBotsOverride} >= 0`),
     uniqueIndex("users_username_lower").on(sql`lower(${t.username})`),
     uniqueIndex("users_email_canonical").on(t.emailCanonical),
 ])
@@ -258,10 +262,47 @@ export const auditLog = pgTable("audit_log", {
     ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
 }, t => [index("audit_log_ts").on(t.ts)])
 
+/** What a player can be on. `max_accounts` is how many accounts the plan runs. */
+export const plans = pgTable("plans", {
+    id: text("id", { enum: PLAN_IDS }).primaryKey(),
+    name: text("name").notNull(),
+    maxAccounts: integer("max_accounts").notNull(),
+    updatedAt: updatedAt(),
+}, t => [check("plans_max_accounts_valid", sql`${t.maxAccounts} >= 0`)])
+
+/**
+ * Time a user has on a plan. Add rows only with appendPeriod (apps/api/src/services/plans.ts), which queues each
+ * one behind the user's last, so one user's periods never overlap.
+ */
+export const planPeriods = pgTable("plan_periods", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    planId: text("plan_id", { enum: PLAN_IDS }).notNull().references(() => plans.id),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    source: text("source", { enum: PERIOD_SOURCES }).notNull(),
+    purchaseId: uuid("purchase_id"),
+    codeId: uuid("code_id"),
+    grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
+    note: text("note"),
+    createdAt: createdAt(),
+}, t => [
+    check("plan_periods_ends_after_start", sql`${t.endsAt} > ${t.startsAt}`),
+    check("plan_periods_source_valid", sql`${t.source} in (${sql.raw(PERIOD_SOURCES.map(s => `'${s}'`).join(", "))})`),
+    index("plan_periods_user_ends").on(t.userId, t.endsAt),
+    uniqueIndex("plan_periods_one_trial").on(t.userId).where(sql`${t.source} = 'trial'`),
+])
+
 /** Deployment-wide settings an admin can change. One row. */
 export const appSettings = pgTable("app_settings", {
     id: smallint("id").primaryKey().default(1),
     attackPluginCap: attackPluginCap("attack_plugin_cap").notNull().default("4"),
+    /** Off: every player's limit is users.max_bots and plans restrict nobody. On: the limit comes from the player's plan. */
+    billingLive: boolean("billing_live").notNull().default(false),
+    trialDays: integer("trial_days").notNull().default(7),
+    pointsRedeemCost: integer("points_redeem_cost").notNull().default(8),
+    pointsRedeemDays: integer("points_redeem_days").notNull().default(28),
+    pointsRedeemPlan: text("points_redeem_plan", { enum: PLAN_IDS }).notNull().default("basic").references(() => plans.id),
     updatedAt: updatedAt(),
 }, t => [check("app_settings_single_row", sql`${t.id} = 1`)])
 

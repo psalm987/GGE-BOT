@@ -1,5 +1,5 @@
 import { and, count, eq, inArray, isNotNull } from "drizzle-orm"
-import { gameAccounts, proxies, users, type Db } from "@gge/db"
+import { gameAccounts, loadPlanOwners, planOwnerColumns, proxies, users, type Db } from "@gge/db"
 import { planStanding } from "./plan.ts"
 
 /** The proxy a bot connects through. Only the runner's key opens `urlSealed`. */
@@ -26,10 +26,10 @@ export async function assignProxies(db: Db) {
         // Locking the pool makes two assigners take turns, so they can't both take a proxy's last place.
         const pool = await tx.select({ id: proxies.id, enabled: proxies.enabled, maxAccounts: proxies.maxAccounts })
             .from(proxies).orderBy(proxies.id).for("update")
-        const owners = await tx.selectDistinct({ id: users.id, role: users.role, maxBots: users.maxBots })
+        const owners = await tx.selectDistinct(planOwnerColumns)
             .from(gameAccounts).innerJoin(users, eq(users.id, gameAccounts.ownerId))
             .where(and(eq(gameAccounts.desiredState, "running"), eq(users.status, "active")))
-        const { accounts, entitled, mainOf } = await planStanding(tx, new Map(owners.map(o => [o.id, o])))
+        const { accounts, entitled, mainOf } = await planStanding(tx, await loadPlanOwners(tx, owners, new Date()))
 
         const moves = new Map<string, string | null>()
         for (const account of accounts)

@@ -1,11 +1,14 @@
 import { ORPCError } from "@orpc/server"
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
-import { appSettings, botRuns, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
+import {
+    appSettings, botRuns, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publishMany, servers, users,
+    type Db, type OwnerPlan,
+} from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
-    PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState, storedSchedule,
-    twinMainIds, userChannel,
-    type PlanOwner, type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
+    NO_PLAN, PLAN_LIMIT, PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState,
+    storedSchedule, twinMainIds, userChannel,
+    type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 
@@ -62,13 +65,13 @@ async function planStanding(db: Reader, ownerIds: string[]) {
     const entitled = new Set<string>()
     if (!ownerIds.length)
         return { twins, entitled }
-    const [owners, accounts] = await Promise.all([
-        db.select({ id: users.id, role: users.role, maxBots: users.maxBots }).from(users).where(inArray(users.id, ownerIds)),
+    const [rows, accounts] = await Promise.all([
+        db.select(planOwnerColumns).from(users).where(inArray(users.id, ownerIds)),
         db.select(planColumns).from(gameAccounts).where(inArray(gameAccounts.ownerId, ownerIds)),
     ])
     const byOwner = Map.groupBy(accounts, a => a.ownerId)
-    for (const owner of owners) {
-        const mine = byOwner.get(owner.id) ?? []
+    for (const [ownerId, owner] of await loadPlanOwners(db, rows, new Date())) {
+        const mine = byOwner.get(ownerId) ?? []
         for (const id of twinMainIds(mine).keys())
             twins.add(id)
         for (const id of entitledAccountIds(owner, mine))
@@ -78,12 +81,17 @@ async function planStanding(db: Reader, ownerIds: string[]) {
 }
 
 /** Locks the owner's row, so plan checks and the writes they guard take turns with each other and with admin plan changes. */
-async function lockPlan(tx: Reader, ownerId: string): Promise<PlanOwner> {
-    const [owner] = await tx.select({ role: users.role, maxBots: users.maxBots }).from(users).where(eq(users.id, ownerId)).for("update")
-    if (!owner)
+async function lockPlan(tx: Reader, ownerId: string): Promise<OwnerPlan> {
+    const [row] = await tx.select(planOwnerColumns).from(users).where(eq(users.id, ownerId)).for("update")
+    if (!row)
         throw new ORPCError("NOT_FOUND", { message: "No such user" })
-    return owner
+    return (await loadPlanOwners(tx, [row], new Date())).get(ownerId)!
 }
+
+/** Why the plan refuses a write. `overLimit` is the message for a player who has a plan and is past what it covers. */
+const planRefusal = (owner: OwnerPlan, overLimit: string) => new ORPCError("FORBIDDEN", owner.noPlan
+    ? { message: "You don't have an active plan. Get a plan to run your bots.", data: { code: NO_PLAN } }
+    : { message: overLimit, data: { code: PLAN_LIMIT } })
 
 /** Runs a write that may change which accounts count, and refuses it if it grows the counted total past the plan. */
 async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: () => Promise<T>, refusal: (maxBots: number) => string) {
@@ -94,7 +102,7 @@ async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: () => Prom
         // Growth is what's refused, so a player already over a lowered limit can still edit what they have.
         const after = countedAccounts(await ownerAccounts(tx, ownerId))
         if (after > owner.maxBots && after > before)
-            throw new ORPCError("FORBIDDEN", { message: refusal(owner.maxBots) })
+            throw planRefusal(owner, refusal(owner.maxBots))
     }
     return result
 }
@@ -232,7 +240,7 @@ export async function startAccounts(db: Db, ownerId: string, ids: string[]) {
         const accounts = await ownerAccounts(tx, ownerId)
         const entitled = entitledAccountIds(owner, accounts)
         if (accounts.some(a => ids.includes(a.id) && !entitled.has(a.id)))
-            throw new ORPCError("FORBIDDEN", { message: planRunsMessage(owner.maxBots) })
+            throw planRefusal(owner, planRunsMessage(owner.maxBots))
         return setDesiredState(tx, ownedBy(ownerId, ids), "running")
     })
 }

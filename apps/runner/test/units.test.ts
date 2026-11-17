@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import pg from "pg"
 import { afterAll, beforeAll, describe, expect, inject, test } from "vitest"
-import { createDb, gameAccounts, servers, users, type Db } from "@gge/db"
+import { appSettings, createDb, gameAccounts, planPeriods, plans, servers, users, type Db } from "@gge/db"
 import { resolveEventServer } from "../src/event-server.ts"
 import { readServers } from "../src/game-data.ts"
 import { acquireRunnerLock } from "../src/lock.ts"
@@ -109,11 +109,25 @@ describe("against the database", () => {
         expect(notifications).toBeGreaterThan(beforeStatus)
         expect(afterUserInsert).toBe(0)
 
-        for (const change of [{ maxBots: 3 }, { role: "admin" as const }]) {
+        for (const change of [{ maxBots: 3 }, { role: "admin" as const }, { maxBotsOverride: 2 }]) {
             const before = notifications
             await db.update(users).set(change).where(eq(users.id, owner!.id))
             await settle()
             expect(notifications, `notified on ${Object.keys(change)[0]}`).toBeGreaterThan(before)
+        }
+
+        const planChanges: [string, () => Promise<unknown>][] = [
+            ["a new period", () => db.insert(planPeriods).values({ userId: owner!.id, planId: "basic", source: "admin", startsAt: new Date(), endsAt: new Date(Date.now() + 60_000) })],
+            ["a period cut short", () => db.update(planPeriods).set({ endsAt: new Date(Date.now() + 30_000) }).where(eq(planPeriods.userId, owner!.id))],
+            ["a removed period", () => db.delete(planPeriods).where(eq(planPeriods.userId, owner!.id))],
+            ["a plan's size", () => db.update(plans).set({ maxAccounts: 1 }).where(eq(plans.id, "team"))],
+            ["the billing switch", () => db.update(appSettings).set({ billingLive: false })],
+        ]
+        for (const [what, change] of planChanges) {
+            const before = notifications
+            await change()
+            await settle()
+            expect(notifications, `notified on ${what}`).toBeGreaterThan(before)
         }
 
         await db.delete(users).where(eq(users.id, owner!.id))
