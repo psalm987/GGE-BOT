@@ -83,7 +83,56 @@ function assignUnit(unitSlot, units, maxUnits) {
 
     return unitAmount
 }
-function getAttackInfo(kid, castle, AI, commander, level, waves, options, additionalWaves) {
+
+const fitsSide = (unit, side) =>
+    unit.unitInfo.slotTypes?.split(",").includes(side == "M" ? "1" : "2") ?? true
+
+/**
+ * Places event tools, such as glory or rage banners, in the free tool slots of
+ * `waves`: the left flank, the right flank and then the front of each wave in
+ * turn. A side takes tools up to its `maxTools` limit, counting the tools
+ * already in it, and only tools whose `slotTypes` allow it (1 front, 2 flank).
+ * Placed tools are taken out of `owned`.
+ *
+ * `order` "listed" follows `list` (wodIDs) when given, else the order of
+ * `owned`. "highest" and "lowest" sort by `bonusField`.
+ * @returns {Number} how many tools it placed
+ */
+function fillEventTools(waves, owned, { maxTools, maxPerAttack = Infinity, order = "listed", list, bonusField = "fameBonus" }) {
+    const bonus = unit => Number(unit.unitInfo[bonusField])
+    let tools = owned.filter(unit => bonus(unit) > 0)
+    if (order == "listed" && list)
+        tools = list.flatMap(wodID => tools.filter(unit => unit.unitInfo.wodID == wodID))
+    else if (order == "highest")
+        tools.sort((a, b) => bonus(b) - bonus(a))
+    else if (order == "lowest")
+        tools.sort((a, b) => bonus(a) - bonus(b))
+
+    let placed = 0
+    for (const wave of waves)
+        for (const side of ["L", "R", "M"]) {
+            const fitting = tools.filter(unit => fitsSide(unit, side))
+            let room = (side == "M" ? maxTools.front : maxTools.flank) - wave[side].T.reduce((total, [, amount]) => total + amount, 0)
+            for (const slot of wave[side].T) {
+                if (slot[0] != -1)
+                    continue
+                const amount = assignUnit(slot, fitting, Math.min(room, maxPerAttack - placed))
+                room -= amount
+                placed += amount
+            }
+        }
+    return placed
+}
+
+const SUPPORT_TOOL_SLOTS = 3
+const COURTYARD_SLOTS = 8
+
+/**
+ * Builds the `cra` for one attack with empty wave slots for the plugin to fill.
+ * `supportTools` are up to 3 offence support tool wodIDs for `AST`, and
+ * `courtyard` is up to 8 `[wodID, amount]` slots for the courtyard wave `RW`.
+ */
+function getAttackInfo(kid, castle, AI, commander, level, waves, options, additionalWaves, { supportTools = [], courtyard = [] } = {}) {
     const attackTarget = {
         SX: castle.areaInfo.x,
         SY: castle.areaInfo.y,
@@ -104,45 +153,8 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
         CD: 99,
         A: [],
         BKS: [],
-        AST: [
-            -1,
-            -1,
-            -1
-        ],
-        RW: [ //TODO: SET THIS UP PROPERLY
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ],
-                [
-                    -1,
-                    0
-                ]
-            ],
+        AST: Array.from({ length: SUPPORT_TOOL_SLOTS }, (_, i) => supportTools[i] ?? -1),
+        RW: Array.from({ length: COURTYARD_SLOTS }, (_, i) => [...courtyard[i] ?? [-1, 0]]),
         ASCT: 0
     }
 
@@ -386,6 +398,7 @@ module.exports = {
     getAttackInfo,
     sendAttack,
     assignUnit,
+    fillEventTools,
     waitToAttack,
     getTotalAmountToolsFlank,
     getTotalAmountToolsFront,

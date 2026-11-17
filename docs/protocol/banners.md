@@ -52,9 +52,21 @@ Every tool in a wave shares that side's tool cap, `getTotalAmountToolsFlank` or 
 
 `RW` is the courtyard wave: 8 unit slots, each `[wodID, amount]`, with `[-1, 0]` for an empty slot (`REINFORCEMENT_WAVE_UNIT_SLOTS=8` and `REINFORCEMENT_WAVE_TOOL_SLOTS=0`, D@2488806). The client fills it from `yardWaveContainer.getSlotList(true)` (G@2478779). The courtyard wave holds no tools.
 
-## What the bot sends today
+## How the bot fills these slots
 
-`getAttackInfo` sends `AST: [-1, -1, -1]` and eight `[-1, 0]` slots in `RW`. Each attack plugin then fills the `RW` slots with `assignUnit`. No plugin sends a support tool. `fixtures/protocol/cra-banner-wave.json` shows a `cra` with banners (661) in both flank tool slots.
+`getAttackInfo` in `plugins/attack/attack.js` takes an optional last argument, `{ supportTools, courtyard }`. `supportTools` fills `AST` with up to 3 `wodID`s, and `courtyard` fills `RW` with up to 8 `[wodID, amount]` slots. Without it, `AST` is `[-1, -1, -1]` and `RW` is eight `[-1, 0]` slots, as before. The existing attack plugins pass neither and fill the `RW` slots themselves with `assignUnit`.
+
+`fillEventTools(waves, owned, options)` places event tools in the free tool slots of the given waves and returns how many it placed:
+
+| Option | Meaning |
+|---|---|
+| `maxTools` | `{ flank, front }`, the tool limit of each side. Tools already in a side count against it. |
+| `maxPerAttack` | The most event tools to place across all the given waves. No limit by default. |
+| `order` | `"listed"` (the default), `"highest"` or `"lowest"` |
+| `list` | With `"listed"`, the `wodID`s to use, in order. Without it, `"listed"` keeps the order of `owned`. |
+| `bonusField` | The bonus that makes a tool an event tool and that `"highest"` and `"lowest"` sort by. `"fameBonus"` by default. |
+
+It fills the left flank, the right flank and then the front of each wave, and puts a tool only where its `slotTypes` allow. Khan's rage banners go through it with `bonusField: "ragePointBonus"`. `fixtures/protocol/cra-banner-wave.json` shows a `cra` with banners (661) in both flank tool slots.
 
 ## Evidence and confidence
 

@@ -62,6 +62,48 @@ describe("Khan camps", () => {
         const sentWods = new Set(soldierSlots(cra).map(([wodID]) => wodID))
         expect([...sentWods]).toEqual([10])
     })
+
+    // At camp level 50 a flank takes 30 tools in 2 slots and the front 40 in 3.
+    const banner = (wodID, ragePointBonus, amount) => ({ unitInfo: { wodID, ragePointBonus, slotTypes: "1,2,9" }, amount })
+    const empty = [-1, 0]
+    const toolSlots = cra => cra.A.map(wave => [wave.L.T, wave.R.T, wave.M.T])
+    const khanWithBanners = options => firstAttack("attackKhan", {
+        eventID: 72, start: { EDID: 3 }, target: camp, items, options,
+        inventory: [melee(10, 5000), banner(106, "1", 100), banner(563, "2", 15)],
+    })
+
+    test("rage banners fill the tool room of the waves after the first, strongest first", async () => {
+        expect(toolSlots(await khanWithBanners({}))).toEqual([
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+            [[[563, 15], [106, 15]], [[106, 30], empty], [[106, 40], empty, empty]],
+            [[[106, 15], empty], [empty, empty], [empty, empty, empty]],
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+        ])
+    })
+
+    test("from wavesTillChests on, chest tools replace the rage banners", async () => {
+        const chestTool = { unitInfo: { wodID: 900, khanTabletBooster: "5" }, amount: 100 }
+        const cra = await firstAttack("attackKhan", {
+            eventID: 72, start: { EDID: 3 }, target: camp, items, options: { wavesTillChests: "2" },
+            inventory: [melee(10, 5000), banner(563, "2", 100), chestTool],
+        })
+
+        expect(toolSlots(cra)).toEqual([
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+            [[[563, 30], empty], [[563, 30], empty], [[563, 40], empty, empty]],
+            [[[900, 30], empty], [[900, 30], empty], [[900, 40], empty, empty]],
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+        ])
+    })
+
+    test("with low-value chests the weakest rage banners go first", async () => {
+        expect(toolSlots(await khanWithBanners({ lowValueChests: true }))).toEqual([
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+            [[[106, 30], empty], [[106, 30], empty], [[106, 40], empty, empty]],
+            [[[563, 15], empty], [empty, empty], [empty, empty, empty]],
+            [[empty, empty], [empty, empty], [empty, empty, empty]],
+        ])
+    })
 })
 
 describe("Berimond invasion camps", () => {

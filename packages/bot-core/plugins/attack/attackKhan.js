@@ -77,7 +77,7 @@ if (require('node:worker_threads').isMainThread)
 const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
 const { movementEvents, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 
@@ -347,32 +347,29 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
                         return
                     }
-                    else if (!pluginOptions.noChests) {
+                    else if (!pluginOptions.noChests && pluginOptions.wavesTillChests <= index) {
                         const selectTool = i => {
-                            let tools = pluginOptions.eventWallToolsFirst ? [] : attackerBannerKhanTools
-                            if (pluginOptions.wavesTillChests <= index) {
-                                tools = attackerNomadTools
-                                if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus)) {
-                                    if (i == 0) {
-                                        tools = attackerWallNomadTools
-                                        if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
-                                            tools = attackerShieldNomadTools
-                                    }
-                                    else if (i == 1) {
+                            let tools = attackerNomadTools
+                            if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus)) {
+                                if (i == 0) {
+                                    tools = attackerWallNomadTools
+                                    if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
                                         tools = attackerShieldNomadTools
-                                        if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
-                                            tools = attackerWallNomadTools
-                                    }
-                                    if (i == 2) {
-                                        tools = attackerGateNomadTools
-                                        if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
-                                            tools = attackerWallNomadTools
-                                        if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
-                                            tools = attackerShieldNomadTools
-                                    }
-                                    if (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus)
-                                        tools = []
                                 }
+                                else if (i == 1) {
+                                    tools = attackerShieldNomadTools
+                                    if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
+                                        tools = attackerWallNomadTools
+                                }
+                                if (i == 2) {
+                                    tools = attackerGateNomadTools
+                                    if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
+                                        tools = attackerWallNomadTools
+                                    if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus))
+                                        tools = attackerShieldNomadTools
+                                }
+                                if (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus)
+                                    tools = []
                             }
                             return tools
                         }
@@ -386,6 +383,8 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         wave.M.T.forEach(unitSlot =>
                             maxTools -= assignUnit(unitSlot, selectTool(2), maxTools))
                     }
+                    else if (!pluginOptions.noChests && !pluginOptions.eventWallToolsFirst)
+                        fillEventTools([wave], attackerBannerKhanTools, { maxTools: { flank: maxToolsFlank, front: maxToolsFront }, bonusField: "ragePointBonus" })
                     let maxTroops = maxTroopFlank
 
                     wave.L.U.forEach(unitSlot =>
