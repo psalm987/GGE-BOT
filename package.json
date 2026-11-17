@@ -11,6 +11,7 @@
     "test:formal": "turbo run test:formal",
     "lint": "eslint . && oxlint",
     "i18n:literals": "node tools/i18n/find-literals.ts",
+    "i18n:glossary": "node tools/i18n/glossary.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:formal",
     "outdated": "npm-check-updates",
     "dev": "pnpm --filter @gge/dev dev"

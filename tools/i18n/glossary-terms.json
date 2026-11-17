@@ -1,0 +1,89 @@
+{
+    "groups": [
+        {
+            "title": "Kingdoms",
+            "terms": [
+                { "en": "Great Empire", "keys": ["kingdomName_Classic"] },
+                { "en": "Burning Sands", "keys": ["kingdomName_Dessert"] },
+                { "en": "Everwinter Glacier", "keys": ["kingdomName_Icecream"] },
+                { "en": "Fire Peaks", "keys": ["kingdomName_Volcano"] },
+                { "en": "Storm Islands", "keys": ["kingdomName_Eiland"] },
+                { "en": "Berimond", "keys": ["event_kingdom_berimond", "kingdomName_Faction"], "note": "The second key is the full event name, The Battle for Berimond." },
+                { "en": "Kingdom", "keys": ["dialog_landmarkList_Kingdom"] }
+            ]
+        },
+        {
+            "title": "Enemies and events",
+            "terms": [
+                { "en": "Robber Baron", "keys": ["dungeon_playerName"] },
+                { "en": "Nomads", "keys": ["nomad_playerName", "dialog_longPointsEvent_tab_nomad"], "note": "The second key is Nomad invasion." },
+                { "en": "Khan", "keys": ["khanTablets", "khanguard_name", "teaser_news_102_title"], "note": "The game has no key for the bare word Khan. It names the Khan inside compounds: Khan tablets, Khan guard, Khan's Revenge." },
+                { "en": "Samurai", "keys": ["samurai_playerName"] },
+                { "en": "Foreign Lords", "keys": ["alienInvasion_playerName", "sagaMap_specials_9_title", "webshop_eventName_alienInvasion_name"], "note": "Singular Foreign lord, plural Foreign lords, and the event Foreign Invasion." },
+                { "en": "Bloodcrows", "keys": ["redAlienInvasion_playerName_short", "event_title_103"], "note": "The second key is the event, Bloodcrow invasion." },
+                { "en": "Fortress", "keys": ["dialog_seasonEvent_4_Dungeon_fortress", "kingdom_bossDungeon_castleName_1"], "note": "Several keys use fortress in compounds, for example Desert fortress and Robber baron fortress. The first key is the bare word." }
+            ]
+        },
+        {
+            "title": "Characters",
+            "terms": [
+                { "en": "Commander", "keys": ["equipment_itemType_general"], "note": "Also equipment slot filters_subfilter_10 and lord_name_general_unnamed, same English text." },
+                { "en": "Castellan", "keys": ["equipment_itemType_baron"], "note": "Also filters_subfilter_11, same English text." },
+                { "en": "Overseer", "keys": ["overseer"] },
+                { "en": "Sceat", "keys": ["currency_name_sceatToken"] },
+                { "en": "Baron", "keys": ["playerTitle_3"] }
+            ]
+        },
+        {
+            "title": "Resources and currencies",
+            "terms": [
+                { "en": "Rubies", "keys": ["gold"], "note": "The game's internal key for rubies is gold. Five other keys carry the same English word." },
+                { "en": "Coins", "keys": ["cash"], "note": "The game's internal key for coins is cash." },
+                { "en": "Mead", "keys": ["mead"] },
+                { "en": "Food", "keys": ["food"] },
+                { "en": "Wood", "keys": ["wood"] },
+                { "en": "Stone", "keys": ["stone"] },
+                { "en": "Aquamarine", "keys": ["aquamarin_name"] },
+                { "en": "Resources", "keys": ["goods"] }
+            ]
+        },
+        {
+            "title": "Troops, tools and siege tools",
+            "terms": [
+                { "en": "Troops", "keys": ["filters_category_20", "units", "dialog_recuit_units"], "note": "Troops (filter), Units, and Soldiers (recruit dialog). The game uses all three." },
+                { "en": "Tools", "keys": ["tools"] },
+                { "en": "Siege tools", "keys": ["attackTools"] },
+                { "en": "Battering ram", "keys": ["ram_name"] },
+                { "en": "Ladder", "keys": ["ladder_name"], "note": "English text is Scaling ladder. The game has no key for the bare word." },
+                { "en": "Mantlet", "keys": ["shields_name"] },
+                { "en": "Banner", "keys": ["flag_name"], "note": "Glory banners are the banner siege tool." },
+                { "en": "Defense tools", "keys": ["defenceTools"] },
+                { "en": "Wall tools", "keys": ["dialog_defence_wallplace", "wall"], "note": "The game has no key named wall tools. These name the Castle wall and its tool slot. Pair with Defense tools." },
+                { "en": "Gate tools", "keys": ["dialog_defence_gateplace", "gate_name"], "note": "The game has no key named gate tools. These name the Castle gate slot and the Castle gate. Pair with Defense tools." },
+                { "en": "Moat tools", "keys": ["dialog_defence_moatplace", "moat"], "note": "The game has no key named moat tools. These name the Moat slot and the Moat. Pair with Defense tools." }
+            ]
+        },
+        {
+            "title": "Combat and castle",
+            "terms": [
+                { "en": "Glory", "keys": ["dialog_fame_title"], "note": "The game's internal name for glory is fame." },
+                { "en": "Dethrone", "keys": ["dialog_dethrone_title"] },
+                { "en": "Outpost", "keys": ["outpost"] },
+                { "en": "Alliance", "keys": ["panel_multiinfo_alliance"] },
+                { "en": "Armourer", "keys": ["eventBuilding_Armorer"], "note": "The game spells it Armorer in English. Also Berimond armorer and Samurai armorer exist as separate keys." },
+                { "en": "Siege workshop", "keys": ["workshop_name"] },
+                { "en": "Defense workshop", "keys": ["dworkshop_name"] },
+                { "en": "Beginner protection", "keys": ["dialog_management_openGateNotInNoobProtection"], "note": "Only a sentence has the term (Not possible with beginner's protection). Translators take the term from inside it." },
+                { "en": "Peace mode", "keys": ["dialog_startPeaceMode_title"], "note": "English text is Protection mode. Internally the game calls it peace mode." },
+                { "en": "Attack", "keys": ["attack"] },
+                { "en": "Defence", "keys": ["Defence"], "note": "The game's English is Defense, American spelling." },
+                { "en": "Courtyard", "keys": ["dialog_battleLogDetail_courtyard"] },
+                { "en": "Wave", "keys": ["dialog_battleLogDetail_wave", "dialog_combatAnimation_wave"], "note": "Wave of attack, and Wave {0} with a number placeholder." },
+                { "en": "Castle", "keys": ["castle"] },
+                { "en": "Capital", "keys": ["capital"], "note": "Also faction_capital and capital_Maya, same English text." },
+                { "en": "Barracks", "keys": ["barracks_name"] },
+                { "en": "Marketplace", "keys": ["market_name"] }
+            ]
+        }
+    ]
+}
