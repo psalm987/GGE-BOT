@@ -165,7 +165,6 @@ export const Run = z.object({
     error: z.string().nullable(),
 })
 
-export const LogsInput = Id.extend({ before: z.number().int().optional(), limit: z.number().int().min(1).max(500).default(100) })
 export const RunsInput = Id.extend({ limit: z.number().int().min(1).max(100).default(10) })
 
 export const Overview = z.object({

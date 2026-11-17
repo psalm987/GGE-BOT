@@ -5,7 +5,7 @@ import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import {
-    accountLogs, accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
+    accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
@@ -91,10 +91,6 @@ export const clientRouter = os.router({
                 : await setDesiredState(context.db, ownedBy(context.user.id, input.ids), "stopped")
             for (const { id } of changed)
                 await audit(context.db, { actorId: context.user.id, action: `account.${input.state === "running" ? "start" : "stop"}`, targetType: "account", targetId: id })
-        }),
-        logs: os.accounts.logs.use(verified).handler(async ({ context: { db, user }, input }) => {
-            await getOwnedAccount(db, user.id, input.id)
-            return accountLogs(db, input.id, input)
         }),
         runs: os.accounts.runs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)

@@ -18,6 +18,7 @@ import { storeConfirmedSecret } from "@gge/api/src/auth/second-factor.ts"
 import { base32Decode } from "@gge/api/src/auth/totp.ts"
 import { publishCatalog, readPluginRegistry } from "@gge/runner/src/catalog.ts"
 import { readServers } from "@gge/runner/src/game-data.ts"
+import { demoLogLines } from "./seed-logs.ts"
 
 const root = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..")
 const withRunner = process.argv.includes("--runner")
@@ -73,6 +74,7 @@ async function seed() {
         ["Emberfall", "stopped", "crash_loop", "Stopped after 8 failed starts in a row: The bot stopped responding"],
         ["Newkeep", "stopped", null, null],
     ]
+    const withHistory: string[] = []
     for (const [name, desiredState, state, lastError] of demo) {
         const [account] = await db.insert(gameAccounts).values({ ownerId: player!.id, name, serverId, desiredState, passwordSealed: sealFor(keys.publicKey, "demo") }).returning()
         await db.insert(pluginSettings).values([
@@ -90,12 +92,9 @@ async function seed() {
             { accountId: account!.id, startedAt: new Date(Date.now() - 30 * 3600_000), endedAt: new Date(Date.now() - 20 * 3600_000), endReason: "deploy" },
             { accountId: account!.id, startedAt: new Date(Date.now() - 20 * 3600_000), ...(state === "running" ? {} : { endedAt: new Date(Date.now() - 6 * 3600_000), endReason: state === "stopped" ? "stopped" : state === "crash_loop" ? "stale" : state }) },
         ])
-        await db.insert(botLogs).values([
-            { accountId: account!.id, level: 0, message: "Logged in", parts: ["loggedIn"] },
-            { accountId: account!.id, level: 0, message: "Attack Nomads started", parts: ["attackNomads", " started"] },
-            { accountId: account!.id, level: 1, message: "Max attacks reached", parts: ["Max attacks reached"] },
-        ])
+        withHistory.push(account!.id)
     }
+    await db.insert(botLogs).values(demoLogLines(withHistory))
     return true
 }
 

@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server"
-import { and, asc, desc, eq, inArray, lt, type SQL } from "drizzle-orm"
-import { appSettings, botLogs, botRuns, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
+import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
+import { appSettings, botRuns, botStatus, gameAccounts, pluginCatalog, pluginSettings, publishMany, servers, users, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
     PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState, storedSchedule,
@@ -250,14 +250,6 @@ export async function stopUnentitled(tx: Pick<Db, "select" | "transaction">, own
 }
 
 export { ownedBy }
-
-/** One page of an account's log, newest first; `before` is the id of the oldest line already shown. */
-export async function accountLogs(db: Pick<Db, "select">, accountId: string, { before, limit }: { before?: number; limit: number }) {
-    const rows = await db.select().from(botLogs)
-        .where(and(eq(botLogs.accountId, accountId), before ? lt(botLogs.id, before) : undefined))
-        .orderBy(desc(botLogs.id)).limit(limit)
-    return rows.map(r => ({ id: r.id, ts: r.ts, level: r.level, message: r.message, parts: Array.isArray(r.parts) ? r.parts : null, plugin: r.plugin }))
-}
 
 /** An account's latest runs, newest first. */
 export const accountRuns = (db: Pick<Db, "select">, accountId: string, limit: number) =>

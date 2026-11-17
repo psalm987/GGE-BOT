@@ -1,0 +1,19 @@
+{
+  "nav.logs": "Logs",
+  "logs.title": "Logs",
+  "logs.accounts": "Accounts",
+  "logs.allAccounts": "All accounts",
+  "logs.event": "event",
+  "logs.count_one": "{{shown, number}} of {{count, number}} line",
+  "logs.count_other": "{{shown, number}} of {{count, number}} lines",
+  "logs.countMore_one": "{{shown, number}} of {{count, number}} line, more older ones to load",
+  "logs.countMore_other": "{{shown, number}} of {{count, number}} lines, more older ones to load",
+  "logs.refresh": "Refresh",
+  "logs.download": "Download .txt",
+  "logs.filters": "Filters",
+  "logs.filtersCount": "Filters ({{count, number}})",
+  "logs.showLines_one": "Show {{count, number}} line",
+  "logs.showLines_other": "Show {{count, number}} lines",
+  "notifications.viewLogs": "View logs",
+  "notifications.viewLogsFor": "View logs for {{account}}"
+}

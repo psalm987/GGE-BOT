@@ -6,8 +6,8 @@ import { Notification, NotificationPrefs } from "./notifications.ts"
 import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword, LogLine,
-    LogsInput, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
+    ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword,
+    Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./data-export.ts"
@@ -81,7 +81,6 @@ export const clientContract = {
         update: oc.input(UpdateAccount).output(PublicAccount),
         remove: oc.input(Ids).output(z.void()),
         setDesiredState: oc.input(Ids.extend({ state: DesiredState })).output(z.void()),
-        logs: oc.input(LogsInput).output(z.array(LogLine)),
         runs: oc.input(RunsInput).output(z.array(Run)),
     },
     /** Tokens for the Centrifugo websocket at /connection/websocket. Both answer NOT_IMPLEMENTED on a deployment without Centrifugo. */
@@ -152,8 +151,7 @@ export const adminContract = {
          * the next time the account starts. Refused for an event twin and for a proxy that is off.
          */
         setProxy: oc.input(Id.extend({ proxyId: z.uuid().nullable() })).output(z.void()),
-        /** Any account's log and runs, paged like the owner's. */
-        logs: oc.input(LogsInput).output(z.array(LogLine)),
+        /** Any account's runs. Its log is `logs.feed` with the owner's id. */
         runs: oc.input(RunsInput).output(z.array(Run)),
     },
     /** The pool of proxies bots connect to the game through. No output ever carries a proxy's URL or credentials. */

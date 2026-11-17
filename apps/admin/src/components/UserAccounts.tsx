@@ -1,9 +1,9 @@
 import { ReloadOutlined } from "@ant-design/icons"
-import { useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { Button, Flex, Table, Typography } from "antd"
-import { useState } from "react"
+import { useMemo } from "react"
 import { useSearchParams } from "react-router"
-import { CrestEmpty, LogsPanel, RunsPanel, SigilStatus } from "@gge/ui"
+import { CrestEmpty, LogTerminal, RunsPanel, SigilStatus, useLogText } from "@gge/ui"
 import { client, orpc } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 import { ForceStopButton } from "./ForceStopButton.tsx"
@@ -11,17 +11,26 @@ import { ProxySelect } from "./ProxySelect.tsx"
 
 type Account = Awaited<ReturnType<typeof client.accounts.list>>["items"][number]
 const REFRESH_MS = 10_000
-const PAGE = 100
+const PAGE = 500
 
-/** One account's latest runs and log, refetched every 10 seconds while this is on screen. */
+/** One account's latest runs and log, in English, refetched every 10 seconds while this is on screen. */
 function AccountHistory({ account }: { account: Account }) {
-    const [refreshKey, setRefreshKey] = useState(0)
     const runs = useQuery(orpc.accounts.runs.queryOptions({ input: { id: account.id, limit: 20 }, refetchInterval: REFRESH_MS }))
+    const log = useInfiniteQuery({
+        ...orpc.logs.feed.infiniteOptions({
+            input: (before: number | undefined) => ({ ownerId: account.ownerId, accountIds: [account.id], before, limit: PAGE }),
+            initialPageParam: undefined,
+            getNextPageParam: page => page.length >= PAGE ? page.at(-1)!.id : undefined,
+        }),
+        refetchInterval: REFRESH_MS,
+    })
+    const lines = useMemo(() => log.data?.pages.flat() ?? [], [log.data])
+    const english = useLogText("en")
     return (
         <section aria-label={`History of ${account.name}`} style={{ marginTop: 24 }}>
             <Flex justify="space-between" align="center" wrap gap={8} style={{ marginBottom: 12 }}>
                 <Typography.Title level={4} className="gge-display" style={{ margin: 0 }}>{account.name}</Typography.Title>
-                <Button icon={<ReloadOutlined />} loading={runs.isFetching} onClick={() => { setRefreshKey(k => k + 1); void runs.refetch() }}>Refresh</Button>
+                <Button icon={<ReloadOutlined />} loading={runs.isFetching || log.isRefetching} onClick={() => { void log.refetch(); void runs.refetch() }}>Refresh</Button>
             </Flex>
             <Typography.Title level={5} style={{ marginTop: 0 }}>Runs</Typography.Title>
             <div role="region" aria-label="Runs">
@@ -29,8 +38,9 @@ function AccountHistory({ account }: { account: Account }) {
             </div>
             <Typography.Title level={5}>Logs</Typography.Title>
             <div role="region" aria-label="Logs">
-                <LogsPanel fetchPage={before => client.accounts.logs({ id: account.id, before, limit: PAGE })} pageSize={PAGE}
-                    refreshMs={REFRESH_MS} refreshKey={refreshKey} renderLine={line => line.message} />
+                <LogTerminal style={{ height: 480 }} lines={lines} renderText={english}
+                    loading={log.isPending} error={log.isError ? log.error.message : null} onRetry={() => void log.refetch()}
+                    hasOlder={log.hasNextPage} loadingOlder={log.isFetchingNextPage} onLoadOlder={() => void log.fetchNextPage()} />
             </div>
         </section>
     )

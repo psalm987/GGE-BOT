@@ -10,7 +10,7 @@ const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e:
 const newAccount = (name: string) => ({ name, serverId: 26, password: "pw", externalEvent: false, plugins: {} })
 
 describe("history", () => {
-    test("logs and runs come back newest first, only to the account's owner", async () => {
+    test("an account's log and runs come back newest first, only to the account's owner", async () => {
         const owner = await api.player()
         const other = await api.player()
         const { id } = await owner.api.accounts.create(newAccount("history-bot"))
@@ -20,15 +20,15 @@ describe("history", () => {
             { accountId: id, startedAt: new Date(Date.now() - 3600_000) },
         ])
 
-        const logs = await owner.api.accounts.logs({ id, limit: 2 })
+        const logs = await owner.api.logs.feed({ accountIds: [id], limit: 2 })
         expect(logs.map(l => l.message)).toEqual(["line 3", "line 2"])
-        expect(logs[0]!.parts).toEqual(["line 3"])
-        expect((await owner.api.accounts.logs({ id, before: logs[1]!.id })).map(l => l.message)).toEqual(["line 1"])
+        expect(logs[0]).toMatchObject({ accountId: id, parts: ["line 3"] })
+        expect((await owner.api.logs.feed({ accountIds: [id], before: logs[1]!.id })).map(l => l.message)).toEqual(["line 1"])
 
         const runs = await owner.api.accounts.runs({ id })
         expect(runs.map(r => r.endReason)).toEqual([null, "crash"])
 
-        expect(await codeOf(other.api.accounts.logs({ id }))).toBe("NOT_FOUND")
+        expect(await other.api.logs.feed({ accountIds: [id] })).toEqual([])
         expect(await codeOf(other.api.accounts.runs({ id }))).toBe("NOT_FOUND")
     })
 })
@@ -53,7 +53,7 @@ test("the admin overview shows the runner's heartbeat and the last day's runs an
 test("/metrics reports request latency by route pattern, never by account", async () => {
     const p = await api.player()
     const { id } = await p.api.accounts.create(newAccount("metrics-bot"))
-    await p.api.accounts.logs({ id })
+    await p.api.logs.feed({ accountIds: [id] })
     const text = await (await fetch(`${api.baseUrl}/metrics`)).text()
     expect(text).toMatch(/http_request_duration_seconds_count\{[^}]*route="\/rpc\/\*"[^}]*\}/)
     expect(text).not.toContain(id)

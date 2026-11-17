@@ -4,6 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
+const { insertLogLine, insertNotification } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -57,6 +58,186 @@ function emailedLink(address) {
         } catch {}
     }
     throw new Error(`no email logged for ${address}; start the stack with its output in ${DEV_LOG}`)
+}
+
+/** What the terminal's rendered rows show. The list is virtualised, so these are the rows in and near view. */
+const termRows = log => log.evaluate(el => [...el.querySelectorAll(".gge-term-row")].map(row => ({
+    level: row.dataset.level,
+    tag: row.querySelector(".gge-term-tag")?.textContent ?? null,
+    account: row.querySelector(".gge-term-acct")?.textContent ?? null,
+    text: row.querySelector(".gge-term-msg")?.textContent ?? "",
+})))
+const atBottom = log => log.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight <= 8)
+const rpc = (page, path, json = {}) => page.evaluate(async ([p, body]) => (await (await fetch(`/rpc/${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: body }) })).json()).json, [path, json])
+
+/** The account drawer's Logs tab and the Logs page, as the seeded demo player, in English. */
+async function driveLogs(page) {
+    const searchOf = () => new URL(page.url()).searchParams
+    const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    const accounts = await rpc(page, "accounts/list")
+    const idOf = name => accounts.find(a => a.name === name).id
+    const unique = () => 100000 + Math.floor(Math.random() * 900000)
+
+    const mine = unique(), theirs = unique()
+    await insertLogLine({ accountName: "Ironhold", level: 0, plugin: "feast", parts: ["consumed", mine] })
+    await insertLogLine({ accountName: "Ravenmoor", level: 0, plugin: "feast", parts: ["consumed", theirs] })
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    await page.getByRole("tab", { name: "Logs" }).click()
+    const drawer = page.getByRole("dialog")
+    const drawerLog = drawer.getByRole("log", { name: "Bot log" })
+    await drawerLog.getByText(`Consumed ${mine}`).waitFor()
+    const facets = await rpc(page, "logs/facets")
+    const ironholdCount = facets.accounts.find(a => a.name === "Ironhold").count
+    assert(await drawerLog.getByText(`Consumed ${theirs}`).count() === 0, "the drawer's Logs tab shows Ironhold's new line and not Ravenmoor's")
+    assert((await drawer.locator(".ant-segmented-item", { hasText: "All" }).innerText()).includes(String(ironholdCount)), `the drawer counts Ironhold's ${ironholdCount} lines, not every account's`)
+    assert((await termRows(drawerLog)).every(row => row.account === null), "the drawer's terminal has no account column")
+    await drawer.locator(".ant-segmented-item", { hasText: "Warning" }).click()
+    await page.waitForTimeout(300)
+    const warnings = await termRows(drawerLog)
+    assert(warnings.length > 0 && warnings.every(row => row.level === "1"), "the drawer's level filter leaves only warnings")
+    await axe(page, "account drawer logs")
+    await page.screenshot({ path: `${out}/14-account-logs.png` })
+    await page.keyboard.press("Escape")
+
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.getByRole("menuitem", { name: "Logs" }).click()
+    await page.waitForURL(/\/logs$/)
+    const log = page.getByRole("log", { name: "Bot log" })
+    const count = page.locator(".gge-logs-count")
+    const showing = n => count.filter({ hasText: new RegExp(`^${n.toLocaleString("en")} of `) }).waitFor()
+    // The URL changes at once, the list a moment later; a person clicks what the list shows.
+    const showingAll = () => count.filter({ hasText: /^([\d,]+) of \1 lines$/ }).waitFor()
+    await log.locator(".gge-term-row").first().waitFor()
+    const all = await rpc(page, "logs/facets")
+    await count.filter({ hasText: `${all.total.toLocaleString("en")} of ${all.total.toLocaleString("en")} lines` }).waitFor()
+    assert(true, `the Logs nav item opens /logs with every line counted: ${all.total} of ${all.total}`)
+    const rows = await termRows(log)
+    assert(new Set(rows.map(r => r.account)).size > 1 && rows.every(r => r.tag?.startsWith("[")), "lines from several accounts show with a tag and an account chip")
+    assert(await atBottom(log) && rows.at(-1).text.length > 0, "the newest line sits at the bottom")
+    await page.screenshot({ path: `${out}/logs-1440.png` })
+
+    const feed = await rpc(page, "logs/feed", { limit: 500 })
+    await page.getByLabel("Filter text").fill("consumed")
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("q") === "consumed")
+    const consumed = feed.filter(l => l.message.toLowerCase().includes("consumed")).length
+    await showing(consumed)
+    assert((await termRows(log)).every(r => r.text.toLowerCase().includes("consumed")), `the text filter narrows the list to ${consumed} lines and puts q=consumed in the URL`)
+    await page.getByLabel("Filter text").fill("")
+    await page.locator(".gge-logs-filters .ant-segmented-item", { hasText: "Error" }).click()
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("level") === "2")
+    const errors = all.levels.find(l => l.level === 2).count
+    await showing(errors)
+    assert((await termRows(log)).every(r => r.level === "2"), `the Error level leaves the ${errors} errors and puts level=2 in the URL`)
+    await page.getByRole("button", { name: "Clear filters" }).first().click()
+    await page.waitForFunction(() => location.search === "")
+    await showingAll()
+    assert(true, "Clear filters empties the URL")
+
+    await page.getByLabel("Tags").click()
+    await page.locator(".ant-select-item-option", { hasText: "feast" }).click()
+    await page.keyboard.press("Escape")
+    await page.waitForFunction(() => new URL(location.href).searchParams.getAll("tag").join() === "feast")
+    const feasts = all.plugins.find(p => p.key === "feast").count
+    await showing(feasts)
+    assert((await termRows(log)).every(r => r.tag === "[feast]"), `picking feast in the tag select leaves its ${feasts} lines and puts tag=feast in the URL`)
+    await page.getByRole("button", { name: "Clear filters" }).first().click()
+    await page.waitForFunction(() => location.search === "")
+    await showingAll()
+
+    const tagButton = log.locator("button.gge-term-tag").last()
+    const clickedTag = (await tagButton.innerText()).slice(1, -1)
+    await tagButton.click()
+    await page.waitForFunction(tag => new URL(location.href).searchParams.getAll("tag").join() === tag, clickedTag)
+    await page.waitForTimeout(300)
+    assert((await termRows(log)).every(r => r.tag === `[${clickedTag}]`), `clicking the tag [${clickedTag}] in a row filters to it`)
+    const chip = log.locator("button.gge-term-acct").last()
+    const chipName = await chip.innerText()
+    await chip.click()
+    await page.waitForFunction(id => new URL(location.href).searchParams.getAll("account").join() === id, idOf(chipName))
+    await page.waitForTimeout(300)
+    const narrowed = await termRows(log)
+    assert(narrowed.length > 0 && narrowed.every(r => r.account === chipName && r.tag === `[${clickedTag}]`), `clicking the account chip ${chipName} adds it to the filters`)
+    const shownText = await count.innerText()
+    await page.screenshot({ path: `${out}/logs-filtered-1440.png` })
+
+    await page.reload()
+    await log.locator(".gge-term-row").first().waitFor()
+    await count.filter({ hasText: shownText }).waitFor()
+    assert(searchOf().getAll("tag").join() === clickedTag && searchOf().get("account") === idOf(chipName)
+        && await page.locator(".gge-tag-chip", { hasText: clickedTag }).count() === 1, "a reload keeps the tag and account filters, in the URL and the selects")
+    await page.goBack()
+    await page.waitForFunction(() => !new URL(location.href).searchParams.has("account"))
+    assert(searchOf().getAll("tag").join() === clickedTag, "Back undoes the account filter and keeps the tag")
+    await page.goForward()
+    await page.waitForFunction(() => new URL(location.href).searchParams.has("account"))
+    await count.filter({ hasText: shownText }).waitFor()
+    assert(true, "Forward brings the account filter back")
+
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .txt" }).click()])
+    const file = `${out}/${download.suggestedFilename()}`
+    await download.saveAs(file)
+    const fileLines = require("fs").readFileSync(file, "utf8").trimEnd().split("\n")
+    const shown = Number(shownText.split(" ")[0].replace(/,/g, ""))
+    assert(/^gge-bot-logs-.*\.txt$/.test(download.suggestedFilename()) && fileLines.length === shown
+        && fileLines.every(line => /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d (INFO |WARN |ERROR) /.test(line) && line.includes(`[${clickedTag}] ${chipName}: `)),
+        `Download .txt saves the ${shown} filtered lines and nothing else`)
+    await page.getByRole("button", { name: "Clear filters" }).first().click()
+    await page.waitForFunction(() => location.search === "")
+    await showingAll()
+    assert(true, "Clear filters on the page empties the URL and shows every line again")
+
+    await page.waitForTimeout(1500)
+    const first = unique()
+    await insertLogLine({ accountName: "Ironhold", level: 1, plugin: "feast", parts: ["consumed", first] })
+    await log.getByText(`Consumed ${first}`).waitFor()
+    await page.waitForTimeout(300)
+    assert((await termRows(log)).at(-1).text.includes(String(first)) && await atBottom(log) && await page.getByText("Following live").isVisible(),
+        "a line written while following appears at the bottom and the view stays there")
+    await log.hover()
+    await page.mouse.wheel(0, -900)
+    await page.getByText("Paused", { exact: true }).waitFor()
+    const second = unique()
+    await insertLogLine({ accountName: "Ravenmoor", level: 2, plugin: "ggeBot", parts: ["closedReason", "timedOut", " ", second] })
+    const pill = page.getByRole("button", { name: "1 new line · Jump to latest" })
+    await pill.waitFor()
+    assert(!await atBottom(log), "scrolling up pauses following, and a new line shows the 1 new line · Jump to latest pill instead of moving the view")
+    await page.screenshot({ path: `${out}/logs-live-pill-1440.png` })
+    await pill.click()
+    await page.getByText("Following live").waitFor()
+    await page.waitForTimeout(800)
+    assert((await termRows(log)).at(-1).text.includes(String(second)) && await atBottom(log) && await pill.count() === 0, "Jump to latest lands on the new line at the bottom and follows again")
+    await axe(page, "logs 1440")
+
+    await insertNotification({ accountName: "Ironhold" })
+    await page.getByRole("button", { name: /^Notifications, [1-9]\d* unread$/ }).click()
+    await page.getByRole("link", { name: "View logs for Ironhold" }).first().click()
+    await page.waitForURL(url => url.pathname === "/logs" && url.searchParams.get("account") === idOf("Ironhold") && url.searchParams.get("level") === "2")
+    await log.locator(".gge-term-row").first().waitFor()
+    await page.waitForTimeout(300)
+    assert((await termRows(log)).every(r => r.level === "2" && r.account === "Ironhold"), "a notification's View logs link opens Ironhold's errors on the Logs page")
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`${CLIENT_URL}/logs`)
+    await log.locator(".gge-term-row").first().waitFor()
+    await page.waitForTimeout(500)
+    assert(await overflow() === 0, "no horizontal overflow on /logs at 390")
+    await page.screenshot({ path: `${out}/logs-390.png` })
+    await axe(page, "logs 390")
+    await page.locator("button", { hasText: /^Filters$/ }).click()
+    const filtersDrawer = page.getByRole("dialog", { name: "Filters" })
+    await filtersDrawer.locator(".ant-segmented-item", { hasText: "Warning" }).click()
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("level") === "1")
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${out}/logs-390-filters.png` })
+    await axe(page, "logs 390 filters drawer")
+    await filtersDrawer.getByRole("button", { name: /^Show [\d,]+ lines?$/ }).click()
+    await page.locator("button", { hasText: /^Filters \(1\)$/ }).waitFor()
+    await page.waitForTimeout(300)
+    assert((await termRows(log)).every(r => r.level === "1") && await overflow() === 0, "at 390 the Filters drawer sets the level, the button counts it, and nothing overflows")
+    await page.setViewportSize({ width: 320, height: 700 })
+    await page.waitForTimeout(400)
+    assert(await overflow() === 0, "no horizontal overflow on /logs at 320")
+    await page.setViewportSize({ width: 1280, height: 860 })
 }
 
 ;(async () => {
@@ -411,13 +592,10 @@ function emailedLink(address) {
     await seeded.getByLabel("Username or email").fill("demo")
     await seeded.getByLabel("Password").fill("demo-password")
     await seeded.getByRole("button", { name: "Sign in" }).click()
+    await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+    await driveLogs(seeded)
+    await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
-    await seeded.getByRole("tab", { name: "Logs" }).click()
-    const botLog = seeded.getByRole("log", { name: "Bot log" })
-    await botLog.getByText("Max attacks reached").waitFor()
-    assert(await botLog.getByText("Logged in").count() === 1 && await botLog.locator("[aria-label=Warning]").count() === 1, "the Logs tab lists the account's lines with their level icons")
-    await axe(seeded, "account drawer logs")
-    await seeded.screenshot({ path: `${out}/14-account-logs.png` })
     await seeded.getByRole("tab", { name: "Run history" }).click()
     await seeded.getByRole("dialog").getByText("Server restart").first().waitFor()
     assert(true, "the Run history tab lists the account's runs")

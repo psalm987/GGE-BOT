@@ -8,7 +8,7 @@ import type { Ctx } from "../context.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
 import { audit } from "../services/audit.ts"
 import { detectLocale } from "../services/i18n.ts"
-import { accountLogs, accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
+import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
@@ -213,7 +213,6 @@ export const adminRouter = os.router({
             await setAccountProxy(db, input.id, input.proxyId)
             await audit(db, { actorId: user.id, action: "admin.account.set_proxy", targetType: "account", targetId: input.id, meta: { proxyId: input.proxyId } })
         }),
-        logs: os.accounts.logs.use(admin).handler(({ context: { db }, input }) => accountLogs(db, input.id, input)),
         runs: os.accounts.runs.use(admin).handler(({ context: { db }, input }) => accountRuns(db, input.id, input.limit)),
     },
     proxies: {

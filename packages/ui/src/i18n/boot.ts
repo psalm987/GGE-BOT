@@ -59,7 +59,7 @@ export async function initI18n({ detect }: { detect?: () => Promise<Locale | nul
         keySeparator: false,
         nsSeparator: false,
         defaultNS: "common",
-        ns: ["common", "bot"],
+        ns: ["common", "ui", "client", "bot"],
         interpolation: { escapeValue: false },
         react: { useSuspense: false },
     })

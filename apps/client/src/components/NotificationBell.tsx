@@ -1,10 +1,11 @@
-import { BellOutlined } from "@ant-design/icons"
+import { BellOutlined, ProfileOutlined } from "@ant-design/icons"
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query"
 import { Badge, Button, Popover, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useState } from "react"
-import { useNavigate } from "react-router"
+import { useTranslation } from "react-i18next"
+import { Link, useNavigate } from "react-router"
 import { describeNotification, type Notification } from "@gge/contracts"
 import { notificationsQuery, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
@@ -46,6 +47,7 @@ export function useOpenNotification() {
 
 /** The header bell: how many notifications are unread, and the list behind it. */
 export function NotificationBell() {
+    const { t } = useTranslation("client")
     const [open, setOpen] = useState(false)
     const list = useInfiniteQuery({ ...notificationsQuery, refetchInterval: pollInterval(useRealtimeState()) })
     const markRead = useMarkRead()
@@ -84,6 +86,17 @@ export function NotificationBell() {
                                         {gone && " · This account is no longer on your roster"}
                                     </small>
                                 </button>
+                                {!gone && (
+                                    <Link className="gge-notification-logs" to={`/logs?account=${n.accountId}&level=2`} aria-label={t("notifications.viewLogsFor", { account: n.data.accountName })}
+                                        onClick={() => {
+                                            if (!n.readAt)
+                                                markRead.mutate({ ids: [n.id] })
+                                            setOpen(false)
+                                        }}>
+                                        <ProfileOutlined aria-hidden />
+                                        {t("notifications.viewLogs")}
+                                    </Link>
+                                )}
                             </li>
                         )
                     })}

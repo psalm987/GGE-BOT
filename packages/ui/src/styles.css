@@ -3,6 +3,8 @@
 @import "@fontsource/alegreya-sans/400.css";
 @import "@fontsource/alegreya-sans/500.css";
 @import "@fontsource/alegreya-sans/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 
 :root {
     --gge-ink: #15110E;
@@ -10,6 +12,21 @@
     --gge-crimson: #D7263D;
     --gge-parchment: #F3E7C9;
     --gge-rule: #4A3B26;
+    --gge-muted: #BFAE8A;
+    --gge-terminal: #18130F;
+    --gge-level-info: #BFAE8A;
+    --gge-level-warn: #F08C2E;
+    --gge-level-error: #FF7B8A;
+    --gge-tag-0: #6CB6F5;
+    --gge-tag-1: #4FD1C5;
+    --gge-tag-2: #7DD87A;
+    --gge-tag-3: #C5D86D;
+    --gge-tag-4: #8FA2FF;
+    --gge-tag-5: #B794F6;
+    --gge-tag-6: #E38AE8;
+    --gge-tag-7: #F49AC1;
+    /* Only the log terminal uses it, so the font files load only where a log is shown. */
+    --gge-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     /* Faint noise so large grounds read as cloth, not flat black. */
     --gge-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.6 0 0 0 .045 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
@@ -111,6 +128,17 @@ body {
 .gge-notifications li button.gge-unread { border-inline-start-color: var(--gge-gold); }
 .gge-notifications li button:not(.gge-unread) strong { font-weight: 500; }
 .gge-notifications li small { color: #BFAE8A; }
+.gge-notification-logs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    margin-top: -6px;
+    padding-inline: 17px 8px;
+    color: var(--gge-gold);
+}
+.gge-notification-logs:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gge-notification-logs:focus-visible { outline-offset: -2px; }
 
 .gge-lang-list { max-height: min(60dvh, 420px); overflow-y: auto; margin: 8px 0 0; padding: 0; list-style: none; }
 .gge-lang-option {
@@ -130,3 +158,170 @@ body {
     outline-offset: -2px;
 }
 .gge-lang-option small { display: block; color: #BFAE8A; }
+
+/* A label you can always see, above its control. */
+.gge-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.gge-field-label { color: var(--gge-muted); font-size: 13px; font-weight: 500; }
+.gge-kbd {
+    font-family: var(--gge-mono);
+    font-size: 12px;
+    line-height: 18px;
+    padding: 0 6px;
+    border: 1px solid var(--gge-rule);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    color: var(--gge-muted);
+}
+@media (hover: none) { .gge-kbd { display: none; } }
+/* Full width on a phone: the count goes under the word, so "Warning" never gets cut. */
+.gge-level-block .ant-segmented-item-label { display: flex; align-items: center; justify-content: center; min-height: 44px; white-space: normal; }
+.gge-level-block .gge-level-option { display: flex; flex-direction: column; line-height: 1.25; }
+.gge-tag-option { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.gge-tag-option code { font-family: var(--gge-mono); font-size: 13px; color: var(--gge-tag); overflow: hidden; text-overflow: ellipsis; }
+.gge-tag-option small, .gge-count { color: var(--gge-muted); font-variant-numeric: tabular-nums; }
+.gge-tag-chip { font-family: var(--gge-mono); font-size: 12px; color: var(--gge-tag) !important; border-color: color-mix(in srgb, var(--gge-tag) 45%, transparent) !important; }
+
+/* The log terminal: an inset well a step darker than the cards around it. */
+.gge-term {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--gge-terminal);
+    border: 1px solid var(--gge-rule);
+    border-radius: 8px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+.gge-term-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 44px;
+    padding-inline: 14px 6px;
+    border-bottom: 1px solid var(--gge-rule);
+}
+.gge-term-status { display: inline-flex; align-items: center; gap: 8px; color: var(--gge-muted); font-size: 14px; }
+.gge-term-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CC07F; box-shadow: 0 0 0 3px rgba(76, 192, 127, 0.18); }
+.gge-term-dot[data-paused] { background: var(--gge-muted); box-shadow: none; }
+.gge-term-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: 6px;
+    font-family: var(--gge-mono);
+    font-size: 14px;
+    line-height: 21px;
+    font-variant-numeric: tabular-nums;
+    color: var(--gge-parchment);
+    scrollbar-color: var(--gge-rule) transparent;
+}
+.gge-term[data-compact] .gge-term-scroll { font-size: 13px; line-height: 20px; }
+.gge-term-scroll:focus-visible { outline-offset: -2px; }
+.gge-term-row {
+    display: grid;
+    grid-template-columns: var(--gge-term-cols);
+    column-gap: 1.5ch;
+    align-items: baseline;
+    padding-block: 2px;
+    padding-inline: 12px 14px;
+    border-inline-start: 2px solid transparent;
+}
+.gge-term-row:hover { background: rgba(243, 231, 201, 0.045); }
+.gge-term-row[data-level="2"] { background: rgba(255, 123, 138, 0.07); border-inline-start-color: var(--gge-level-error); }
+.gge-term[data-compact] .gge-term-row { display: flex; flex-wrap: wrap; column-gap: 1.25ch; padding-block: 5px; }
+.gge-term[data-compact] .gge-term-msg { flex-basis: 100%; }
+.gge-term-time { color: var(--gge-muted); white-space: nowrap; }
+.gge-term-level { display: inline-flex; align-items: baseline; gap: 0.6ch; white-space: nowrap; }
+.gge-term-level[data-level="0"] { color: var(--gge-level-info); }
+.gge-term-level[data-level="1"] { color: var(--gge-level-warn); }
+.gge-term-level[data-level="2"] { color: var(--gge-level-error); font-weight: 500; }
+.gge-term-level .anticon { font-size: 0.85em; }
+.gge-term-tag, .gge-term-acct {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    justify-self: start;
+}
+.gge-term-tag {
+    padding: 0 2px;
+    margin-inline: -2px;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: var(--gge-tag);
+}
+.gge-term-tag:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gge-term-acct {
+    padding: 0 6px;
+    border: 1px solid var(--gge-rule);
+    border-radius: 4px;
+    background: rgba(243, 231, 201, 0.05);
+    color: var(--gge-parchment);
+    font-size: 12px;
+    line-height: 18px;
+}
+.gge-term-acct:hover { border-color: var(--gge-gold); }
+.gge-term-msg { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gge-term-msg mark { padding: 0 1px; border-radius: 2px; background: rgba(224, 165, 38, 0.32); color: inherit; }
+.gge-term-day {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px 4px;
+    color: var(--gge-muted);
+    font-family: "Alegreya Sans", system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.gge-term-day::after { content: ""; flex: 1; height: 1px; background: var(--gge-rule); }
+.gge-term-start { display: flex; justify-content: center; padding: 6px 14px 4px; color: var(--gge-muted); font-family: "Alegreya Sans", system-ui, sans-serif; font-size: 13px; }
+.gge-term-skel { display: flex; align-items: center; gap: 1.5ch; height: 25px; padding-inline: 14px; }
+.gge-term-skel span {
+    height: 9px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(243, 231, 201, 0.05), rgba(243, 231, 201, 0.11), rgba(243, 231, 201, 0.05));
+    background-size: 200% 100%;
+    animation: gge-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes gge-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.gge-term-empty {
+    display: grid;
+    flex: 1;
+    gap: 12px;
+    place-content: center;
+    justify-items: center;
+    padding: 32px 16px;
+    color: var(--gge-muted);
+    text-align: center;
+}
+.gge-term-empty .anticon { font-size: 28px; color: var(--gge-rule); }
+.gge-term-pill {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 16px;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    animation: gge-rise 0.2s ease-out;
+}
+.gge-term-pill .ant-btn { pointer-events: auto; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); }
+@keyframes gge-rise { from { transform: translateY(8px); opacity: 0; } }
+
+/* The Logs page fills the window below the header, so the terminal scrolls inside itself. */
+.gge-logs-page { display: flex; flex-direction: column; gap: 12px; height: calc(100dvh - 112px); min-height: 560px; }
+.gge-logs-toolbar { display: grid; gap: 10px; min-width: 0; }
+.gge-logs-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
+.gge-logs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+@media (max-width: 767.98px) {
+    .gge-logs-page { height: calc(100dvh - 88px); min-height: 540px; }
+}

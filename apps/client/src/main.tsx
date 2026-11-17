@@ -14,6 +14,7 @@ import { ConfirmEmailChange } from "./pages/ConfirmEmailChange.tsx"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
 import { Login } from "./pages/Login.tsx"
+import { Logs } from "./pages/Logs.tsx"
 import { ResetPassword } from "./pages/ResetPassword.tsx"
 import { Settings } from "./pages/Settings.tsx"
 import { Signup } from "./pages/Signup.tsx"
@@ -35,6 +36,7 @@ function Root() {
                         <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
                         <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                         <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
+                        <Route path="/logs" element={<RequireAuth><RequireVerified><Logs /></RequireVerified></RequireAuth>} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>

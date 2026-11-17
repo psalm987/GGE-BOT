@@ -55,20 +55,21 @@ describe("users.get", () => {
         const asAdminApp = api.admin()
         for (const [k, v] of watched.jar) asAdminApp.jar.set(k, v)
         expect(await codeOf(asAdminApp.api.users.get({ id: watchedId }))).toBe("UNAUTHORIZED")
-        expect(await codeOf(asAdminApp.api.accounts.logs({ id: accountId }))).toBe("UNAUTHORIZED")
+        expect(await codeOf(asAdminApp.api.logs.feed({ ownerId: watchedId, accountIds: [accountId] }))).toBe("UNAUTHORIZED")
         expect(await codeOf(asAdminApp.api.accounts.runs({ id: accountId }))).toBe("UNAUTHORIZED")
         expect(await codeOf(asAdminApp.api.audit.list({ actorId: watchedId }))).toBe("UNAUTHORIZED")
     })
 })
 
-describe("accounts.logs and accounts.runs for admins", () => {
-    test("logs of an account the admin doesn't own are newest first and paged by before", async () => {
-        const first = await admin.api.accounts.logs({ id: accountId, limit: 2 })
+describe("an account's log and runs for admins", () => {
+    test("the log of an account the admin doesn't own is newest first and paged by before", async () => {
+        const page = (before?: number) => admin.api.logs.feed({ ownerId: watchedId, accountIds: [accountId], limit: 2, before })
+        const first = await page()
         expect(first.map(l => l.message)).toEqual(["line 5", "line 4"])
-        const second = await admin.api.accounts.logs({ id: accountId, limit: 2, before: first[1]!.id })
+        const second = await page(first[1]!.id)
         expect(second.map(l => l.message)).toEqual(["line 3", "line 2"])
         expect(second[0]!.parts).toEqual(["line 3"])
-        expect(await admin.api.accounts.logs({ id: accountId, before: second[1]!.id })).toHaveLength(1)
+        expect(await page(second[1]!.id)).toHaveLength(1)
     })
 
     test("runs come back newest first and respect the limit", async () => {
@@ -76,13 +77,13 @@ describe("accounts.logs and accounts.runs for admins", () => {
         expect(await admin.api.accounts.runs({ id: accountId, limit: 1 })).toHaveLength(1)
     })
 
-    test("the client still refuses another player's account", async () => {
-        expect(await codeOf(bystander.api.accounts.logs({ id: accountId }))).toBe("NOT_FOUND")
+    test("a player reads neither the log nor the runs of another player's account", async () => {
+        expect(await bystander.api.logs.feed({ accountIds: [accountId] })).toEqual([])
         expect(await codeOf(bystander.api.accounts.runs({ id: accountId }))).toBe("NOT_FOUND")
     })
 
     test("an account with no history is an empty page", async () => {
-        expect(await admin.api.accounts.logs({ id: MISSING })).toEqual([])
+        expect(await admin.api.logs.feed({ ownerId: watchedId, accountIds: [MISSING] })).toEqual([])
         expect(await admin.api.accounts.runs({ id: MISSING })).toEqual([])
     })
 })

@@ -147,39 +147,11 @@ export function useRealtime(userId: string | undefined, onNotification: (notific
     }, [userId])
 }
 
-export type LiveLine = BotChannelEvent["line"]
-
-/**
- * One account's log lines as they happen, newest first, since this was mounted.
- * `gaps` counts the times the connection missed events, so a viewer knows to fetch the log again.
- */
-export function useBotLog(accountId: string) {
-    const [log, setLog] = useState<{ accountId: string; lines: LiveLine[]; gaps: number }>({ accountId, lines: [], gaps: 0 })
-    useEffect(() => {
-        const subscription = centrifuge.newSubscription(botChannel(accountId), {
-            getToken: () => botToken(accountId),
-        })
-        subscription.on("publication", ({ data }) => {
-            const line = parse(BotChannelEvent, data)?.line
-            if (line)
-                setLog(log => ({ accountId, gaps: log.gaps, lines: [line, ...(log.accountId === accountId ? log.lines : [])].slice(0, 500) }))
-        })
-        subscription.on("subscribed", ctx => {
-            if (!missedEvents(ctx))
-                return
-            // The fetched page is the truth again; lines from before the gap would sit above a hole.
-            setLog(log => ({ accountId, lines: [], gaps: log.gaps + 1 }))
-        })
-        subscription.subscribe()
-        return () => centrifuge.removeSubscription(subscription)
-    }, [accountId])
-    return { lines: log.accountId === accountId ? log.lines : [], gaps: log.accountId === accountId ? log.gaps : 0 }
-}
-
 /**
  * The log lines of several accounts as they happen, merged newest first, since this was mounted.
- * `onGap` is called with an account whose subscription could not recover the lines it missed on reconnecting,
- * so the caller can fetch that stretch again.
+ * `onGap` is called with an account whose lines may have been missed, so the caller can fetch them: once it first
+ * subscribes (a line written after the caller's fetch but before then never arrives live), and after a reconnect
+ * the server's history couldn't cover.
  */
 export function useBotLogs(accountIds: string[], { onGap }: { onGap?: (accountId: string) => void } = {}) {
     const [lines, setLines] = useState<FeedLine[]>([])
@@ -197,7 +169,7 @@ export function useBotLogs(accountIds: string[], { onGap }: { onGap?: (accountId
                     setLines(lines => mergeFeed(lines, [{ ...event.line, accountId: event.accountId }]))
             })
             subscription.on("subscribed", ctx => {
-                if (ctx.wasRecovering && !ctx.recovered)
+                if (missedEvents(ctx))
                     gap.current?.(accountId)
             })
             subscription.subscribe()

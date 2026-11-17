@@ -1,13 +1,14 @@
-import { SettingOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons"
+import { ProfileOutlined, SettingOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons"
 import { Grid, Tag, type MenuProps } from "antd"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { CampaignLayout } from "@gge/ui"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
 import { useRealtimeState } from "../realtime.ts"
 import { NotificationBell } from "./NotificationBell.tsx"
 
-const ROUTES = { accounts: "/", settings: "/settings" } as const
+const ROUTES = { accounts: "/", logs: "/logs", settings: "/settings" } as const
 
 /** The signed-in shell shared by every player page. */
 export function AppLayout({ activeKey, title, extra, accountMenu = [], children }: {
@@ -18,6 +19,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     children: ReactNode
 }) {
     const navigate = useNavigate()
+    const { t } = useTranslation("client")
     const me = useMe()
     const logout = useLogout()
     const saveLocale = useSaveLocale()
@@ -32,6 +34,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             product="GGE Command"
             nav={[
                 { key: "accounts", label: "Accounts", icon: <TeamOutlined /> },
+                { key: "logs", label: t("nav.logs"), icon: <ProfileOutlined /> },
                 { key: "settings", label: "Settings", icon: <SettingOutlined /> },
             ]}
             activeKey={activeKey}

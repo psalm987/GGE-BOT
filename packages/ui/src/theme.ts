@@ -21,6 +21,14 @@ export const palette = {
     /** Resting, not failing: light enough to pass 4.5:1 as text on every ground. */
     dusk: "#A99BEA",
     rule: "#4A3B26",
+    /** The log terminal's inset ground, a step darker than `surface`. */
+    terminal: "#18130F",
+    // Log levels: info recedes, warnings and errors stand out. Each also shows an icon and a word.
+    levelInfo: "#BFAE8A",
+    levelWarn: "#F08C2E",
+    levelError: "#FF7B8A",
+    /** Plugin tags in the log, picked by a hash of the key. No reds or ambers, so a tag never reads as a level. */
+    tags: ["#6CB6F5", "#4FD1C5", "#7DD87A", "#C5D86D", "#8FA2FF", "#B794F6", "#E38AE8", "#F49AC1"],
 } as const
 
 export const campaignTheme: ThemeConfig = {

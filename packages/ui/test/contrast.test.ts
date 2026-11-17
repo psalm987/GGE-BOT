@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { expect, test } from "vitest"
 import { palette } from "../src/theme.ts"
 
@@ -34,4 +35,30 @@ test.each([
 test("text on filled buttons is readable: primary on gold, danger on crimson", () => {
     expect(contrast("#1A130D", palette.gold)).toBeGreaterThanOrEqual(4.5)
     expect(contrast("#1A130D", palette.crimsonText)).toBeGreaterThanOrEqual(4.5)
+})
+
+// Tags show in the terminal and in the tag filter's list, which opens on `raised`.
+const logGrounds = { terminal: palette.terminal, raised: palette.raised, surface: palette.surface }
+test.each([
+    ...palette.tags.map((hue, i) => [`tag hue ${i}`, hue] as const),
+    ["info level", palette.levelInfo],
+    ["warning level", palette.levelWarn],
+    ["error level", palette.levelError],
+    ["log time and day dividers", palette.muted],
+])("%s is readable as log text", (_, color) => {
+    for (const [name, ground] of Object.entries(logGrounds))
+        expect(contrast(color, ground), `${color} on ${name}`).toBeGreaterThanOrEqual(4.5)
+})
+
+test("the terminal ground is a step darker than the cards it sits among", () => {
+    expect(luminance(palette.terminal)).toBeLessThan(luminance(palette.surface))
+})
+
+test("the stylesheet's log colours are the palette's", () => {
+    const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8")
+    const cssVar = (name: string) => css.match(new RegExp(`--gge-${name}:\\s*(#[0-9A-Fa-f]{6});`))?.[1]?.toUpperCase()
+    expect(cssVar("terminal")).toBe(palette.terminal)
+    expect(cssVar("muted")).toBe(palette.muted)
+    expect([cssVar("level-info"), cssVar("level-warn"), cssVar("level-error")]).toEqual([palette.levelInfo, palette.levelWarn, palette.levelError])
+    expect(palette.tags.map((_, i) => cssVar(`tag-${i}`))).toEqual([...palette.tags])
 })
