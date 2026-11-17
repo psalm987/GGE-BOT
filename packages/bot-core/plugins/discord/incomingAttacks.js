@@ -16,10 +16,11 @@ if (require('node:worker_threads').isMainThread)
         ]
     }
 
-const { botConfig, playerInfo, i18n } = require("../../ggeBot.js")
-const { movementEvents, KingdomID } = require("../../protocols.js")
+const { botConfig, i18n, events } = require("../../ggeBot.js")
+const { KingdomID } = require("../../protocols.js")
 const { createLayout } = require("../../imageGen.js")
 const { clientReady, client, findMember } = require("./discord.js")
+require("../incoming.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 
@@ -31,46 +32,33 @@ const kingdomName = [
     `\u001b[2;36m${i18n.__(KingdomID[4])}\u001b[0m`
 ]
 
-const storedMessages = new WeakMap()
+/** The post for each attack, by movement id, so a later sighting of its army can add the picture. */
+const posts = new Map()
 
-const layoutFile = movement => ({
-    attachment: createLayout(movement.left, movement.middle, movement.right, movement.courtyard),
+const layoutFile = ({ left, middle, right, courtyard }) => ({
+    attachment: createLayout(left, middle, right, courtyard),
     name: "attack.png"
 })
 const isAway = member => !["online", "dnd"].includes(member.presence?.status)
 
-movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
+events.on("incoming:updated", async (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
+    const message = await posts.get(attack.movementId)
+    if (message?.attachments.size != 0)
+        return
+    posts.set(attack.movementId, message.edit({
+        content: message.content,
+        files: [layoutFile(attack.waves)]
+    }).catch(e => (console.warn(e), message)))
+})
+events.on("incoming:cleared", (/** @type {import("../incoming.js").IncomingAttack} */ attack) => posts.delete(attack.movementId))
+
+events.on("incoming:new", async (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
     await clientReady
 
-    if (![0, 25, 31, 24, 29].includes(movement.type))
-        return
-    if (movement.sourceOwner.ownerID < 0)
-        return
-    if (movement.targetOwner.ownerID < 0)
-        return
-    if (movement.sourceOwner.allianceID == playerInfo.alliance.id)
-        return
-    if (movement.targetOwner.allianceID != playerInfo.alliance.id)
+    if (kingdomName[attack.kingdom] == undefined)
         return
 
-    if (kingdomName[movement.kingdomID] == undefined)
-        return
-
-    if (movement.canSeeArmy) {
-        const message = await storedMessages.get(movement)
-        if (message) {
-            if (message?.attachments.size == 0) {
-                // Kept, so the next sighting of this attack sees the picture and doesn't draw it again.
-                storedMessages.set(movement, message.edit({
-                    content: message.content,
-                    files: [layoutFile(movement)]
-                }).catch(e => (console.warn(e), message)))
-            }
-            return
-        }
-    }
-
-    const timeLeft = (movement.totalTime - (movement.deltaTime - Date.now())) / 1000
+    const timeLeft = (attack.arrivesAt - Date.now()) / 1000
 
     try {
         var channelAlert = await client.channels.fetch(pluginOptions.channelID)
@@ -86,33 +74,36 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         console.warn(e)
     }
 
-    const channel = movement.kingdomID != 4 ? channelAlert : channelAquaAlert
+    const channel = attack.kingdom != 4 ? channelAlert : channelAquaAlert
     
     if (channel == undefined)
         return
 
-    const clicks = Math.round(Math.sqrt(Math.pow(movement.sourceAttack.x - movement.targetAttack.x, 2) + Math.pow(movement.sourceAttack.y - movement.targetAttack.y, 2)) * 10) / 10
-    const targetName = botConfig.externalEvent ? movement.targetOwner.name.replace(/_[^_]+$/, '') : movement.targetOwner.name
+    const { attacker, sourceCastle, defender, targetCastle } = attack
+    const clicks = Math.round(Math.sqrt(Math.pow(sourceCastle.x - targetCastle.x, 2) + Math.pow(sourceCastle.y - targetCastle.y, 2)) * 10) / 10
+    const targetName = botConfig.externalEvent ? defender.name.replace(/_[^_]+$/, '') : defender.name
     const member = channelAlert && await findMember(channelAlert, targetName)
     const mention = member?.displayName ? `<@${member.id}> ` : ``
     const data = {
         content : `${mention}` +  (pluginOptions.mentionEveryone ? " @everyone" : "") +
         "```ansi\n" +
-        `${movement.sourceOwner.name} (${movement.sourceAttack.extraData[7]})${i18n.__("incomingFrom")}${movement.sourceOwner.allianceName}` +
-        `${i18n.__("incomingIsAttacking")}${movement.targetOwner.name} (${movement.targetAttack.extraData[7]})${i18n.__("incomingIn")}${kingdomName[movement.kingdomID]} ${clicks}${i18n.__("incomingClicks")}` +
+        `${attacker.name} (${sourceCastle.extraData[7]})${i18n.__("incomingFrom")}${attacker.allianceName}` +
+        `${i18n.__("incomingIsAttacking")}${defender.name} (${targetCastle.extraData[7]})${i18n.__("incomingIn")}${kingdomName[attack.kingdom]} ${clicks}${i18n.__("incomingClicks")}` +
         "```" +
-        `<t:${Math.round(Date.now() / 1000 + timeLeft)}:R>`
+        `<t:${Math.round(attack.arrivesAt / 1000)}:R>`
     }
 
-    if (movement.canSeeArmy)
-        data.files = [layoutFile(movement)]
+    if (attack.waves)
+        data.files = [layoutFile(attack.waves)]
     
-    storedMessages.set(movement, await channel.send(data))
+    const post = channel.send(data)
+    posts.set(attack.movementId, post)
+    await post
 
     if (!channelAlert)
         return
 
-    if (member && movement.kingdomID != KingdomID.stormIslands && isAway(member)) {
+    if (member && attack.kingdom != KingdomID.stormIslands && isAway(member)) {
         const spreadAlert = async () => {
             const current = await findMember(channelAlert, targetName)
             if (current && isAway(current))

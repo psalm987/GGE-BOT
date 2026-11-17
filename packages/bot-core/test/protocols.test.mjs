@@ -2,7 +2,7 @@ import { createRequire } from "node:module"
 import { describe, test, expect } from "vitest"
 
 const require = createRequire(import.meta.url)
-const { loadModule } = require("./harness/load.cjs")
+const { loadModule, fakeBot } = require("./harness/load.cjs")
 
 const productionData = { SAFE_F: 111, SAFE_W: 222, SAFE_S: 333, MRF: 1, MRW: 2, MRS: 3 }
 
@@ -71,5 +71,76 @@ describe("movement removal", () => {
         expect(returned).toHaveLength(1)
         expect(returned[0].id).toBe(42)
         expect(mod.movements.map(m => m.id)).not.toContain(42)
+    })
+})
+
+describe("movement armies", () => {
+    const units = [{ wodID: 10, role: "ranged" }, { wodID: 11, role: "melee" }, { wodID: 611 }]
+    const march = army => ({ M: { MID: 7, T: 0, KID: 0, OID: 99, TID: 98, SID: 99, TT: 60, PT: 30, TA: [], SA: [] }, ...army })
+    const waves = movement => [movement.left, movement.middle, movement.right, movement.courtyard]
+        .map(wave => wave.map(unit => [unit.unitInfo.wodID, unit.amount]))
+
+    test("an army sent as FA, with no GA, is read and counts as visible", () => {
+        const { mod, bot } = loadModule("protocols.js", { items: { units } })
+        bot.xtHandler.emit("gam", { M: [march({ FA: { L: [[10, 5]], M: [[611, 2], [11, 8]], R: [[10, 3]], RW: [[11, 4]] } })], O: [] }, 0)
+
+        const [movement] = mod.movements
+        expect(waves(movement)).toEqual([[[10, 5]], [[611, 2], [11, 8]], [[10, 3]], [[11, 4]]])
+        expect(movement.canSeeArmy).toBe(true)
+    })
+
+    test("an army sent as GA is read as before, and a movement with neither has no visible army", () => {
+        const { mod, bot } = loadModule("protocols.js", { items: { units } })
+        bot.xtHandler.emit("gam", { M: [march({ GA: { L: [[10, 5]], M: [], R: [], RW: [] } }), { ...march(), M: { ...march().M, MID: 8 } }], O: [] }, 0)
+
+        const [seen, unseen] = mod.movements
+        expect(waves(seen)).toEqual([[[10, 5]], [], [], []])
+        expect(seen.canSeeArmy).toBe(true)
+        expect(waves(unseen)).toEqual([[], [], [], []])
+        expect(unseen.canSeeArmy).toBe(false)
+    })
+})
+
+describe("alliance lookup by name", () => {
+    test("finds the alliance through the highscore and returns its info", async () => {
+        const bot = fakeBot()
+        bot.sendXT = async (cmd, params) => {
+            const p = JSON.parse(params)
+            bot.sent.push([cmd, p])
+            setImmediate(() => {
+                if (cmd == "hgh")
+                    bot.xtHandler.emit("hgh", { LT: 11, SV: p.SV, L: [[1, 0, [12, "Wolves"]], [2, 0, [77, "Lambs"]]] }, 0)
+                if (cmd == "ain")
+                    bot.xtHandler.emit("ain", { A: { AID: p.AID, M: [{ OID: 5, N: "Ada", AID: p.AID }], MP: 0 } }, 0)
+            })
+        }
+        const { mod } = loadModule("protocols.js", { bot })
+
+        const alliance = await mod.ClientCommands.getAllianceByName("lambs")
+
+        expect(bot.sent).toEqual([["hgh", { LT: 11, SV: "lambs" }], ["ain", { AID: 77 }]])
+        expect(alliance.allianceID).toBe(77)
+        expect(alliance.members.map(m => m.name)).toEqual(["Ada"])
+    })
+})
+
+describe("finding the next map object", () => {
+    const fixture = name => require(`./fixtures/protocol/${name}.json`).find_target_fnm.payload
+
+    test("asks for invader camps with the owner id it is given, and resolves with the camp", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        const camp = mod.ClientCommands.getNextMapObject(34, 0, -701)
+        await new Promise(resolve => setImmediate(resolve))
+        bot.xtHandler.emit("fnm", { gaa: { KID: 0, AI: [[34, 500, 600, 40]], OI: [] } }, 0)
+
+        expect(bot.sent).toEqual([["fnm", fixture("bloodcrow")]])
+        expect(await camp).toMatchObject({ result: 0, areaInfo: { type: 34, x: 500, y: 600 } })
+    })
+
+    test("asks for alliance nomad camps when no owner id is given", () => {
+        const { mod, bot } = loadModule("protocols.js")
+        mod.ClientCommands.getNextMapObject(35, 0)
+
+        expect(bot.sent).toEqual([["fnm", { T: 35, KID: 0, LMIN: -1, LMAX: -1, NID: -801 }]])
     })
 })

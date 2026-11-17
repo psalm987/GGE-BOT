@@ -25,7 +25,7 @@ The event dialog finds the next camp with `fnm` (Foreign Lords at G@13126457, Bl
 | `LMAX` | -1 |
 | `NID` | -701, `BASIC_INVASION_CAMP_PLAYER_ID` (D@2577953) |
 
-The reply carries the camp in `gaa`, the shape that `ClientCommands.getNextMapObject` in `protocols.js` already parses. That helper sends `NID: -801`, the id for alliance nomad camps (`BASIC_ALLIANCE_NOMAD_CAMP_PLAYER_ID`, D@2578043), so it cannot find these camps as written.
+The reply carries the camp in `gaa`. `ClientCommands.getNextMapObject(type, kingdomID, NID)` in `protocols.js` sends the request and parses the reply. Its `NID` defaults to -801, the id for alliance nomad camps (`BASIC_ALLIANCE_NOMAD_CAMP_PLAYER_ID`, D@2578043). Pass -701 to find these camps.
 
 ## Camp area info
 

@@ -130,9 +130,10 @@ describe("the Discord client a bot gets under the runner", () => {
 
 const KingdomID = { 0: "greatEmpire", 1: "burningSands", 2: "everWinterGlacier", 3: "firePeaks", 4: "stormIslands", stormIslands: 4 }
 
+let nextMovementId = 1
 function attack(overrides = {}) {
     return {
-        type: 0, kingdomID: 0, canSeeArmy: false,
+        id: nextMovementId++, type: 0, kingdomID: 0, canSeeArmy: false,
         sourceOwner: { ownerID: 1, allianceID: 2, name: "Raider", allianceName: "Wolves" },
         targetOwner: { ownerID: 5, allianceID: 9, name: "Ada", allianceName: "Lambs" },
         sourceAttack: { x: 0, y: 0, extraData: [, , , , , , , "Wolf Den"] },
@@ -170,6 +171,30 @@ describe("incoming attack alerts", () => {
         const [content] = hub.contents("1")
         expect(content).toMatch(/^<@7> ```ansi\nRaider \(Wolf Den\) from Wolves is attacking Ada \(Ada's Keep\) incoming in .*greatEmpire.* 5 clicks```<t:\d+:R>$/)
         expect(hub.contents("1")).toHaveLength(1)
+        expect(hub.sent("channelSend")[0].payload.files).toBeUndefined()
+    })
+
+    test("an attack read from the game's movement list is posted as the same card", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] })
+        vi.setSystemTime(1_800_000_000_000)
+        const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "online" }] })
+        const bot = underRunner({ incomingAttacks: { channelID: "1" } })
+        bot.playerInfo.alliance = { id: 9 }
+        loadModule("plugins/discord/incomingAttacks.js", {
+            bot, parentPort: hub.port,
+            extra: { "imageGen.js": { createLayout: () => Readable.from([Buffer.from(PNG)]) } },
+        })
+
+        bot.xtHandler.emit("gam", {
+            M: [{ M: { MID: 42, T: 0, KID: 0, OID: 1, SID: 1, TID: 5, TT: 600, PT: 100, HBW: -1,
+                TA: [1, 3, 4, 5, 0, 0, 0, 0, 0, 0, "Ada's Keep"], SA: [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, "Wolf Den"] } }],
+            O: [{ OID: 1, N: "Raider", AID: 2, AN: "Wolves" }, { OID: 5, N: "Ada", AID: 9, AN: "Lambs" }],
+        }, 0)
+        await settle()
+
+        expect(hub.contents("1")).toEqual([
+            "<@7> ```ansi\nRaider (Wolf Den) from Wolves is attacking Ada (Ada's Keep) incoming in \u001b[2;32mGreat Empire\u001b[0m 5 clicks```<t:1800000500:R>",
+        ])
         expect(hub.sent("channelSend")[0].payload.files).toBeUndefined()
     })
 

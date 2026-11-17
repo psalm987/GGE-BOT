@@ -255,7 +255,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
                         if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
                             continue
-                        if (troopBlackList.includes(unit))
+                        if (troopBlackList.includes(unit.unitInfo.wodID))
                             continue
                         if (unit.unitInfo.foodSupply && !pluginOptions.useFood)
                             continue

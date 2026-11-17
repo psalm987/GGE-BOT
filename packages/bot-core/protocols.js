@@ -216,8 +216,9 @@ async function clientSkipTarget(type, x, y, kingdomID, skip) {
     
     return { areaInfo: MapObject(new GAAAreaInfo(obj.AI), kingdomID), result: 0 }
 }
-async function clientGetNextMapObject(type, kingdomID) {
-    await sendXT("fnm", JSON.stringify({ T: type, KID: kingdomID, LMIN: -1, LMAX: -1, NID: -801 }))
+/** `NID` names the camp owner. -801 finds alliance nomad camps and -701 Foreign Lords and Bloodcrow camps. */
+async function clientGetNextMapObject(type, kingdomID, NID = -801) {
+    await sendXT("fnm", JSON.stringify({ T: type, KID: kingdomID, LMIN: -1, LMAX: -1, NID }))
     
     const [obj, result] = (await waitForResult("fnm", 8500, (obj, result) => {
         if (result != 0)
@@ -1220,17 +1221,13 @@ class Movement {
 
         this.horseType = Number(movement.M.HBW)
 
-        this.canSeeArmy = !!movement.GA
+        const army = movement.GA ?? movement.FA
+        this.canSeeArmy = !!army
 
-        this.left = Array.from(movement.GA?.L ?? []).map(Unit)
-        this.middle = Array.from(movement.GA?.M ?? []).map(Unit)
-        this.right = Array.from(movement.GA?.R ?? []).map(Unit)
-        this.courtyard = Array.from(movement.GA?.RW ?? []).map(Unit)
-        
-        this.left ??= Array.from(movement.FA?.L ?? []).map(Unit)
-        this.middle ??= Array.from(movement.FA?.M ?? []).map(Unit)
-        this.right ??= Array.from(movement.FA?.R ?? []).map(Unit)
-        this.courtyard ??= Array.from(movement.FA?.RW ?? []).map(Unit)
+        this.left = Array.from(army?.L ?? []).map(Unit)
+        this.middle = Array.from(army?.M ?? []).map(Unit)
+        this.right = Array.from(army?.R ?? []).map(Unit)
+        this.courtyard = Array.from(army?.RW ?? []).map(Unit)
 
         this.station = Array.from(movement.A ?? []).map(Unit)
         this.resources = new Resources(Object.fromEntries(movement.G ?? []))
@@ -1309,7 +1306,7 @@ async function clientGetAllianceByName(name) {
     if (item == undefined)
         throw Error("ALLIANCE_NOT_FOUND")
 
-    return clientGetAllianceByID(item[2][0])()
+    return clientGetAllianceByID(item[2][0])
 }
 
 const getKingdomID = areaInfo => {

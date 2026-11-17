@@ -118,7 +118,7 @@ events.on("eventStart", async eventInfo => {
                 areas.push(areaInfo)
 
                 await skipTarget(areaInfo)
-                const level = areaInfo.extraData[1] + areaInfo.extraData[6] == 100 ? 70 : 56
+                const level = areaInfo.extraData[1] + (areaInfo.extraData[6] == 100 ? 70 : 56)
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
