@@ -3,8 +3,8 @@ import type { PgTable } from "drizzle-orm/pg-core"
 import {
     auditLog, botLogs, botRuns, centrifugoOutbox, emailTokens, loginChallenges, notifications, sessions, type Db,
 } from "@gge/db"
+import { LOG_RETENTION } from "@gge/contracts"
 
-export const LOG_RETENTION = { perAccount: 500, days: 7 }
 /** Centrifugo deletes outbox rows as it delivers them. Older rows mean it is down, and its clients refetch on reconnect anyway. */
 export const OUTBOX_MAX_AGE_MS = 3600_000
 /** A read notification is kept this long, and any notification no longer than `anyDays`. */

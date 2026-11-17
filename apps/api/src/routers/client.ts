@@ -15,7 +15,7 @@ import {
     accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, loadGameItems, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
-import { logFacets, logFeed } from "../services/logs.ts"
+import { logActivity, logFacets, logFeed } from "../services/logs.ts"
 import { connectionToken, subscriptionToken, subscriptionTokens } from "../services/realtime.ts"
 import { exportData } from "../services/data-export.ts"
 import { detectLocale, setLocale } from "../services/i18n.ts"
@@ -81,6 +81,7 @@ export const clientRouter = os.router({
     logs: {
         feed: os.logs.feed.use(verified).handler(({ context: { db, user }, input }) => logFeed(db, user.id, input)),
         facets: os.logs.facets.use(verified).handler(({ context: { db, user } }) => logFacets(db, user.id)),
+        activity: os.logs.activity.use(verified).handler(({ context: { db, user } }) => logActivity(db, user.id)),
     },
     accounts: {
         list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),

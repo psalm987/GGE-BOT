@@ -145,3 +145,47 @@ describe("the plugin backfill in migration 0017", () => {
         expect([good, bare, notBracket, numeric, nullParts].map(r => plugin(r!.id))).toEqual(["attack", null, null, null, null])
     })
 })
+
+describe("what the dashboard counts", () => {
+    const hit = (accountId: string, ts: Date, level = 0) =>
+        ({ accountId, ts, level, message: "Hitting target", plugin: "attackNomads", parts: ["[12:00] ", "[", "attackNomads", "] ", "hittingTargetAttack", "C", 1] })
+    const other = (accountId: string, ts: Date, level: number, key: string) =>
+        ({ accountId, ts, level, message: key, plugin: "ggeBot", parts: ["[12:00] ", "[", "ggeBot", "] ", key] })
+    const ago = (hours: number) => new Date(Date.now() - hours * 3600_000)
+
+    test("counts attacks in the last 24 hours and errors in the last 7 days, for the caller's accounts only", async () => {
+        const alice = await playerWithBots()
+        const bob = await playerWithBots()
+        const [a1, a2] = [await alice.api.accounts.create(newAccount("alice-one")), await alice.api.accounts.create(newAccount("alice-two", 27))]
+        const b1 = await bob.api.accounts.create(newAccount("bob-one"))
+        await api.db.insert(botLogs).values([
+            hit(a1.id, ago(1)), hit(a1.id, ago(23)), hit(a1.id, ago(25)),
+            other(a1.id, ago(30), 2, "closedReason"), other(a1.id, ago(2), 2, "closedReason"), other(a1.id, ago(2), 3, "cra"), other(a1.id, ago(2), 1, "cra"),
+            hit(a2.id, ago(2)),
+            hit(b1.id, ago(1)), hit(b1.id, ago(1)),
+        ])
+        const { accounts } = await alice.api.logs.activity()
+        expect(accounts.toSorted((x, y) => x.accountId.localeCompare(y.accountId))).toEqual([
+            { accountId: a1.id, attacks: 2, attacksComplete: true, errors: 2, errorsComplete: true },
+            { accountId: a2.id, attacks: 1, attacksComplete: true, errors: 0, errorsComplete: true },
+        ].toSorted((x, y) => x.accountId.localeCompare(y.accountId)))
+        expect((await bob.api.logs.activity()).accounts).toEqual([{ accountId: b1.id, attacks: 2, attacksComplete: true, errors: 0, errorsComplete: true }])
+    })
+
+    test("a count is a floor once the cap on kept lines has dropped what the window may hold", async () => {
+        const p = await playerWithBots()
+        const capped = await p.api.accounts.create(newAccount("capped"))
+        const roomy = await p.api.accounts.create(newAccount("roomy", 27))
+        await api.db.insert(botLogs).values([
+            ...Array.from({ length: 500 }, (_, i) => hit(capped.id, ago(1 + i / 100))),
+            ...Array.from({ length: 499 }, () => hit(roomy.id, ago(2))),
+        ])
+        const { accounts } = await p.api.logs.activity()
+        expect(accounts.find(a => a.accountId === capped.id)).toMatchObject({ attacks: 500, attacksComplete: false, errorsComplete: false })
+        expect(accounts.find(a => a.accountId === roomy.id)).toMatchObject({ attacks: 499, attacksComplete: true, errorsComplete: true })
+    })
+
+    test("a signed-out caller is refused", async () => {
+        expect(await codeOf(api.client().api.logs.activity())).toBe("UNAUTHORIZED")
+    })
+})

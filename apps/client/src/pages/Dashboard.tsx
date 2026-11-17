@@ -1,6 +1,6 @@
 import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Col, Grid, Popconfirm, Row, Space, Statistic, Table, Tag, Tooltip, Typography } from "antd"
+import { App, Button, Grid, Popconfirm, Space, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
@@ -11,6 +11,7 @@ import { CrestEmpty, messageOf, palette, ParchmentCard, SigilStatus } from "@gge
 import { orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
+import { DashboardOverview } from "../components/DashboardOverview.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { needsAttention } from "../attention.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
@@ -98,11 +99,9 @@ export function Dashboard() {
                     </Tooltip>
                 </Space>
             }>
-            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                <Col xs={24} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.accounts")} value={counted} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.running")} value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.attention")} value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
-            </Row>
+            {list.length > 0 && (
+                <DashboardOverview accounts={list} counted={counted} limit={limit} online={running} attention={attention} onOpen={account => setDrawer({ open: true, account })} />
+            )}
 
             <ParchmentCard
                 title={t("dashboard.roster")}

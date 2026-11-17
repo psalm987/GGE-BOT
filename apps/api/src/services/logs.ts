@@ -1,6 +1,6 @@
-import { and, count, desc, eq, inArray, isNotNull, lt } from "drizzle-orm"
+import { and, count, desc, eq, inArray, isNotNull, lt, min, sql } from "drizzle-orm"
 import { botLogs, gameAccounts, servers, type Db } from "@gge/db"
-import type { FeedFacets, FeedInput, FeedLine } from "@gge/contracts"
+import { ACTIVITY_WINDOW, LOG_RETENTION, type FeedFacets, type FeedInput, type FeedLine, type LogActivity } from "@gge/contracts"
 
 type Filters = Omit<typeof FeedInput._output, "limit" | "before">
 
@@ -43,5 +43,32 @@ export async function logFacets(db: Pick<Db, "select">, ownerId: string): Promis
         accounts,
         plugins: plugins.map(p => ({ key: p.key!, count: p.count })),
         levels,
+    }
+}
+
+/** The part of a worker's line that names what happened, after `[time] [plugin] `. The engine writes this key when it sends an attack. */
+const ATTACK_KEY = "hittingTargetAttack"
+const HOUR_MS = 3600_000
+
+/** Attacks in the last 24 hours and errors in the last 7 days for each of the owner's accounts that has kept lines. */
+export async function logActivity(db: Pick<Db, "select">, ownerId: string, now = new Date()): Promise<typeof LogActivity._output> {
+    const attacksFrom = new Date(now.getTime() - ACTIVITY_WINDOW.attackHours * HOUR_MS)
+    const errorsFrom = new Date(now.getTime() - ACTIVITY_WINDOW.errorDays * 24 * HOUR_MS)
+    const rows = await db.select({
+        accountId: botLogs.accountId,
+        kept: count(),
+        oldest: min(botLogs.ts),
+        attacks: sql<number>`count(*) filter (where ${botLogs.parts}->>4 = ${ATTACK_KEY} and ${botLogs.ts} > ${attacksFrom})`.mapWith(Number),
+        errors: sql<number>`count(*) filter (where ${botLogs.level} = 2 and ${botLogs.ts} > ${errorsFrom})`.mapWith(Number),
+    }).from(botLogs)
+        .innerJoin(gameAccounts, eq(gameAccounts.id, botLogs.accountId))
+        .where(eq(gameAccounts.ownerId, ownerId))
+        .groupBy(botLogs.accountId)
+    // Lines are dropped from the oldest, only once an account holds more than the cap. Below it, nothing inside any window is missing.
+    const reaches = (row: { kept: number; oldest: Date | null }, from: Date) => row.kept < LOG_RETENTION.perAccount || (row.oldest !== null && row.oldest <= from)
+    return {
+        accounts: rows.map(row => ({
+            accountId: row.accountId, attacks: row.attacks, attacksComplete: reaches(row, attacksFrom), errors: row.errors, errorsComplete: reaches(row, errorsFrom),
+        })),
     }
 }

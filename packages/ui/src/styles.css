@@ -426,3 +426,19 @@ body {
     .gge-top-error { grid-template-columns: 1fr auto; }
     .gge-top-error-class, .gge-top-error code { grid-column: 1 / -1; }
 }
+
+/* The dashboard's figures above the roster. */
+.gge-dashboard-overview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 16px; }
+.gge-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
+.gge-kpi-card { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.gge-kpi-title { display: flex; align-items: center; gap: 6px; color: var(--gge-muted); font-size: 14px; }
+.gge-kpi-note { color: var(--gge-muted); font-size: 13px; }
+.gge-kpi-card .ant-statistic-content { font-variant-numeric: tabular-nums; }
+.gge-kpi-footnote { margin: 0; font-size: 13px; }
+.gge-top-accounts { width: 100%; border-collapse: collapse; }
+.gge-top-accounts th, .gge-top-accounts td { padding: 8px 4px; text-align: start; border-bottom: 1px solid var(--gge-rule); font-weight: 400; }
+.gge-top-accounts thead th { color: var(--gge-muted); font-size: 13px; }
+.gge-top-accounts tbody tr:last-child > * { border-bottom: 0; }
+.gge-top-accounts .gge-num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gge-top-accounts-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.gge-top-accounts-name { min-height: 44px; padding-inline: 0; font-weight: 700; height: auto; }

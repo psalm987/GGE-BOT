@@ -12,7 +12,7 @@ import { Notification, NotificationPrefs } from "./notifications.ts"
 import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword,
+    ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, LogActivity, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword,
     Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -95,6 +95,8 @@ export const clientContract = {
     logs: {
         feed: oc.input(FeedInput).output(z.array(FeedLine)),
         facets: oc.output(FeedFacets),
+        /** Attacks in the last 24 hours and errors in the last 7 days per account, from the kept lines, for the dashboard. */
+        activity: oc.output(LogActivity),
     },
     accounts: {
         list: oc.output(z.array(PublicAccount)),

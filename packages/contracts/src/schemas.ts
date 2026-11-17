@@ -191,6 +191,28 @@ export const FeedFacets = z.object({
     levels: z.array(z.object({ level: z.number().int(), count: z.number().int() })),
 })
 
+/** How long the runner keeps an account's log lines: the newest `perAccount`, and none older than `days`. */
+export const LOG_RETENTION = { perAccount: 500, days: 7 } as const
+
+/** The windows `LogActivity` counts over. The error window is the whole retention, so a window can only fall short by the line cap. */
+export const ACTIVITY_WINDOW = { attackHours: 24, errorDays: LOG_RETENTION.days } as const
+
+/**
+ * What each of the caller's accounts did lately, counted from the log lines the runner kept: attacks the bot logged as
+ * hitting a target, and error lines (level 2, not the "not now" refusals). An account with no lines is left out.
+ * `complete` is false when the cap on kept lines may have dropped some inside the window, so the count is a floor.
+ */
+export const LogActivity = z.object({
+    accounts: z.array(z.object({
+        accountId: z.uuid(),
+        attacks: z.number().int(),
+        attacksComplete: z.boolean(),
+        errors: z.number().int(),
+        errorsComplete: z.boolean(),
+    })),
+})
+export type LogActivity = z.infer<typeof LogActivity>
+
 export const Run = z.object({
     id: z.number().int(),
     startedAt: z.date(),
