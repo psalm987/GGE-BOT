@@ -1,6 +1,6 @@
 import * as z from "zod"
 import { Notification, WireDate } from "./notifications.ts"
-import { BotStatus, DesiredState, LogLine } from "./schemas.ts"
+import { AccountResources, BotStatus, DesiredState, LogLine } from "./schemas.ts"
 
 /** Everything about one player's accounts. Centrifugo lets only the user named after "#" subscribe. */
 export const userChannel = (userId: string) => `personal:user#${userId}`
@@ -9,7 +9,11 @@ export const botChannel = (accountId: string) => `bot:${accountId}`
 
 export const RealtimeToken = z.object({ token: z.string() })
 
-const WireStatus = BotStatus.extend({ heartbeatAt: WireDate.nullable(), bannedUntil: WireDate.nullable() })
+const WireStatus = BotStatus.extend({
+    heartbeatAt: WireDate.nullable(),
+    bannedUntil: WireDate.nullable(),
+    resources: AccountResources.extend({ reportedAt: WireDate.nullable() }).nullable().default(null),
+})
 
 const READ_IDS = { ids: z.array(z.number().int()).min(1).max(200) }
 const READ_ALL = { all: z.literal(true) }

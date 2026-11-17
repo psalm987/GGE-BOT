@@ -334,6 +334,30 @@ body {
     .gge-logs-page { min-height: 540px; }
 }
 
+/* KPI tiles: a label with its icon, and the figure in tabular numbers. */
+.gge-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.gge-kpi {
+    display: grid;
+    gap: 6px;
+    height: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid var(--gge-rule);
+    border-radius: 8px;
+    background: rgba(243, 231, 201, 0.03);
+}
+.gge-kpi-label { display: flex; align-items: center; gap: 6px; color: var(--gge-muted); font-size: 13px; font-weight: 500; }
+.gge-kpi-value { font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.gge-kpi-value[data-missing] { color: var(--gge-muted); }
+/* Five tabs have to fit a phone-width drawer: a tab bar that overflows grows a "more" menu that axe flags inside the tablist. */
+@media (max-width: 767.98px) {
+    .gge-account-tabs .ant-tabs-tab { padding-inline: 0; }
+    .gge-account-tabs .ant-tabs-tab-btn { white-space: nowrap; }
+}
+.gge-overview { display: grid; gap: 12px; }
+.gge-overview-note { margin: 0; font-size: 13px; }
+
 /* Banners under the header: a severity rule on the inline-start edge, the icon, the words, one action and a close button. */
 .gge-alerts { display: grid; gap: 8px; width: 100%; max-width: 1400px; margin: 0 auto; padding: 16px 24px 0; box-sizing: border-box; }
 .gge-alert {

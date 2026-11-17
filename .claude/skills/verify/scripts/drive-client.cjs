@@ -4,7 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
-const { insertLogLine, insertNotification } = require("./dev-db.cjs")
+const { insertLogLine, insertNotification, insertResources } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -482,6 +482,7 @@ async function drivePluginSettings(page) {
     const openDrawer = async () => {
         await page.goto(CLIENT_URL)
         await page.getByRole("button", { name: "Edit Ironhold" }).click()
+        await page.getByRole("tab").nth(1).click()
         await page.getByRole("switch", { name: "Enable Attack Nomads" }).waitFor()
     }
     const openDialog = async plugin => {
@@ -637,6 +638,7 @@ async function driveGlorySettings(page) {
         await page.setViewportSize(WIDE_VIEW)
         await page.goto(CLIENT_URL)
         await page.getByRole("button", { name: "Edit Ironhold" }).click()
+        await page.getByRole("tab").nth(1).click()
         await page.getByRole("button", { name: `${plugin} settings` }).click()
         const dialog = page.getByRole("dialog", { name: `${plugin} settings` })
         await dialog.getByRole("button", { name: "Save" }).waitFor()
@@ -679,6 +681,56 @@ async function driveGlorySettings(page) {
     await page.setViewportSize({ width: 1280, height: 860 })
 }
 
+/** The account drawer's Overview tab, as the seeded demo player: figures for Ironhold, a live change, and the empty state for an account that never ran. */
+async function driveOverview(page) {
+    const seededFigures = { castles: [], cash: 48_250_310, gold: 1_284, food: 3_912_450, mead: 126_800, aquamarin_name: 5_240, attackDailyCount: 37 }
+    await insertResources({ accountName: "Ironhold", resources: seededFigures })
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(CLIENT_URL)
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    const drawer = page.getByRole("dialog")
+    const tiles = drawer.locator(".gge-kpi")
+    await tiles.first().waitFor()
+    assert(await drawer.getByRole("tab", { selected: true }).innerText() === "Overview", "an existing account's drawer opens on Overview")
+    assert(await tiles.count() === 6, "the Overview has six tiles: cash, gold, food, mead, aquamarine and attacks today")
+    const tile = label => tiles.filter({ hasText: label }).locator(".gge-kpi-value")
+    assert(await tile("Cash").innerText() === (48_250_310).toLocaleString("en"), "the cash tile shows the figure with locale grouping")
+    assert((await tile("Cash").evaluate(el => getComputedStyle(el).fontVariantNumeric)).includes("tabular-nums"), "tile figures use tabular numbers")
+    assert(/^Updated .+\. Food, mead/.test(await drawer.locator(".gge-overview-note").innerText()), "the Overview says when its figures were last updated")
+    await axe(page, "account overview")
+    await atBothWidths(page, "overview", "the account Overview")
+
+    await page.setViewportSize(WIDE_VIEW)
+    await insertResources({ accountName: "Ironhold", resources: { castles: [], cash: 49_000_001, gold: 1_300, food: 4_000_000, aquamarin_name: 5_300, attackDailyCount: 38 } })
+    await drawer.locator(".gge-kpi-value", { hasText: (49_000_001).toLocaleString("en") }).waitFor({ timeout: 30_000 })
+    assert(await tile("Mead").evaluate(el => el.hasAttribute("data-missing")) && /Not reported/.test(await tile("Mead").innerText()), "a new report reaches the open Overview, and a figure the game left out shows a dash with a spoken reason")
+    await page.keyboard.press("Escape")
+    await drawerClosed(page)
+
+    await page.getByRole("button", { name: "Edit Brightwater" }).click()
+    await drawer.getByText("No figures yet").waitFor()
+    assert(await drawer.getByText(/doesn't cover this account/).isVisible() && await drawer.getByRole("button", { name: "Start the bot" }).count() === 0, "an account the plan doesn't cover says so and offers no Start button")
+    await page.keyboard.press("Escape")
+    await drawerClosed(page)
+
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    await rpc(page, "accounts/setDesiredState", { ids: [ironhold.id], state: "stopped" })
+    await insertResources({ accountName: "Ironhold", resources: null })
+    await page.reload()
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    await drawer.getByText("No figures yet").waitFor()
+    await drawer.getByRole("button", { name: "Start the bot" }).waitFor()
+    assert(true, "a stopped account that never reported shows an empty state that says what to do, with a Start button")
+    await axe(page, "account overview empty")
+    await page.screenshot({ path: `${out}/overview-empty-1440.png` })
+    await drawer.getByRole("button", { name: "Start the bot" }).click()
+    await drawer.getByText("The bot is starting").waitFor()
+    assert(true, "Start asks the runner, and the empty state says the bot is starting")
+    await insertResources({ accountName: "Ironhold", resources: seededFigures })
+    await page.keyboard.press("Escape")
+    await drawerClosed(page)
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "glory-settings") {
@@ -689,6 +741,17 @@ async function driveGlorySettings(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveGlorySettings(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "phase4") {
+        const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveOverview(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -864,6 +927,7 @@ async function driveGlorySettings(page) {
     await row.getByRole("button", { name: "Start" }).waitFor()
 
     await page.getByRole("button", { name: `Edit Storm${name}` }).click()
+    await page.getByRole("tab").nth(1).click()
     assert(await page.getByRole("switch", { name: "Enable Daily login bonus" }).isChecked(), "the Daily login bonus plugin turned on at creation is still on when the account is reopened")
     assert(!(await page.getByRole("switch", { name: "Enable Tax collector" }).isChecked()), "the Tax collector plugin left off is still off")
     await page.getByLabel("Game account name").fill(`Storm${name} Keep`)
@@ -1066,6 +1130,7 @@ async function driveGlorySettings(page) {
     await seeded.getByRole("button", { name: "Sign in" }).click()
     await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
     await driveLogs(seeded)
+    await driveOverview(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
@@ -1104,6 +1169,7 @@ async function driveGlorySettings(page) {
     await seeded.waitForFunction(() => document.documentElement.lang === "pl")
     assert(await htmlAttr("lang") === "pl", "picking Polski sets <html lang=pl>")
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
+    await seeded.getByRole("tab").nth(1).click()
     const polishPlugin = seeded.getByRole("switch", { name: `Enable ${pl.feast}` })
     await polishPlugin.waitFor()
     assert(pl.feast !== "Feast", `a plugin name in the account drawer is Polish (${pl.feast})`)

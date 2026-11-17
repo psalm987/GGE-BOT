@@ -33,6 +33,24 @@ export const LocaleCode = z.enum(LOCALE_CODES)
 export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), accountLimit: z.number().int(), locale: LocaleCode.nullable() })
 export type PublicUser = z.infer<typeof PublicUser>
 
+/**
+ * What the bot last read from the game for the account. A figure is null while the game hasn't reported it:
+ * the worker leaves out a figure that is 0, so null can mean zero as well as unknown.
+ * Food, mead and aquamarine are the Storm Islands castle's.
+ */
+export const AccountResources = z.object({
+    food: z.number().nullable(),
+    mead: z.number().nullable(),
+    cash: z.number().nullable(),
+    gold: z.number().nullable(),
+    aquamarine: z.number().nullable(),
+    /** Attacks sent today, the game's own daily counter. */
+    attackDailyCount: z.number().nullable(),
+    /** When the runner stored this report; null for one stored before the runner stamped them. */
+    reportedAt: z.date().nullable(),
+})
+export type AccountResources = z.infer<typeof AccountResources>
+
 export const BotStatus = z.object({
     actualState: ActualState,
     heartbeatAt: z.date().nullable(),
@@ -42,6 +60,8 @@ export const BotStatus = z.object({
     pluginStates: PluginStates.default({}),
     /** The castles the bot last found on the account; empty until it has run. */
     castles: z.array(AccountCastle).default([]),
+    /** The figures in the worker's last report; null until it has made one. */
+    resources: AccountResources.nullable().default(null),
 })
 
 export const PublicAccount = z.object({

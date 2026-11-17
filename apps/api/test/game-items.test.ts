@@ -53,3 +53,17 @@ test("a status with nothing reported shows no states and no castles", async () =
     await api.db.insert(botStatus).values({ accountId: account.id, resources: { castles: "garbage" } })
     expect((await p.api.accounts.list())[0]!.status).toMatchObject({ pluginStates: {}, castles: [] })
 })
+
+test("accounts list shows the figures in bot_status, null where the bot reported none, and no figures before a report", async () => {
+    const [p, q] = [await api.player(), await api.player()]
+    const reported = await p.api.accounts.create({ name: "figures", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
+    const silent = await q.api.accounts.create({ name: "figureless", serverId: 26, password: "pw", externalEvent: false, plugins: {} })
+    const at = "2026-03-01T10:00:00.000Z"
+    await api.db.insert(botStatus).values({ accountId: reported.id, resources: { cash: 900, food: "lots", aquamarin_name: 12, attackDailyCount: 3, reportedAt: at } })
+    await api.db.insert(botStatus).values({ accountId: silent.id })
+
+    expect((await p.api.accounts.list())[0]!.status!.resources).toEqual({
+        food: null, mead: null, cash: 900, gold: null, aquamarine: 12, attackDailyCount: 3, reportedAt: new Date(at),
+    })
+    expect((await q.api.accounts.list())[0]!.status!.resources).toBeNull()
+})

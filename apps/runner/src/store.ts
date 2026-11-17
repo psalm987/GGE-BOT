@@ -72,12 +72,16 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         }
     }
 
+    /** A worker's report with the time it arrived, so the dashboard can say how old the figures are. */
+    const stamped = (resources: unknown) =>
+        resources && typeof resources === "object" && !Array.isArray(resources) ? { ...resources, reportedAt: new Date().toISOString() } : resources
+
     const upsertStatus = (tx: Tx, accountId: string, patch: StatusPatch) => {
         const set = {
             ...(patch.actualState && { actualState: patch.actualState }),
             ...(patch.lastError !== undefined && { lastError: patch.lastError }),
             ...(patch.bannedUntil !== undefined && { bannedUntil: patch.bannedUntil }),
-            ...(patch.resources !== undefined && { resources: patch.resources }),
+            ...(patch.resources !== undefined && { resources: stamped(patch.resources) }),
             ...(patch.pluginStates && { pluginStates: patch.pluginStates }),
             ...(patch.heartbeat && { heartbeatAt: new Date() }),
         }

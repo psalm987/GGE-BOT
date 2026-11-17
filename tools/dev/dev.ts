@@ -116,7 +116,10 @@ async function seed() {
             continue
         await db.insert(botStatus).values({
             accountId: account!.id, actualState: state, lastError,
-            ...name === "Ironhold" && { pluginStates: IRONHOLD_PLUGIN_STATES, resources: { castles: IRONHOLD_CASTLES } },
+            ...name === "Ironhold" && { pluginStates: IRONHOLD_PLUGIN_STATES, resources: {
+                castles: IRONHOLD_CASTLES, cash: 48_250_310, gold: 1_284, food: 3_912_450, mead: 126_800, aquamarin_name: 5_240, attackDailyCount: 37,
+                reportedAt: new Date(Date.now() - 40_000).toISOString(),
+            } },
             heartbeatAt: state === "running" ? new Date(Date.now() - 40_000) : new Date(Date.now() - 6 * 3600_000),
             bannedUntil: state === "banned" ? new Date(Date.now() + 3 * 86400_000) : null,
         })

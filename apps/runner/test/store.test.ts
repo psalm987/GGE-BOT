@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [] },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], resources: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [] } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], resources: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -192,4 +192,13 @@ test("starting a worker clears the plugin states, and so does recovering from a 
 test("a report for an account that was deleted is dropped", async () => {
     await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
     await expect(store.setPluginState(accountId, "attack", attackState)).resolves.toBeUndefined()
+})
+
+test("a status carries the figures of the worker's last report, and when they arrived", async () => {
+    const before = Date.now()
+    await store.setStatus(accountId, { resources: { cash: 1200, gold: 7, food: 3000, aquamarin_name: 55, attackDailyCount: 14, level: 40 } })
+    const [event] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(event).toMatchObject({ status: { resources: { cash: 1200, gold: 7, food: 3000, mead: null, aquamarine: 55, attackDailyCount: 14 } } })
+    const reportedAt = event?.kind === "status" ? event.status.resources?.reportedAt : undefined
+    expect(new Date(reportedAt!).getTime()).toBeGreaterThanOrEqual(before)
 })

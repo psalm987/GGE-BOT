@@ -6,6 +6,7 @@ import type { PublicAccount, Schedule } from "@gge/contracts"
 import { messageOf, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { AccountLogs, AccountRuns } from "./AccountHistory.tsx"
+import { AccountOverview } from "./AccountOverview.tsx"
 import { withPluginOptions } from "../plugin-values.ts"
 import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues, type SavePluginOptions } from "./PluginSettingsForm.tsx"
 import { ScheduleEditor, scheduleProblem } from "./ScheduleEditor.tsx"
@@ -25,7 +26,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     const catalog = useQuery(orpc.plugins.catalog.queryOptions())
     const isNew = !account
     const phone = !Grid.useBreakpoint().md
-    const [tab, setTab] = useState("settings")
+    const [tab, setTab] = useState("overview")
     // `account` is as it was when the drawer opened, so the form isn't reset under the player. The status shown is the current one.
     const current = useQuery({ ...orpc.accounts.list.queryOptions(), select: list => list.find(a => a.id === account?.id), enabled: Boolean(account) }).data ?? account
 
@@ -43,7 +44,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     }, [open, account, twinOf, catalog.data, form])
 
     const shut = () => {
-        setTab("settings")
+        setTab("overview")
         onClose()
     }
     const done = (text: string) => {
@@ -133,7 +134,8 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
                 onFinishFailed={({ errorFields }) => setTab(errorFields[0]?.name[0] === "schedule" ? "schedule" : "settings")}>
                 {error && <Alert type="error" showIcon title={messageOf(error)} style={{ marginBottom: 16 }} role="alert" />}
                 {isNew ? settings : (
-                    <Tabs activeKey={tab} onChange={setTab} items={[
+                    <Tabs className="gge-account-tabs" activeKey={tab} onChange={setTab} size={phone ? "small" : "middle"} tabBarGutter={phone ? 14 : undefined} items={[
+                        { key: "overview", label: t("drawer.overview"), children: <AccountOverview account={current ?? account} /> },
                         { key: "settings", label: tc("nav.settings"), children: settings },
                         { key: "schedule", label: t("drawer.schedule"), children: schedule },
                         { key: "logs", label: t("nav.logs"), children: <AccountLogs key={account.id} accountId={account.id} /> },

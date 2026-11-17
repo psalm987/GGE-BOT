@@ -72,7 +72,29 @@ function insertNotification({ accountName }) {
     })
 }
 
-module.exports = { insertLogLine, insertNotification }
+/** Stores a worker report for the account, as the runner's store does, and publishes the status event with it. `resources: null` clears the report. */
+function insertResources({ accountName, resources }) {
+    return withAccount(accountName, async (db, account) => {
+        const stored = resources && { ...resources, reportedAt: new Date().toISOString() }
+        const { rows: [row] } = await db.query(
+            `insert into bot_status (account_id, resources, heartbeat_at) values ($1, $2, now())
+             on conflict (account_id) do update set resources = $2, heartbeat_at = now() returning *`,
+            [account.id, stored && JSON.stringify(stored)])
+        const figure = value => typeof value === "number" ? value : null
+        const status = {
+            actualState: row.actual_state, heartbeatAt: row.heartbeat_at, lastError: row.last_error, bannedUntil: row.banned_until,
+            pluginStates: row.plugin_states, castles: stored?.castles ?? [],
+            resources: stored && {
+                food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
+                aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,
+            },
+        }
+        await publish(db, `personal:user#${account.owner_id}`, { v: 1, kind: "status", accountId: account.id, status })
+        return status
+    })
+}
+
+module.exports = { insertLogLine, insertNotification, insertResources }
 
 if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)
