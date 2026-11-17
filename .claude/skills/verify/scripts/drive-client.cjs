@@ -159,6 +159,15 @@ function emailedLink(address) {
     await page.keyboard.type("Germany")
     await page.locator(".ant-select-item-option", { hasText: "Germany 1" }).click()
     await page.getByLabel("Game password").fill("hunter2")
+    for (const plugin of ["Daily login bonus", "Tax collector"]) {
+        const toggle = page.getByRole("switch", { name: `Enable ${plugin}` })
+        assert(await toggle.count() === 1 && !(await toggle.isChecked()), `the ${plugin} plugin is listed and off for a new account`)
+        const pluginRow = toggle.locator("xpath=ancestor::div[2]")
+        assert(await pluginRow.getByRole("button", { name: "Settings" }).count() === 0, `the ${plugin} plugin has no options to set`)
+    }
+    await page.getByRole("switch", { name: "Enable Daily login bonus" }).click()
+    await page.getByRole("switch", { name: "Enable Tax collector" }).scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${out}/10-add-account-chore-plugins.png` })
     await page.screenshot({ path: `${out}/10-add-account.png` })
     await axe(page, "add-account drawer")
     await page.getByRole("button", { name: "Add account", exact: true }).last().click()
@@ -208,6 +217,8 @@ function emailedLink(address) {
     await row.getByRole("button", { name: "Start" }).waitFor()
 
     await page.getByRole("button", { name: `Edit Storm${name}` }).click()
+    assert(await page.getByRole("switch", { name: "Enable Daily login bonus" }).isChecked(), "the Daily login bonus plugin turned on at creation is still on when the account is reopened")
+    assert(!(await page.getByRole("switch", { name: "Enable Tax collector" }).isChecked()), "the Tax collector plugin left off is still off")
     await page.getByLabel("Game account name").fill(`Storm${name} Keep`)
     await page.getByRole("button", { name: "Cancel" }).click()
     await page.getByRole("dialog", { name: "Discard your changes?" }).waitFor()

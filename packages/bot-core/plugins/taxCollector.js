@@ -51,7 +51,7 @@ let countdownTrusted = true
 /** The game said no or said nothing: try again later, and later still each time it repeats. */
 function backOff(cmd, result) {
     console.warn("taxCollectorRefused", cmd, " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
-    return Math.min(MAX_WAIT_MS, (RUN_MS + fewMinutes()) * 2 ** failures++)
+    return Math.min(MAX_WAIT_MS, RUN_MS * 2 ** failures++) + fewMinutes()
 }
 
 async function cycle(active) {

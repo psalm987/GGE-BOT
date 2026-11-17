@@ -23,6 +23,8 @@ export function createMetrics({ db, heapSizes, log = console }: { db: Db; heapSi
     const counters: Record<string, client.Counter> = {
         bot_messages_total: new client.Counter({ name: "bot_messages_total", help: "Game messages by direction and command", labelNames: ["direction", "command"], registers }),
         bot_gaa_cache_total: new client.Counter({ name: "bot_gaa_cache_total", help: "Map area lookups served from cache (hit) or the server (miss)", labelNames: ["result"], registers }),
+        bot_daily_bonus_total: new client.Counter({ name: "bot_daily_bonus_total", help: "Daily login bonus claims by what the game answered", labelNames: ["result"], registers }),
+        bot_tax_collect_total: new client.Counter({ name: "bot_tax_collect_total", help: "Tax collections by what the game answered", labelNames: ["result"], registers }),
     }
     const histograms: Record<string, client.Histogram> = {
         bot_game_rtt_seconds: new client.Histogram({ name: "bot_game_rtt_seconds", help: "Time from asking for a reply to receiving it, by command", labelNames: ["command"], buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30], registers }),

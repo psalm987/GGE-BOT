@@ -14,10 +14,10 @@ const HOUR = 60 * 60_000
 afterEach(() => vi.useRealTimers())
 
 /** The plugin after a login at 10:00 UTC, against a game that answers each `clb` with `reply` (a result code, or nothing). */
-function loggedIn({ reply } = {}) {
+function loggedIn({ reply, stopping = false } = {}) {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-11-17T10:00:00Z"))
-    const bot = fakeBot()
+    const bot = fakeBot({ stopping: () => stopping })
     const sentAt = []
     bot.sendXT = async (cmd, params) => {
         bot.sent.push([cmd, JSON.parse(params)])
@@ -91,8 +91,7 @@ test("after unload nothing is sent, not even the claim that was due", async () =
 })
 
 test("a bot that is stopping sends no claim", async () => {
-    const { bot } = loggedIn({ reply: 0 })
-    bot.stopping = () => true
+    const { bot } = loggedIn({ reply: 0, stopping: true })
     await vi.advanceTimersByTimeAsync(48 * HOUR)
     expect(bot.sent).toEqual([])
 })
