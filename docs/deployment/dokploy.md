@@ -49,6 +49,8 @@ SEAL_PUBLIC_KEY=
 SEAL_PRIVATE_KEY=
 TOTP_ENCRYPTION_KEY=
 CENTRIFUGO_TOKEN_SECRET=
+MAXMIND_ACCOUNT_ID=
+MAXMIND_LICENSE_KEY=
 MAX_ACCOUNTS=50
 START_GAP_MS=2000
 GAME_CLIENT_VERSION=
@@ -102,6 +104,22 @@ Sign in at `https://admin.<domain>`. The first sign-in asks you to set up an aut
 | `https://app.<domain>/healthz` | `{"ok":true}` |
 | Admin app, Overview | Runner heartbeat a few seconds old |
 | `https://grafana.<domain>` | Sign in as `admin` / `GRAFANA_ADMIN_PASSWORD`; the GGE folder has three dashboards |
+
+## IP language detection
+
+With the language set to "Automatic", the apps pick a language from the visitor's country, then from their browser's language. The `geoip` service answers the country lookup from MaxMind's free GeoLite2-Country database. Without it, everything still works and the browser's language decides.
+
+1. Create a free account at maxmind.com and sign in to the portal.
+2. Under **Manage license keys**, generate a key. Copy it now, because MaxMind shows it once. Your account ID is on the same page.
+3. Put both in the Environment tab as `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`, then deploy.
+
+The service downloads the database at first start and checks for a new one every 24 hours. It keeps the file in the `geoip-db` volume. It has no domain and is not on `dokploy-network`; only the API reaches it, at `http://geoip:8080`. To check it, open the service's terminal in Dokploy or run `docker compose logs geoip`. Empty or wrong credentials show as a failed download in that log, and the service may restart repeatedly. The apps are not affected.
+
+The `api` metric `geoip_lookups_total{result="ip"|"none"|"skipped"|"error"}` shows whether lookups succeed. A steady stream of `skipped` means the API sees private addresses (see below).
+
+MaxMind's licence asks apps to credit the data. The player app's Settings page does: "Automatic uses GeoLite2 data created by MaxMind."
+
+**Behind Cloudflare.** If Cloudflare proxies your domain, Traefik must trust Cloudflare's IP ranges so it passes the visitor's address on in `X-Forwarded-For`. Without that, every lookup sees a Cloudflare edge address and the whole world gets one country. Add Cloudflare's published ranges to Traefik's `forwardedHeaders.trustedIPs` for the web entrypoint. Caddy inside `web` already trusts Traefik's private address (`infra/Caddyfile.dokploy`), so Traefik is the hop to fix.
 
 ## Operating it
 

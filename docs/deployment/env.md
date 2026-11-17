@@ -30,6 +30,9 @@
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
 | `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |
 | `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app at build time. Empty hides the widget, so leave both unset or set both. |
+| `MAXMIND_ACCOUNT_ID` | geoip | no | MaxMind account ID. With the license key, lets the `geoip` service download GeoLite2-Country ([dokploy.md](dokploy.md#ip-language-detection)). |
+| `MAXMIND_LICENSE_KEY` | geoip | no | MaxMind license key. Without both values, "Automatic" language uses the browser's `Accept-Language` instead of the visitor's country. |
+| `GEOIP_URL` | api | no | Where the API asks for a country. Leave it unset to use the bundled service at `http://geoip:8080`; set it empty to turn IP detection off. |
 | `BACKUP_KEEP_DAYS` | backup | no | Days of nightly dumps to keep, on the host and in Google Drive's `daily/`. Default 14. |
 | `GDRIVE_CLIENT_ID` | backup | no | Google OAuth client ID (Desktop app) for off-site copies ([backup-restore.md](backup-restore.md#off-site-copies-on-google-drive)). |
 | `GDRIVE_CLIENT_SECRET` | backup | no | Secret of that OAuth client. |

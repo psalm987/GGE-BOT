@@ -59,6 +59,12 @@ Set `TOTP_ENCRYPTION_KEY` before you deploy; the API refuses to start without it
 - Disabling a user or changing their role ends their sessions at once; disabling also stops their bots. A demoted admin keeps their authenticator, so promoting them again doesn't ask them to enroll.
 - Every admin action and every account start, stop, create, update and remove is written to the audit log with its actor.
 
+## IP language detection
+
+When a visitor's language is "Automatic", the API asks the internal `geoip` service for the country of their IP. The IP is processed in memory for that request only. It is never written to the database or to a log. The lookup cache keeps a SHA-256 of the IP, not the IP, for up to 24 hours. Only the resulting language is stored, on a signed-in user's row, and in the data export. The service has no public route and no `dokploy-network` access. If it is down or slow (300 ms limit), the API answers from the browser's `Accept-Language`. `i18n.detect` is public and capped at 60 calls per minute per IP.
+
+The sign-up audit entry and the session row already hold the IP for abuse handling; detection adds nothing to them.
+
 ## Account self-service
 
 A player does these three things under **Settings**, without an admin. Each one that changes or deletes the account asks for the password again. Wrong passwords have their own cap per action (10 per 15 minutes per account), apart from the sign-in caps.
