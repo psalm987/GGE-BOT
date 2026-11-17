@@ -16,9 +16,9 @@ export type Ctx = {
      * `ip` caps every login and signup attempt per IP, generously (shared NATs). Failed password
      * checks are capped strictly per username and IP in `user`, and per username across all IPs in
      * `userTotal`. `user` also caps wrong second-factor codes per admin. `email` caps mail sent to one address; `signup` caps new accounts per IP;
-     * `dataExport` caps data downloads per user.
+     * `dataExport` caps data downloads per user. `redeemCode` caps wrong license codes, per player and per IP.
      */
-    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter; detect: RateLimiter }
+    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter; detect: RateLimiter; redeemCode: RateLimiter }
     mailer: Mailer
     /** Country of an IP; null when unknown. */
     lookupCountry: Geoip

@@ -5,6 +5,8 @@ import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { requireBillingLive } from "../services/billing.ts"
+import { myCodes, redeemCode } from "../services/codes.ts"
+import { myPurchases } from "../services/purchases.ts"
 import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
     accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
@@ -15,7 +17,7 @@ import { connectionToken, subscriptionToken, subscriptionTokens } from "../servi
 import { exportData } from "../services/data-export.ts"
 import { detectLocale, setLocale } from "../services/i18n.ts"
 import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
-import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
+import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, tooMany, verifyEmail } from "./auth.ts"
 
 const os = implement(clientContract).$context<Ctx>()
 
@@ -126,6 +128,18 @@ export const clientRouter = os.router({
             await audit(db, { actorId: user.id, action: "billing.points.redeem", targetType: "period", targetId: redemption.period.id })
             return redemption
         }),
+        redeemCode: os.billing.redeemCode.use(billing).handler(async ({ context: { db, limits, req, user }, input }) => {
+            const guesses = [`user:${user.id}`, `ip:${req.ip}`]
+            if (guesses.map(key => limits.redeemCode.hit(key)).includes(false))
+                throw tooMany()
+            const redeemed = await redeemCode(db, user.id, input.code)
+            // Only wrong codes count, so a player working through a list of good ones is never stopped.
+            for (const key of guesses)
+                limits.redeemCode.refund(key)
+            return redeemed
+        }),
+        myCodes: os.billing.myCodes.use(billing).handler(({ context: { db, user } }) => myCodes(db, user.id)),
+        myPurchases: os.billing.myPurchases.use(billing).handler(({ context: { db, user } }) => myPurchases(db, user.id)),
     },
     plugins: {
         catalog: os.plugins.catalog.use(verified).handler(async ({ context }) =>

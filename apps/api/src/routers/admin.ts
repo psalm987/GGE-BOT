@@ -8,6 +8,8 @@ import type { Ctx } from "../context.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
 import { audit } from "../services/audit.ts"
 import { backToFree, billingStatus, goLive } from "../services/billing.ts"
+import { revokeCode } from "../services/codes.ts"
+import { listPackages, listPurchases, markRefunded, recordPurchase, updatePackage } from "../services/purchases.ts"
 import { adjustPoints, billingSettings, updateBillingSettings } from "../services/points.ts"
 import { detectLocale } from "../services/i18n.ts"
 import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
@@ -183,6 +185,12 @@ export const adminRouter = os.router({
         settings: os.billing.settings.use(admin).handler(({ context: { db } }) => billingSettings(db)),
         updateSettings: os.billing.updateSettings.use(admin).handler(({ context: { db, user }, input }) => updateBillingSettings(db, user.id, input)),
         adjustPoints: os.billing.adjustPoints.use(admin).handler(({ context: { db, user }, input }) => adjustPoints(db, user.id, input)),
+        packages: os.billing.packages.use(admin).handler(({ context: { db } }) => listPackages(db)),
+        updatePackage: os.billing.updatePackage.use(admin).handler(({ context: { db, user }, input }) => updatePackage(db, user.id, input)),
+        recordPurchase: os.billing.recordPurchase.use(admin).handler(({ context: { db, user }, input }) => recordPurchase(db, user.id, input)),
+        purchases: os.billing.purchases.use(admin).handler(({ context: { db }, input }) => listPurchases(db, input)),
+        markRefunded: os.billing.markRefunded.use(admin).handler(({ context: { db, user }, input }) => markRefunded(db, user.id, input.purchaseId)),
+        revokeCode: os.billing.revokeCode.use(admin).handler(({ context: { db, user }, input }) => revokeCode(db, user.id, input.codeId)),
     },
     logs: {
         feed: os.logs.feed.use(admin).handler(({ context: { db }, input: { ownerId, ...input } }) => logFeed(db, ownerId, input)),

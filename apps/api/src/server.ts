@@ -55,6 +55,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
         signup: createRateLimiter({ max: 5, windowMs: 60 * 60_000 }),
         dataExport: createRateLimiter({ max: 1, windowMs: 10 * 60_000 }),
         detect: createRateLimiter({ max: 60, windowMs: 60_000 }),
+        redeemCode: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
     }
     const lookupCountry = createGeoip({ url: env.GEOIP_URL })
     // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.

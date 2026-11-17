@@ -18,11 +18,12 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
-import { PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS } from "@gge/contracts"
+import { CURRENCIES, PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS, PURCHASE_PROVIDERS, PURCHASE_STATUSES } from "@gge/contracts"
 import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
 const localeCodes = sql.raw(LOCALE_CODES.map(code => `'${code}'`).join(", "))
+const quoted = (values: readonly string[]) => sql.raw(values.map(value => `'${value}'`).join(", "))
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 
@@ -281,14 +282,14 @@ export const planPeriods = pgTable("plan_periods", {
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     source: text("source", { enum: PERIOD_SOURCES }).notNull(),
-    purchaseId: uuid("purchase_id"),
-    codeId: uuid("code_id"),
+    purchaseId: uuid("purchase_id").references(() => purchases.id, { onDelete: "set null" }),
+    codeId: uuid("code_id").references(() => licenseCodes.id, { onDelete: "set null" }),
     grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
     note: text("note"),
     createdAt: createdAt(),
 }, t => [
     check("plan_periods_ends_after_start", sql`${t.endsAt} > ${t.startsAt}`),
-    check("plan_periods_source_valid", sql`${t.source} in (${sql.raw(PERIOD_SOURCES.map(s => `'${s}'`).join(", "))})`),
+    check("plan_periods_source_valid", sql`${t.source} in (${quoted(PERIOD_SOURCES)})`),
     index("plan_periods_user_ends").on(t.userId, t.endsAt),
     uniqueIndex("plan_periods_one_trial").on(t.userId).where(sql`${t.source} = 'trial'`),
 ])
@@ -302,7 +303,7 @@ export const pointsLedger = pgTable("points_ledger", {
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     delta: integer("delta").notNull(),
     reason: text("reason", { enum: POINTS_REASONS }).notNull(),
-    purchaseId: uuid("purchase_id"),
+    purchaseId: uuid("purchase_id").references(() => purchases.id, { onDelete: "set null" }),
     /** The period a redemption paid for. */
     periodId: uuid("period_id").references(() => planPeriods.id, { onDelete: "set null" }),
     /** The caller's key for a redemption, so a repeated request spends once. */
@@ -312,9 +313,82 @@ export const pointsLedger = pgTable("points_ledger", {
     createdAt: createdAt(),
 }, t => [
     check("points_ledger_delta_nonzero", sql`${t.delta} <> 0`),
-    check("points_ledger_reason_valid", sql`${t.reason} in (${sql.raw(POINTS_REASONS.map(r => `'${r}'`).join(", "))})`),
+    check("points_ledger_reason_valid", sql`${t.reason} in (${quoted(POINTS_REASONS)})`),
     index("points_ledger_user").on(t.userId, t.id),
+    // A purchase earns once and is taken back once.
+    uniqueIndex("points_ledger_purchase_reason").on(t.purchaseId, t.reason).where(sql`${t.purchaseId} is not null`),
 ])
+
+/** What is for sale. A null price is a package only an admin can record a purchase of. */
+export const packages = pgTable("packages", {
+    id: text("id").primaryKey(),
+    planId: text("plan_id", { enum: PLAN_IDS }).notNull().references(() => plans.id),
+    /** Players covered: 1 for the buyer alone, or how many single-use codes a Team purchase mints. */
+    seats: integer("seats").notNull(),
+    days: integer("days").notNull().default(28),
+    /** In the currency's smallest unit. */
+    priceMinor: integer("price_minor"),
+    currency: text("currency", { enum: CURRENCIES }),
+    /** Points a purchase earns the buyer. */
+    points: integer("points").notNull(),
+    active: boolean("active").notNull().default(true),
+    sort: integer("sort").notNull().default(0),
+}, t => [
+    check("packages_seats_valid", sql`${t.seats} >= 1`),
+    check("packages_days_valid", sql`${t.days} >= 1`),
+    check("packages_price_valid", sql`${t.priceMinor} >= 0`),
+    check("packages_currency_valid", sql`${t.currency} in (${quoted(CURRENCIES)})`),
+    check("packages_price_has_currency", sql`(${t.priceMinor} is null) = (${t.currency} is null)`),
+    check("packages_points_valid", sql`${t.points} >= 0`),
+])
+
+/**
+ * A sale. `seats`, `days` and `points` are copied from the package when it is made, so later edits to the package
+ * don't change what was bought. Deliver it only with fulfil (apps/api/src/services/purchases.ts).
+ */
+export const purchases = pgTable("purchases", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    buyerId: uuid("buyer_id").references(() => users.id, { onDelete: "set null" }),
+    packageId: text("package_id").notNull().references(() => packages.id),
+    seats: integer("seats").notNull(),
+    days: integer("days").notNull(),
+    points: integer("points").notNull(),
+    amountMinor: integer("amount_minor"),
+    currency: text("currency", { enum: CURRENCIES }),
+    provider: text("provider", { enum: PURCHASE_PROVIDERS }).notNull(),
+    /** The provider's reference for the payment. */
+    providerRef: text("provider_ref"),
+    status: text("status", { enum: PURCHASE_STATUSES }).notNull(),
+    /** The admin who recorded a manual purchase. */
+    recordedBy: uuid("recorded_by").references(() => users.id, { onDelete: "set null" }),
+    note: text("note"),
+    createdAt: createdAt(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    /** Set once the period or codes and the points are written; fulfil does nothing after that. */
+    fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }),
+}, t => [
+    check("purchases_provider_valid", sql`${t.provider} in (${quoted(PURCHASE_PROVIDERS)})`),
+    check("purchases_status_valid", sql`${t.status} in (${quoted(PURCHASE_STATUSES)})`),
+    unique("purchases_provider_ref").on(t.provider, t.providerRef),
+    index("purchases_buyer").on(t.buyerId, t.createdAt),
+])
+
+/**
+ * Single-use codes minted by a Team purchase, one per seat. Redeeming one gives the redeemer `days` on the plan.
+ * `redeemed_at` is what marks a code used: `redeemed_by` goes null when that user is deleted.
+ */
+export const licenseCodes = pgTable("license_codes", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    purchaseId: uuid("purchase_id").notNull().references(() => purchases.id, { onDelete: "cascade" }),
+    planId: text("plan_id", { enum: PLAN_IDS }).notNull().references(() => plans.id),
+    days: integer("days").notNull(),
+    /** `GGE-XXXX-XXXX-XXXX`, as normalizeCode from @gge/contracts returns it. */
+    code: text("code").notNull().unique(),
+    redeemedBy: uuid("redeemed_by").references(() => users.id, { onDelete: "set null" }),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+}, t => [index("license_codes_purchase").on(t.purchaseId)])
 
 /**
  * Game accounts that have run on a free trial, so one game account gets one trial however many users add it.

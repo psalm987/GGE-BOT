@@ -1,6 +1,8 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
-import { BillingSettings, BillingStatus, PointsRedemption, PointsSummary } from "./billing.ts"
+import {
+    AdminPurchase, BillingSettings, BillingStatus, LicenseCode, Package, Period, PointsRedemption, PointsSummary, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage,
+} from "./billing.ts"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
@@ -12,6 +14,7 @@ import {
 } from "./schemas.ts"
 
 export * from "./billing.ts"
+export * from "./codes.ts"
 export * from "./data-export.ts"
 export * from "./entitlement.ts"
 export * from "./notifications.ts"
@@ -104,6 +107,14 @@ export const clientContract = {
          * `needed`. A repeat with the same key spends nothing and answers as the first call did.
          */
         redeemPoints: oc.input(z.object({ idempotencyKey: z.uuid() })).output(PointsRedemption),
+        /**
+         * Spends a Team code on a period queued behind the caller's last. However the code is typed, see normalizeCode.
+         * Refused with data.code CODE_INVALID, CODE_USED or CODE_REVOKED, and wrong codes are rate limited.
+         */
+        redeemCode: oc.input(z.object({ code: z.string().trim().min(1).max(64) })).output(z.object({ period: Period })),
+        /** The codes of the Team packages the caller bought, newest purchase first. */
+        myCodes: oc.output(z.array(LicenseCode)),
+        myPurchases: oc.output(z.array(Purchase)),
     },
     plugins: {
         catalog: oc.output(z.array(PluginCatalogEntry)),
@@ -165,6 +176,18 @@ export const adminContract = {
             delta: z.number().int().min(-10_000).max(10_000).refine(n => n !== 0, "can't be zero"),
             note: z.string().trim().min(3).max(500),
         })).output(z.object({ balance: z.number().int() })),
+        packages: oc.output(z.array(Package)),
+        /** A price and its currency are set or cleared together. */
+        updatePackage: oc.input(UpdatePackage).output(Package),
+        /** A sale made outside the app. It is paid at once, so the buyer gets the time or the codes, and the points. */
+        recordPurchase: oc.input(RecordPurchase).output(AdminPurchase),
+        /** Newest first. `before` is the `createdAt` of the oldest purchase already shown. */
+        purchases: oc.input(z.object({ userId: z.uuid().optional(), status: PurchaseStatus.optional(), before: z.date().optional(), limit: z.number().int().min(1).max(100).default(50) }))
+            .output(z.array(AdminPurchase)),
+        /** Cancels the purchase's unredeemed codes and takes back the points it earned. Time already given stays. */
+        markRefunded: oc.input(z.object({ purchaseId: z.uuid() })).output(AdminPurchase),
+        /** Refused with data.code CODE_USED for a code someone has redeemed. */
+        revokeCode: oc.input(z.object({ codeId: z.uuid() })).output(z.void()),
     },
     /** One player's lines together, as they see them. */
     logs: {
