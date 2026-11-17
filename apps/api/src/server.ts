@@ -10,6 +10,7 @@ import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
+import { createGeoip } from "./services/geoip.ts"
 import { clientLink } from "./services/email.ts"
 import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createNotificationMailer, type NotificationMailer } from "./services/notification-mailer.ts"
@@ -53,7 +54,9 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
         email: createRateLimiter({ max: 3, windowMs: 15 * 60_000 }),
         signup: createRateLimiter({ max: 5, windowMs: 60 * 60_000 }),
         dataExport: createRateLimiter({ max: 1, windowMs: 10 * 60_000 }),
+        detect: createRateLimiter({ max: 60, windowMs: 60_000 }),
     }
+    const lookupCountry = createGeoip({ url: env.GEOIP_URL })
     // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.
     const logServerError = (error: unknown) => {
         const status = (error as { status?: number })?.status
@@ -69,7 +72,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
             // call whose Origin isn't one of our apps.
             if (!origins.includes(req.headers.origin ?? ""))
                 return reply.status(403).send({ message: "Origin not allowed" })
-            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, log: req.log, limits, mailer } })
+            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, log: req.log, limits, mailer, lookupCountry } })
             if (!matched)
                 return reply.status(404).send({ message: "Not found" })
         })

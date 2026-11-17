@@ -3,6 +3,7 @@ import { Avatar, Button, Dropdown, Grid, Layout, Menu, Typography, type MenuProp
 import { useState, type ReactNode } from "react"
 import { Crest } from "./Crest.tsx"
 import { LanguagePicker } from "./LanguagePicker.tsx"
+import type { Preference } from "./i18n/store.ts"
 
 export type NavItem = { key: string; label: string; icon: ReactNode }
 
@@ -11,7 +12,7 @@ export type NavItem = { key: string; label: string; icon: ReactNode }
  * bar with the page title and the user's banner. The sider collapses to icons
  * below 992px.
  */
-export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, username, onLogout, accountMenu = [], children }: {
+export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, username, onLogout, accountMenu = [], onLanguageChange, children }: {
     product: string
     nav: NavItem[]
     activeKey: string
@@ -22,6 +23,8 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
     onLogout: () => void
     /** Extra entries above "Sign out" in the account menu. */
     accountMenu?: NonNullable<MenuProps["items"]>
+    /** Fires after the user picks a language in the header, for apps that also save it to the account. */
+    onLanguageChange?: (preference: Preference) => void
     children: ReactNode
 }) {
     const [collapsed, setCollapsed] = useState(false)
@@ -49,7 +52,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                 <Layout.Header style={{ display: "flex", alignItems: "center", gap: phone ? 8 : 16, borderBottom: "1px solid #3A2E1F", ...(phone && { padding: "0 12px 0 56px" }) }}>
                     <Typography.Title level={3} className="gge-display" ellipsis style={{ margin: 0, flex: 1, minWidth: 0, fontSize: phone ? 17 : 20 }}>{title}</Typography.Title>
                     {extra}
-                    <LanguagePicker />
+                    <LanguagePicker onChange={onLanguageChange} />
                     <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                         <Button type="text" aria-label={`Account menu for ${username}`} style={{ height: 44 }}>
                             <Avatar size="small" icon={<UserOutlined />} style={{ background: "#D7263D" }} />

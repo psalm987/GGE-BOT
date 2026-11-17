@@ -10,6 +10,7 @@ import {
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { connectionToken, subscriptionToken } from "../services/realtime.ts"
 import { exportData } from "../services/data-export.ts"
+import { detectLocale, setLocale } from "../services/i18n.ts"
 import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
 import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, verifyEmail } from "./auth.ts"
 
@@ -39,7 +40,11 @@ export const clientRouter = os.router({
         resetPassword: os.auth.resetPassword.handler(({ context, input }) => resetPassword(context, input)),
         verifyEmail: os.auth.verifyEmail.handler(({ context, input }) => verifyEmail(context, input)),
     },
+    i18n: {
+        detect: os.i18n.detect.handler(async ({ context }) => detectLocale(context, (await currentUser(context, "client"))?.id)),
+    },
     account: {
+        setLocale: os.account.setLocale.use(authed).handler(({ context, input }) => setLocale(context, context.user.id, input.locale)),
         resendVerification: os.account.resendVerification.use(authed).handler(({ context }) => resendVerification(context, context.user)),
         addEmail: os.account.addEmail.use(authed).handler(({ context, input }) => addEmail(context, context.user, input)),
         changePassword: os.account.changePassword.use(authed).handler(({ context, input }) => changePassword(context, context.user, input)),

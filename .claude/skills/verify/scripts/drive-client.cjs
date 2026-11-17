@@ -441,6 +441,8 @@ function emailedLink(address) {
     assert(await options.count() === 29, "the header picker lists Automatic and 28 languages")
     assert((await options.first().innerText()).startsWith("Automatic"), "Automatic comes first")
     await seeded.screenshot({ path: `${out}/26-language-picker-open.png` })
+    await seeded.waitForFunction(() => { const popover = document.querySelector(".ant-popover"); return popover && getComputedStyle(popover).opacity === "1" })
+    await seeded.screenshot({ path: `${out}/language-picker-open-settled.png` })
     await seeded.keyboard.press("Escape")
     await seeded.getByRole("listbox").waitFor({ state: "hidden" })
     assert(await picker.evaluate(el => el === document.activeElement), "Escape closes the picker and returns focus to its button")
@@ -475,6 +477,70 @@ function emailedLink(address) {
     await seeded.waitForFunction(() => document.documentElement.dir === "ltr")
     assert(await seeded.evaluate(() => localStorage.getItem("gge.locale")) === "auto" && await htmlAttr("lang") === "en", "switching back to Automatic follows the browser (English) again")
     await seeded.close()
+
+    if (!process.env.GEOIP_URL)
+        console.log("skip: IP language detection (GEOIP_URL is not set; run stub-atlas.cjs and start pnpm dev with GEOIP_URL=http://127.0.0.1:8089)")
+    else {
+        // The stub maps every 93.x.x.x address to Italy. The dev proxy passes this header through to the API.
+        const italian = () => browser.newContext({ viewport: { width: 1280, height: 860 }, extraHTTPHeaders: { "X-Forwarded-For": "93.58.1.10" } })
+        const htmlLang = target => target.evaluate(() => document.documentElement.lang)
+        const savedLocale = target => target.waitForResponse(response => response.url().includes("/rpc/account/setLocale") && response.ok())
+        const signInDemo = async target => {
+            await target.getByLabel("Username or email").fill("demo")
+            await target.getByLabel("Password").fill("demo-password")
+            await target.getByRole("button", { name: "Sign in" }).click()
+        }
+
+        const first = await italian()
+        const phone1 = await first.newPage()
+        await phone1.goto(`${CLIENT_URL}/login`)
+        await phone1.waitForFunction(() => document.documentElement.lang === "it")
+        assert(await htmlLang(phone1) === "it", "a fresh browser with an Italian IP opens the sign-in page in Italian")
+        const loginPicker = phone1.locator('button[aria-haspopup="dialog"]')
+        await loginPicker.click()
+        const rows = phone1.getByRole("option")
+        await rows.first().waitFor()
+        const automatic = await rows.first().innerText()
+        assert(automatic.startsWith("Automatic") && automatic.includes("Italiano"), `the picker's Automatic row says Italiano is detected (${automatic.replace(/\n/g, " ")})`)
+        await phone1.waitForFunction(() => { const popover = document.querySelector(".ant-popover"); return popover && getComputedStyle(popover).opacity === "1" })
+        await phone1.screenshot({ path: `${out}/29-geoip-login-italian-picker.png` })
+        await axe(phone1, "sign-in page in detected Italian, picker open")
+        await phone1.keyboard.press("Escape")
+        await phone1.locator(".ant-popover").waitFor({ state: "hidden" })
+
+        await signInDemo(phone1)
+        await phone1.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        assert(await htmlLang(phone1) === "it", "signing in as demo, who has no saved language, keeps the detected Italian")
+        const header = phone1.locator('header button[aria-haspopup="dialog"]')
+        await header.click()
+        await phone1.getByRole("combobox", { name: "Search languages" }).fill("pol")
+        const saved = savedLocale(phone1)
+        await phone1.getByRole("option").getByText("Polski").click()
+        await saved
+        await phone1.waitForFunction(() => document.documentElement.lang === "pl")
+        assert(await htmlLang(phone1) === "pl", "picking Polski switches the page and saves it to the account")
+        await phone1.screenshot({ path: `${out}/30-geoip-polish-saved.png` })
+
+        const second = await italian()
+        const phone2 = await second.newPage()
+        await phone2.goto(`${CLIENT_URL}/login`)
+        await phone2.waitForFunction(() => document.documentElement.lang === "it")
+        assert(await phone2.evaluate(() => localStorage.getItem("gge.locale")) === "auto", "a second fresh browser starts on Automatic, in Italian")
+        await signInDemo(phone2)
+        await phone2.waitForFunction(() => document.documentElement.lang === "pl")
+        assert(await htmlLang(phone2) === "pl" && await phone2.evaluate(() => localStorage.getItem("gge.locale")) === "pl", "after sign-in the second device switches to the Polish saved to the account")
+        await phone2.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await phone2.screenshot({ path: `${out}/31-geoip-second-device-polish.png` })
+
+        const reset = savedLocale(phone2)
+        await phone2.locator('header button[aria-haspopup="dialog"]').click()
+        await phone2.getByRole("option").first().click()
+        await reset
+        await phone2.waitForFunction(() => document.documentElement.lang === "it")
+        assert(await phone2.evaluate(() => localStorage.getItem("gge.locale")) === "auto" && await htmlLang(phone2) === "it", "Automatic is saved back to the account and follows the IP again")
+        await first.close()
+        await second.close()
+    }
 
     const signIn = async (target, login) => {
         await target.goto(`${CLIENT_URL}/login`)

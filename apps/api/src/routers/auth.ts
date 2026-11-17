@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/server"
 import { and, eq, isNotNull, sql } from "drizzle-orm"
 import { users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
+import { isLocale } from "@gge/i18n"
 import { claimToken, issueToken } from "../auth/email-tokens.ts"
 import { hashPassword, verifyNobody, verifyPassword } from "../auth/passwords.ts"
 import { COOKIE_NAME, SESSION_TTL_MS, createSession, deleteSession, findSessionUser, revokeUserSessions, type Audience } from "../auth/sessions.ts"
@@ -25,7 +26,7 @@ function setSessionCookie(ctx: Ctx, audience: Audience, token: string) {
 }
 
 export const publicUser = (user: typeof users.$inferSelect): PublicUser =>
-    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, maxBots: user.maxBots })
+    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, maxBots: user.maxBots, locale: user.locale })
 
 export async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
     const token = await createSession(ctx.db, { userId: user.id, audience, ip: ctx.req.ip, userAgent: ctx.req.headers["user-agent"] })
@@ -103,6 +104,12 @@ export async function logout(ctx: Ctx, audience: Audience) {
     ctx.reply.clearCookie(COOKIE_NAME[audience], { path: "/" })
 }
 
+/** The language the browser says it is showing, so the first emails can match it. Anything that isn't one of ours is dropped. */
+function headerLocale(ctx: Ctx) {
+    const value = ctx.req.headers["x-gge-locale"]
+    return typeof value === "string" && isLocale(value) ? value : null
+}
+
 export async function signup(ctx: Ctx, input: { username: string; email: string; password: string; turnstileToken?: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.signup.hit(ctx.req.ip))
         throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
@@ -117,7 +124,7 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
     // to whose username then reads as taken.
     const { user, token } = await ctx.db.transaction(async tx => {
         const user = await tx.insert(users)
-            .values({ username: input.username, email: input.email, passwordHash })
+            .values({ username: input.username, email: input.email, passwordHash, detectedLocale: headerLocale(ctx) })
             .returning()
             .then(([created]) => created!, error => {
                 if (isUniqueViolation(error, "users_username_lower"))

@@ -3,7 +3,7 @@ import { Grid, Tag, type MenuProps } from "antd"
 import type { ReactNode } from "react"
 import { useNavigate } from "react-router"
 import { CampaignLayout } from "@gge/ui"
-import { useLogout, useMe } from "../auth.tsx"
+import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
 import { useRealtimeState } from "../realtime.ts"
 import { NotificationBell } from "./NotificationBell.tsx"
 
@@ -20,6 +20,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     const navigate = useNavigate()
     const me = useMe()
     const logout = useLogout()
+    const saveLocale = useSaveLocale()
     const phone = !Grid.useBreakpoint().md
     const reconnecting = useRealtimeState() === "polling"
     async function signOut() {
@@ -38,6 +39,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             title={title}
             username={me.data?.username ?? ""}
             onLogout={signOut}
+            onLanguageChange={saveLocale}
             accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}

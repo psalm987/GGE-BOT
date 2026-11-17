@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { LOCALE_CODES } from "@gge/i18n"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 import { Schedule } from "./schedule.ts"
 
@@ -23,7 +24,10 @@ export const SecondFactor = z.union([z.object({ code: TotpCode }), z.object({ re
 /** What an admin owes after the password: a code, or first setting up an authenticator. */
 export const AdminLoginStep = z.object({ step: z.enum(["totp", "enroll"]) })
 
-export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int() })
+export const LocaleCode = z.enum(LOCALE_CODES)
+
+/** `locale` is the language the user picked; null is Automatic. */
+export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int(), locale: LocaleCode.nullable() })
 export type PublicUser = z.infer<typeof PublicUser>
 
 export const BotStatus = z.object({
@@ -85,7 +89,7 @@ export const Server = z.object({ id: z.number().int(), label: z.string() })
 export const Page = z.object({ limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) })
 export const Search = z.string().trim().max(64).optional()
 
-export const AdminUser = PublicUser.extend({
+export const AdminUser = PublicUser.omit({ locale: true }).extend({
     status: UserStatus,
     /** null: the user follows the global default. */
     attackPluginCap: AttackPluginCap.nullable(),

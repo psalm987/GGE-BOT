@@ -5,7 +5,7 @@ import { NOTIFICATION_KINDS, type NotificationKind, type NotificationPrefs } fro
 import { useTranslation } from "react-i18next"
 import { LanguagePicker, ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
-import { useMe } from "../auth.tsx"
+import { useMe, useSaveLocale } from "../auth.tsx"
 import { ChangeEmailCard, DeleteAccountCard, ExportDataCard } from "../components/AccountCards.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PasswordFields } from "../components/PasswordFields.tsx"
@@ -60,6 +60,7 @@ export function Settings() {
     const { message } = App.useApp()
     const { t } = useTranslation()
     const me = useMe().data
+    const saveLocale = useSaveLocale()
     const [form] = Form.useForm()
     const change = useMutation(orpc.account.changePassword.mutationOptions({
         onSuccess: () => {
@@ -70,7 +71,8 @@ export function Settings() {
     return (
         <AppLayout activeKey="settings" title="Settings">
             <ParchmentCard title={t("language.label")} style={{ maxWidth: 480, marginBottom: 16 }}>
-                <LanguagePicker variant="inline" />
+                <LanguagePicker variant="inline" onChange={saveLocale} />
+                <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>{t("language.geoipAttribution")}</Typography.Paragraph>
             </ParchmentCard>
             <EmailPrefs />
             {me?.email && me.emailVerified && <ChangeEmailCard me={me} />}

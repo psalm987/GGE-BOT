@@ -1,6 +1,7 @@
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify"
 import type { Db } from "@gge/db"
 import type { Env } from "./env.ts"
+import type { Geoip } from "./services/geoip.ts"
 import type { Mailer } from "./services/mailer.ts"
 import type { RateLimiter } from "./services/rate-limit.ts"
 
@@ -17,8 +18,10 @@ export type Ctx = {
      * `userTotal`. `user` also caps wrong second-factor codes per admin. `email` caps mail sent to one address; `signup` caps new accounts per IP;
      * `dataExport` caps data downloads per user.
      */
-    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter }
+    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter; detect: RateLimiter }
     mailer: Mailer
+    /** Country of an IP; null when unknown. */
+    lookupCountry: Geoip
 }
 
 /** A Postgres unique violation, optionally on one named constraint. */

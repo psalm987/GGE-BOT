@@ -18,8 +18,10 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
+import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
+const localeCodes = sql.raw(LOCALE_CODES.map(code => `'${code}'`).join(", "))
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 
@@ -54,9 +56,15 @@ export const users = pgTable("users", {
     legacyUuid: text("legacy_uuid").unique(),
     /** Which notification kinds are also emailed. A missing kind takes its default; read it with notificationPrefs() from @gge/contracts. */
     notificationPrefs: jsonb("notification_prefs").notNull().default({}),
+    /** The language the user picked; null is Automatic. */
+    locale: text("locale", { enum: LOCALE_CODES }),
+    /** What Automatic last resolved to for this user, so emails can be localised without a request. Never the IP itself. */
+    detectedLocale: text("detected_locale", { enum: LOCALE_CODES }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
 }, t => [
+    check("users_locale_valid", sql`${t.locale} in (${localeCodes})`),
+    check("users_detected_locale_valid", sql`${t.detectedLocale} in (${localeCodes})`),
     uniqueIndex("users_username_lower").on(sql`lower(${t.username})`),
     uniqueIndex("users_email_canonical").on(t.emailCanonical),
 ])

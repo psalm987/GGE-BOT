@@ -4,7 +4,11 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query"
 import { QueryClient } from "@tanstack/react-query"
 import type { ClientApi } from "@gge/contracts"
 
-export const client = createORPCClient<ClientApi>(new RPCLink({ url: `${window.location.origin}/rpc` }))
+export const client = createORPCClient<ClientApi>(new RPCLink({
+    url: `${window.location.origin}/rpc`,
+    // Read per request: the language can change while the page is open.
+    headers: () => ({ "x-gge-locale": document.documentElement.lang }),
+}))
 export const orpc = createTanstackQueryUtils(client)
 
 export const queryClient = new QueryClient({

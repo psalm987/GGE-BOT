@@ -6,6 +6,7 @@ import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
+import { detectLocale } from "../services/i18n.ts"
 import { accountLogs, accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
@@ -40,6 +41,9 @@ function notSelf(actorId: string, targetId: string, message: string) {
 }
 
 export const adminRouter = os.router({
+    i18n: {
+        detect: os.i18n.detect.handler(({ context }) => detectLocale(context)),
+    },
     auth: {
         login: os.auth.login.handler(({ context, input }) => adminLogin(context, input)),
         verifyTotp: os.auth.verifyTotp.handler(({ context, input }) => verifyTotp(context, input)),

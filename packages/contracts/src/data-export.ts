@@ -1,6 +1,6 @@
 import * as z from "zod"
 import { Notification, NotificationPrefs } from "./notifications.ts"
-import { BotStatus, DesiredState, Role, Run } from "./schemas.ts"
+import { BotStatus, DesiredState, LocaleCode, Role, Run } from "./schemas.ts"
 
 /**
  * Everything the app holds about one player, for them to download. Game passwords and the panel
@@ -16,6 +16,8 @@ export const DataExport = z.object({
         maxBots: z.number().int(),
         createdAt: z.date(),
         notificationPrefs: NotificationPrefs,
+        locale: LocaleCode.nullable(),
+        detectedLocale: LocaleCode.nullable(),
     }),
     accounts: z.array(z.object({
         id: z.uuid(),

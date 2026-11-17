@@ -1,0 +1,4 @@
+ALTER TABLE "users" ADD COLUMN "locale" text;--> statement-breakpoint
+ALTER TABLE "users" ADD COLUMN "detected_locale" text;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_locale_valid" CHECK ("users"."locale" in ('bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'ga', 'hr', 'hu', 'it', 'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv', 'nb', 'tr', 'uk', 'ar'));--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_detected_locale_valid" CHECK ("users"."detected_locale" in ('bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'ga', 'hr', 'hu', 'it', 'lt', 'lv', 'mt', 'nl', 'pl', 'pt', 'ro', 'sk', 'sl', 'sv', 'nb', 'tr', 'uk', 'ar'));

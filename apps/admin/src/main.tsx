@@ -6,7 +6,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import { CampaignProvider, initI18n } from "@gge/ui"
-import { queryClient } from "./api.ts"
+import { client, queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { Accounts } from "./pages/Accounts.tsx"
 import { Audit } from "./pages/Audit.tsx"
@@ -19,7 +19,7 @@ import { Users } from "./pages/Users.tsx"
 
 const guarded = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>
 
-await initI18n()
+await initI18n({ detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
 
 createRoot(document.getElementById("root")!, {
     onUncaughtError: Sentry.reactErrorHandler(),

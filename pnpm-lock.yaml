@@ -133,6 +133,9 @@ importers:
       '@gge/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@gge/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@node-rs/argon2':
         specifier: ^2.2.2
         version: 2.2.2
@@ -350,6 +353,9 @@ importers:
 
   packages/contracts:
     dependencies:
+      '@gge/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@orpc/contract':
         specifier: ^1.16.2
         version: 1.16.2(@opentelemetry/api@1.10.0)
@@ -372,6 +378,9 @@ importers:
       '@gge/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@gge/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@opentelemetry/api':
         specifier: 1.10.0
         version: 1.10.0

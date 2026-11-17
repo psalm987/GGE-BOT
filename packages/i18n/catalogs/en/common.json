@@ -2,5 +2,6 @@
   "language.label": "Language",
   "language.automatic": "Automatic",
   "language.detected": "{{language}} (detected)",
-  "language.search": "Search languages"
+  "language.search": "Search languages",
+  "language.geoipAttribution": "Automatic uses GeoLite2 data created by MaxMind."
 }

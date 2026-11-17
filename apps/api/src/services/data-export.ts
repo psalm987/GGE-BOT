@@ -12,6 +12,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
     const [profile] = await db.select({
         username: users.username, email: users.email, emailVerifiedAt: users.emailVerifiedAt, role: users.role,
         maxBots: users.maxBots, createdAt: users.createdAt, notificationPrefs: users.notificationPrefs,
+        locale: users.locale, detectedLocale: users.detectedLocale,
     }).from(users).where(eq(users.id, userId))
     if (!profile)
         throw new ORPCError("UNAUTHORIZED", { message: "Please sign in" })

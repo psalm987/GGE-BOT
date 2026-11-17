@@ -6,7 +6,7 @@ import { Notification, NotificationPrefs } from "./notifications.ts"
 import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LoginPassword, NewPassword, LogLine,
+    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword, LogLine,
     LogsInput, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -18,6 +18,13 @@ export * from "./proxies.ts"
 export * from "./realtime.ts"
 export * from "./schedule.ts"
 export * from "./schemas.ts"
+
+/** Public. The language to start in: from the caller's IP, else their Accept-Language header. */
+const detectLocale = oc.output(z.object({
+    locale: LocaleCode,
+    country: z.string().nullable(),
+    source: z.enum(["ip", "header", "default"]),
+}))
 
 const session = {
     logout: oc.output(z.void()),
@@ -36,7 +43,10 @@ export const clientContract = {
         /** Public: the emailed link may open in a browser that isn't signed in. */
         verifyEmail: oc.input(z.object({ token: z.string().min(1).max(200) })).output(z.void()),
     },
+    i18n: { detect: detectLocale },
     account: {
+        /** The language the user picked, kept across devices; null is Automatic. */
+        setLocale: oc.input(z.object({ locale: LocaleCode.nullable() })).output(z.void()),
         resendVerification: oc.output(z.void()),
         /** Sets the email while it isn't confirmed yet: a first address, or a fix for a mistyped one. */
         addEmail: oc.input(z.object({ email: Email })).output(z.void()),
@@ -86,6 +96,7 @@ export const clientContract = {
 
 /** What the admin app (admin.<domain>) calls, mounted at /admin/rpc. */
 export const adminContract = {
+    i18n: { detect: detectLocale },
     auth: {
         ...session,
         /** The password alone never starts an admin session: it sets a short-lived challenge cookie and says which step is next. */
