@@ -1,8 +1,9 @@
 import { and, eq, gt, inArray, sql } from "drizzle-orm"
 import type { FastifyBaseLogger } from "fastify"
-import { describeNotification, notificationPrefs, type EmailState } from "@gge/contracts"
+import { serverT } from "@gge/i18n/server"
+import { notificationPrefs, notificationText, type EmailState } from "@gge/contracts"
 import { notifications, toNotification, users, type Db } from "@gge/db"
-import { sendEmail } from "./email.ts"
+import { emailLocale, sendEmail } from "./email.ts"
 import type { Mailer } from "./mailer.ts"
 
 export const MAIL_WORKER = {
@@ -46,7 +47,7 @@ export function createNotificationMailer({ db, mailer, log, clientUrl }: { db: D
         .returning()
 
     async function deliver(userId: string, rows: Row[]) {
-        const [user] = await db.select({ email: users.email, emailVerifiedAt: users.emailVerifiedAt, status: users.status, prefs: users.notificationPrefs })
+        const [user] = await db.select({ email: users.email, emailVerifiedAt: users.emailVerifiedAt, status: users.status, prefs: users.notificationPrefs, locale: users.locale, detectedLocale: users.detectedLocale })
             .from(users).where(eq(users.id, userId))
         // The owner was deleted after the claim, and the rows went with them.
         if (!user)
@@ -67,11 +68,13 @@ export function createNotificationMailer({ db, mailer, log, clientUrl }: { db: D
         if (!due.length)
             return
 
+        const locale = emailLocale(user)
+        const notificationT = serverT(locale)
         const alerts = due.map(row => {
             const notification = toNotification(row)
-            return { ...describeNotification(notification), server: notification.data.serverLabel }
+            return { ...notificationText(notificationT, notification), server: notification.data.serverLabel }
         })
-        if (await sendEmail({ db, mailer, log }, "bot_alerts", user.email, { alerts, link: clientUrl }, userId))
+        if (await sendEmail({ db, mailer, log }, "bot_alerts", user.email, { alerts, link: clientUrl }, userId, locale))
             return finish(due, "sent", null)
         const lastTry = sql`${notifications.emailAttempts} + 1 >= ${MAIL_WORKER.maxAttempts}`
         await db.update(notifications).set({

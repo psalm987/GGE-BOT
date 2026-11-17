@@ -193,7 +193,7 @@ describe("emailing notifications", () => {
         const [digest, ...more] = digestsTo(alice.email)
         expect(more).toEqual([])
         expect(digest!.subject).toBe("Your free trial has started")
-        expect(digest!.text).toContain("Your bots can run on the Basic plan until 2031-02-10 09:30 UTC.")
+        expect(digest!.text).toContain("Your bots can run on the Basic plan until Feb 10, 2031, 09:30 AM UTC.")
         expect(digest!.text).not.toMatch(/started \(|undefined|stopped and won't start/)
     })
 
@@ -209,6 +209,33 @@ describe("emailing notifications", () => {
         expect(digest!.text).toContain("Ironhold was banned (India 1)")
         expect(digest!.text).toContain("Your plan ends in 1 day\n")
         expect(digest!.text).not.toContain("undefined")
+    })
+
+    test("a digest reads in the player's language: dates in its format, English where the text isn't translated yet", async () => {
+        const hans = await player()
+        await api.db.update(users).set({ locale: "de" }).where(eq(users.id, hans.id))
+        await notify(hans.id, { kind: "plan_expiring", data: { endsAt: "2031-02-10T09:30:00.000Z", daysLeft: 7 } })
+
+        await api.mailTick()
+
+        const [digest] = digestsTo(hans.email)
+        expect(digest!.text).toContain("It ends at 10. Feb. 2031, 09:30 UTC.")
+        expect(digest!.text).toContain("Your plan ends in 7 days")
+        expect(digest!.html).toContain('lang="de" dir="ltr"')
+    })
+
+    test("a player who never chose a language is written to in the one detected for them", async () => {
+        const hans = await player()
+        await api.db.update(users).set({ detectedLocale: "de" }).where(eq(users.id, hans.id))
+        await notify(hans.id, { kind: "plan_expired", data: { endedAt: "2031-02-10T09:30:00.000Z" } })
+        await api.mailTick()
+        expect(digestsTo(hans.email)[0]!.text).toContain("It ended at 10. Feb. 2031, 09:30 UTC")
+
+        const chosen = await player()
+        await api.db.update(users).set({ locale: "en", detectedLocale: "de" }).where(eq(users.id, chosen.id))
+        await notify(chosen.id, { kind: "plan_expired", data: { endedAt: "2031-02-10T09:30:00.000Z" } })
+        await api.mailTick()
+        expect(digestsTo(chosen.email)[0]!.text).toContain("It ended at Feb 10, 2031, 09:30 AM UTC")
     })
 
     test("shutoff emails are off until the player turns them on", async () => {

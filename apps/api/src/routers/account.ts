@@ -5,7 +5,7 @@ import { verifyPassword } from "../auth/passwords.ts"
 import { COOKIE_NAME, hashToken, revokeUserSessions, type SessionUser } from "../auth/sessions.ts"
 import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
-import { clientLink, sendEmail } from "../services/email.ts"
+import { clientLink, emailLocale, sendEmail } from "../services/email.ts"
 import { isDisposable } from "../services/email-policy.ts"
 import { mailVerification, sendVerification, storePassword, tooMany } from "./auth.ts"
 import { fail } from "../errors.ts"
@@ -144,5 +144,5 @@ export async function deleteMe(ctx: Ctx, user: SessionUser, input: { password: s
     })
     ctx.reply.clearCookie(COOKIE_NAME.client, { path: "/" })
     if (row.email && row.emailVerifiedAt)
-        await sendEmail(ctx, "account_deleted", row.email, { username: row.username }, null)
+        await sendEmail(ctx, "account_deleted", row.email, { username: row.username }, null, emailLocale(row))
 }

@@ -61,12 +61,23 @@ function emailedLink(address) {
 }
 
 /** What the terminal's rendered rows show. The list is virtualised, so these are the rows in and near view. */
-const termRows = log => log.evaluate(el => [...el.querySelectorAll(".gge-term-row")].map(row => ({
+const sampleRows = log => log.evaluate(el => [...el.querySelectorAll(".gge-term-row")].map(row => ({
     level: row.dataset.level,
     tag: row.querySelector(".gge-term-tag")?.textContent ?? null,
     account: row.querySelector(".gge-term-acct")?.textContent ?? null,
     text: row.querySelector(".gge-term-msg")?.textContent ?? "",
 })))
+/** The rows once they stop changing for 400 ms, so a slow render on a loaded machine isn't read half done. */
+async function termRows(log) {
+    let last = JSON.stringify(await sampleRows(log)), steady = 0
+    for (let i = 0; i < 60 && steady < 2; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        const now = JSON.stringify(await sampleRows(log))
+        steady = now === last ? steady + 1 : 0
+        last = now
+    }
+    return JSON.parse(last)
+}
 const atBottom = log => log.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight <= 8)
 const rpc = (page, path, json = {}) => page.evaluate(async ([p, body]) => (await (await fetch(`/rpc/${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: body }) })).json()).json, [path, json])
 
@@ -287,6 +298,31 @@ async function atBothWidths(page, file, what) {
  * stub, gets a Team-5 purchase recorded for it, has a second player redeem one of the codes from a shared link, and
  * goes back to free.
  */
+/** A refusal the player reads on screen is the errors catalog's text for the code the API sent, not a string the API wrote into the page. */
+async function driveErrors(browser) {
+    const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
+    await page.goto(`${CLIENT_URL}/login`)
+    await page.getByLabel("Username or email").fill("demo")
+    await page.getByLabel("Password").fill("not-the-password")
+    const answered = page.waitForResponse(response => response.url().includes("/rpc/auth/login"))
+    await page.getByRole("button", { name: "Sign in" }).click()
+    const body = (await (await answered).json()).json
+    assert(body.data?.code === "WRONG_CREDENTIALS" && typeof body.data.params === "object", `a wrong password answers with its code and params (${JSON.stringify(body.data)})`)
+    const alert = page.getByRole("alert").filter({ hasText: "Wrong username or password" })
+    await alert.waitFor()
+    assert(true, "the sign-in page shows the catalog text for WRONG_CREDENTIALS")
+    await page.screenshot({ path: `${out}/30-error-rendered-from-code.png` })
+    await axe(page, "sign-in with an error rendered from its code")
+
+    const direct = await page.evaluate(async () => {
+        const res = await fetch("/rpc/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: { login: "", password: "" } }) })
+        const json = (await res.json()).json
+        return { status: res.status, issue: json?.data?.issues?.[0]?.code, message: json?.message }
+    })
+    assert(direct.status === 400 && typeof direct.issue === "string", `an input the schema refuses answers with an issue code, which the client maps to zod.<code> (${direct.issue})`)
+    await page.context().close()
+}
+
 async function driveBilling(browser) {
     const start = await adminCall("billing/status", {})
     if (start.billingLive)
@@ -488,9 +524,11 @@ async function driveBilling(browser) {
         .map(async what => await emailWhen(what).getAttribute("aria-checked") === "true"))
     await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
     assert((await emailsOn()).join() === "true,true,true,false", "email alerts default to on for bans, rejected passwords and crash loops, off for the shutoff timer")
+    let saves = 0
+    page.on("response", response => { if (response.url().includes("/rpc/account/notificationPrefs")) saves++ })
     await emailWhen("the game bans an account").click()
     await emailWhen("the shutoff timer stops a bot").click()
-    await page.waitForResponse(response => response.url().includes("/rpc/account/notificationPrefs"))
+    for (let waited = 0; saves < 2 && waited < 10_000; waited += 100) await page.waitForTimeout(100)
     await page.reload()
     await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
     assert((await emailsOn()).join() === "false,true,true,true", "the email switches keep their positions across a reload")
@@ -561,9 +599,12 @@ async function driveBilling(browser) {
     await page.screenshot({ path: `${out}/10b-at-bot-limit.png` })
     const refused = await page.evaluate(async serverId => {
         const res = await fetch("/rpc/accounts/create", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: { name: "OneTooMany", serverId, password: "x" } }) })
-        return { status: res.status, code: (await res.json()).json?.code }
+        const body = (await res.json()).json
+        return { status: res.status, code: body?.code, data: body?.data, message: body?.message }
     }, 27)
     assert(refused.status === 403 && refused.code === "FORBIDDEN", "calling the API directly for a second bot is refused (FORBIDDEN)")
+    assert(refused.data?.code === "PLAN_LIMIT" && refused.data.params?.context === "add" && refused.data.params.count === 1, `the refusal carries its code and params (${JSON.stringify(refused.data)})`)
+    assert(refused.message === "Your plan allows 1 bot. Remove one to add another.", "and the English text, written from the errors catalog")
 
     await row.getByRole("button", { name: "Start" }).click()
     await row.getByRole("button", { name: "Stop" }).waitFor()
@@ -638,7 +679,12 @@ async function driveBilling(browser) {
     await page.screenshot({ path: `${out}/12-event-twin-at-limit.png` })
 
     const WIDE = { width: 1440, height: 900 }, PHONE = { width: 390, height: 844 }
-    const noOverflow = async (target, what) => assert(await target.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, `no horizontal overflow on ${what} at 390`)
+    const overflowOf = target => target.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    // A resize is laid out after a moment, longer on a loaded machine, so the page gets 3 s to fit before this counts as overflow.
+    const noOverflow = async (target, what) => {
+        for (let waited = 0; waited < 3000 && await overflowOf(target) !== 0; waited += 200) await target.waitForTimeout(200)
+        assert(await overflowOf(target) === 0, `no horizontal overflow on ${what} at 390`)
+    }
     /** A screenshot at 1440 and at 390, with the overflow check at 390. Leaves the page wide. */
     const bothWidths = async (target, file, what) => {
         await target.setViewportSize(WIDE)
@@ -1004,6 +1050,7 @@ async function driveBilling(browser) {
         await page.getByText("Wrong username or password").waitFor()
     }
     assert(true, "the deleted account's username and email no longer sign in")
+    await driveErrors(browser)
     await driveBilling(browser)
     await browser.close()
     console.log("ALL OK")

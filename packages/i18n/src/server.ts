@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url"
 import i18next from "i18next"
 import type { Catalogs } from "./catalogs.ts"
+import { registerFormats } from "./formats.ts"
 import { loadCatalogDir } from "./node.ts"
 import type { Translate } from "./translate.ts"
 
@@ -17,6 +18,7 @@ export function createServerI18n(catalogs: Catalogs) {
         interpolation: { escapeValue: false },
         initAsync: false,
     })
+    registerFormats(instance)
     return instance
 }
 

@@ -1,4 +1,7 @@
 import * as z from "zod"
+import type { Translate } from "@gge/i18n"
+
+export type { Translate }
 
 /** A date that may have travelled as JSON, where it is an ISO string. */
 export const WireDate = z.union([z.date(), z.iso.datetime().pipe(z.coerce.date())])
@@ -69,47 +72,31 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
 export const notificationPrefs = (stored: unknown): NotificationPrefs =>
     ({ ...DEFAULT_NOTIFICATION_PREFS, ...NotificationPrefs.partial().catch({}).parse(stored) })
 
-const minute = (iso: string) => `${iso.slice(0, 16).replace("T", " ")} UTC`
-const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`
-
-/** One notification in words, for the bell and the email. */
-export function describeNotification({ kind, data }: NotificationContent): { title: string; body: string } {
+/** One notification in words, for the bell and the email. `t` is any translator, so the caller picks the language; texts live in the `notifications` namespace. */
+export function notificationText(translate: Translate, { kind, data }: NotificationContent): { title: string; body: string } {
+    const t = (key: string, options?: Record<string, unknown>) => translate(key, { ns: "notifications", ...options })
     switch (kind) {
         case "banned": return {
-            title: `${data.accountName} was banned`,
-            body: data.bannedUntil
-                ? `The game banned this account until ${minute(data.bannedUntil)}. Its bot is stopped.`
-                : "The game banned this account. Its bot is stopped.",
+            title: t("banned.title", { accountName: data.accountName }),
+            body: data.bannedUntil ? t("banned.body", { until: data.bannedUntil }) : t("banned.bodyUnknownEnd"),
         }
-        case "auth_failed": return {
-            title: `${data.accountName} couldn't sign in`,
-            body: "The game rejected the saved password. Update it, then start the bot again.",
-        }
+        case "auth_failed": return { title: t("auth_failed.title", { accountName: data.accountName }), body: t("auth_failed.body") }
         case "crash_loop": return {
-            title: `${data.accountName} stopped after repeated crashes`,
-            body: `It failed ${data.failures} times in a row and won't restart on its own. Last error: ${data.lastError}`,
+            title: t("crash_loop.title", { accountName: data.accountName }),
+            body: t("crash_loop.body", { count: data.failures, lastError: data.lastError }),
         }
-        case "shutoff": return {
-            title: `${data.accountName} was stopped by its shutoff timer`,
-            body: "Start it again when you're ready.",
-        }
-        case "trial_started": return {
-            title: "Your free trial has started",
-            body: `Your bots can run on the Basic plan until ${minute(data.endsAt)}.`,
-        }
+        case "shutoff": return { title: t("shutoff.title", { accountName: data.accountName }), body: t("shutoff.body") }
+        case "trial_started": return { title: t("trial_started.title"), body: t("trial_started.body", { endsAt: data.endsAt }) }
         case "plan_expiring": return {
-            title: `Your plan ends in ${count(data.daysLeft, "day")}`,
-            body: `It ends at ${minute(data.endsAt)}. Renew before then to keep your bots running.`,
+            title: t("plan_expiring.title", { count: data.daysLeft }),
+            body: t("plan_expiring.body", { endsAt: data.endsAt }),
         }
-        case "plan_expired": return {
-            title: "Your plan has ended",
-            body: `It ended at ${minute(data.endedAt)}, so your bots are stopped. They start again on their own when you renew.`,
-        }
+        case "plan_expired": return { title: t("plan_expired.title"), body: t("plan_expired.body", { endedAt: data.endedAt }) }
         case "purchase_completed": return {
-            title: "Thanks for your purchase",
+            title: t("purchase_completed.title"),
             body: [
-                data.codes ? `${count(data.codes, "single-use code")} ${data.codes === 1 ? "is" : "are"} ready to share.` : "The time is added to your plan.",
-                data.points ? `You earned ${count(data.points, "point")}.` : "",
+                data.codes ? t("purchase_completed.codes", { count: data.codes }) : t("purchase_completed.time"),
+                data.points ? t("purchase_completed.points", { count: data.points }) : "",
             ].filter(Boolean).join(" "),
         }
     }

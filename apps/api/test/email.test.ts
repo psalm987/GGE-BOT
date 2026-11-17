@@ -252,3 +252,33 @@ describe("adding an email", () => {
         expect(await quinn.api.auth.me()).toMatchObject({ email: "quinn@example.test" })
     })
 })
+
+describe("the language an email is written in", () => {
+    test("a player's chosen language sets the page language and direction, with English text until it is translated", async () => {
+        const player = await api.signup("hana")
+        await api.db.update(users).set({ locale: "ar" }).where(eq(users.username, "hana"))
+        await player.api.account.resendVerification()
+        const [mail] = mailsTo("hana@example.test").slice(-1)
+        expect(mail!.html).toContain('lang="ar" dir="rtl"')
+        expect(mail!.subject).toBe("Verify your email")
+        expect(mail!.text).toContain("Verify email:")
+    })
+
+    test("the language detected at signup is used until the player chooses one", async () => {
+        await api.signup("ines")
+        await api.db.update(users).set({ detectedLocale: "de" }).where(eq(users.username, "ines"))
+        const player = await loggedIn("ines")
+        await player.api.account.resendVerification()
+        expect(mailsTo("ines@example.test").at(-1)!.html).toContain('lang="de" dir="ltr"')
+    })
+
+    test("a deleted account's farewell still goes out in its owner's language", async () => {
+        const player = await api.player("jana")
+        await api.db.update(users).set({ locale: "ar" }).where(eq(users.username, "jana"))
+        await player.api.account.deleteMe({ password: PASSWORD, confirmUsername: "jana" })
+        const mail = mailsTo("jana@example.test").at(-1)!
+        expect(mail.tag).toBe("account_deleted")
+        expect(mail.html).toContain('lang="ar" dir="rtl"')
+        expect(mail.text).toContain("Your GGE Bot account jana was deleted")
+    })
+})

@@ -1,7 +1,7 @@
 import i18n from "i18next"
 import resourcesToBackend from "i18next-resources-to-backend"
 import { initReactI18next } from "react-i18next"
-import { isLocale, resolveLocale, type Locale } from "@gge/i18n"
+import { isLocale, registerFormats, resolveLocale, type Locale } from "@gge/i18n"
 import { loadCatalog } from "./catalogs.ts"
 import { DETECTED_KEY, LEGACY_KEY, PREFERENCE_KEY, applyLocale, isPreference, readStorage, writeStorage, type Preference } from "./store.ts"
 
@@ -59,10 +59,11 @@ export async function initI18n({ app, detect }: { app: "client" | "admin"; detec
         keySeparator: false,
         nsSeparator: false,
         defaultNS: "common",
-        ns: ["common", "ui", "errors", app, "bot"],
+        ns: ["common", "ui", "errors", "notifications", app, "bot"],
         interpolation: { escapeValue: false },
         react: { useSuspense: false },
     })
+    registerFormats(i18n)
 
     let { locale, detected } = initial
     if (initial.needsDetect && detect) {

@@ -1,7 +1,7 @@
 import { App, Button } from "antd"
 import { useTranslation } from "react-i18next"
-import { describeNotification } from "@gge/contracts"
 import { useMe } from "../auth.tsx"
+import { useNotificationText } from "../notification-text.ts"
 import { useRealtime } from "../realtime.ts"
 import { useOpenNotification } from "./NotificationBell.tsx"
 
@@ -9,10 +9,11 @@ import { useOpenNotification } from "./NotificationBell.tsx"
 export function LiveUpdates() {
     const { notification: toast } = App.useApp()
     const { t } = useTranslation("client")
+    const textOf = useNotificationText()
     const { open, canOpen } = useOpenNotification()
     useRealtime(useMe().data?.id, arrived => {
         const key = `notification-${arrived.id}`
-        const { title, body } = describeNotification(arrived)
+        const { title, body } = textOf(arrived)
         // A bot that stopped needs its owner; news about the plan doesn't.
         toast[arrived.data.accountName === undefined ? "info" : "warning"]({
             key, title, description: body, placement: "topRight", duration: 10,

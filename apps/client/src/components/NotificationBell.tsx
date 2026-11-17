@@ -6,10 +6,11 @@ import relativeTime from "dayjs/plugin/relativeTime"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router"
-import { describeNotification, type Notification } from "@gge/contracts"
+import type { Notification } from "@gge/contracts"
 import { notificationsQuery, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { applyNotificationEvent, unreadCount } from "../notification-events.ts"
+import { useNotificationText } from "../notification-text.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 dayjs.extend(relativeTime)
@@ -48,6 +49,7 @@ export function useOpenNotification() {
 /** The header bell: how many notifications are unread, and the list behind it. */
 export function NotificationBell() {
     const { t } = useTranslation("client")
+    const textOf = useNotificationText()
     const [open, setOpen] = useState(false)
     const list = useInfiniteQuery({ ...notificationsQuery, refetchInterval: pollInterval(useRealtimeState()) })
     const markRead = useMarkRead()
@@ -69,7 +71,7 @@ export function NotificationBell() {
             ) : (
                 <ul>
                     {items.map(n => {
-                        const { title, body } = describeNotification(n)
+                        const { title, body } = textOf(n)
                         const gone = n.data.accountName !== undefined && !opener.canOpen(n)
                         return (
                             <li key={n.id}>

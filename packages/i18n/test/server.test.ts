@@ -10,7 +10,7 @@ describe("serverT", () => {
     it("falls back to English strings for a locale with no catalog, and formats with that locale", () => {
         const t = serverT("de")
         expect(t("CODE_USED", { ns: "errors" })).toBe("This code has already been used.")
-        expect(t("when", { ns: "common", defaultValue: "{{at, datetime(year: numeric; month: long; day: numeric; timeZone: UTC)}}", at: new Date("2026-12-08T01:00:00Z") })).toBe("8. Dezember 2026")
+        expect(t("when", { ns: "common", defaultValue: "{{at, when}}", at: new Date("2026-12-08T01:00:00Z") })).toMatch(/^8\. Dez\.? 2026/)
     })
 
     it("uses a translation where one exists", () => {
