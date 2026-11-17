@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, gte, lte, sql } from "drizzle-orm"
 import type { PeriodSource, PlanId } from "@gge/contracts"
-import { appSettings, planPeriods, users, type Db } from "@gge/db"
+import { appSettings, insertNotification, planPeriods, users, type Db } from "@gge/db"
 
 type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
 
@@ -43,8 +43,8 @@ export async function appendPeriod(tx: Tx, { userId, days, ...period }: NewPerio
 }
 
 /**
- * Gives the user their one free trial, queued like any other period. Returns undefined, and changes nothing, when
- * they have had it. Callers decide whether billing is live.
+ * Gives the user their one free trial, queued like any other period, and tells them. Returns undefined, and changes
+ * nothing, when they have had it. Callers decide whether billing is live.
  */
 export async function grantTrial(tx: Tx, userId: string, now = new Date()) {
     await lockUser(tx, userId)
@@ -53,7 +53,9 @@ export async function grantTrial(tx: Tx, userId: string, now = new Date()) {
     if (had)
         return undefined
     const [settings] = await tx.select({ trialDays: appSettings.trialDays }).from(appSettings)
-    return appendPeriod(tx, { userId, planId: "basic", days: settings?.trialDays ?? 7, source: "trial" }, now)
+    const trial = await appendPeriod(tx, { userId, planId: "basic", days: settings?.trialDays ?? 7, source: "trial" }, now)
+    await insertNotification(tx, { userId, kind: "trial_started", data: { endsAt: trial.endsAt.toISOString() }, dedupKey: "trial_started" })
+    return trial
 }
 
 /**

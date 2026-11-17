@@ -10,6 +10,9 @@ afterAll(() => api.close())
 
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 
+const PLAN_PREFS = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true }
+const DEFAULT_PREFS = { banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...PLAN_PREFS }
+
 const banned = (accountName: string): NotificationContent => ({ kind: "banned", data: { accountName, serverLabel: "India 1", bannedUntil: null } })
 const shutoff = (accountName: string): NotificationContent => ({ kind: "shutoff", data: { accountName, serverLabel: "India 1" } })
 
@@ -169,7 +172,7 @@ describe("emailing notifications", () => {
 
     test("a kind the player turned off is skipped while the others still go out", async () => {
         const alice = await player()
-        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true })
+        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...PLAN_PREFS })
         const off = await notify(alice.id, banned("Ironhold"))
         const on = await notify(alice.id, shutoff("Ravenmoor"))
 
@@ -179,6 +182,33 @@ describe("emailing notifications", () => {
         expect(await row(on)).toMatchObject({ emailState: "sent" })
         expect(digestsTo(alice.email)).toHaveLength(1)
         expect(digestsTo(alice.email)[0]!.text).not.toContain("Ironhold")
+    })
+
+    test("a notice about the plan, which has no server, is emailed under its own title", async () => {
+        const alice = await player()
+        await notify(alice.id, { kind: "trial_started", data: { endsAt: "2031-02-10T09:30:00.000Z" } })
+
+        await api.mailTick()
+
+        const [digest, ...more] = digestsTo(alice.email)
+        expect(more).toEqual([])
+        expect(digest!.subject).toBe("Your free trial has started")
+        expect(digest!.text).toContain("Your bots can run on the Basic plan until 2031-02-10 09:30 UTC.")
+        expect(digest!.text).not.toMatch(/started \(|undefined|stopped and won't start/)
+    })
+
+    test("a notice about the plan and a stopped bot go out together, each headed as it should be", async () => {
+        const alice = await player()
+        await notify(alice.id, banned("Ironhold"))
+        await notify(alice.id, { kind: "plan_expiring", data: { endsAt: "2031-02-10T09:30:00.000Z", daysLeft: 1 } })
+
+        await api.mailTick()
+
+        const [digest] = digestsTo(alice.email)
+        expect(digest!.subject).toBe("2 updates on your GGE Bot account")
+        expect(digest!.text).toContain("Ironhold was banned (India 1)")
+        expect(digest!.text).toContain("Your plan ends in 1 day\n")
+        expect(digest!.text).not.toContain("undefined")
     })
 
     test("shutoff emails are off until the player turns them on", async () => {
@@ -350,30 +380,30 @@ describe("reading notifications", () => {
 })
 
 describe("email preferences", () => {
-    test("a new player is emailed about bans, rejected passwords and crash loops, not shutoffs", async () => {
+    test("a new player is emailed about bans, rejected passwords, crash loops and their plan, not shutoffs", async () => {
         const alice = await player()
-        expect(await alice.api.account.notificationPrefs()).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false })
+        expect(await alice.api.account.notificationPrefs()).toEqual(DEFAULT_PREFS)
     })
 
     test("a change is saved for that player only", async () => {
         const alice = await player()
         const bob = await player()
-        const chosen = { banned: false, auth_failed: true, crash_loop: false, shutoff: true }
+        const chosen = { banned: false, auth_failed: true, crash_loop: false, shutoff: true, trial_started: true, plan_expiring: false, plan_expired: true, purchase_completed: false }
 
         await alice.api.account.setNotificationPrefs(chosen)
 
         expect(await alice.api.account.notificationPrefs()).toEqual(chosen)
-        expect(await bob.api.account.notificationPrefs()).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false })
+        expect(await bob.api.account.notificationPrefs()).toEqual(DEFAULT_PREFS)
     })
 
     test("a kind missing from what is stored takes its default", async () => {
         const alice = await player()
         await api.db.update(users).set({ notificationPrefs: { banned: false } }).where(eq(users.id, alice.id))
-        expect(await alice.api.account.notificationPrefs()).toEqual({ banned: false, auth_failed: true, crash_loop: true, shutoff: false })
+        expect(await alice.api.account.notificationPrefs()).toEqual({ ...DEFAULT_PREFS, banned: false })
     })
 
     test("a visitor has no preferences to read or set", async () => {
         expect(await codeOf(api.client().api.account.notificationPrefs())).toBe("UNAUTHORIZED")
-        expect(await codeOf(api.client().api.account.setNotificationPrefs({ banned: true, auth_failed: true, crash_loop: true, shutoff: true }))).toBe("UNAUTHORIZED")
+        expect(await codeOf(api.client().api.account.setNotificationPrefs({ ...DEFAULT_PREFS, shutoff: true }))).toBe("UNAUTHORIZED")
     })
 })

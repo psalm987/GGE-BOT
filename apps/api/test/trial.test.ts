@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { NO_PLAN, PLAN_LIMIT, TRIAL_GAME_ACCOUNT_USED } from "@gge/contracts"
-import { appSettings, auditLog, gameAccounts, planPeriods, trialGameAccounts, users } from "@gge/db"
+import { appSettings, auditLog, gameAccounts, notifications, planPeriods, trialGameAccounts, users } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import { appendPeriod, grantTrial } from "../src/services/plans.ts"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
@@ -21,6 +21,8 @@ describe("with a Paystack key", () => {
     const setBilling = (billingLive: boolean) => api.db.update(appSettings).set({ billingLive })
     const idOf = async (username: string) => (await api.db.select({ id: users.id }).from(users).where(eq(users.username, username)))[0]!.id
     const periodsOf = (userId: string) => api.db.select().from(planPeriods).where(eq(planPeriods.userId, userId))
+    const noticesOf = async (userId: string) => (await api.db.select().from(notifications).where(eq(notifications.userId, userId)))
+        .map(n => ({ kind: n.kind, data: n.data, accountId: n.accountId }))
     const audited = async (action: string) => (await api.db.select().from(auditLog).where(eq(auditLog.action, action))).at(-1)
     const newAccount = (name = `acc${Math.random().toString(36).slice(2, 8)}`) => ({ name, serverId: 26, password: "pw", externalEvent: false, plugins: {} })
     const seedAccount = async (ownerId: string, name: string, over: { desiredState?: "running"; externalEvent?: boolean } = {}) =>
@@ -56,6 +58,7 @@ describe("with a Paystack key", () => {
             expect(first).toMatchObject({ planId: "basic", source: "trial", startsAt: now, endsAt: new Date(now.getTime() + 7 * DAY) })
             expect(await api.db.transaction(tx => grantTrial(tx, user!.id, new Date(now.getTime() + 30 * DAY)))).toBeUndefined()
             expect(await periodsOf(user!.id)).toHaveLength(1)
+            expect(await noticesOf(user!.id)).toEqual([{ kind: "trial_started", data: { endsAt: "2026-03-08T10:00:00.000Z" }, accountId: null }])
         })
 
         test("two at the same moment grant one trial", async () => {
@@ -63,6 +66,7 @@ describe("with a Paystack key", () => {
             const results = await Promise.all(Array.from({ length: 4 }, () => api.db.transaction(tx => grantTrial(tx, user!.id))))
             expect(results.filter(Boolean)).toHaveLength(1)
             expect(await periodsOf(user!.id)).toHaveLength(1)
+            expect(await noticesOf(user!.id)).toHaveLength(1)
         })
     })
 
@@ -92,6 +96,7 @@ describe("with a Paystack key", () => {
             const [trial] = await periodsOf(owedId)
             expect(trial).toMatchObject({ planId: "basic", source: "trial" })
             expect(trial!.endsAt.getTime() - trial!.startsAt.getTime()).toBe(7 * DAY)
+            expect(await noticesOf(owedId)).toEqual([{ kind: "trial_started", data: { endsAt: trial!.endsAt.toISOString() }, accountId: null }])
             expect(await periodsOf(await idOf("unverified"))).toEqual([])
             expect(await periodsOf(await idOf("disabled"))).toEqual([])
             expect(await periodsOf(await idOf("boss"))).toEqual([])

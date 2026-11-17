@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { and, eq } from "drizzle-orm"
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import { PAYMENTS_DISABLED } from "@gge/contracts"
-import { appSettings, auditLog, packages, planPeriods, pointsLedger, purchases, users } from "@gge/db"
+import { appSettings, auditLog, notifications, packages, planPeriods, pointsLedger, purchases, users } from "@gge/db"
 import { validWebhookSignature } from "../src/services/paystack.ts"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
 
@@ -210,6 +210,7 @@ describe("while billing is live", () => {
         const purchase = await purchaseOf(reference)
         expect(await periodsOf(purchase.id)).toHaveLength(1)
         expect(await earned(purchase.id)).toHaveLength(1)
+        expect(await api.db.select().from(notifications).where(eq(notifications.dedupKey, `purchase_completed:${purchase.id}`))).toHaveLength(1)
     })
 
     test("a payment whose buyer deleted their account is marked paid, delivered to nobody, and recorded for admins", async () => {

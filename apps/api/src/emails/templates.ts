@@ -49,13 +49,18 @@ export const templates = {
             `You have ${remaining} recovery ${remaining === 1 ? "code" : "codes"} left. Make new ones under Settings in the admin app.`,
             "If this wasn't you, reset your password right away and ask another admin to reset your two-factor sign-in.",
         ]),
-    /** One email for everything that stopped a player's bots since the last one. */
-    bot_alerts: ({ alerts, link }: { alerts: { title: string; body: string; server: string }[]; link: string }) =>
-        render(alerts.length === 1 ? alerts[0]!.title : `${alerts.length} of your bots need attention`, [
-            alerts.length === 1 ? "A bot on your GGE Bot account stopped and won't start again until you act." : "These bots on your GGE Bot account stopped and won't start again until you act.",
-            ...alerts.map(alert => ({ heading: `${alert.title} (${alert.server})`, text: alert.body })),
+    /** One email for every notification since the last one. `server` names the bot's server; a notice about the plan has none. */
+    bot_alerts: ({ alerts, link }: { alerts: { title: string; body: string; server?: string }[]; link: string }) => {
+        const allBots = alerts.every(alert => alert.server !== undefined)
+        const intro = !allBots ? "Here is the latest on your GGE Bot account."
+            : alerts.length === 1 ? "A bot on your GGE Bot account stopped and won't start again until you act."
+            : "These bots on your GGE Bot account stopped and won't start again until you act."
+        return render(alerts.length === 1 ? alerts[0]!.title : allBots ? `${alerts.length} of your bots need attention` : `${alerts.length} updates on your GGE Bot account`, [
+            intro,
+            ...alerts.map(alert => ({ heading: alert.server ? `${alert.title} (${alert.server})` : alert.title, text: alert.body })),
             "You can choose which of these emails you get under Settings.",
-        ], { label: "Open your accounts", url: link }),
+        ], { label: allBots ? "Open your accounts" : "Open GGE Bot", url: link })
+    },
 }
 
 export type EmailKind = keyof typeof templates

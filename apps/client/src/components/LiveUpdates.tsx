@@ -13,7 +13,8 @@ export function LiveUpdates() {
     useRealtime(useMe().data?.id, arrived => {
         const key = `notification-${arrived.id}`
         const { title, body } = describeNotification(arrived)
-        toast.warning({
+        // A bot that stopped needs its owner; news about the plan doesn't.
+        toast[arrived.data.accountName === undefined ? "info" : "warning"]({
             key, title, description: body, placement: "topRight", duration: 10,
             actions: canOpen(arrived) && (
                 <Button type="primary" size="small" onClick={() => { toast.destroy(key); open(arrived) }}>{t("notifications.viewAccount")}</Button>

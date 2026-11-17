@@ -1,7 +1,7 @@
 import { ORPCError } from "@orpc/server"
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL } from "drizzle-orm"
 import type { AdminPurchase, Package, PlanId, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage } from "@gge/contracts"
-import { licenseCodes, packages, pointsLedger, purchases, users, type Db } from "@gge/db"
+import { insertNotification, licenseCodes, packages, pointsLedger, purchases, users, type Db } from "@gge/db"
 import { audit } from "./audit.ts"
 import { listCodes, mintCodes } from "./codes.ts"
 import { appendPeriod } from "./plans.ts"
@@ -35,9 +35,9 @@ export async function updatePackage(db: Db, actorId: string, { id, ...changes }:
 const DELIVERS: Record<PlanId, "period" | "codes"> = { basic: "period", team: "codes" }
 
 /**
- * Delivers a paid purchase once: the buyer's period or the codes, and the points it earns. The lock on the purchase
- * row makes callers take turns, and `fulfilled_at` tells each later one that nothing is left to do. Returns whether
- * this call did the delivering.
+ * Delivers a paid purchase once: the buyer's period or the codes, and the points it earns, and tells the buyer. The
+ * lock on the purchase row makes callers take turns, and `fulfilled_at` tells each later one that nothing is left to
+ * do. Returns whether this call did the delivering.
  */
 export async function fulfil(tx: Tx, purchaseId: string, now = new Date()) {
     const [purchase] = await tx.select().from(purchases).where(eq(purchases.id, purchaseId)).for("update")
@@ -50,13 +50,18 @@ export async function fulfil(tx: Tx, purchaseId: string, now = new Date()) {
     if (!purchase.buyerId)
         throw new Error(`Purchase ${purchaseId} has no buyer left to fulfil it for`)
     const [pkg] = await tx.select({ planId: packages.planId }).from(packages).where(eq(packages.id, purchase.packageId))
-    if (DELIVERS[pkg!.planId] === "codes")
+    const delivers = DELIVERS[pkg!.planId]
+    if (delivers === "codes")
         await mintCodes(tx, purchase, pkg!.planId)
     else
         await appendPeriod(tx, { userId: purchase.buyerId, planId: pkg!.planId, days: purchase.days, source: "purchase", purchaseId }, now)
     if (purchase.points > 0)
         await tx.insert(pointsLedger).values({ userId: purchase.buyerId, delta: purchase.points, reason: "purchase", purchaseId })
     await tx.update(purchases).set({ fulfilledAt: now }).where(eq(purchases.id, purchaseId))
+    await insertNotification(tx, {
+        userId: purchase.buyerId, kind: "purchase_completed", dedupKey: `purchase_completed:${purchaseId}`,
+        data: { packageId: purchase.packageId, seats: purchase.seats, points: purchase.points, codes: delivers === "codes" ? purchase.seats : 0 },
+    })
     return true
 }
 

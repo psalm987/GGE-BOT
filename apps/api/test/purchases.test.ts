@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { asc, eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { BILLING_NOT_LIVE, CODE_INVALID, CODE_REVOKED, CODE_USED } from "@gge/contracts"
-import { appSettings, auditLog, licenseCodes, planPeriods, pointsLedger, purchases, users } from "@gge/db"
+import { appSettings, auditLog, licenseCodes, notifications, planPeriods, pointsLedger, purchases, users } from "@gge/db"
 import { appendPeriod } from "../src/services/plans.ts"
 import { pointsBalance } from "../src/services/points.ts"
 import { fulfil } from "../src/services/purchases.ts"
@@ -23,6 +23,8 @@ const refusal = (promise: Promise<unknown>) => promise.then(() => "ok", (e: { co
 const periodsOf = (userId: string) => api.db.select().from(planPeriods).where(eq(planPeriods.userId, userId)).orderBy(asc(planPeriods.startsAt))
 const ledgerOf = (userId: string) => api.db.select().from(pointsLedger).where(eq(pointsLedger.userId, userId)).orderBy(asc(pointsLedger.id))
 const codesOf = (purchaseId: string) => api.db.select().from(licenseCodes).where(eq(licenseCodes.purchaseId, purchaseId))
+const noticesOf = async (userId: string) => (await api.db.select().from(notifications).where(eq(notifications.userId, userId)))
+    .map(n => ({ kind: n.kind, data: n.data, accountId: n.accountId }))
 const audited = async (action: string, targetId: string) =>
     (await api.db.select().from(auditLog).where(eq(auditLog.targetId, targetId))).filter(entry => entry.action === action)
 
@@ -127,6 +129,7 @@ describe("fulfil", () => {
         expect(await run(id)).toBe(false)
         expect(await codesOf(id)).toHaveLength(5)
         expect(await ledgerOf(p.id)).toMatchObject([{ delta: 5, reason: "purchase" }])
+        expect(await noticesOf(p.id)).toEqual([{ kind: "purchase_completed", data: { packageId: "team5_28", seats: 5, points: 5, codes: 5 }, accountId: null }])
     })
 
     test("run again and at the same moment, a Basic purchase gives one period", async () => {
@@ -136,6 +139,7 @@ describe("fulfil", () => {
         await run(id)
         expect(await periodsOf(p.id)).toHaveLength(1)
         expect(await pointsBalance(api.db, p.id)).toBe(1)
+        expect(await noticesOf(p.id)).toEqual([{ kind: "purchase_completed", data: { packageId: "basic_28", seats: 1, points: 1, codes: 0 }, accountId: null }])
     })
 
     test("a purchase that isn't paid delivers nothing", async () => {
@@ -144,6 +148,7 @@ describe("fulfil", () => {
         await expect(run(pending!.id)).rejects.toThrow(/pending/)
         expect(await codesOf(pending!.id)).toEqual([])
         expect(await pointsBalance(api.db, p.id)).toBe(0)
+        expect(await noticesOf(p.id)).toEqual([])
     })
 
     test("the ledger takes one purchase row per purchase", async () => {

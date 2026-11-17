@@ -70,7 +70,7 @@ export function NotificationBell() {
                 <ul>
                     {items.map(n => {
                         const { title, body } = describeNotification(n)
-                        const gone = !opener.canOpen(n)
+                        const gone = n.data.accountName !== undefined && !opener.canOpen(n)
                         return (
                             <li key={n.id}>
                                 <button type="button" className={n.readAt ? undefined : "gge-unread"}
@@ -82,7 +82,7 @@ export function NotificationBell() {
                                     <strong>{!n.readAt && <span className="gge-sr-only">{t("notifications.unread")}</span>}{title}</strong>
                                     <span>{body}</span>
                                     <small>
-                                        {n.data.serverLabel} · <time dateTime={n.createdAt.toISOString()}>{dayjs(n.createdAt).fromNow()}</time>
+                                        {n.data.serverLabel && `${n.data.serverLabel} · `}<time dateTime={n.createdAt.toISOString()}>{dayjs(n.createdAt).fromNow()}</time>
                                         {gone && ` · ${t("notifications.accountGone")}`}
                                     </small>
                                 </button>

@@ -16,22 +16,25 @@ import { clientLink } from "./services/email.ts"
 import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createNotificationMailer, type NotificationMailer } from "./services/notification-mailer.ts"
 import { createPaystack } from "./services/paystack.ts"
+import { createPlanExpirySweeper, type PlanExpirySweeper } from "./services/plan-expiry.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
 declare module "fastify" {
     interface FastifyInstance {
-        /** Emails players about new notifications. It polls on its own unless the server was built with `mailWorker: false`. */
+        /** Emails players about new notifications. It polls on its own unless the server was built with `workers: false`. */
         notificationMailer: NotificationMailer
+        /** Tells players their plan ends soon, or has. It sweeps on its own unless the server was built with `workers: false`. */
+        planExpiry: PlanExpirySweeper
     }
 }
 
-export async function buildServer({ db, env, logger = true, mailer: givenMailer, mailWorker = true }: {
+export async function buildServer({ db, env, logger = true, mailer: givenMailer, workers = true }: {
     db: Db
     env: Env
     logger?: boolean
     mailer?: Mailer
-    /** False leaves the notification mailer idle, for a caller that runs its rounds itself. */
-    mailWorker?: boolean
+    /** False leaves the notification mailer and the plan expiry sweeper idle, for a caller that runs their rounds itself. */
+    workers?: boolean
 }): Promise<FastifyInstance> {
     // Caddy sits in front of us (the edge, or behind Dokploy's Traefik with trusted_proxies set); trust its X-Forwarded-For for req.ip.
     const app = Fastify({ logger, trustProxy: true })
@@ -44,10 +47,14 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
 
     const mailer = givenMailer ?? logMailer(app.log)
     const notificationMailer = createNotificationMailer({ db, mailer, log: app.log, clientUrl: clientLink({ env }, "/", {}) })
+    const planExpiry = createPlanExpirySweeper({ db, log: app.log })
     app.decorate("notificationMailer", notificationMailer)
-    app.addHook("onClose", () => notificationMailer.stop())
-    if (mailWorker)
+    app.decorate("planExpiry", planExpiry)
+    app.addHook("onClose", () => Promise.all([notificationMailer.stop(), planExpiry.stop()]))
+    if (workers) {
         notificationMailer.start()
+        planExpiry.start()
+    }
 
     const limits = {
         ip: createRateLimiter({ max: 100, windowMs: 15 * 60_000 }),

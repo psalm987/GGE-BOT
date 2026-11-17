@@ -70,7 +70,7 @@ export async function startApi(env: Partial<Env> = {}) {
         },
     }
     const app = await buildServer({
-        db, logger: false, mailer, mailWorker: false,
+        db, logger: false, mailer, workers: false,
         env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, TOTP_ENCRYPTION_KEY: totpKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
@@ -135,6 +135,8 @@ export async function startApi(env: Partial<Env> = {}) {
         db, keys, baseUrl, app, client, admin, signup, player, newAdmin, enrolledAdmin, signedInAdmin, sent, lastLink, lastToken,
         /** One round of the notification mailer, which doesn't poll on its own here. */
         mailTick: () => app.notificationMailer.tick(),
+        /** One plan expiry sweep as if it were `now`; it doesn't sweep on its own here. */
+        planTick: (now?: Date) => app.planExpiry.tick(now),
         failMail: (failing: boolean) => { mailFailing = failing },
         close: async () => { await app.close(); await db.$pool.end() },
         accountRows: () => db.select().from(gameAccounts),
