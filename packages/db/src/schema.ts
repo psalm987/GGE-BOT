@@ -293,6 +293,17 @@ export const planPeriods = pgTable("plan_periods", {
     uniqueIndex("plan_periods_one_trial").on(t.userId).where(sql`${t.source} = 'trial'`),
 ])
 
+/**
+ * Game accounts that have run on a free trial, so one game account gets one trial however many users add it.
+ * Written only while billing is live.
+ */
+export const trialGameAccounts = pgTable("trial_game_accounts", {
+    /** Hex SHA-256 of `<server_id>:<lower(game name)>`. */
+    accountHash: text("account_hash").primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+})
+
 /** Deployment-wide settings an admin can change. One row. */
 export const appSettings = pgTable("app_settings", {
     id: smallint("id").primaryKey().default(1),

@@ -18,6 +18,8 @@ export type CurrentPlan = {
 
 export const NO_PLAN = "NO_PLAN"
 export const PLAN_LIMIT = "PLAN_LIMIT"
+/** A player on their free trial tried to run a game account that another user's trial already ran. */
+export const TRIAL_GAME_ACCOUNT_USED = "TRIAL_GAME_ACCOUNT_USED"
 
 /** The plan the user is on at `now`, or null when no period covers it. */
 export function currentPlan(periods: PlanPeriod[], maxAccountsOf: Record<PlanId, number>, now: Date): CurrentPlan | null {

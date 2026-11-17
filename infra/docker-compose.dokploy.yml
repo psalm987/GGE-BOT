@@ -57,6 +57,7 @@ services:
       ADMIN_ORIGINS: https://admin.${DOMAIN}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:?set CENTRIFUGO_TOKEN_SECRET in Dokploy's Environment tab}
       # Unset: the bundled geoip service. Set it empty to turn IP detection off; the browser's language is used instead.

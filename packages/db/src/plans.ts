@@ -39,6 +39,8 @@ type OwnerRow = { id: string; role: "user" | "admin"; maxBots: number; maxBotsOv
 export type OwnerPlan = PlanOwner & {
     /** Billing is live and this player has no plan right now, so nothing of theirs may run. */
     noPlan: boolean
+    /** Billing is live and this player is in their free trial right now. */
+    onTrial: boolean
     nextChange: Date | null
 }
 
@@ -55,6 +57,7 @@ export async function loadPlanOwners(db: Reader, owners: OwnerRow[], now: Date):
             role: owner.role,
             maxBots: accountLimit({ ...owner, plan }, billingLive),
             noPlan: billingLive && owner.role !== "admin" && !plan,
+            onTrial: billingLive && owner.role !== "admin" && !!plan?.isTrial,
             nextChange,
         }]
     }))

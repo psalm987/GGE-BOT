@@ -7,6 +7,7 @@ import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
 import { audit } from "../services/audit.ts"
+import { backToFree, billingStatus, goLive } from "../services/billing.ts"
 import { detectLocale } from "../services/i18n.ts"
 import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
@@ -170,6 +171,13 @@ export const adminRouter = os.router({
             await db.insert(appSettings).values({ id: 1, attackPluginCap: input.cap })
                 .onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: input.cap, updatedAt: new Date() } })
             await audit(db, { actorId: user.id, action: "admin.settings.attack_plugin_cap", meta: { from: before?.cap ?? "4", to: input.cap } })
+        }),
+    },
+    billing: {
+        status: os.billing.status.use(admin).handler(({ context: { db, env } }) => billingStatus(db, env)),
+        setLive: os.billing.setLive.use(admin).handler(async ({ context: { db, env, user }, input }) => {
+            await (input.live ? goLive(db, env, user.id) : backToFree(db, user.id))
+            return billingStatus(db, env)
         }),
     },
     logs: {

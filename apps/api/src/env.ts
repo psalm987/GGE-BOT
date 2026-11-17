@@ -25,6 +25,8 @@ const Env = z.object({
     TURNSTILE_SECRET_KEY: optional,
     /** Sender, e.g. "GGE Bot <noreply@example.com>"; the domain must be verified in Resend. */
     EMAIL_FROM: optional,
+    /** Paystack secret key (sk_test_ or sk_live_). Without it, billing can't go live. */
+    PAYSTACK_SECRET_KEY: optional,
     /** Base URL of the atlas GeoIP service, e.g. http://geoip:8080. Without it, "Automatic" language falls back to the browser's Accept-Language. */
     GEOIP_URL: optional.pipe(z.url().optional()),
     /** Signs the tokens browsers show Centrifugo; the same value as its CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY. Without it, the apps poll instead of getting live updates. */

@@ -1,5 +1,6 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
+import { BillingStatus } from "./billing.ts"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
@@ -10,6 +11,7 @@ import {
     Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
+export * from "./billing.ts"
 export * from "./data-export.ts"
 export * from "./entitlement.ts"
 export * from "./notifications.ts"
@@ -136,6 +138,15 @@ export const adminContract = {
     settings: {
         get: oc.output(z.object({ attackPluginCap: AttackPluginCap })),
         setAttackPluginCap: oc.input(z.object({ cap: AttackPluginCap })).output(z.void()),
+    },
+    /** Plans, trials and payments. All of it works while billing is off, so it can be tried before players see any of it. */
+    billing: {
+        status: oc.output(BillingStatus),
+        /**
+         * Turning on is refused with data.code PAYSTACK_NOT_CONFIGURED until the API has a Paystack key, and gives every
+         * active, verified player who has had no trial theirs. Turning off puts every player back on users.max_bots and changes no data.
+         */
+        setLive: oc.input(z.object({ live: z.boolean() })).output(BillingStatus),
     },
     /** One player's lines together, as they see them. */
     logs: {

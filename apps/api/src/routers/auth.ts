@@ -9,8 +9,10 @@ import { hashPassword, verifyNobody, verifyPassword } from "../auth/passwords.ts
 import { COOKIE_NAME, SESSION_TTL_MS, createSession, deleteSession, findSessionUser, revokeUserSessions, type Audience } from "../auth/sessions.ts"
 import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
+import { billingLiveForTrial } from "../services/billing.ts"
 import { clientLink, sendEmail } from "../services/email.ts"
 import { DISPOSABLE_MESSAGE, isDisposable } from "../services/email-policy.ts"
+import { grantTrial } from "../services/plans.ts"
 import { verifyTurnstile } from "../services/turnstile.ts"
 
 const WRONG_CREDENTIALS = "Wrong username or password"
@@ -187,9 +189,11 @@ export async function verifyEmail(ctx: Ctx, input: { token: string }) {
         const [user] = await tx.update(users)
             .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
             .where(and(eq(users.id, claimed.userId), eq(sql`lower(${users.email})`, claimed.email)))
-            .returning({ id: users.id })
+            .returning({ id: users.id, role: users.role })
         if (!user)
             throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+        if (user.role === "user" && await billingLiveForTrial(tx))
+            await grantTrial(tx, user.id)
         return user.id
     })
     await audit(ctx.db, { actorId: userId, action: "auth.email.verified" })

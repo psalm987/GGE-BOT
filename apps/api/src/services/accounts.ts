@@ -6,11 +6,12 @@ import {
 } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
-    NO_PLAN, PLAN_LIMIT, PluginSettingsError, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState,
+    NO_PLAN, PLAN_LIMIT, PluginSettingsError, TRIAL_GAME_ACCOUNT_USED, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState,
     storedSchedule, twinMainIds, userChannel,
     type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
+import { claimTrialAccounts } from "./trial-guard.ts"
 
 export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
     const rows = await db.select().from(pluginCatalog).orderBy(asc(pluginCatalog.key))
@@ -93,11 +94,20 @@ const planRefusal = (owner: OwnerPlan, overLimit: string) => new ORPCError("FORB
     ? { message: "You don't have an active plan. Get a plan to run your bots.", data: { code: NO_PLAN } }
     : { message: overLimit, data: { code: PLAN_LIMIT } })
 
+/**
+ * One free trial per game account: while the owner is on theirs, the accounts they run are marked as used, and one that
+ * another user's trial already ran is refused. Off while billing is, and for anyone on a paid plan.
+ */
+async function keepTrialAccountsOnce(tx: Pick<Db, "select" | "insert">, owner: OwnerPlan, ownerId: string, running: { serverId: number; name: string }[]) {
+    if (owner.onTrial && !await claimTrialAccounts(tx, ownerId, running))
+        throw new ORPCError("FORBIDDEN", { message: "This game account already used a free trial. Choose a plan to run it.", data: { code: TRIAL_GAME_ACCOUNT_USED } })
+}
+
 /** Runs a write that may change which accounts count, and refuses it if it grows the counted total past the plan. */
-async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: () => Promise<T>, refusal: (maxBots: number) => string) {
+async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: (owner: OwnerPlan) => Promise<T>, refusal: (maxBots: number) => string) {
     const owner = await lockPlan(tx, ownerId)
     const before = countedAccounts(await ownerAccounts(tx, ownerId))
-    const result = await change()
+    const result = await change(owner)
     if (owner.role !== "admin") {
         // Growth is what's refused, so a player already over a lowered limit can still edit what they have.
         const after = countedAccounts(await ownerAccounts(tx, ownerId))
@@ -201,15 +211,18 @@ export async function updateAccount(db: Db, sealKey: string, ownerId: string,
     if (input.serverId !== undefined)
         await assertServer(db, input.serverId)
     const settings = input.plugins && await validSettings(db, ownerId, input.plugins)
-    await db.transaction(tx => keepWithinPlan(tx, ownerId, async () => {
-        await tx.update(gameAccounts).set({
+    await db.transaction(tx => keepWithinPlan(tx, ownerId, async owner => {
+        const [account] = await tx.update(gameAccounts).set({
             ...(input.name !== undefined && { name: input.name }),
             ...(input.serverId !== undefined && { serverId: input.serverId }),
             ...(input.externalEvent !== undefined && { externalEvent: input.externalEvent }),
             ...(input.password !== undefined && { passwordSealed: sealFor(sealKey, input.password) }),
             ...(input.schedule !== undefined && { schedule: input.schedule }),
             updatedAt: new Date(),
-        }).where(ownedBy(ownerId, [input.id]))
+        }).where(ownedBy(ownerId, [input.id])).returning({ serverId: gameAccounts.serverId, name: gameAccounts.name, desiredState: gameAccounts.desiredState })
+        // Renaming a running account must not slip a used game account past the trial check that starting it makes.
+        if (account?.desiredState === "running" && (input.name !== undefined || input.serverId !== undefined))
+            await keepTrialAccountsOnce(tx, owner, ownerId, [account])
         if (settings)
             await replaceSettings(tx, input.id, settings)
     }, maxBots => `Your plan allows ${bots(maxBots)}, and this change would make this account count as one more. Remove a bot first.`)).catch(duplicate)
@@ -239,8 +252,10 @@ export async function startAccounts(db: Db, ownerId: string, ids: string[]) {
         const owner = await lockPlan(tx, ownerId)
         const accounts = await ownerAccounts(tx, ownerId)
         const entitled = entitledAccountIds(owner, accounts)
-        if (accounts.some(a => ids.includes(a.id) && !entitled.has(a.id)))
+        const starting = accounts.filter(a => ids.includes(a.id))
+        if (starting.some(a => !entitled.has(a.id)))
             throw planRefusal(owner, planRunsMessage(owner.maxBots))
+        await keepTrialAccountsOnce(tx, owner, ownerId, starting)
         return setDesiredState(tx, ownedBy(ownerId, ids), "running")
     })
 }

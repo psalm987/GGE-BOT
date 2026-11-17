@@ -1,13 +1,13 @@
 import { and, desc, eq, gt, gte, lte, sql } from "drizzle-orm"
 import type { PeriodSource, PlanId } from "@gge/contracts"
-import { planPeriods, users, type Db } from "@gge/db"
+import { appSettings, planPeriods, users, type Db } from "@gge/db"
 
 type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** Every write to a user's periods takes this first, so they take turns with each other and with the plan checks in accounts.ts. */
-async function lockUser(tx: Tx, userId: string) {
+/** Every write to a user's periods or points takes this first, so they take turns with each other and with the plan checks in accounts.ts. */
+export async function lockUser(tx: Tx, userId: string) {
     const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update")
     if (!user)
         throw new Error(`No user ${userId} to change the plan of`)
@@ -37,6 +37,20 @@ export async function appendPeriod(tx: Tx, { userId, days, ...period }: NewPerio
     const [row] = await tx.insert(planPeriods)
         .values({ ...period, userId, startsAt, endsAt: new Date(startsAt.getTime() + days * DAY_MS) }).returning()
     return row!
+}
+
+/**
+ * Gives the user their one free trial, queued like any other period. Returns undefined, and changes nothing, when
+ * they have had it. Callers decide whether billing is live.
+ */
+export async function grantTrial(tx: Tx, userId: string, now = new Date()) {
+    await lockUser(tx, userId)
+    const [had] = await tx.select({ id: planPeriods.id }).from(planPeriods)
+        .where(and(eq(planPeriods.userId, userId), eq(planPeriods.source, "trial")))
+    if (had)
+        return undefined
+    const [settings] = await tx.select({ trialDays: appSettings.trialDays }).from(appSettings)
+    return appendPeriod(tx, { userId, planId: "basic", days: settings?.trialDays ?? 7, source: "trial" }, now)
 }
 
 /**

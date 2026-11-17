@@ -30,6 +30,7 @@
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
 | `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |
 | `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app at build time. Empty hides the widget, so leave both unset or set both. |
+| `PAYSTACK_SECRET_KEY` | api | no | Paystack secret key (`sk_test_…` or `sk_live_…`). Without it an admin can't turn billing on, so every player stays on the free limit (`users.max_bots`). |
 | `MAXMIND_ACCOUNT_ID` | geoip | no | MaxMind account ID. With the license key, lets the `geoip` service download GeoLite2-Country ([dokploy.md](dokploy.md#ip-language-detection)). |
 | `MAXMIND_LICENSE_KEY` | geoip | no | MaxMind license key. Without both values, "Automatic" language uses the browser's `Accept-Language` instead of the visitor's country. |
 | `GEOIP_URL` | api | no | Where the API asks for a country. Leave it unset to use the bundled service at `http://geoip:8080`; set it empty to turn IP detection off. |

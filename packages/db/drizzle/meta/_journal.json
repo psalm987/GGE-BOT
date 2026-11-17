@@ -134,6 +134,13 @@
       "when": 1794916184712,
       "tag": "0018_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794917069684,
+      "tag": "0019_trial_game_accounts",
+      "breakpoints": true
     }
   ]
 }
