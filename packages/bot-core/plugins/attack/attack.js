@@ -222,7 +222,7 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
         if(resources.pegasusTicket > 0) {
             attackTarget.PTT = options.useFeather ? 1 : 0
         } else {
-            console.warn("Ran out of fast feathers.")
+            console.warn("outOfFeathers")
             attackTarget.PTT = 0
         }
     }
@@ -298,7 +298,7 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
     if(!botConfig.externalEvent && attackCount >= Number(pluginOptions.attackLimit || attackThreshold)) {
         if(!announced) {
             announced = true
-            console.log("Max attacks reached")
+            console.log("maxAttacksReached")
         }
         return reject("ATTACK_LIMIT_REACHED")
     }

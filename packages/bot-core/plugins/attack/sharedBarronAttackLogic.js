@@ -271,7 +271,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                     catch (e) {
                         console.debug(e)
                     }
-                    console.log(`[${KingdomID[kingdomID]}] Waiting for more troops`)
+                    console.log("[", KingdomID[kingdomID], "] ", "waitingForMoreTroops")
                     await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
                         if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
                             return

@@ -116,7 +116,7 @@ xtHandler.on("pep", obj => {
         return
 
     if (samsPoints >= pluginOptions.scoreShutoff) {
-        console.log("shuttingDownEvent", "ScoreReached")
+        console.log("shuttingDownEvent", "scoreReached")
         quit = true
     }
 })

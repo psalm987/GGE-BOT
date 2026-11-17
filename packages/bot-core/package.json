@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@gge/contracts": "workspace:*",
+    "acorn": "8.19.0",
     "vitest": "^5.1.0"
   }
 }

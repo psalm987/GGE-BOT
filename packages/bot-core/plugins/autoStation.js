@@ -4,7 +4,6 @@
  */
 const GATE_CHOICES = ["Off", "Open the gates for 6 hours", "Open the gates for 12 hours"]
 const optionDefs = [
-    { type: "Label", key: "stationPeaceNote" },
     { type: "Number", key: "stationLeadSeconds", min: 20, max: 600, step: 5, unit: "seconds", default: 60 },
     { type: "Select", key: "stationDestination", selection: ["Auto: the nearest alliance castle under protection", "Fixed: the castles listed below"], default: 0 },
     { type: "Number", key: "stationMinProtectionHours", min: 1, max: 168, step: 1, unit: "hours", default: 1 },

@@ -33,7 +33,7 @@ const limiter = new RateLimiter({ tokensPerInterval: 5, interval: "sec" })
 const events = new EventEmitter()
 const xtHandler = new EventEmitter()
 const i18n = new I18n({
-    locales: ['en', 'de', 'ar', 'fi', 'he', 'hu', 'pl', 'ro', 'tr', 'cs', 'nl', 'fr'],
+    locales: require("./paths.js").localeCodes(),
     directory: require("./paths.js").locales,
     updateFiles: false
 })

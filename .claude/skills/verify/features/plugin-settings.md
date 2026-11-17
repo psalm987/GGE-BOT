@@ -11,7 +11,7 @@ From a game account's **Settings** dialog, the user turns plugins on or off and 
 - `plug-column` the users table **Plugins** column lists enabled, non-forced plugins by label.
 - `plug-hidden` hidden plugins (`commander`, `misc`, `resourceSendStorm`) never appear in the list.
 
-Plugins loaded with no Discord and no `plugins-extra`: Feast, Help requests, meadReplaceStorm, Sell stored equipment, Shutoff timer, Attack barrons (Burning Sands / Ever Winter Glacier / Fire Peaks / Great Empire), Berimond invasion, Fortresses (Burning Sands / Ever Winter Glacier / Fire Peaks), Khan, Nomads, Samurai, Storm forts, plus forced skips and attack.
+Plugins loaded with no Discord and no `plugins-extra`: Feast, Help requests, meadReplaceStorm, Sell stored equipment, Shutoff timer, Attack barons (Burning Sands / Everwinter Glacier / Fire Peaks / Great Empire), Berimond invasion, Fortresses (Burning Sands / Everwinter Glacier / Fire Peaks), Khan, Nomads, Samurai, Storm forts, plus forced skips and attack.
 
 ## How to get to it (user POV)
 

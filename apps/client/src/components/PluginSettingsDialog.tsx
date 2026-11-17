@@ -116,6 +116,7 @@ export type PluginDialogProps = {
 export function PluginSettingsDialog({ entry, label, initial, pill, allValues, pluginStates, castles, onSave, onClose }: PluginDialogProps) {
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
+    const { t: tb, i18n } = useTranslation("bot")
     const { modal } = App.useApp()
     const phone = !Grid.useBreakpoint().md
     const [form] = Form.useForm<{ options: OptionValues }>()
@@ -127,6 +128,8 @@ export function PluginSettingsDialog({ entry, label, initial, pill, allValues, p
     const hasAdvanced = entry.options.some(def => def.advanced)
     const advancedChanged = changedAdvanced(entry, options)
     const showAdvanced = view === "advanced" || !hasAdvanced
+    const descriptionKey = `${entry.key}.description`
+    const description = i18n.exists(descriptionKey, { ns: "bot" }) ? tb(descriptionKey) : null
 
     const checks = (entry.checks ?? []).length > 0 && (
         <SetupChecks entry={entry} beside={!phone} input={{
@@ -175,6 +178,7 @@ export function PluginSettingsDialog({ entry, label, initial, pill, allValues, p
                         <span className="gge-display" style={{ fontSize: 20 }}>{t("plugins.settingsFor", { plugin: label })}</span>
                         {entry.breaksPeace && <BreaksPeaceTag />}
                     </Space>
+                    {description && <Typography.Paragraph style={{ margin: 0, fontWeight: 400, fontSize: 14, color: palette.muted }}>{description}</Typography.Paragraph>}
                     {pill && (
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontWeight: 400, fontSize: 14 }}>
                             <PluginStatusPill state={pill.state} />
@@ -205,7 +209,7 @@ export function PluginSettingsDialog({ entry, label, initial, pill, allValues, p
                     {error && <Alert type="error" showIcon title={error} role="alert" style={{ marginBottom: 16 }} />}
                     <Form form={form} layout="vertical" requiredMark={false} initialValues={{ options: initial }} disabled={saving}>
                         <Row gutter={16}>
-                            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} def={def} castles={castles} hidden={Boolean(def.advanced) && !showAdvanced} />)}
+                            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} plugin={entry.key} def={def} castles={castles} hidden={Boolean(def.advanced) && !showAdvanced} />)}
                         </Row>
                     </Form>
                 </div>

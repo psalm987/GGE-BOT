@@ -1,7 +1,7 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Typography } from "antd"
-import { useRef, useState, type KeyboardEvent } from "react"
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { KINGDOM_IDS, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginOptionDef, type RowColumn, type RowValue } from "@gge/contracts"
 import { palette } from "@gge/ui"
@@ -177,13 +177,21 @@ function Rows({ columns, castles, value = [], onChange, id }: { columns: RowColu
     )
 }
 
+/** The lines under a field: what the field itself says (a range, a hint) and the plugin's own help for it. */
+const extraOf = (...lines: (ReactNode | undefined)[]) => {
+    const shown = lines.filter(Boolean)
+    return shown.length ? <>{shown.map((line, i) => <div key={i}>{line}</div>)}</> : undefined
+}
+
 /** One option of a plugin in its settings dialog, bound to the dialog form's `options.<key>`. */
-export function PluginOptionField({ def, castles, hidden }: { def: PluginOptionDef; castles: AccountCastle[]; hidden: boolean }) {
-    const { t } = useTranslation("bot")
+export function PluginOptionField({ plugin, def, castles, hidden }: { plugin: string; def: PluginOptionDef; castles: AccountCastle[]; hidden: boolean }) {
+    const { t, i18n } = useTranslation("bot")
     const { t: tc } = useTranslation("client")
     if (def.type === "")
         return hidden ? null : <Col xs={0} sm={12} />
     const label = t(def.key, { defaultValue: def.key })
+    const helpKey = `${plugin}.${def.key}.help`
+    const help = def.type !== "Label" && i18n.exists(helpKey, { ns: "bot" }) ? t(helpKey) : undefined
     // antd gives every column a display, which beats the `hidden` attribute.
     const style = hidden ? { display: "none" } : undefined
     const half = { xs: 24, sm: 12, style }
@@ -193,26 +201,32 @@ export function PluginOptionField({ def, castles, hidden }: { def: PluginOptionD
     const name = ["options", def.key]
     switch (def.type) {
         case "Checkbox":
-            return <Col {...half}><Form.Item name={name} valuePropName="checked" style={{ marginBottom: 4 }}><Checkbox>{label}</Checkbox></Form.Item></Col>
+            return <Col {...half}><Form.Item name={name} valuePropName="checked" extra={extraOf(help)} style={{ marginBottom: 4 }}><Checkbox>{label}</Checkbox></Form.Item></Col>
         case "Select":
-            return <Col {...half}><Form.Item name={name} label={label}><Select options={def.selection.map((option, value) => ({ label: option, value }))} /></Form.Item></Col>
+            return (
+                <Col {...half}>
+                    <Form.Item name={name} label={label} extra={extraOf(help)}>
+                        <Select options={def.selection.map((option, value) => ({ label: t(option, { defaultValue: option }), value }))} />
+                    </Form.Item>
+                </Col>
+            )
         case "Number":
             return (
                 <Col {...half}>
-                    <Form.Item name={name} label={label} extra={tc("plugins.between", { min: def.min, max: def.max })}>
+                    <Form.Item name={name} label={label} extra={extraOf(tc("plugins.between", { min: def.min, max: def.max }), help)}>
                         <InputNumber min={def.min} max={def.max} step={def.step} style={{ width: "100%" }}
                             suffix={def.unit ? tc(`plugins.unit.${def.unit}`) : undefined} />
                     </Form.Item>
                 </Col>
             )
         case "CastlePicker":
-            return <Col {...half}><Form.Item name={name} label={label} extra={castles.length ? undefined : tc("plugins.castle.none")}><CastleSelect castles={castles} /></Form.Item></Col>
+            return <Col {...half}><Form.Item name={name} label={label} extra={extraOf(castles.length ? undefined : tc("plugins.castle.none"), help)}><CastleSelect castles={castles} /></Form.Item></Col>
         case "OrderedList":
-            return <Col {...full}><Form.Item name={name} label={label}><OrderedList catalog={def.catalog} /></Form.Item></Col>
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><OrderedList catalog={def.catalog} /></Form.Item></Col>
         case "Rows":
             return (
                 <Col {...full}>
-                    <Form.Item name={name} label={label} rules={[{ validator: (_, rows?: RowValue[]) => rowsComplete(def.columns, rows) ? Promise.resolve() : Promise.reject(new Error(tc("plugins.rows.incomplete"))) }]}>
+                    <Form.Item name={name} label={label} extra={extraOf(help)} rules={[{ validator: (_, rows?: RowValue[]) => rowsComplete(def.columns, rows) ? Promise.resolve() : Promise.reject(new Error(tc("plugins.rows.incomplete"))) }]}>
                         <Rows columns={def.columns} castles={castles} />
                     </Form.Item>
                 </Col>
@@ -220,11 +234,11 @@ export function PluginOptionField({ def, castles, hidden }: { def: PluginOptionD
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
-            const extra = def.type === "Channel" ? tc("plugins.channelId")
+            const hint = def.type === "Channel" ? tc("plugins.channelId")
                 : bounds ? tc("plugins.between", { min: def.min ?? tc("plugins.any"), max: def.max ?? tc("plugins.any") }) : undefined
             return (
                 <Col {...half}>
-                    <Form.Item name={name} label={label} extra={extra}>
+                    <Form.Item name={name} label={label} extra={extraOf(hint, help)}>
                         <Input inputMode={bounds ? "decimal" : undefined} placeholder={def.default ? tc("plugins.default", { value: def.default }) : undefined} />
                     </Form.Item>
                 </Col>
