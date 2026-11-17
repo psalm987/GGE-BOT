@@ -1,0 +1,11 @@
+[
+    { "wodID": 652, "group": "Unit", "name": "Keep", "type": "Peasant", "role": "melee", "fameBonus": "0" },
+    { "wodID": 700, "group": "Unit", "name": "Keep", "type": "Speerman", "role": "ranged" },
+    { "wodID": 359, "group": "Unit", "name": "Workshop", "type": "SceatSuppKillMeleeDef", "level": "1", "typ": "Attack", "slotTypes": "9,10" },
+    { "wodID": 660, "group": "Unit", "name": "Banner", "type": "royalBanner", "level": "2", "fameBonus": "15", "typ": "Attack", "slotTypes": "1,9" },
+    { "wodID": 77, "group": "Unit", "name": "Banner", "type": "Flag", "fameBonus": "5", "typ": "Attack" },
+    { "wodID": 611, "group": "Unit", "name": "Workshop", "type": "Ram", "typ": "Attack", "slotTypes": "1,9" },
+    { "wodID": 666, "group": "Unit", "name": "Unknown", "type": "Tools", "typ": "Defence", "slotTypes": "1,9" },
+    { "wodID": 900, "group": "Building", "name": "Deco", "type": "Fountain" },
+    { "group": "Unit", "name": "Broken", "type": "NoId", "role": "melee" }
+]

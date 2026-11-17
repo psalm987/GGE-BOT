@@ -5,6 +5,7 @@ user.db
 user.db*
 assets/itemassets
 items
+!apps/runner/test/fixtures/game-data/items/
 ItemsVersion.properties
 lang/*
 1.xml
