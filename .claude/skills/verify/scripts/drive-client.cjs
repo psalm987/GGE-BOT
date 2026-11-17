@@ -588,8 +588,67 @@ async function drivePluginSettings(page) {
     await rpc(page, "accounts/update", { id: ironhold.id, plugins: seeded })
 }
 
+/** The Foreign Lords and Bloodcrow glory dialogs: the Simple and Advanced split and the off-by-default safety options, at 1440 and 390. */
+async function driveGlorySettings(page) {
+    for (const [plugin, file] of [["Attack Foreign Invasion", "50-glory-foreign"], ["Attack Bloodcrows", "51-glory-bloodcrows"]]) {
+        await page.setViewportSize(WIDE_VIEW)
+        await page.goto(CLIENT_URL)
+        await page.getByRole("button", { name: "Edit Ironhold" }).click()
+        await page.getByRole("button", { name: `${plugin} settings` }).click()
+        const dialog = page.getByRole("dialog", { name: `${plugin} settings` })
+        await dialog.getByRole("button", { name: "Save" }).waitFor()
+        const view = async which => { await dialog.locator(".ant-segmented-item", { hasText: which }).click(); await page.waitForTimeout(150) }
+
+        await view("Simple")
+        for (const label of ["Difficulty", "Score shut off", "Stop before the event ends", "Commander Whitelist", "Horse"])
+            assert(await dialog.getByLabel(label, { exact: true }).isVisible(), `${plugin}: Simple shows ${label}`)
+        assert(!(await dialog.getByText("Dethrone camps before attacking them").isVisible()), `${plugin}: Simple hides the dethrone setting`)
+        assert(await dialog.locator(".ant-select-content", { hasText: "Highest unlocked without rubies" }).count() === 1, `${plugin}: the difficulty starts at the highest tier that needs no rubies`)
+        await axe(page, `${plugin} dialog simple 1440`)
+        await page.screenshot({ path: `${out}/${file}-simple-1440.png` })
+
+        await view("Advanced")
+        assert(await dialog.locator(".ant-select-content", { hasText: /^Off$/ }).count() === 1, `${plugin}: dethrone is off by default`)
+        const protection = dialog.getByRole("checkbox", { name: /Attack while under protection/ })
+        assert(await protection.isVisible() && !(await protection.isChecked()), `${plugin}: attacking under protection is off by default`)
+        assert(await dialog.getByText("Warning: this ends your beginner or peace protection.", { exact: false }).isVisible(), `${plugin}: the protection option warns in words`)
+        assert(await dialog.getByText("Dry run: log attacks instead of sending them").isVisible(), `${plugin}: Advanced shows Dry run`)
+        for (const label of ["Most to spend on one dethrone (coins for Exile, rubies for Fortify)", "Most to spend on dethrones in one event", "Always keep at least this many coins or rubies"])
+            assert(await dialog.getByLabel(label).inputValue() === "0", `${plugin}: "${label}" starts at 0, which allows no dethrone`)
+        await axe(page, `${plugin} dialog advanced 1440`)
+        await page.screenshot({ path: `${out}/${file}-advanced-1440.png` })
+        await protection.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: `${out}/${file}-advanced-safety-1440.png` })
+
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, `${plugin}: no horizontal overflow at 390 with the dialog open`)
+        await axe(page, `${plugin} dialog advanced 390`)
+        await page.screenshot({ path: `${out}/${file}-advanced-390.png` })
+        await protection.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: `${out}/${file}-advanced-safety-390.png` })
+        await view("Simple")
+        await axe(page, `${plugin} dialog simple 390`)
+        await page.screenshot({ path: `${out}/${file}-simple-390.png` })
+        await dialog.getByRole("button", { name: "Cancel" }).click()
+        await dialog.waitFor({ state: "hidden" })
+    }
+    await page.setViewportSize({ width: 1280, height: 860 })
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "glory-settings") {
+        const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveGlorySettings(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "plugin-settings") {
         const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
         await demo.goto(`${CLIENT_URL}/login`)
