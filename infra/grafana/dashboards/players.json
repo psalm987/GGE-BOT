@@ -1,0 +1,263 @@
+{
+  "uid": "gge-players",
+  "title": "GGE \u00b7 Players",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Players with a verified email",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) filter (where email_verified_at is not null)::float / nullif(count(*), 0) as verified from users where role = 'user'"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Players with a running bot, of all players",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(distinct a.owner_id) filter (where s.actual_state = 'running') as \"with a running bot\", (select count(*) from users where role = 'user') as \"all players\" from game_accounts a join users u on u.id = a.owner_id and u.role = 'user' left join bot_status s on s.account_id = a.id"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Signups per day",
+      "description": "From auth.signup audit rows, which outlive a deleted player. Imported legacy players have none.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ts, '1d', 0), count(*) as signups from audit_log where action = 'auth.signup' and $__timeFilter(ts) group by 1 order by 1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Players by accounts on their plan",
+      "description": "Accounts that count toward max_bots: an event twin whose main exists rides on its main's slot and isn't counted.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "accounts",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "with counted as ( select a.id, a.owner_id, a.created_at from game_accounts a where not (a.external_event and exists ( select 1 from game_accounts m where m.owner_id = a.owner_id and m.server_id = a.server_id and lower(m.name) = lower(a.name) and not m.external_event))) select n::text as accounts, count(*) as players from (select u.id, count(c.id) as n from users u left join counted c on c.owner_id = u.id where u.role = 'user' group by u.id) per_player group by n order by n"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Players who deleted their account, per day",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ts, '1d', 0), count(*) as deletions from audit_log where action = 'account.deleted' and $__timeFilter(ts) group by 1 order by 1"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Accounts outside their owner's plan",
+      "description": "The plan rule (entitledAccountIds in @gge/contracts) in SQL: a player's oldest max_bots counted accounts by (created_at, id) may run, with their event twins; admins run all. Rows here can't run; one that is wanted running was left by a lowered limit or a demotion, and the runner refuses it.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "with counted as ( select a.id, a.owner_id, a.created_at from game_accounts a where not (a.external_event and exists ( select 1 from game_accounts m where m.owner_id = a.owner_id and m.server_id = a.server_id and lower(m.name) = lower(a.name) and not m.external_event))), slots as (select id, row_number() over (partition by owner_id order by created_at, id) as slot from counted), placed as ( select a.id, a.owner_id, a.name, a.server_id, a.external_event, a.desired_state, coalesce(s.slot, (select ms.slot from game_accounts m join slots ms on ms.id = m.id where m.owner_id = a.owner_id and m.server_id = a.server_id and lower(m.name) = lower(a.name) and not m.external_event)) as slot from game_accounts a left join slots s on s.id = a.id) select u.username as owner, u.max_bots as plan, p.name as account, sv.label as server, p.external_event as \"event twin\", p.slot as \"position by age\", p.desired_state as wanted, st.actual_state as state from placed p join users u on u.id = p.owner_id join servers sv on sv.id = p.server_id left join bot_status st on st.account_id = p.id where u.role = 'user' and p.slot > greatest(u.max_bots, 0) order by u.username, p.slot, p.external_event"
+        }
+      ]
+    }
+  ]
+}

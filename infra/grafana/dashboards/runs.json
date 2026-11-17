@@ -11,6 +11,22 @@
   "tags": [
     "gge"
   ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "id": 1,

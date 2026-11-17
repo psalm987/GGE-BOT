@@ -1,0 +1,207 @@
+{
+  "uid": "gge-proxies",
+  "title": "GGE \u00b7 Proxies",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Accounts with no proxy",
+      "description": "Event twins are left out: they always use their main's proxy. The runner gives a proxy only to accounts that should run, so stopped accounts can have none.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) filter (where desired_state = 'running') as \"wanted running\", count(*) as \"all\" from game_accounts where proxy_id is null and not external_event"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "barchart",
+      "title": "Accounts on each proxy, against its limit",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 18,
+        "h": 7
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "proxy",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select p.label as proxy, count(a.id) as accounts, p.max_accounts as \"max accounts\" from proxies p left join game_accounts a on a.proxy_id = p.id group by p.id, p.label, p.max_accounts order by p.label"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Proxy pool",
+      "description": "Load is assigned accounts over max_accounts, as the runner counts places: every assigned account, running or not. An admin's pin can take it over 100%. Switched off because is empty when an admin turned the proxy off.",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "load"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select p.label, p.host_hint as host, p.enabled, count(a.id) as accounts, count(a.id)::float / nullif(p.max_accounts, 0) as load, p.consecutive_failures as \"failures in a row\", p.last_ok_at as \"last ok\", p.last_error_at as \"last error at\", p.last_error as \"last error\", p.disabled_reason as \"switched off because\" from proxies p left join game_accounts a on a.proxy_id = p.id group by p.id order by p.enabled, load desc nulls last, p.label"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Runs that failed on their proxy, per hour, by reason",
+      "description": "Runs whose error is a PROXY_* code from the worker (PROXY_AUTH, PROXY_TIMEOUT, PROXY_ECONNREFUSED...); they end as 'error'. A failure while looking up an event server opens no run, so it shows only in the proxy's last error.",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ended_at, '1h', 0), error as metric, count(*) as runs from bot_runs where starts_with(error, 'PROXY_') and $__timeFilter(ended_at) group by 1, 2 order by 1"
+        }
+      ],
+      "links": [
+        {
+          "title": "Run history: every end reason",
+          "url": "/d/gge-runs?${__url_time_range}"
+        }
+      ]
+    }
+  ]
+}

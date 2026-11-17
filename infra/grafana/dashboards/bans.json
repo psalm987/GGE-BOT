@@ -1,0 +1,262 @@
+{
+  "uid": "gge-bans",
+  "title": "GGE \u00b7 Bans",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Accounts banned now, and all accounts",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "banned now"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select (select count(*) from bot_status where actual_state = 'banned') as \"banned now\", (select count(*) from game_accounts) as \"all accounts\""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Bans per day",
+      "description": "Runs that ended because the game banned the account, by the day they ended (UTC). Runs of removed accounts are gone with them.",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 18,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ended_at, '1d', 0), count(*) as bans from bot_runs where end_reason = 'banned' and $__timeFilter(ended_at) group by 1 order by 1"
+        }
+      ],
+      "links": [
+        {
+          "title": "Run history: every end reason",
+          "url": "/d/gge-runs?${__url_time_range}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "barchart",
+      "title": "Bans by server over the range",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "server",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select s.label as server, count(*) as bans from bot_runs r join game_accounts a on a.id = r.account_id join servers s on s.id = a.server_id where r.end_reason = 'banned' and $__timeFilter(r.ended_at) group by 1 order by 2 desc"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Days since each account's last ban",
+      "description": "Every account with a recorded ban, over all time, most recently banned first.",
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 16,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "days since"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select a.name as account, s.label as server, u.username as owner, max(r.ended_at) as \"last ban\", extract(epoch from now() - max(r.ended_at)) / 86400 as \"days since\", count(*) as \"bans recorded\" from bot_runs r join game_accounts a on a.id = r.account_id join servers s on s.id = a.server_id join users u on u.id = a.owner_id where r.end_reason = 'banned' group by a.id, a.name, s.label, u.username order by 5"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Accounts banned in the last 7 days",
+      "description": "One row per account, its latest ban. Banned until is cleared when the bot starts again.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select * from ( select distinct on (a.id) a.name as account, s.label as server, u.username as owner, r.ended_at as \"banned at\", st.banned_until as \"banned until\", st.actual_state as state, st.last_error as \"last error\" from bot_runs r join game_accounts a on a.id = r.account_id join servers s on s.id = a.server_id join users u on u.id = a.owner_id left join bot_status st on st.account_id = a.id where r.end_reason = 'banned' and r.ended_at > now() - interval '7 days' order by a.id, r.ended_at desc) latest order by \"banned at\" desc"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+# Alert rules on what the app records in Postgres, beside rules.yml in the same GGE folder. Grafana provisions
+# every file in this directory, and GRAFANA_ALERT_DISCORD_WEBHOOK routes these to Discord like the others.
+# See docs/deployment/observability.md.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: gge-postgres
+    folder: GGE
+    interval: 1m
+    rules:
+      - uid: gge-bans-spiking
+        title: Bans spiking
+        condition: C
+        for: 0s
+        labels: { severity: critical }
+        annotations:
+          summary: More accounts were banned in the last hour than max(3, 2% of the accounts that ran in that hour). The game may be detecting the bot; see the Bans dashboard and consider stopping the fleet.
+        data:
+          - refId: A
+            datasourceUid: gge-postgres
+            relativeTimeRange: { from: 3600, to: 0 }
+            model:
+              refId: A
+              rawQuery: true
+              editorMode: code
+              format: table
+              rawSql: "select (count(*) filter (where end_reason = 'banned' and ended_at > now() - interval '1 hour') > greatest(3, ceil(0.02 * count(distinct account_id))))::int as spiking from bot_runs where coalesce(ended_at, now()) > now() - interval '1 hour'"
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }
+      - uid: gge-proxy-switched-off
+        title: A proxy was switched off automatically
+        condition: C
+        for: 0s
+        # One row per proxy the runner turned off in the last 10 minutes; no row is the normal state, not missing data.
+        noDataState: OK
+        labels: { severity: warning }
+        annotations:
+          summary: "The runner switched off proxy {{ $labels.proxy }}: {{ $labels.reason }}. Its accounts move to another proxy with room; turn it back on in the admin app once it works."
+        data:
+          - refId: A
+            datasourceUid: gge-postgres
+            relativeTimeRange: { from: 600, to: 0 }
+            model:
+              refId: A
+              rawQuery: true
+              editorMode: code
+              format: table
+              rawSql: "select label as proxy, disabled_reason as reason, 1 as switched_off from proxies where not enabled and disabled_reason is not null and updated_at > now() - interval '10 minutes'"
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model: { refId: C, type: threshold, expression: B, conditions: [{ evaluator: { type: gt, params: [0] } }] }

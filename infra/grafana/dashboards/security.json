@@ -1,0 +1,185 @@
+{
+  "uid": "gge-security",
+  "title": "GGE \u00b7 Security",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Recovery codes used in the range",
+      "description": "An admin signed in with a recovery code instead of their authenticator. Expect zero; confirm each one with the admin.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) as \"recovery codes used\" from audit_log where action = 'auth.recovery_code.used' and $__timeFilter(ts)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Admin sign-ins per day",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 18,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ts, '1d', 0), count(*) as \"sign-ins\" from audit_log where action = 'auth.login.admin' and $__timeFilter(ts) group by 1 order by 1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Credential and account changes per day, by kind",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(l.ts, '1d', 0), k.label as metric, count(*) as events from audit_log l join (values ('auth.login.admin', 'admin sign-in'), ('auth.recovery_code.used', 'recovery code used'), ('admin.user.totp_reset', '2FA reset'), ('user.revoke_sessions', 'sessions revoked'), ('auth.password.reset', 'password reset'), ('auth.password.change', 'password changed'), ('account.email.changed', 'email changed'), ('account.deleted', 'account deleted'), ('user.set_role', 'role changed')) as k (action, label) on k.action = l.action where l.action <> 'auth.login.admin' and $__timeFilter(l.ts) group by 1, 2 order by 1"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Last 50 security events in the range",
+      "description": "audit_log.meta is never shown: it can hold an IP or an email, and grafana_ro can't read it.",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select l.ts as time, k.label as event, coalesce(actor.username, case when l.action = 'account.deleted' then '(the deleted player)' else '(none: command line or since deleted)' end) as actor, coalesce(target.username, l.target_type) as target from audit_log l join (values ('auth.login.admin', 'admin sign-in'), ('auth.recovery_code.used', 'recovery code used'), ('admin.user.totp_reset', '2FA reset'), ('user.revoke_sessions', 'sessions revoked'), ('auth.password.reset', 'password reset'), ('auth.password.change', 'password changed'), ('account.email.changed', 'email changed'), ('account.deleted', 'account deleted'), ('user.set_role', 'role changed')) as k (action, label) on k.action = l.action left join users actor on actor.id = l.actor_id left join users target on l.target_type = 'user' and target.id::text = l.target_id where $__timeFilter(l.ts) order by l.ts desc limit 50"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "uid": "gge-humanization",
+  "title": "GGE \u00b7 Humanization trial",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "trial_accounts",
+        "label": "Trial account ids",
+        "description": "The runner's BOT_HUMANIZE_ACCOUNTS: a comma list of game_accounts.id values. Empty puts every account in 'other'.",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "",
+            "value": ""
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How to use this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 11
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### Filling the variable\n\nPut the runner's `BOT_HUMANIZE_ACCOUNTS` value in **Trial account ids** at the top: the comma list of `game_accounts.id` values from the runner's environment (`infra/.env`). Spaces are ignored. Every account that isn't listed is in **other**.\n\nWith the box empty, every account is in **other** and the trial lines are empty. That is also the state of a fleet-wide rollout (`BOT_HUMANIZE_ACCOUNTS` empty); compare the weeks before and after it instead.\n\nThe stat on the right counts the listed ids that match an account. A listed id that matches nothing is a typo or a removed account. To find an account's id, open Explore, pick GGE Postgres and run `select id, name from game_accounts where lower(name) = lower('the castle name')`.\n\nEach point is one UTC day. An account counts as running on a day when one of its runs overlapped that day. Crashes are runs that ended in `crash`, `error` or `stale`, as in the *Bots are crashing* alert.\n\n### Why not Prometheus\n\nNo metric carries an account id. A label value per account multiplies every series by the fleet size, and anyone who can read Prometheus could read the ids. Postgres already records every run in `bot_runs`, so the cohorts are compared here.\n\nBans are rare, so a few trial accounts over a few days can't show a difference in ban rate. Use the trial to catch breakage (auth failures, crashes) and weeks of fleet-wide data to judge bans."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Trial ids listed, matched to an account, and run in the range",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 11
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "with trial as (select string_to_array(replace('$trial_accounts', ' ', ''), ',') as ids) select cardinality(array_remove(trial.ids, '')) as listed, (select count(*) from game_accounts a where a.id::text = any (trial.ids)) as \"matched\", (select count(distinct r.account_id) from bot_runs r where r.account_id::text = any (trial.ids) and r.started_at < $__timeTo()::timestamptz and coalesce(r.ended_at, now()) > $__timeFrom()::timestamptz) as \"ran in range\" from trial"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Bans per 100 running accounts, per day",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "with trial as (select string_to_array(replace('$trial_accounts', ' ', ''), ',') as ids), days as (select generate_series(date_bin('1 day', $__timeFrom()::timestamptz, timestamptz 'epoch'), $__timeTo()::timestamptz, interval '1 day') as day), runs as ( select r.account_id, r.started_at, r.ended_at, coalesce(r.ended_at, now()) as until, r.end_reason, case when r.account_id::text = any (trial.ids) then 'trial' else 'other' end as cohort from bot_runs r, trial where r.started_at < $__timeTo()::timestamptz and coalesce(r.ended_at, now()) > $__timeFrom()::timestamptz), daily as ( select d.day, c.cohort, count(distinct ru.account_id) as accounts, count(*) filter (where ru.end_reason = 'banned' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as bans, count(*) filter (where ru.end_reason = 'auth_failed' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as auth_failures, count(*) filter (where ru.end_reason in ('crash', 'error', 'stale') and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as crashes, count(*) filter (where ru.started_at >= d.day and ru.started_at < d.day + interval '1 day') as starts from days d cross join (values ('trial'), ('other')) c (cohort) left join runs ru on ru.cohort = c.cohort and ru.started_at < d.day + interval '1 day' and ru.until > d.day group by 1, 2) select day as time, cohort as metric, round(100.0 * bans / nullif(accounts, 0), 2) as value from daily order by 1, 2"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Auth failures per 100 running accounts, per day",
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "with trial as (select string_to_array(replace('$trial_accounts', ' ', ''), ',') as ids), days as (select generate_series(date_bin('1 day', $__timeFrom()::timestamptz, timestamptz 'epoch'), $__timeTo()::timestamptz, interval '1 day') as day), runs as ( select r.account_id, r.started_at, r.ended_at, coalesce(r.ended_at, now()) as until, r.end_reason, case when r.account_id::text = any (trial.ids) then 'trial' else 'other' end as cohort from bot_runs r, trial where r.started_at < $__timeTo()::timestamptz and coalesce(r.ended_at, now()) > $__timeFrom()::timestamptz), daily as ( select d.day, c.cohort, count(distinct ru.account_id) as accounts, count(*) filter (where ru.end_reason = 'banned' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as bans, count(*) filter (where ru.end_reason = 'auth_failed' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as auth_failures, count(*) filter (where ru.end_reason in ('crash', 'error', 'stale') and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as crashes, count(*) filter (where ru.started_at >= d.day and ru.started_at < d.day + interval '1 day') as starts from days d cross join (values ('trial'), ('other')) c (cohort) left join runs ru on ru.cohort = c.cohort and ru.started_at < d.day + interval '1 day' and ru.until > d.day group by 1, 2) select day as time, cohort as metric, round(100.0 * auth_failures / nullif(accounts, 0), 2) as value from daily order by 1, 2"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Crashes per 100 running accounts, per day",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "with trial as (select string_to_array(replace('$trial_accounts', ' ', ''), ',') as ids), days as (select generate_series(date_bin('1 day', $__timeFrom()::timestamptz, timestamptz 'epoch'), $__timeTo()::timestamptz, interval '1 day') as day), runs as ( select r.account_id, r.started_at, r.ended_at, coalesce(r.ended_at, now()) as until, r.end_reason, case when r.account_id::text = any (trial.ids) then 'trial' else 'other' end as cohort from bot_runs r, trial where r.started_at < $__timeTo()::timestamptz and coalesce(r.ended_at, now()) > $__timeFrom()::timestamptz), daily as ( select d.day, c.cohort, count(distinct ru.account_id) as accounts, count(*) filter (where ru.end_reason = 'banned' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as bans, count(*) filter (where ru.end_reason = 'auth_failed' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as auth_failures, count(*) filter (where ru.end_reason in ('crash', 'error', 'stale') and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as crashes, count(*) filter (where ru.started_at >= d.day and ru.started_at < d.day + interval '1 day') as starts from days d cross join (values ('trial'), ('other')) c (cohort) left join runs ru on ru.cohort = c.cohort and ru.started_at < d.day + interval '1 day' and ru.until > d.day group by 1, 2) select day as time, cohort as metric, round(100.0 * crashes / nullif(accounts, 0), 2) as value from daily order by 1, 2"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Runs started per running account, per day",
+      "description": "More runs per account means more restarts: crashes, retries or schedule windows.",
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "with trial as (select string_to_array(replace('$trial_accounts', ' ', ''), ',') as ids), days as (select generate_series(date_bin('1 day', $__timeFrom()::timestamptz, timestamptz 'epoch'), $__timeTo()::timestamptz, interval '1 day') as day), runs as ( select r.account_id, r.started_at, r.ended_at, coalesce(r.ended_at, now()) as until, r.end_reason, case when r.account_id::text = any (trial.ids) then 'trial' else 'other' end as cohort from bot_runs r, trial where r.started_at < $__timeTo()::timestamptz and coalesce(r.ended_at, now()) > $__timeFrom()::timestamptz), daily as ( select d.day, c.cohort, count(distinct ru.account_id) as accounts, count(*) filter (where ru.end_reason = 'banned' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as bans, count(*) filter (where ru.end_reason = 'auth_failed' and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as auth_failures, count(*) filter (where ru.end_reason in ('crash', 'error', 'stale') and ru.ended_at >= d.day and ru.ended_at < d.day + interval '1 day') as crashes, count(*) filter (where ru.started_at >= d.day and ru.started_at < d.day + interval '1 day') as starts from days d cross join (values ('trial'), ('other')) c (cohort) left join runs ru on ru.cohort = c.cohort and ru.started_at < d.day + interval '1 day' and ru.until > d.day group by 1, 2) select day as time, cohort as metric, round(starts::numeric / nullif(accounts, 0), 2) as value from daily order by 1, 2"
+        }
+      ]
+    }
+  ]
+}

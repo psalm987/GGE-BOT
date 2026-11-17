@@ -1,0 +1,147 @@
+{
+  "uid": "gge-schedules",
+  "title": "GGE \u00b7 Schedules",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "30s",
+  "tags": [
+    "gge"
+  ],
+  "links": [
+    {
+      "title": "GGE dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gge"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Accounts with a schedule, of all accounts",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) filter (where schedule is not null) as scheduled, count(*) as \"all accounts\" from game_accounts"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Runs ended by a closing window, per day",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 18,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(ended_at, '1d', 0), count(*) as runs from bot_runs where end_reason = 'schedule' and $__timeFilter(ended_at) group by 1 order by 1"
+        }
+      ],
+      "links": [
+        {
+          "title": "Run history: every end reason",
+          "url": "/d/gge-runs?${__url_time_range}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Scheduled accounts by current state",
+      "description": "Asleep means wanted, stopped, and the last run ended because its window closed. Whether a window is open now is worked out in JS (scheduleState) and isn't in Postgres.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "gge-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select case when a.desired_state = 'running' and s.actual_state = 'stopped' and last_run.end_reason = 'schedule' then 'asleep: window closed' when s.actual_state is null then 'never started' else s.actual_state::text end as state, a.desired_state as wanted, count(*) as accounts from game_accounts a left join bot_status s on s.account_id = a.id left join lateral (select r.end_reason from bot_runs r where r.account_id = a.id order by r.started_at desc limit 1) last_run on true where a.schedule is not null group by 1, 2 order by 3 desc"
+        }
+      ]
+    }
+  ]
+}

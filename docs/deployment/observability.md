@@ -15,6 +15,15 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 | Realtime | Connected clients, users and subscriptions, connections, messages and disconnects, outbox events processed, outbox backlog and oldest row age | Check live updates reach players; see why they stall |
 | Run history | Runs and failures per day by end reason, fleet uptime and restarts over the range, run length by end reason, failures by server, accounts by state | Find which servers or reasons cause failures over days |
 | Host | CPU, load, memory, disk used and free, disk I/O, network | Size the host; catch a filling disk before it stops Postgres |
+| Bans | Accounts banned now, bans per day and by server, days since each account's last ban, bans in the last 7 days | Watch the number humanization is meant to lower; spot a server where bans cluster |
+| Humanization trial | Bans, auth failures and crashes per 100 running accounts, and runs per account, for trial accounts against the rest | Judge a `BOT_HUMANIZE_ACCOUNTS` trial; paste the same ids into the `trial_accounts` box |
+| Proxies | Accounts per proxy against its limit, accounts with no proxy, the pool's health and last errors, proxy failures per hour by reason | Catch a dead or full proxy before bots fall back or stop |
+| Notifications and email | Notifications per day by kind, each day's email outcome, why emails were skipped or failed, emails stuck pending | Notice a broken mail sender or players hitting the daily cap |
+| Players | Verified share, players with a running bot, signups per day, players by plan use, self-deletions, accounts outside their plan | Follow growth; see whether the email gate stalls signups |
+| Security | Recovery codes used, admin sign-ins, credential and account changes by kind, the last 50 security events | Spot an unexpected recovery code or a burst of resets |
+| Schedules | Accounts with a schedule, runs ended by a closing window, scheduled accounts by state | Confirm run windows behave once players use them |
+
+Every dashboard links to the others from its top bar. The Postgres panels read through the `grafana_ro` role when `GRAFANA_DB_PASSWORD` is set, so they never see sessions, tokens, 2FA secrets, password hashes or sealed values.
 
 ## Metrics
 
@@ -59,7 +68,7 @@ The fleet is failing together when at least 5 accounts ended a run early in the 
 
 ## Alerts
 
-Five Grafana-managed rules are provisioned from `infra/grafana/provisioning/alerting/rules.yml`:
+Seven Grafana-managed rules are provisioned, five from `infra/grafana/provisioning/alerting/rules.yml` and two Postgres rules from `rules-postgres.yml`:
 
 | Rule | Fires when |
 |---|---|
@@ -68,6 +77,8 @@ Five Grafana-managed rules are provisioned from `infra/grafana/provisioning/aler
 | Event loop lag over 200 ms | API or runner p99 lag above 0.2 s for 5 minutes |
 | Live updates are not being delivered | `centrifugo_outbox` holds more than 5000 rows, or its oldest row is more than 5 minutes old, for 2 minutes. Centrifugo is down or can't reach Postgres. Check `docker compose logs centrifugo`. |
 | Disk over 90% full | A host filesystem (node_exporter, tmpfs and overlay excluded) is more than 90% used for 10 minutes. The alert names the mount point. Free space before Postgres stops accepting writes; the Host dashboard shows which mount is growing. |
+| Bans spiking | More runs ended `banned` in the last hour than the larger of 3 and 2% of the accounts that ran in that hour. The game may be detecting the bot: check the Bans dashboard and consider stopping the fleet. |
+| A proxy was switched off automatically | The runner turned a proxy off after repeated connection failures in the last 10 minutes. The alert names it and the reason; its accounts move to another proxy with room. Turn it back on under Proxies in the admin app once it works. |
 
 To get them in Discord, create a webhook (channel settings, Integrations, Webhooks), put its URL in `GRAFANA_ALERT_DISCORD_WEBHOOK` and recreate the `grafana` service. On start the image then provisions a Discord contact point and makes it the default notification policy, so every alert, firing and resolved, posts to that channel. The provisioned policy can't be edited in the UI; change `infra/grafana/discord-alerting/` instead.
 
