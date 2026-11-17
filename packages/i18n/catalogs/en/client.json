@@ -267,7 +267,6 @@
   "plan.buy.offline": "Online payment isn't available yet. Contact support to buy.",
   "plan.buy.noneTitle": "Nothing for sale online yet",
   "plan.buy.noneHint": "Contact support to buy, or redeem a code if a friend gave you one.",
-  "plan.buy.teamName": "Team {{seats, number}}",
   "plan.buy.per": "for {{days, number}} days",
   "plan.buy.basicDays": "Runs your bots for {{days, number}} days",
   "plan.buy.teamCodes_one": "{{count, number}} single-use code to share",

@@ -65,7 +65,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                     </Dropdown>
                 </Layout.Header>
                 {banners}
-                <Layout.Content style={{ padding: phone ? 12 : 24, maxWidth: 1400, width: "100%", margin: "0 auto" }}>{children}</Layout.Content>
+                <Layout.Content className="gge-content" style={{ padding: phone ? 12 : 24, maxWidth: 1400, width: "100%", margin: "0 auto" }}>{children}</Layout.Content>
             </Layout>
         </Layout>
     )

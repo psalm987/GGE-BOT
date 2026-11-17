@@ -6,7 +6,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useSearchParams } from "react-router"
 import { CURRENCIES, PLAN_IDS, PURCHASE_STATUSES, type AdminPurchase, type BillingSettings, type BillingStatus, type Package, type PlanRow, type PurchaseStatus } from "@gge/contracts"
-import { CrestEmpty, formatMoney, majorToMinor, messageOf, minorToMajor, ParchmentCard } from "@gge/ui"
+import { CrestEmpty, formatMoney, majorToMinor, messageOf, minorToMajor, ParchmentCard, usePackageName } from "@gge/ui"
 import "./admin.css"
 import { orpc, queryClient } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
@@ -116,7 +116,8 @@ type PackageDraft = { price: number | null; currency: Package["currency"]; point
 function PackageRow({ pkg }: { pkg: Package }) {
     const { t } = useTranslation("admin")
     const settle = useSettle()
-    const update = useMutation(orpc.billing.updatePackage.mutationOptions(settle(t("billing.packages.saved", { id: pkg.id }))))
+    const name = usePackageName()(pkg)
+    const update = useMutation(orpc.billing.updatePackage.mutationOptions(settle(t("billing.packages.saved", { name }))))
     const initial: PackageDraft = { price: pkg.priceMinor === null ? null : minorToMajor(pkg.priceMinor), currency: pkg.currency ?? "USD", points: pkg.points, active: pkg.active }
     const [draft, setDraft] = useState(initial)
     const changed = JSON.stringify(draft) !== JSON.stringify(initial)
@@ -125,7 +126,7 @@ function PackageRow({ pkg }: { pkg: Package }) {
         <Flex wrap gap={12} align="flex-end" className="gge-package-row">
             <div className="gge-field" style={{ minWidth: 160 }}>
                 <span className="gge-field-label">{t("billing.packages.col.package")}</span>
-                <Typography.Text strong>{pkg.id}</Typography.Text>
+                <Typography.Text strong>{name}</Typography.Text>
                 <Typography.Text type="secondary" style={{ fontSize: 13 }}>{t("billing.packages.what", { seats: pkg.seats, days: pkg.days })}</Typography.Text>
             </div>
             <label className="gge-field">
@@ -146,7 +147,7 @@ function PackageRow({ pkg }: { pkg: Package }) {
                 <span className="gge-field-label">{t("billing.packages.col.active")}</span>
                 <Switch checked={draft.active} onChange={active => setDraft({ ...draft, active })} style={{ marginBlock: 9 }} />
             </label>
-            <Button type="primary" ghost disabled={!changed} loading={update.isPending} aria-label={t("billing.packages.saveFor", { id: pkg.id })}
+            <Button type="primary" ghost disabled={!changed} loading={update.isPending} aria-label={t("billing.packages.saveFor", { name })}
                 onClick={() => update.mutate({
                     id: pkg.id, points: draft.points, active: draft.active,
                     priceMinor: priced ? majorToMinor(draft.price!) : null, currency: priced ? draft.currency : null,
@@ -206,6 +207,7 @@ function SettingsTab() {
 const PAGE = 50
 
 function PurchasesTab() {
+    const packageName = usePackageName()
     const { t, i18n } = useTranslation("admin")
     const { t: tc } = useTranslation("common")
     const settle = useSettle()
@@ -239,7 +241,7 @@ function PurchasesTab() {
                             title: t("billing.purchases.col.buyer"), key: "buyer",
                             render: (_, p) => p.buyerId ? <Link to={`/users/${p.buyerId}?tab=plan`}>{p.buyer}</Link> : <Typography.Text type="secondary">{t("billing.purchases.deletedBuyer")}</Typography.Text>,
                         },
-                        { title: t("billing.purchases.col.package"), dataIndex: "packageId", render: (id: string, p) => <>{id}{p.codes.length > 0 && <Typography.Text type="secondary"> · {t("billing.purchases.codes", { count: p.codes.length })}</Typography.Text>}</> },
+                        { title: t("billing.purchases.col.package"), key: "package", render: (_, p) => <>{packageName(p)}{p.codes.length > 0 && <Typography.Text type="secondary"> · {t("billing.purchases.codes", { count: p.codes.length })}</Typography.Text>}</> },
                         { title: t("billing.purchases.col.amount"), key: "amount", render: (_, p) => p.amountMinor !== null && p.currency ? formatMoney(p.amountMinor, p.currency, i18n.language) : <Typography.Text type="secondary">{tc("value.none")}</Typography.Text> },
                         {
                             title: t("billing.purchases.col.how"), dataIndex: "provider",
@@ -253,7 +255,7 @@ function PurchasesTab() {
                             render: (_, p) => p.status === "paid" && (
                                 <Popconfirm title={t("billing.purchases.refundConfirm")} description={t("billing.purchases.refundBody", { points: p.points })}
                                     okText={t("billing.purchases.refund")} okButtonProps={{ danger: true }} onConfirm={() => refund.mutate({ purchaseId: p.id })}>
-                                    <Button danger aria-label={t("billing.purchases.refundFor", { buyer: p.buyer ?? "", id: p.packageId })}>{t("billing.purchases.refund")}</Button>
+                                    <Button danger aria-label={t("billing.purchases.refundFor", { buyer: p.buyer ?? "", name: packageName(p) })}>{t("billing.purchases.refund")}</Button>
                                 </Popconfirm>
                             ),
                         },

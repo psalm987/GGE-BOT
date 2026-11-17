@@ -5,7 +5,7 @@ import dayjs from "dayjs"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CURRENCIES, PLAN_IDS, type AdminPeriod, type AdminPointsEntry, type CodeStatus, type LicenseCode, type PlanId } from "@gge/contracts"
-import { majorToMinor, messageOf, palette } from "@gge/ui"
+import { majorToMinor, messageOf, palette, usePackageName } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 
@@ -46,6 +46,7 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
         return <Skeleton active paragraph={{ rows: 6 }} />
     const { current, periods, maxBotsOverride, points, codes } = plan.data
     const planName = (id: PlanId) => tc(`plan.${id}`)
+    const packageName = usePackageName()
 
     const submit = (values: Record<string, unknown>) => {
         if (dialog === "grant")
@@ -159,7 +160,7 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
                     {dialog === "purchase" && (
                         <>
                             <Form.Item label={t("userPlan.package")} name="packageId" rules={[{ required: true, message: t("userPlan.packageRequired") }]}>
-                                <Select options={packages.data?.map(p => ({ value: p.id, label: t("userPlan.packageOption", { id: p.id, seats: p.seats, days: p.days, points: p.points }) }))} />
+                                <Select options={packages.data?.map(p => ({ value: p.id, label: t("userPlan.packageOption", { name: packageName(p), seats: p.seats, days: p.days, points: p.points }) }))} />
                             </Form.Item>
                             <Flex wrap gap={16}>
                                 <Form.Item label={t("userPlan.amount")} name="amount" extra={t("userPlan.amountHint")}>

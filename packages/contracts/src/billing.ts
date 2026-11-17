@@ -171,7 +171,7 @@ export const BillingConfig = z.object({
     billingLive: z.boolean(),
     /** Whether the caller can pay online now: Paystack is set up and billing is live, or the caller is an admin trying it out. */
     onlinePayments: z.boolean(),
-    /** The active packages that have a price, in display order. */
+    /** Every active package in display order. One with no price (`priceMinor` null) is not sold online; the page says to contact support. */
     packages: z.array(Package),
     pointsCost: z.number().int(),
     pointsDays: z.number().int(),

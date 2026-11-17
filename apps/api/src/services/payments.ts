@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { and, asc, count, eq, isNotNull } from "drizzle-orm"
+import { and, asc, count, eq } from "drizzle-orm"
 import { PAYMENTS_DISABLED, type BillingConfig, type Checkout, type PaymentOutcome, type PublicUser, type PurchaseStatus } from "@gge/contracts"
 import { isBillingLive, licenseCodes, packages, planPeriods, purchases, type Db } from "@gge/db"
 import type { Ctx } from "../context.ts"
@@ -33,13 +33,13 @@ const providerDown = (cause: unknown) =>
     fail("BAD_GATEWAY", "PAYMENT_PROVIDER_DOWN", undefined, cause)
 
 export async function billingConfig(ctx: Pick<Ctx, "db" | "paystack">, role: PublicUser["role"]): Promise<BillingConfig> {
-    const [billingLive, paystack, forSale, settings] = await Promise.all([
+    const [billingLive, paystack, offered, settings] = await Promise.all([
         isBillingLive(ctx.db),
         paystackFor(ctx, role),
-        ctx.db.select().from(packages).where(and(eq(packages.active, true), isNotNull(packages.priceMinor))).orderBy(asc(packages.sort), asc(packages.id)),
+        ctx.db.select().from(packages).where(eq(packages.active, true)).orderBy(asc(packages.sort), asc(packages.id)),
         billingSettings(ctx.db),
     ])
-    return { billingLive, onlinePayments: !!paystack, packages: forSale, pointsCost: settings.pointsRedeemCost, pointsDays: settings.pointsRedeemDays }
+    return { billingLive, onlinePayments: !!paystack, packages: offered, pointsCost: settings.pointsRedeemCost, pointsDays: settings.pointsRedeemDays }
 }
 
 /**

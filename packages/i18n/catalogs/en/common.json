@@ -26,5 +26,6 @@
   "validation.email": "Enter a valid email",
   "error.generic": "Something went wrong. Try again.",
   "plan.basic": "Basic",
-  "plan.team": "Team"
+  "plan.team": "Team",
+  "plan.teamName": "Team {{seats, number}}"
 }

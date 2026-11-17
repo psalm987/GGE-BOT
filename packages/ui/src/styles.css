@@ -323,13 +323,15 @@ body {
 .gge-term-pill .ant-btn { pointer-events: auto; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); }
 @keyframes gge-rise { from { transform: translateY(8px); opacity: 0; } }
 
-/* The Logs page fills the window below the header, so the terminal scrolls inside itself. */
-.gge-logs-page { display: flex; flex-direction: column; gap: 12px; height: calc(100dvh - 112px); min-height: 560px; }
+/* The page body is a column that takes what the header and banners leave, so a page can fill it. */
+.gge-content { display: flex; flex-direction: column; flex: 1 1 auto; box-sizing: border-box; }
+/* The Logs page fills that space, so the terminal scrolls inside itself. */
+.gge-logs-page { display: flex; flex-direction: column; gap: 12px; flex: 1 1 0; min-height: 560px; }
 .gge-logs-toolbar { display: grid; gap: 10px; min-width: 0; }
 .gge-logs-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
 .gge-logs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 @media (max-width: 767.98px) {
-    .gge-logs-page { height: calc(100dvh - 88px); min-height: 540px; }
+    .gge-logs-page { min-height: 540px; }
 }
 
 /* Banners under the header: a severity rule on the inline-start edge, the icon, the words, one action and a close button. */

@@ -95,10 +95,10 @@ describe("while billing is live", () => {
         })
     })
 
-    test("the player sees what is sold online and that they can pay", async () => {
+    test("the player sees every active package, priced or not, and that they can pay", async () => {
         const config = await (await api.player()).api.billing.config()
         expect(config.onlinePayments).toBe(true)
-        expect(config.packages.map(p => [p.id, p.priceMinor, p.currency])).toEqual([["basic_28", 500, "USD"], ["team5_28", 2000, "USD"]])
+        expect(config.packages.map(p => [p.id, p.priceMinor, p.currency])).toEqual([["basic_28", 500, "USD"], ["team5_28", 2000, "USD"], ["team10_28", null, null]])
         expect(config).toMatchObject({ billingLive: true, pointsCost: 8, pointsDays: 28 })
     })
 

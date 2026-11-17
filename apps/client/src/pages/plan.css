@@ -39,6 +39,8 @@
 }
 .gge-package-name { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.04em; font-weight: 700; font-size: 17px; }
 .gge-package-price { font-size: 26px; font-weight: 700; color: var(--gge-gold); font-variant-numeric: tabular-nums; }
+.gge-package-offline { color: var(--gge-muted); font-size: 14px; line-height: 1.4; }
+.gge-package-offline .anticon { color: var(--gge-gold); margin-inline-end: 4px; }
 .gge-package-days { color: var(--gge-muted); font-size: 14px; }
 .gge-package-gives { flex: 1; display: grid; gap: 6px; align-content: start; margin: 10px 0 14px; padding: 0; list-style: none; }
 .gge-package-gives .anticon { color: var(--gge-gold); margin-inline-end: 4px; }

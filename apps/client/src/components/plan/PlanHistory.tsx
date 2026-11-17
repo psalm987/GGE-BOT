@@ -2,7 +2,7 @@ import { CopyOutlined, DownloadOutlined, LinkOutlined } from "@ant-design/icons"
 import { App, Button, Flex, Table, Tabs, Tag, Tooltip, Typography } from "antd"
 import { useTranslation } from "react-i18next"
 import type { CodeStatus, LicenseCode, PointsEntry, Purchase, PurchaseStatus } from "@gge/contracts"
-import { CrestEmpty, ParchmentCard, formatMoney, palette } from "@gge/ui"
+import { CrestEmpty, ParchmentCard, formatMoney, palette, usePackageName } from "@gge/ui"
 import { formatWhen } from "../../alert-banners.ts"
 import { codesCsv } from "../../plan-model.ts"
 
@@ -33,7 +33,7 @@ export function PlanHistory({ codes, purchases, points, loading }: { codes: Lice
     }
     const shareLink = (code: string) => `${window.location.origin}/redeem?code=${encodeURIComponent(code)}`
     const unused = codes.filter(c => c.status === "unused")
-    const packageName = (p: Purchase) => p.planId === "team" ? t("plan.buy.teamName", { seats: p.seats }) : tc(`plan.${p.planId}`)
+    const packageName = usePackageName()
 
     const codesTab = codes.length === 0 && !loading ? (
         <CrestEmpty title={t("plan.codes.emptyTitle")} hint={t("plan.codes.emptyHint")} />
