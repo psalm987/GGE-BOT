@@ -1,6 +1,6 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
-import { BillingStatus } from "./billing.ts"
+import { BillingSettings, BillingStatus, PointsRedemption, PointsSummary } from "./billing.ts"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
@@ -95,6 +95,16 @@ export const clientContract = {
         /** One token per account, all or nothing: any id that isn't the caller's refuses the whole call. */
         subscriptionTokens: oc.input(z.object({ accountIds: z.array(z.uuid()).min(1).max(50) })).output(z.record(z.uuid(), z.string())),
     },
+    /** Refused with data.code BILLING_NOT_LIVE while billing is off, except for an admin trying it out. */
+    billing: {
+        /** `before` is the id of the oldest history entry already shown. */
+        points: oc.input(z.object({ before: z.number().int().optional(), limit: z.number().int().min(1).max(50).default(20) })).output(PointsSummary),
+        /**
+         * Spends the redeem cost on a period queued behind the caller's last. Refused with data.code NOT_ENOUGH_POINTS and
+         * `needed`. A repeat with the same key spends nothing and answers as the first call did.
+         */
+        redeemPoints: oc.input(z.object({ idempotencyKey: z.uuid() })).output(PointsRedemption),
+    },
     plugins: {
         catalog: oc.output(z.array(PluginCatalogEntry)),
         /** How many attack plugins the caller may turn on per account; null for no limit. */
@@ -147,6 +157,14 @@ export const adminContract = {
          * active, verified player who has had no trial theirs. Turning off puts every player back on users.max_bots and changes no data.
          */
         setLive: oc.input(z.object({ live: z.boolean() })).output(BillingStatus),
+        settings: oc.output(BillingSettings),
+        updateSettings: oc.input(BillingSettings.partial()).output(BillingSettings),
+        /** Adds to or takes from a player's points. Answers with the new balance, which may be negative. */
+        adjustPoints: oc.input(z.object({
+            userId: z.uuid(),
+            delta: z.number().int().min(-10_000).max(10_000).refine(n => n !== 0, "can't be zero"),
+            note: z.string().trim().min(3).max(500),
+        })).output(z.object({ balance: z.number().int() })),
     },
     /** One player's lines together, as they see them. */
     logs: {

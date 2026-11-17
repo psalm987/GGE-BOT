@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server"
 import { and, asc, count, eq, inArray, isNotNull, notExists, sql } from "drizzle-orm"
-import { PAYSTACK_NOT_CONFIGURED, type BillingStatus } from "@gge/contracts"
+import { BILLING_NOT_LIVE, PAYSTACK_NOT_CONFIGURED, type BillingStatus } from "@gge/contracts"
 import { appSettings, gameAccounts, isBillingLive, planPeriods, trialGameAccounts, users, type Db } from "@gge/db"
 import type { Env } from "../env.ts"
 import { audit } from "./audit.ts"
@@ -16,6 +16,12 @@ type Reader = Pick<Db, "select">
 export async function billingLiveForTrial(tx: Reader) {
     const [settings] = await tx.select({ billingLive: appSettings.billingLive }).from(appSettings).for("share")
     return settings?.billingLive ?? false
+}
+
+/** Players reach nothing in billing until it is live. An admin gets through, to try it out first. */
+export async function requireBillingLive(db: Reader, role: "user" | "admin") {
+    if (role !== "admin" && !await isBillingLive(db))
+        throw new ORPCError("FORBIDDEN", { message: "Plans aren't available yet.", data: { code: BILLING_NOT_LIVE } })
 }
 
 /** Players a go-live gives a trial to: active, email confirmed, and never had one. */

@@ -8,6 +8,7 @@ import type { Ctx } from "../context.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
 import { audit } from "../services/audit.ts"
 import { backToFree, billingStatus, goLive } from "../services/billing.ts"
+import { adjustPoints, billingSettings, updateBillingSettings } from "../services/points.ts"
 import { detectLocale } from "../services/i18n.ts"
 import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
@@ -179,6 +180,9 @@ export const adminRouter = os.router({
             await (input.live ? goLive(db, env, user.id) : backToFree(db, user.id))
             return billingStatus(db, env)
         }),
+        settings: os.billing.settings.use(admin).handler(({ context: { db } }) => billingSettings(db)),
+        updateSettings: os.billing.updateSettings.use(admin).handler(({ context: { db, user }, input }) => updateBillingSettings(db, user.id, input)),
+        adjustPoints: os.billing.adjustPoints.use(admin).handler(({ context: { db, user }, input }) => adjustPoints(db, user.id, input)),
     },
     logs: {
         feed: os.logs.feed.use(admin).handler(({ context: { db }, input: { ownerId, ...input } }) => logFeed(db, ownerId, input)),

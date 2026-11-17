@@ -18,7 +18,7 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
-import { PERIOD_SOURCES, PLAN_IDS } from "@gge/contracts"
+import { PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS } from "@gge/contracts"
 import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
@@ -291,6 +291,29 @@ export const planPeriods = pgTable("plan_periods", {
     check("plan_periods_source_valid", sql`${t.source} in (${sql.raw(PERIOD_SOURCES.map(s => `'${s}'`).join(", "))})`),
     index("plan_periods_user_ends").on(t.userId, t.endsAt),
     uniqueIndex("plan_periods_one_trial").on(t.userId).where(sql`${t.source} = 'trial'`),
+])
+
+/**
+ * Every change to a player's points; the balance is the sum of `delta`. Rows are only added, never changed, and points
+ * don't expire. A refund can take the balance below zero.
+ */
+export const pointsLedger = pgTable("points_ledger", {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason", { enum: POINTS_REASONS }).notNull(),
+    purchaseId: uuid("purchase_id"),
+    /** The period a redemption paid for. */
+    periodId: uuid("period_id").references(() => planPeriods.id, { onDelete: "set null" }),
+    /** The caller's key for a redemption, so a repeated request spends once. */
+    idempotencyKey: text("idempotency_key").unique(),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+}, t => [
+    check("points_ledger_delta_nonzero", sql`${t.delta} <> 0`),
+    check("points_ledger_reason_valid", sql`${t.reason} in (${sql.raw(POINTS_REASONS.map(r => `'${r}'`).join(", "))})`),
+    index("points_ledger_user").on(t.userId, t.id),
 ])
 
 /**

@@ -141,6 +141,13 @@
       "when": 1794917069684,
       "tag": "0019_trial_game_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794918753076,
+      "tag": "0020_points_ledger",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,8 @@ import { gameAccounts, servers } from "@gge/db"
 import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
+import { requireBillingLive } from "../services/billing.ts"
+import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
     accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
@@ -28,6 +30,11 @@ const authed = os.middleware(async ({ context, next }) => {
 const verified = authed.concat(async ({ context, next }) => {
     if (!context.user.emailVerified)
         throw new ORPCError("FORBIDDEN", { message: "Verify your email to continue" })
+    return next()
+})
+
+const billing = verified.concat(async ({ context, next }) => {
+    await requireBillingLive(context.db, context.user.role)
     return next()
 })
 
@@ -110,6 +117,14 @@ export const clientRouter = os.router({
             if (owned.length !== ids.length)
                 throw new ORPCError("NOT_FOUND", { message: "No such account" })
             return subscriptionTokens(env.CENTRIFUGO_TOKEN_SECRET, user.id, ids)
+        }),
+    },
+    billing: {
+        points: os.billing.points.use(billing).handler(({ context: { db, user }, input }) => pointsSummary(db, user.id, input)),
+        redeemPoints: os.billing.redeemPoints.use(billing).handler(async ({ context: { db, user }, input }) => {
+            const redemption = await redeemPoints(db, user.id, input.idempotencyKey)
+            await audit(db, { actorId: user.id, action: "billing.points.redeem", targetType: "period", targetId: redemption.period.id })
+            return redemption
         }),
     },
     plugins: {
