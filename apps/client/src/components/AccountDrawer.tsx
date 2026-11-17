@@ -142,7 +142,8 @@ export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { 
                 {isNew ? settings : (
                     <Tabs className="gge-account-tabs" activeKey={tab} onChange={setTab} size={phone ? "small" : "middle"} tabBarGutter={phone ? 14 : undefined} items={[
                         { key: "overview", label: t("drawer.overview"), children: <AccountOverview account={current ?? account} /> },
-                        { key: "settings", label: tc("nav.settings"), children: settings },
+                        // Always mounted, so its fields are in the form when a save comes from another tab.
+                        { key: "settings", label: tc("nav.settings"), children: settings, forceRender: true },
                         { key: "schedule", label: t("drawer.schedule"), children: schedule },
                         { key: "logs", label: t("nav.logs"), children: <AccountLogs key={account.id} accountId={account.id} /> },
                         { key: "runs", label: t("drawer.runHistory"), children: <AccountRuns accountId={account.id} /> },

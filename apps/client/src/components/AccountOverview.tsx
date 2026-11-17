@@ -49,7 +49,8 @@ const TOP_ERRORS = 5
 function TopErrors({ accountId }: { accountId: string }) {
     const { t, i18n } = useTranslation("client")
     const ids = useMemo(() => [accountId], [accountId])
-    const { lines, feed } = useLogFeed({ accountIds: ids, levels: [1, 2, 3], plugins: [] }, ids)
+    // No live subscription: Centrifugo refuses a second subscription to a channel, and the Logs tab holds this account's.
+    const { lines, feed } = useLogFeed({ accountIds: ids, levels: [1, 2, 3], plugins: [] }, [])
     const top = useMemo(() => topErrors(lines, TOP_ERRORS), [lines])
     const number = new Intl.NumberFormat(i18n.language)
     const heading = <Typography.Title level={5} className="gge-display" style={{ margin: 0 }}>{t("overview.errors.title")}</Typography.Title>

@@ -111,7 +111,7 @@ export function CommandPalette({ open, onClose, items }: { open: boolean; onClos
 
     return (
         <Modal open={open} onCancel={onClose} footer={null} closable={false} destroyOnHidden width={560} className="gge-cmdk" styles={{ body: { padding: 0 } }}
-            title={<span className="gge-sr-only">{t("palette.title")}</span>} keyboard maskClosable>
+            title={<span className="gge-sr-only">{t("palette.title")}</span>} keyboard mask={{ closable: true }}>
             <div onKeyDown={onKeyDown}>
                 <Input
                     ref={input} autoFocus size="large" variant="borderless" value={query} allowClear prefix={<SearchOutlined aria-hidden />}

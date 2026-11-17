@@ -683,7 +683,8 @@ async function driveGlorySettings(page) {
 
 /** The account drawer's Overview tab, as the seeded demo player: figures for Ironhold, a live change, and the empty state for an account that never ran. */
 async function driveOverview(page) {
-    const seededFigures = { castles: [], cash: 48_250_310, gold: 1_284, food: 3_912_450, mead: 126_800, aquamarin_name: 5_240, attackDailyCount: 37 }
+    const castles = [{ kingdom: 0, id: 1001, name: "Ironhold", x: 412, y: 288, type: 1 }, { kingdom: 0, id: 1002, name: "Ironhold Watch", x: 430, y: 301, type: 4 }, { kingdom: 2, id: 2001, name: "Frostgate", x: 120, y: 77, type: 12 }]
+    const seededFigures = { castles, cash: 48_250_310, gold: 1_284, food: 3_912_450, mead: 126_800, aquamarin_name: 5_240, attackDailyCount: 37 }
     await insertResources({ accountName: "Ironhold", resources: seededFigures })
     await page.setViewportSize(WIDE_VIEW)
     await page.goto(CLIENT_URL)
@@ -699,9 +700,14 @@ async function driveOverview(page) {
     assert(/^Updated .+\. Food, mead/.test(await drawer.locator(".gge-overview-note").first().innerText()), "the Overview says when its figures were last updated")
     await axe(page, "account overview")
     await atBothWidths(page, "overview", "the account Overview")
+    await drawer.getByRole("tab", { name: "Logs" }).click()
+    await drawer.getByRole("log", { name: "Bot log" }).waitFor()
+    await drawer.getByRole("tab", { name: "Overview" }).click()
+    await tiles.first().waitFor()
+    assert(await drawer.locator(".gge-top-errors").count() === 1, "the Logs tab opens beside the Overview without breaking either, though both read the same account's lines")
 
     await page.setViewportSize(WIDE_VIEW)
-    await insertResources({ accountName: "Ironhold", resources: { castles: [], cash: 49_000_001, gold: 1_300, food: 4_000_000, aquamarin_name: 5_300, attackDailyCount: 38 } })
+    await insertResources({ accountName: "Ironhold", resources: { castles, cash: 49_000_001, gold: 1_300, food: 4_000_000, aquamarin_name: 5_300, attackDailyCount: 38 } })
     await drawer.locator(".gge-kpi-value", { hasText: (49_000_001).toLocaleString("en") }).waitFor({ timeout: 30_000 })
     assert(await tile("Mead").evaluate(el => el.hasAttribute("data-missing")) && /Not reported/.test(await tile("Mead").innerText()), "a new report reaches the open Overview, and a figure the game left out shows a dash with a spoken reason")
     await page.keyboard.press("Escape")
@@ -1197,7 +1203,7 @@ async function drivePalette(page, browser) {
     const galeRows = page.getByRole("row", { name: new RegExp(gale) })
     await galeRows.nth(1).waitFor()
     assert(await galeRows.count() === 2, "the event twin was added at the limit")
-    const accountsStat = await page.locator(".ant-statistic").filter({ hasText: "Accounts" }).textContent()
+    const accountsStat = await page.locator(".gge-kpi-card").filter({ hasText: /^\s*Accounts\s*\d/ }).textContent()
     assert(/Accounts\s*1\s*\/\s*1/.test(accountsStat), `the counter counts the main only (${accountsStat})`)
     const twinRow = page.getByRole("row").filter({ hasText: "· event" })
     assert(await twinRow.getByRole("button", { name: `Start ${gale}` }).isEnabled(), "the twin can be started")
@@ -1227,7 +1233,10 @@ async function drivePalette(page, browser) {
     await mainRow.getByRole("button", { name: "Stop" }).waitFor()
     const drawer = page.getByRole("dialog")
     const scheduleSwitch = drawer.getByRole("switch", { name: "Run on a schedule" })
+    const pluginsOf = async () => JSON.stringify((await rpc(page, "accounts/list")).find(a => a.name === gale).plugins)
+    let pluginsBefore
     const openSchedule = async () => {
+        pluginsBefore ??= await pluginsOf()
         await mainRow.getByRole("button", { name: `Edit ${gale}` }).click()
         await drawer.getByRole("tab", { name: "Schedule" }).click()
         await scheduleSwitch.waitFor()
@@ -1271,6 +1280,7 @@ async function drivePalette(page, browser) {
     await drawer.getByRole("button", { name: "Save changes" }).click()
     await page.getByText(`${gale} saved`).waitFor()
     await drawerClosed(page)
+    assert(await pluginsOf() === pluginsBefore, "saving from the Schedule tab, without opening Settings, leaves the account's plugin settings as they were")
     const sleeping = mainRow.getByText(`Sleeping until ${when}`)
     await sleeping.waitFor()
     assert(true, `the started account's row shows "Sleeping until ${when}", the time the preview gave`)
