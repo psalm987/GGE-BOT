@@ -137,6 +137,14 @@ services:
       - --storage.tsdb.retention.time=15d
     volumes: [prometheus:/prometheus]
 
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.9.1
+    restart: unless-stopped
+    # Reads the host's metrics, not the container's: host PID namespace and the host root mounted read-only.
+    command: [--path.rootfs=/host]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+
   grafana:
     build: { context: .., dockerfile: infra/Dockerfile, target: grafana }
     image: gge-grafana:${GGE_VERSION:-latest}

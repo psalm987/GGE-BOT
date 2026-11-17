@@ -1,6 +1,6 @@
 # Metrics, dashboards and alerts
 
-Prometheus scrapes the API (`api:3000/metrics`), the runner (`runner:9464/metrics`) and Centrifugo (`centrifugo:8000/metrics`, job `centrifugo`) every 15 seconds and keeps 15 days. Grafana at `https://grafana.<domain>` reads Prometheus and, for run history, Postgres. Neither metrics endpoint is reachable from outside: Caddy routes only the apps, `/rpc`, `/admin/rpc`, `/healthz` and Centrifugo's `/connection/websocket`.
+Prometheus scrapes the API (`api:3000/metrics`), the runner (`runner:9464/metrics`), Centrifugo (`centrifugo:8000/metrics`, job `centrifugo`) and node_exporter (`node-exporter:9100`, job `node`, host CPU, memory, disk and network) every 15 seconds and keeps 15 days. Grafana at `https://grafana.<domain>` reads Prometheus and, for run history, Postgres. No metrics endpoint is reachable from outside: Caddy routes only the apps, `/rpc`, `/admin/rpc`, `/healthz` and Centrifugo's `/connection/websocket`.
 
 Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in the GGE folder and are provisioned from `infra/grafana/dashboards/`; edit the JSON there, not in the UI.
 
@@ -9,8 +9,12 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 | Dashboard | Shows | Use it to |
 |---|---|---|
 | Fleet | Bots by state, bots needing attention, worker heap (max and average), runner event-loop lag, runs ended in 24 h by reason, fleet uptime % | See health at a glance; size `MAX_ACCOUNTS` from heap per worker |
-| Game traffic | Messages sent per second by command, reply time p95 by command, rate-limiter wait, map cache hit ratio | Spot slow commands and wasted requests; compare before and after a bot change |
+| Game traffic | Messages sent per second by command, reply time p95 by command, rate-limiter wait, map cache hit ratio, longest silence from the game server p95 | Spot slow commands and wasted requests; compare before and after a bot change |
 | API | Requests per second by route and status, latency p95, event-loop lag | Check the API under load |
+| Plugins | Daily bonus and tax collection outcomes per hour, share that succeeded, accounts with each plugin on | Notice a plugin the game keeps refusing |
+| Realtime | Connected clients, users and subscriptions, connections, messages and disconnects, outbox events processed, outbox backlog and oldest row age | Check live updates reach players; see why they stall |
+| Run history | Runs and failures per day by end reason, fleet uptime and restarts over the range, run length by end reason, failures by server, accounts by state | Find which servers or reasons cause failures over days |
+| Host | CPU, load, memory, disk used and free, disk I/O, network | Size the host; catch a filling disk before it stops Postgres |
 
 ## Metrics
 
@@ -20,6 +24,8 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 | `bot_game_rtt_seconds` | workers | `command` |
 | `bot_send_wait_seconds` | workers | none |
 | `bot_gaa_cache_total` | workers | `result` (hit, miss) |
+| `bot_daily_bonus_total` | workers with the Daily login bonus plugin on | `result` (claimed, refused, no_reply) |
+| `bot_tax_collect_total` | workers with the Tax collector plugin on | `result` (collected, refused, no_reply) |
 | `bot_inbound_gap_seconds` | workers | none |
 | `bot_workers` | runner, from `bot_status` | `state` |
 | `bot_worker_heap_bytes` | runner, from each worker | `stat` (max, avg) |
@@ -53,7 +59,7 @@ The fleet is failing together when at least 5 accounts ended a run early in the 
 
 ## Alerts
 
-Four Grafana-managed rules are provisioned from `infra/grafana/provisioning/alerting/rules.yml`:
+Five Grafana-managed rules are provisioned from `infra/grafana/provisioning/alerting/rules.yml`:
 
 | Rule | Fires when |
 |---|---|
@@ -61,6 +67,7 @@ Four Grafana-managed rules are provisioned from `infra/grafana/provisioning/aler
 | Bots are crashing | More than 10 runs ended in `crash`, `error` or `stale` in the last hour, for 10 minutes |
 | Event loop lag over 200 ms | API or runner p99 lag above 0.2 s for 5 minutes |
 | Live updates are not being delivered | `centrifugo_outbox` holds more than 5000 rows, or its oldest row is more than 5 minutes old, for 2 minutes. Centrifugo is down or can't reach Postgres. Check `docker compose logs centrifugo`. |
+| Disk over 90% full | A host filesystem (node_exporter, tmpfs and overlay excluded) is more than 90% used for 10 minutes. The alert names the mount point. Free space before Postgres stops accepting writes; the Host dashboard shows which mount is growing. |
 
 To get them in Discord, create a webhook (channel settings, Integrations, Webhooks), put its URL in `GRAFANA_ALERT_DISCORD_WEBHOOK` and recreate the `grafana` service. On start the image then provisions a Discord contact point and makes it the default notification policy, so every alert, firing and resolved, posts to that channel. The provisioned policy can't be edited in the UI; change `infra/grafana/discord-alerting/` instead.
 
