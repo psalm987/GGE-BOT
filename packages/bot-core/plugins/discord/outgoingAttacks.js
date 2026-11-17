@@ -23,9 +23,10 @@ const kingdomName = [
     `\u001b[2;36m${i18n.__(KingdomID[4])}\u001b[0m`
 ]
 
-movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
-    await clientReady
+/** Movement ids already posted. The game sends a movement again whenever its army comes into or out of sight. */
+const posted = new Set()
 
+movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     if (![0, 25, 31, 24, 29].includes(movement.type))
         return
     if (movement.sourceOwner.ownerID < 0)
@@ -40,7 +41,15 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
     if (kingdomName[movement.kingdomID] == undefined)
         return
 
-    const timeLeft = (movement.totalTime - (movement.deltaTime - Date.now())) / 1000
+    if (posted.has(movement.id))
+        return
+    posted.add(movement.id)
+
+    const timeLeft = movement.totalTime - (movement.deltaTime - Date.now())
+    const arrivesAt = Date.now() + timeLeft
+    setTimeout(() => posted.delete(movement.id), Math.max(0, timeLeft)).unref()
+
+    await clientReady
 
     try {
         var channel = await client.channels.fetch(pluginOptions.channelID)
@@ -62,7 +71,7 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         ` (${movement.sourceAttack.extraData[7]})${i18n.__("incomingIn")}` +
         `${kingdomName[movement.kingdomID]} ${clicks}${i18n.__("incomingClicks")}` +
         "```" +
-        `<t:${Math.round(Date.now() / 1000 + timeLeft)}:R>`
+        `<t:${Math.round(arrivesAt / 1000)}:R>`
     data.files = [{ attachment: createLayout(movement.left, movement.middle, movement.right, movement.courtyard), name: "attack.png" }]
 
     await channel.send(data)

@@ -1152,12 +1152,10 @@ async function newMovement(movement) {
 
     const e = movements.find(e => e.id == movement.id)
     if(e) {
+        const sightingChanged = e.canSeeArmy != movement.canSeeArmy
         Object.assign(e, movement)
-        if(e.canSeeArmy != movement.canSeeArmy) {
-            // console.log(`Movement changed: lordID: ${movement.lord.lordID}, lordName: ${movement.lord.name}, name: ${movement.owner.name}`)
-    
-            movementEvents.emit("outgoing", movement)
-        }
+        if(sightingChanged)
+            movementEvents.emit("outgoing", e)
         return
     }
 

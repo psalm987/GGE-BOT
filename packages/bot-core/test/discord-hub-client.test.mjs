@@ -160,6 +160,26 @@ function loadAttackPlugin(name, hub, options) {
     return { movementEvents, layouts }
 }
 
+/** A bot in alliance 9 running `name`, fed real `gam` frames: by default Raider (alliance 2) attacking Ada (alliance 9). */
+function loadWithMovementList(name, hub, options) {
+    const bot = underRunner({ [name]: options })
+    bot.playerInfo.alliance = { id: 9 }
+    loadModule(`plugins/discord/${name}.js`, {
+        bot, parentPort: hub.port,
+        extra: { "imageGen.js": { createLayout: () => Readable.from([Buffer.from(PNG)]) } },
+    })
+    return ({ id = 42, from = 1, to = 5, army } = {}) => bot.xtHandler.emit("gam", {
+        M: [{
+            M: { MID: id, T: 0, KID: 0, OID: from, SID: from, TID: to, TT: 600, PT: 100, HBW: -1,
+                TA: [1, 3, 4, to, 0, 0, 0, 0, 0, 0, "Ada's Keep"], SA: [1, 0, 0, from, 0, 0, 0, 0, 0, 0, "Wolf Den"] },
+            ...(army && { GA: army }),
+        }],
+        O: [{ OID: 1, N: "Raider", AID: 2, AN: "Wolves" }, { OID: 5, N: "Ada", AID: 9, AN: "Lambs" }],
+    }, 0)
+}
+
+const visibleArmy = { L: [[10, 50]], M: [], R: [], RW: [] }
+
 describe("incoming attack alerts", () => {
     test("an attack on an alliance member is posted, mentioning the member", async () => {
         const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "online" }] })
@@ -237,6 +257,24 @@ describe("incoming attack alerts", () => {
         expect(layouts).toHaveLength(2)
     })
 
+    test("an attack first listed without its army has the picture added once the game shows the army", async () => {
+        const hub = fakeDiscordHub()
+        const gam = loadWithMovementList("incomingAttacks", hub, { channelID: "1" })
+
+        gam()
+        await settle()
+        gam({ army: visibleArmy })
+        await settle()
+        gam({ army: visibleArmy })
+        await settle()
+
+        expect(hub.contents("1")).toHaveLength(1)
+        expect(hub.sent("channelSend")[0].payload.files).toBeUndefined()
+        const edits = hub.sent("messageEdit")
+        expect(edits).toHaveLength(1)
+        expect(edits[0].payload.files.map(f => f.name)).toEqual(["attack.png"])
+    })
+
     test("a storm attack goes to the storm channel", async () => {
         const hub = fakeDiscordHub({ channelIds: ["1", "2"] })
         const { movementEvents } = loadAttackPlugin("incomingAttacks", hub, { channelID: "1", stormChannelID: "2" })
@@ -294,6 +332,22 @@ describe("outgoing attack posts", () => {
         expect(sends).toHaveLength(1)
         expect(sends[0].payload.content).toMatch(/^```ansi\nRaider \(Ada's Keep\) from Wolves is attacking Ada \(Wolf Den\) incoming in .* 5 clicks```<t:\d+:R>$/)
         expect(sends[0].payload.files.map(f => [f.name, [...f.data]])).toEqual([["attack.png", PNG]])
+    })
+
+    test("an attack is posted once, however often the game lists it again", async () => {
+        const hub = fakeDiscordHub()
+        const gam = loadWithMovementList("outgoingAttacks", hub, { channelID: "1" })
+        const ours = id => ({ id, from: 5, to: 1 })
+
+        gam(ours(42))
+        await settle()
+        gam({ ...ours(42), army: visibleArmy })
+        await settle()
+        gam(ours(42))
+        gam(ours(43))
+        await settle()
+
+        expect(hub.sent("channelSend")).toHaveLength(2)
     })
 })
 

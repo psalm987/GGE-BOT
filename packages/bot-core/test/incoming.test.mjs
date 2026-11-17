@@ -1,5 +1,4 @@
 import { createRequire } from "node:module"
-import { EventEmitter } from "node:events"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
@@ -96,24 +95,13 @@ describe("the incoming attack detector", () => {
     })
 
     test("an attack sighted again is not reported twice, and its army is reported once it becomes visible", () => {
-        // Sent directly: newMovement in protocols.js assigns before it compares canSeeArmy, so it never re-emits a sighting.
-        const bot = fakeBot()
-        bot.playerInfo.alliance = { id: ALLIANCE }
-        const movementEvents = new EventEmitter()
-        loadModule("plugins/incoming.js", { bot, extra: { "protocols.js": { movementEvents } } })
-        const seen = []
-        for (const name of ["incoming:new", "incoming:updated"])
-            bot.events.on(name, attack => seen.push([name, attack.movementId, attack.army]))
-        const sighting = canSeeArmy => ({
-            id: 42, type: 0, kingdomID: 0, totalTime: 600_000, deltaTime: Date.now(), canSeeArmy,
-            sourceOwner: { ownerID: 1, allianceID: 2 }, targetOwner: { ownerID: 5, allianceID: ALLIANCE },
-            left: [{ unitInfo: units[0], amount: 50 }], middle: [], right: [], courtyard: [],
-        })
+        const { seen, gam } = detector()
+        const army = { L: [[10, 50]], M: [], R: [], RW: [] }
 
-        movementEvents.emit("outgoing", sighting(false))
-        movementEvents.emit("outgoing", sighting(false))
-        movementEvents.emit("outgoing", sighting(true))
-        movementEvents.emit("outgoing", sighting(true))
+        gam(march())
+        gam(march())
+        gam(march({ army }))
+        gam(march({ army }))
 
         expect(seen).toEqual([["incoming:new", 42, undefined], ["incoming:updated", 42, 50]])
     })
