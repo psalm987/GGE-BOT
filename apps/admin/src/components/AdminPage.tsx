@@ -3,8 +3,7 @@ import { Alert, Button } from "antd"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
-import { CampaignLayout, type NavItem } from "@gge/ui"
-import { messageOf } from "../api.ts"
+import { CampaignLayout, messageOf, type NavItem } from "@gge/ui"
 import { useLogout, useMe } from "../auth.tsx"
 
 const NAV = [

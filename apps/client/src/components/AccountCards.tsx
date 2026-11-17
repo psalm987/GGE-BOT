@@ -5,8 +5,8 @@ import { useState } from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import type { DataExport, PublicUser } from "@gge/contracts"
-import { ParchmentCard } from "@gge/ui"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { messageOf, ParchmentCard } from "@gge/ui"
+import { orpc, queryClient } from "../api.ts"
 
 const card = { maxWidth: 480, marginBottom: 16 }
 

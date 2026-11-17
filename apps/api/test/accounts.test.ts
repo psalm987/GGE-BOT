@@ -73,6 +73,16 @@ describe("a player's accounts", () => {
         expect(await p.api.accounts.list()).toEqual([])
     })
 
+    test("a refused setting says what was wrong, in a code and params and in English", async () => {
+        const p = await api.player()
+        const error = await p.api.accounts.create({ ...newAccount(), plugins: { attackNomads: { enabled: true, options: { eventDifficulty: "9" } } } }).catch((e: unknown) => e)
+        expect(error).toMatchObject({
+            code: "BAD_REQUEST",
+            message: "attackNomads.eventDifficulty must be one of 0..2",
+            data: { code: "PLUGIN_OPTION_CHOICE", params: { where: "attackNomads.eventDifficulty", last: 2 } },
+        })
+    })
+
     test("an unknown server is rejected", async () => {
         const p = await api.player()
         expect(await codeOf(p.api.accounts.create({ ...newAccount(), serverId: 999 }))).toBe("BAD_REQUEST")

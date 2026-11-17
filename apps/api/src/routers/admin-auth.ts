@@ -1,5 +1,4 @@
 import type {} from "@fastify/cookie"
-import { ORPCError } from "@orpc/server"
 import {
     CHALLENGE_COOKIE, CHALLENGE_TTL_MS, MAX_CHALLENGE_ATTEMPTS, acceptTotpCode, claimRecoveryCode, confirmEnrollment, countAttempt,
     createChallenge, deleteChallenge, findChallenge, hasConfirmedTotp, issueRecoveryCodes, startEnrollment,
@@ -9,13 +8,12 @@ import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { sendEmail } from "../services/email.ts"
 import { publicUser, startSession, tooMany, verifyCredentials } from "./auth.ts"
+import { fail } from "../errors.ts"
 
 // Scoped to the admin API, so the browser sends it nowhere else.
 const COOKIE_PATH = "/admin/rpc"
-const WRONG_CODE = "That code isn't right. Check your authenticator app and try again."
-const WRONG_RECOVERY_CODE = "That recovery code isn't right, or it was already used."
 
-const signInAgain = (message: string) => new ORPCError("UNAUTHORIZED", { message })
+const signInAgain = (code: "SIGN_IN_TIMED_OUT" | "TOO_MANY_WRONG_CODES") => fail("UNAUTHORIZED", code)
 
 /** Password step. It never starts a session: it leaves a challenge cookie that the second step must present. */
 export async function adminLogin(ctx: Ctx, input: { login: string; password: string }) {
@@ -37,7 +35,7 @@ async function liveChallenge(ctx: Ctx) {
     const token = ctx.req.cookies[CHALLENGE_COOKIE]
     const challenge = token ? await findChallenge(ctx.db, token) : undefined
     if (!challenge)
-        throw signInAgain("Your sign-in timed out. Sign in again.")
+        throw signInAgain("SIGN_IN_TIMED_OUT")
     return challenge
 }
 
@@ -51,7 +49,7 @@ async function endChallenge(ctx: Ctx, challenge: Challenge) {
 const guessKey = (userId: string) => `2fa:${userId}`
 
 /** Runs one guess under the caps. `check` answers undefined for a wrong code. */
-async function guess<T>(ctx: Ctx, challenge: Challenge, wrong: string, check: () => Promise<T | undefined>) {
+async function guess<T>(ctx: Ctx, challenge: Challenge, wrong: "TOTP_CODE_WRONG" | "RECOVERY_CODE_WRONG", check: () => Promise<T | undefined>) {
     if (!ctx.limits.user.hit(guessKey(challenge.user.id)))
         throw tooMany()
     const attempts = await countAttempt(ctx.db, challenge.id)
@@ -62,9 +60,9 @@ async function guess<T>(ctx: Ctx, challenge: Challenge, wrong: string, check: ()
     }
     if (attempts === undefined || attempts >= MAX_CHALLENGE_ATTEMPTS) {
         await endChallenge(ctx, challenge)
-        throw signInAgain("Too many wrong codes. Sign in again.")
+        throw signInAgain("TOO_MANY_WRONG_CODES")
     }
-    throw new ORPCError("BAD_REQUEST", { message: wrong })
+    throw fail("BAD_REQUEST", wrong)
 }
 
 async function finishSignIn(ctx: Ctx, challenge: Challenge) {
@@ -77,26 +75,25 @@ export async function verifyTotp(ctx: Ctx, input: { code: string } | { recoveryC
     const challenge = await liveChallenge(ctx)
     const { user } = challenge
     if (!await hasConfirmedTotp(ctx.db, user.id))
-        throw new ORPCError("FORBIDDEN", { message: "Set up two-factor sign-in first" })
+        throw fail("FORBIDDEN", "TWO_FACTOR_SETUP_REQUIRED")
 
     if ("code" in input) {
-        await guess(ctx, challenge, WRONG_CODE, async () => await acceptTotpCode(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id, input.code) || undefined)
+        await guess(ctx, challenge, "TOTP_CODE_WRONG", async () => await acceptTotpCode(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id, input.code) || undefined)
         return finishSignIn(ctx, challenge)
     }
-    const remaining = await guess(ctx, challenge, WRONG_RECOVERY_CODE, () => claimRecoveryCode(ctx.db, user.id, input.recoveryCode))
+    const remaining = await guess(ctx, challenge, "RECOVERY_CODE_WRONG", () => claimRecoveryCode(ctx.db, user.id, input.recoveryCode))
     await audit(ctx.db, { actorId: user.id, action: "auth.recovery_code.used", meta: { remaining, ip: ctx.req.ip } })
     if (user.email)
         await sendEmail(ctx, "recovery_code_used", user.email, { remaining }, user.id)
     return finishSignIn(ctx, challenge)
 }
 
-const ALREADY_ENROLLED = "Two-factor sign-in is already set up"
 
 export async function enrollStart(ctx: Ctx) {
     const { user } = await liveChallenge(ctx)
     const secret = await startEnrollment(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id)
     if (!secret)
-        throw new ORPCError("FORBIDDEN", { message: ALREADY_ENROLLED })
+        throw fail("FORBIDDEN", "TWO_FACTOR_ALREADY_SET")
     return { otpauthUri: otpauthUri(user.username, secret), secret: base32Encode(secret) }
 }
 
@@ -104,8 +101,8 @@ export async function enrollConfirm(ctx: Ctx, input: { code: string }) {
     const challenge = await liveChallenge(ctx)
     const { user } = challenge
     if (await hasConfirmedTotp(ctx.db, user.id))
-        throw new ORPCError("FORBIDDEN", { message: ALREADY_ENROLLED })
-    const recoveryCodes = await guess(ctx, challenge, WRONG_CODE, () => confirmEnrollment(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id, input.code))
+        throw fail("FORBIDDEN", "TWO_FACTOR_ALREADY_SET")
+    const recoveryCodes = await guess(ctx, challenge, "TOTP_CODE_WRONG", () => confirmEnrollment(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id, input.code))
     await audit(ctx.db, { actorId: user.id, action: "auth.totp.enrolled" })
     return { user: await finishSignIn(ctx, challenge), recoveryCodes }
 }
@@ -114,7 +111,7 @@ export async function regenerateRecoveryCodes(ctx: Ctx, user: { id: string }, in
     if (!ctx.limits.user.hit(guessKey(user.id)))
         throw tooMany()
     if (!await acceptTotpCode(ctx.db, ctx.env.TOTP_ENCRYPTION_KEY, user.id, input.code))
-        throw new ORPCError("BAD_REQUEST", { message: WRONG_CODE })
+        throw fail("BAD_REQUEST", "TOTP_CODE_WRONG")
     ctx.limits.user.reset(guessKey(user.id))
     const codes = await ctx.db.transaction(tx => issueRecoveryCodes(tx, user.id))
     await audit(ctx.db, { actorId: user.id, action: "auth.recovery_codes.regenerated" })

@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { asc, eq, inArray } from "drizzle-orm"
 import { notificationPrefs, type DataExport } from "@gge/contracts"
 import {
@@ -9,11 +8,12 @@ import type { Ctx } from "../context.ts"
 import { myCodes } from "./codes.ts"
 import { periodColumns } from "./plans.ts"
 import { purchaseColumns } from "./purchases.ts"
+import { fail } from "../errors.ts"
 
 /** Everything stored about the user. Each query names its columns, so a sealed password or a password hash is never read. */
 export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string): Promise<DataExport> {
     if (!ctx.limits.dataExport.hit(userId))
-        throw new ORPCError("TOO_MANY_REQUESTS", { message: "You can download your data once every 10 minutes. Try again later." })
+        throw fail("TOO_MANY_REQUESTS", "EXPORT_RATE_LIMITED")
     const { db } = ctx
     const [profile] = await db.select({
         username: users.username, email: users.email, emailVerifiedAt: users.emailVerifiedAt, role: users.role,
@@ -21,7 +21,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
         locale: users.locale, detectedLocale: users.detectedLocale,
     }).from(users).where(eq(users.id, userId))
     if (!profile)
-        throw new ORPCError("UNAUTHORIZED", { message: "Please sign in" })
+        throw fail("UNAUTHORIZED", "SIGN_IN_REQUIRED")
 
     const accounts = await db.select({
         id: gameAccounts.id, name: gameAccounts.name, server: servers.label, externalEvent: gameAccounts.externalEvent,

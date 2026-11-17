@@ -40,9 +40,7 @@ export function entitledAccountIds(owner: PlanOwner, accounts: PlanAccount[]): S
     return entitled
 }
 
-/** Why a player can't start an account their plan doesn't cover. */
+/** Why a player can't start an account their plan doesn't cover, as a key in the `errors` namespace and its params. */
 export function planRunsMessage(maxBots: number) {
-    if (maxBots <= 0)
-        return "Your plan doesn't include running bots."
-    return `Your plan runs your ${maxBots === 1 ? "oldest bot" : `${maxBots} oldest bots`} and their event twins. Remove a bot to start this one.`
+    return { key: "PLAN_LIMIT", params: { context: maxBots <= 0 ? "none" : "start", count: Math.max(0, maxBots) } } as const
 }

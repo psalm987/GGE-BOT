@@ -7,8 +7,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
 import { planRunsMessage, type PublicAccount } from "@gge/contracts"
-import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { CrestEmpty, messageOf, palette, ParchmentCard, SigilStatus } from "@gge/ui"
+import { orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
@@ -78,7 +78,8 @@ export function Dashboard() {
     const limit = me?.role === "admin" ? undefined : me?.maxBots
     const atLimit = limit !== undefined && counted >= limit
     const overLimit = list.filter(a => !a.entitled).length
-    const planHint = limit === undefined ? undefined : planRunsMessage(limit)
+    const runs = limit === undefined ? undefined : planRunsMessage(limit)
+    const planHint = runs && t(runs.key, { ns: "errors", ...runs.params })
     const limitHint = overLimit
         ? t("dashboard.overLimit", { count: overLimit, hint: planHint })
         : atLimit ? t("dashboard.planAllows", { count: limit }) : undefined

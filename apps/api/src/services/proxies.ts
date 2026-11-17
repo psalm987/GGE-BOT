@@ -1,8 +1,8 @@
-import { ORPCError } from "@orpc/server"
 import { asc, count, eq, inArray } from "drizzle-orm"
 import { gameAccounts, proxies, type Db } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import { proxyHostHint, twinMainIds, type AdminProxy } from "@gge/contracts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -18,7 +18,7 @@ export const listProxies = (db: Reader): Promise<AdminProxy[]> => adminProxies(d
 async function getProxy(db: Reader, id: string) {
     const [proxy] = await adminProxies(db).where(eq(proxies.id, id))
     if (!proxy)
-        throw new ORPCError("NOT_FOUND", { message: "No such proxy" })
+        throw fail("NOT_FOUND", "PROXY_NOT_FOUND")
     return proxy
 }
 
@@ -42,7 +42,7 @@ export async function updateProxy(db: Db, sealKey: string, input: { id: string; 
         updatedAt: new Date(),
     }).where(eq(proxies.id, input.id)).returning({ id: proxies.id })
     if (!updated)
-        throw new ORPCError("NOT_FOUND", { message: "No such proxy" })
+        throw fail("NOT_FOUND", "PROXY_NOT_FOUND")
     return getProxy(db, input.id)
 }
 
@@ -50,7 +50,7 @@ export async function updateProxy(db: Db, sealKey: string, input: { id: string; 
 export async function removeProxy(db: Db, id: string) {
     const [removed] = await db.delete(proxies).where(eq(proxies.id, id)).returning({ label: proxies.label, hostHint: proxies.hostHint })
     if (!removed)
-        throw new ORPCError("NOT_FOUND", { message: "No such proxy" })
+        throw fail("NOT_FOUND", "PROXY_NOT_FOUND")
     return removed
 }
 
@@ -61,18 +61,18 @@ export async function removeProxy(db: Db, id: string) {
 export async function setAccountProxy(db: Db, accountId: string, proxyId: string | null) {
     const [account] = await db.select({ ownerId: gameAccounts.ownerId }).from(gameAccounts).where(eq(gameAccounts.id, accountId))
     if (!account)
-        throw new ORPCError("NOT_FOUND", { message: "No such account" })
+        throw fail("NOT_FOUND", "ACCOUNT_NOT_FOUND")
     if (proxyId) {
         const [proxy] = await db.select({ enabled: proxies.enabled }).from(proxies).where(eq(proxies.id, proxyId))
         if (!proxy)
-            throw new ORPCError("NOT_FOUND", { message: "No such proxy" })
+            throw fail("NOT_FOUND", "PROXY_NOT_FOUND")
         if (!proxy.enabled)
-            throw new ORPCError("BAD_REQUEST", { message: "This proxy is off. Turn it on before pinning accounts to it." })
+            throw fail("BAD_REQUEST", "PROXY_OFF")
         const siblings = await db
             .select({ id: gameAccounts.id, serverId: gameAccounts.serverId, name: gameAccounts.name, externalEvent: gameAccounts.externalEvent, createdAt: gameAccounts.createdAt })
             .from(gameAccounts).where(eq(gameAccounts.ownerId, account.ownerId))
         if (twinMainIds(siblings).has(accountId))
-            throw new ORPCError("BAD_REQUEST", { message: "An event twin uses its main account's proxy. Pin the main account instead." })
+            throw fail("BAD_REQUEST", "PROXY_TWIN_PIN")
     }
     await db.update(gameAccounts).set({ proxyId, updatedAt: new Date() }).where(eq(gameAccounts.id, accountId))
 }

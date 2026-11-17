@@ -26,6 +26,13 @@ describe("checkCatalogs", () => {
             { locale: "de", namespace: "common", key: "a", kind: "placeholders" },
         ])
     })
+    it("reads a formatted placeholder as its param", () => {
+        const formatted = { en: { common: { a: "At {{when, datetime(hour: numeric)}}" } } }
+        expect(checkCatalogs({ ...formatted, de: { common: { a: "Um {{when, datetime(hour: numeric)}}" } } })).toEqual([])
+        expect(checkCatalogs({ ...formatted, de: { common: { a: "Um {{time, datetime(hour: numeric)}}" } } })).toEqual([
+            { locale: "de", namespace: "common", key: "a", kind: "placeholders" },
+        ])
+    })
     it("reports empty strings", () => {
         expect(checkCatalogs({ ...base, de: { common: { a: "Ä {{x}}", b: "" } } })).toEqual([
             { locale: "de", namespace: "common", key: "b", kind: "empty" },

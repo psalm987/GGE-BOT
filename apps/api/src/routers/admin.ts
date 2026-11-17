@@ -1,4 +1,4 @@
-import { implement, ORPCError } from "@orpc/server"
+import { implement } from "@orpc/server"
 import { and, count, desc, eq, gt, ilike, inArray, like, lt, max, or, sql } from "drizzle-orm"
 import { appSettings, auditLog, botRuns, botStatus, gameAccounts, planPeriods, runnerHeartbeat, sessions, userTotp, users, type Db } from "@gge/db"
 import { adminContract, type PlanId } from "@gge/contracts"
@@ -19,6 +19,7 @@ import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../s
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
+import { fail } from "../errors.ts"
 
 /** A LIKE pattern for "contains", with `%`, `_` and backslash in the text matched literally. */
 const contains = (text: string) => `%${text.replace(/[%_\\]/g, "\\$&")}%`
@@ -53,15 +54,15 @@ const os = implement(adminContract).$context<Ctx>()
 const admin = os.middleware(async ({ context, next }) => {
     const user = await currentUser(context, "admin")
     if (!user)
-        throw new ORPCError("UNAUTHORIZED", { message: "Please sign in" })
+        throw fail("UNAUTHORIZED", "SIGN_IN_REQUIRED")
     if (user.role !== "admin")
-        throw new ORPCError("FORBIDDEN", { message: "Admins only" })
+        throw fail("FORBIDDEN", "ADMINS_ONLY")
     return next({ context: { user } })
 })
 
-function notSelf(actorId: string, targetId: string, message: string) {
+function notSelf(actorId: string, targetId: string, code: "CANNOT_DISABLE_SELF" | "CANNOT_CHANGE_OWN_ROLE" | "CANNOT_RESET_OWN_TWO_FACTOR") {
     if (actorId === targetId)
-        throw new ORPCError("BAD_REQUEST", { message })
+        throw fail("BAD_REQUEST", code)
 }
 
 export const adminRouter = os.router({
@@ -124,7 +125,7 @@ export const adminRouter = os.router({
         get: os.users.get.use(admin).handler(async ({ context: { db }, input }) => {
             const [user] = await adminUsers(db).where(eq(users.id, input.id)).groupBy(users.id)
             if (!user)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                throw fail("NOT_FOUND", "USER_NOT_FOUND")
             const [[login], live] = await Promise.all([
                 db.select({ ts: max(auditLog.ts) }).from(auditLog).where(and(eq(auditLog.actorId, input.id), like(auditLog.action, "auth.login.%"))),
                 db.select({ audience: sessions.audience, n: count() }).from(sessions)
@@ -134,10 +135,10 @@ export const adminRouter = os.router({
             return { ...withPlan(user), lastLoginAt: login?.ts ?? null, sessions: { client: sessionsOf("client"), admin: sessionsOf("admin") } }
         }),
         setStatus: os.users.setStatus.use(admin).handler(async ({ context: { db, user }, input }) => {
-            notSelf(user.id, input.id, "You can't disable yourself")
+            notSelf(user.id, input.id, "CANNOT_DISABLE_SELF")
             const [changed] = await db.update(users).set({ status: input.status, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
             if (!changed)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                throw fail("NOT_FOUND", "USER_NOT_FOUND")
             if (input.status === "disabled") {
                 await revokeUserSessions(db, input.id)
                 await setDesiredState(db, eq(gameAccounts.ownerId, input.id), "stopped")
@@ -145,11 +146,11 @@ export const adminRouter = os.router({
             await audit(db, { actorId: user.id, action: `user.${input.status === "disabled" ? "disable" : "enable"}`, targetType: "user", targetId: input.id })
         }),
         setRole: os.users.setRole.use(admin).handler(async ({ context: { db, user }, input }) => {
-            notSelf(user.id, input.id, "You can't change your own role")
+            notSelf(user.id, input.id, "CANNOT_CHANGE_OWN_ROLE")
             const stopped = await db.transaction(async tx => {
                 const [changed] = await tx.update(users).set({ role: input.role, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
                 if (!changed)
-                    throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                    throw fail("NOT_FOUND", "USER_NOT_FOUND")
                 await alertsChanged(tx, input.id)
                 return stopUnentitled(tx, input.id)
             })
@@ -160,7 +161,7 @@ export const adminRouter = os.router({
             const stopped = await db.transaction(async tx => {
                 const [changed] = await tx.update(users).set({ maxBots: input.maxBots, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
                 if (!changed)
-                    throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                    throw fail("NOT_FOUND", "USER_NOT_FOUND")
                 await alertsChanged(tx, input.id)
                 return stopUnentitled(tx, input.id)
             })
@@ -170,7 +171,7 @@ export const adminRouter = os.router({
         setAttackPluginCap: os.users.setAttackPluginCap.use(admin).handler(async ({ context: { db, user }, input }) => {
             const [before] = await db.select({ cap: users.attackPluginCap }).from(users).where(eq(users.id, input.id))
             if (!before)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                throw fail("NOT_FOUND", "USER_NOT_FOUND")
             await db.update(users).set({ attackPluginCap: input.cap, updatedAt: new Date() }).where(eq(users.id, input.id))
             await audit(db, { actorId: user.id, action: "admin.user.attack_plugin_cap", targetType: "user", targetId: input.id, meta: { from: before.cap, to: input.cap } })
         }),
@@ -179,10 +180,10 @@ export const adminRouter = os.router({
             await audit(db, { actorId: user.id, action: "user.revoke_sessions", targetType: "user", targetId: input.id })
         }),
         resetTotp: os.users.resetTotp.use(admin).handler(async ({ context: { db, user }, input }) => {
-            notSelf(user.id, input.id, "You can't reset your own two-factor sign-in")
+            notSelf(user.id, input.id, "CANNOT_RESET_OWN_TWO_FACTOR")
             const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, input.id))
             if (!target)
-                throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                throw fail("NOT_FOUND", "USER_NOT_FOUND")
             await resetSecondFactor(db, input.id)
             await audit(db, { actorId: user.id, action: "admin.user.totp_reset", targetType: "user", targetId: input.id })
         }),
@@ -260,7 +261,7 @@ export const adminRouter = os.router({
         forceStop: os.accounts.forceStop.use(admin).handler(async ({ context: { db, user }, input }) => {
             const changed = await setDesiredState(db, eq(gameAccounts.id, input.id), "stopped")
             if (!changed.length)
-                throw new ORPCError("NOT_FOUND", { message: "No such account" })
+                throw fail("NOT_FOUND", "ACCOUNT_NOT_FOUND")
             await audit(db, { actorId: user.id, action: "account.force_stop", targetType: "account", targetId: input.id })
         }),
         setProxy: os.accounts.setProxy.use(admin).handler(async ({ context: { db, user }, input }) => {

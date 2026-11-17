@@ -1,5 +1,4 @@
 import type {} from "@fastify/cookie"
-import { ORPCError } from "@orpc/server"
 import { and, eq, isNotNull, sql } from "drizzle-orm"
 import { users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
@@ -11,11 +10,11 @@ import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { billingLiveForTrial } from "../services/billing.ts"
 import { clientLink, sendEmail } from "../services/email.ts"
-import { DISPOSABLE_MESSAGE, isDisposable } from "../services/email-policy.ts"
+import { isDisposable } from "../services/email-policy.ts"
 import { grantTrial } from "../services/plans.ts"
 import { verifyTurnstile } from "../services/turnstile.ts"
+import { fail } from "../errors.ts"
 
-const WRONG_CREDENTIALS = "Wrong username or password"
 
 function setSessionCookie(ctx: Ctx, audience: Audience, token: string) {
     ctx.reply.setCookie(COOKIE_NAME[audience], token, {
@@ -57,7 +56,7 @@ export async function currentUser(ctx: Ctx, audience: Audience) {
     return token ? findSessionUser(ctx.db, token, audience) : null
 }
 
-export const tooMany = () => new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+export const tooMany = () => fail("TOO_MANY_REQUESTS", "TOO_MANY_ATTEMPTS")
 
 /** The user behind a correct username and password who may use this app. Starts no session. */
 export async function verifyCredentials(ctx: Ctx, audience: Audience, input: { login: string; password: string }) {
@@ -79,14 +78,14 @@ export async function verifyCredentials(ctx: Ctx, audience: Audience, input: { l
     if (!user || !await verifyPassword(user, input.password)) {
         if (!user)
             await verifyNobody(input.password)
-        throw new ORPCError("UNAUTHORIZED", { message: WRONG_CREDENTIALS })
+        throw fail("UNAUTHORIZED", "WRONG_CREDENTIALS")
     }
     ctx.limits.user.reset(strictKey)
     ctx.limits.userTotal.refund(target)
     if (user.status !== "active")
-        throw new ORPCError("FORBIDDEN", { message: "This account is disabled" })
+        throw fail("FORBIDDEN", "ACCOUNT_DISABLED")
     if (audience === "admin" && user.role !== "admin")
-        throw new ORPCError("FORBIDDEN", { message: "This account is not an admin" })
+        throw fail("FORBIDDEN", "NOT_AN_ADMIN")
 
     if (user.passwordAlgo === "pbkdf2-legacy")
         await storePassword(ctx.db, user.id, input.password)
@@ -114,12 +113,12 @@ function headerLocale(ctx: Ctx) {
 
 export async function signup(ctx: Ctx, input: { username: string; email: string; password: string; turnstileToken?: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.signup.hit(ctx.req.ip))
-        throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+        throw fail("TOO_MANY_REQUESTS", "TOO_MANY_ATTEMPTS")
     if (!await verifyTurnstile(ctx.env.TURNSTILE_SECRET_KEY, input.turnstileToken, ctx.req.ip))
-        throw new ORPCError("BAD_REQUEST", { message: "Captcha failed, please retry" })
+        throw fail("BAD_REQUEST", "CAPTCHA_FAILED")
 
     if (isDisposable(input.email))
-        throw new ORPCError("BAD_REQUEST", { message: DISPOSABLE_MESSAGE })
+        throw fail("BAD_REQUEST", "EMAIL_DISPOSABLE")
 
     const passwordHash = await hashPassword(input.password)
     // One transaction, so a failure after the insert can't leave an account nobody can sign in
@@ -130,9 +129,9 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
             .returning()
             .then(([created]) => created!, error => {
                 if (isUniqueViolation(error, "users_username_lower"))
-                    throw new ORPCError("CONFLICT", { message: "That username is taken" })
+                    throw fail("CONFLICT", "USERNAME_TAKEN")
                 if (isUniqueViolation(error, "users_email_canonical"))
-                    throw new ORPCError("CONFLICT", { message: "That email is already in use" })
+                    throw fail("CONFLICT", "EMAIL_IN_USE")
                 throw error
             })
         await audit(tx, { actorId: user.id, action: "auth.signup", meta: { ip: ctx.req.ip, emailCanonical: user.emailCanonical } })
@@ -143,11 +142,10 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
     return startSession(ctx, "client", publicUser(user))
 }
 
-export const BAD_LINK = "This link is invalid or has expired"
 
 export async function requestPasswordReset(ctx: Ctx, input: { email: string }) {
     if (!ctx.limits.ip.hit(ctx.req.ip) || !ctx.limits.email.hit(`reset:${input.email}`))
-        throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many attempts. Try again in a few minutes." })
+        throw fail("TOO_MANY_REQUESTS", "TOO_MANY_ATTEMPTS")
     const [user] = await ctx.db.select().from(users)
         .where(and(eq(users.emailCanonical, sql`canonical_email(${input.email})`), eq(users.status, "active"), isNotNull(users.emailVerifiedAt)))
     // Detached so a verified address answers as fast as an unknown one. A lookalike address
@@ -169,10 +167,10 @@ export async function resetPassword(ctx: Ctx, input: { token: string; password: 
     const user = await ctx.db.transaction(async tx => {
         const claimed = await claimToken(tx, "reset_password", input.token)
         if (!claimed)
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         const [user] = await tx.select().from(users).where(and(eq(users.id, claimed.userId), eq(users.status, "active")))
         if (user?.email?.toLowerCase() !== claimed.email.toLowerCase())
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         await storePassword(tx, user.id, input.password)
         await revokeUserSessions(tx, user.id)
         return user
@@ -185,13 +183,13 @@ export async function verifyEmail(ctx: Ctx, input: { token: string }) {
     const userId = await ctx.db.transaction(async tx => {
         const claimed = await claimToken(tx, "verify_email", input.token)
         if (!claimed)
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         const [user] = await tx.update(users)
             .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
             .where(and(eq(users.id, claimed.userId), eq(sql`lower(${users.email})`, claimed.email)))
             .returning({ id: users.id, role: users.role })
         if (!user)
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         if (user.role === "user" && await billingLiveForTrial(tx))
             await grantTrial(tx, user.id)
         return user.id

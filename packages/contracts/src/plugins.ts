@@ -50,7 +50,22 @@ export type PluginSetting = z.infer<typeof PluginSetting>
 export const PluginSettings = z.record(z.string(), PluginSetting)
 export type PluginSettings = z.infer<typeof PluginSettings>
 
-export class PluginSettingsError extends Error {}
+/** Why a settings record was refused: a code and params the API turns into a translatable error. */
+export type PluginSettingsProblem =
+    | { code: "PLUGIN_UNKNOWN"; params: { plugin: string } }
+    | { code: "PLUGIN_OPTION_UNKNOWN"; params: { plugin: string; option: string } }
+    | { code: "PLUGIN_OPTION_RANGE"; params: { where: string; min: number | string; max: number | string } }
+    | { code: "PLUGIN_OPTION_NO_VALUE" | "PLUGIN_OPTION_TEXT" | "PLUGIN_OPTION_BOOLEAN"; params: { where: string } }
+    | { code: "PLUGIN_OPTION_CHOICE"; params: { where: string; last: number } }
+    | { code: "PLUGIN_ATTACK_CAP"; params: { count: number } }
+
+export class PluginSettingsError extends Error {
+    readonly problem: PluginSettingsProblem
+    constructor(problem: PluginSettingsProblem) {
+        super(problem.code)
+        this.problem = problem
+    }
+}
 
 type TextDef = Extract<PluginOptionDef, { type: "Text" }>
 
@@ -61,7 +76,7 @@ function checkBounds(def: TextDef, value: string, where: string) {
         return value
     const n = Number(value)
     if (!Number.isFinite(n) || n < (def.min ?? -Infinity) || n > (def.max ?? Infinity))
-        throw new PluginSettingsError(`${where} must be between ${def.min ?? "-∞"} and ${def.max ?? "∞"}`)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where, min: def.min ?? "-∞", max: def.max ?? "∞" } })
     return value
 }
 
@@ -79,23 +94,23 @@ function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string)
     switch (def.type) {
         case "":
         case "Label":
-            throw new PluginSettingsError(`${where} takes no value`)
+            throw new PluginSettingsError({ code: "PLUGIN_OPTION_NO_VALUE", params: { where } })
         case "Text":
             if (typeof value !== "string")
-                throw new PluginSettingsError(`${where} must be text`)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_TEXT", params: { where } })
             return checkBounds(def, value, where)
         case "Channel":
             if (typeof value !== "string")
-                throw new PluginSettingsError(`${where} must be text`)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_TEXT", params: { where } })
             return value
         case "Checkbox":
             if (typeof value !== "boolean")
-                throw new PluginSettingsError(`${where} must be true or false`)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_BOOLEAN", params: { where } })
             return value
         case "Select": {
             const index = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value
             if (typeof index !== "number" || !Number.isInteger(index) || index < 0 || index >= def.selection.length)
-                throw new PluginSettingsError(`${where} must be one of 0..${def.selection.length - 1}`)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_CHOICE", params: { where, last: def.selection.length - 1 } })
             return index
         }
     }
@@ -111,19 +126,19 @@ export function normalizePluginSettings(catalog: PluginCatalogEntry[], settings:
     for (const [pluginKey, setting] of Object.entries(settings)) {
         const entry = byKey.get(pluginKey)
         if (!entry || entry.hidden)
-            throw new PluginSettingsError(`unknown plugin ${pluginKey}`)
+            throw new PluginSettingsError({ code: "PLUGIN_UNKNOWN", params: { plugin: pluginKey } })
         const defs = new Map(entry.options.flatMap(def => def.key ? [[def.key, def] as const] : []))
         const options: Record<string, OptionValue> = {}
         for (const [optionKey, value] of Object.entries(setting.options)) {
             const def = defs.get(optionKey)
             if (!def)
-                throw new PluginSettingsError(`unknown option ${pluginKey}.${optionKey}`)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_UNKNOWN", params: { plugin: pluginKey, option: optionKey } })
             options[optionKey] = normalizeValue(def, value, `${pluginKey}.${optionKey}`)
         }
         out[pluginKey] = { enabled: entry.force || setting.enabled, options }
     }
     if (attackLimit !== null && enabledAttackPlugins(catalog, out) > attackLimit)
-        throw new PluginSettingsError(`Your plan allows ${attackLimit} attack plugins at once. Turn some off to save.`)
+        throw new PluginSettingsError({ code: "PLUGIN_ATTACK_CAP", params: { count: attackLimit } })
     return out
 }
 

@@ -85,9 +85,9 @@ describe("entitledAccountIds", () => {
 })
 
 describe("planRunsMessage", () => {
-    test("names the limit in words a player reads", () => {
-        expect(planRunsMessage(0)).toBe("Your plan doesn't include running bots.")
-        expect(planRunsMessage(1)).toMatch(/^Your plan runs your oldest bot and their event twins\./)
-        expect(planRunsMessage(3)).toMatch(/^Your plan runs your 3 oldest bots/)
+    test("names the limit as a key and params, for whoever speaks the player's language", () => {
+        expect(planRunsMessage(0)).toEqual({ key: "PLAN_LIMIT", params: { context: "none", count: 0 } })
+        expect(planRunsMessage(1)).toEqual({ key: "PLAN_LIMIT", params: { context: "start", count: 1 } })
+        expect(planRunsMessage(3)).toEqual({ key: "PLAN_LIMIT", params: { context: "start", count: 3 } })
     })
 })

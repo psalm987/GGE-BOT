@@ -3,8 +3,8 @@ import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input } from "antd"
 import { Trans, useTranslation } from "react-i18next"
 import { Link, useLocation, useNavigate } from "react-router"
-import { AuthShell } from "@gge/ui"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { AuthShell, messageOf } from "@gge/ui"
+import { orpc, queryClient } from "../api.ts"
 
 export function Login() {
     const navigate = useNavigate()

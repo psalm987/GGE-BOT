@@ -5,8 +5,8 @@ import dayjs from "dayjs"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CURRENCIES, PLAN_IDS, type AdminPeriod, type AdminPointsEntry, type CodeStatus, type LicenseCode, type PlanId } from "@gge/contracts"
-import { majorToMinor, palette } from "@gge/ui"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { majorToMinor, messageOf, palette } from "@gge/ui"
+import { orpc, queryClient } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 
 type Dialog = "grant" | "purchase" | "points" | null

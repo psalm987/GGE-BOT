@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { and, asc, count, eq, gt, inArray, isNotNull, isNull, notExists, sql } from "drizzle-orm"
 import { BILLING_NOT_LIVE, PAYSTACK_NOT_CONFIGURED, type BillingStatus } from "@gge/contracts"
 import { appSettings, gameAccounts, isBillingLive, planPeriods, trialGameAccounts, users, type Db } from "@gge/db"
@@ -6,6 +5,7 @@ import type { Env } from "../env.ts"
 import { audit } from "./audit.ts"
 import { grantTrial } from "./plans.ts"
 import { trialAccountHash } from "./trial-guard.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -21,7 +21,7 @@ export async function billingLiveForTrial(tx: Reader) {
 /** Players reach nothing in billing until it is live. An admin gets through, to try it out first. */
 export async function requireBillingLive(db: Reader, role: "user" | "admin") {
     if (role !== "admin" && !await isBillingLive(db))
-        throw new ORPCError("FORBIDDEN", { message: "Plans aren't available yet.", data: { code: BILLING_NOT_LIVE } })
+        throw fail("FORBIDDEN", BILLING_NOT_LIVE)
 }
 
 /** Players a go-live gives a trial to: active, email confirmed, and never had one. */
@@ -47,7 +47,7 @@ const setSwitch = (tx: Pick<Db, "insert">, billingLive: boolean) => tx.insert(ap
  */
 export async function goLive(db: Db, env: Env, actorId: string) {
     if (!env.PAYSTACK_SECRET_KEY)
-        throw new ORPCError("PRECONDITION_FAILED", { message: "Set PAYSTACK_SECRET_KEY on the API before going live.", data: { code: PAYSTACK_NOT_CONFIGURED } })
+        throw fail("PRECONDITION_FAILED", PAYSTACK_NOT_CONFIGURED)
     await db.transaction(async tx => {
         await setSwitch(tx, true)
         const now = new Date()

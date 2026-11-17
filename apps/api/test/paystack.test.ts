@@ -110,12 +110,12 @@ describe("while billing is live", () => {
         const player = await api.player()
         for (let i = 0; i < 5; i++)
             await player.api.billing.checkout({ packageId: "basic_28" })
-        expect(await refusal(player.api.billing.checkout({ packageId: "basic_28" }))).toBe("TOO_MANY_REQUESTS undefined")
+        expect(await refusal(player.api.billing.checkout({ packageId: "basic_28" }))).toBe("TOO_MANY_REQUESTS TOO_MANY_ATTEMPTS")
         expect(await refusal((await api.player()).api.billing.checkout({ packageId: "basic_28" }))).toBe("ok")
     })
 
     test("a package with no price can't be bought online", async () => {
-        expect(await refusal((await api.player()).api.billing.checkout({ packageId: "team10_28" }))).toBe("NOT_FOUND undefined")
+        expect(await refusal((await api.player()).api.billing.checkout({ packageId: "team10_28" }))).toBe("NOT_FOUND PACKAGE_NOT_SOLD")
     })
 
     test("confirming a successful payment delivers it once, and confirming again changes nothing", async () => {
@@ -176,7 +176,7 @@ describe("while billing is live", () => {
     test("another player can't confirm someone's payment", async () => {
         const { reference } = await (await api.player()).api.billing.checkout({ packageId: "basic_28" })
         paystack.pay(reference)
-        expect(await refusal((await api.player()).api.billing.confirm({ reference }))).toBe("NOT_FOUND undefined")
+        expect(await refusal((await api.player()).api.billing.confirm({ reference }))).toBe("NOT_FOUND PAYMENT_NOT_FOUND")
         expect((await purchaseOf(reference)).status).toBe("pending")
     })
 

@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { asc, desc, eq, inArray } from "drizzle-orm"
 import type { AdminPeriod, GrantDays, PlanId, PlanRow, UserPlan } from "@gge/contracts"
 import { licenseCodes, planPeriods, plans, pointsLedger, purchases, users, type Db } from "@gge/db"
@@ -8,6 +7,7 @@ import { listCodes } from "./codes.ts"
 import { appendPeriod, endCurrentPeriod, myPlan, periodColumns } from "./plans.ts"
 import { pointsBalance } from "./points.ts"
 import { alertsChanged } from "./realtime.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -19,7 +19,7 @@ export async function updatePlan(db: Db, actorId: string, { id, maxAccounts }: {
     return db.transaction(async tx => {
         const [from] = await tx.select({ maxAccounts: plans.maxAccounts }).from(plans).where(eq(plans.id, id)).for("update")
         if (!from)
-            throw new ORPCError("NOT_FOUND", { message: "No such plan" })
+            throw fail("NOT_FOUND", "PLAN_NOT_FOUND")
         const [to] = await tx.update(plans).set({ maxAccounts, updatedAt: new Date() }).where(eq(plans.id, id))
             .returning({ id: plans.id, name: plans.name, maxAccounts: plans.maxAccounts })
         await audit(tx, { actorId, action: "admin.billing.update_plan", targetType: "plan", targetId: id, meta: { from: from.maxAccounts, to: maxAccounts } })
@@ -30,7 +30,7 @@ export async function updatePlan(db: Db, actorId: string, { id, maxAccounts }: {
 async function userExists(db: Reader, userId: string) {
     const [user] = await db.select({ maxBotsOverride: users.maxBotsOverride }).from(users).where(eq(users.id, userId))
     if (!user)
-        throw new ORPCError("NOT_FOUND", { message: "No such user" })
+        throw fail("NOT_FOUND", "USER_NOT_FOUND")
     return user
 }
 

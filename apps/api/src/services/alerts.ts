@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { and, count, desc, eq, gt, isNull, lte, max, notExists, or, sql } from "drizzle-orm"
 import {
     POINTS_NUDGE, announcementState, countedAccounts,
@@ -8,6 +7,7 @@ import { announcementDismissals, announcements, isBillingLive, loadPlanOwners, p
 import { ownerAccounts } from "./accounts.ts"
 import { audit } from "./audit.ts"
 import { billingSettings, pointsBalance } from "./points.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -75,9 +75,9 @@ export async function dismissAlert(db: Db, userId: string, id: string, now = new
     }
     const [found] = await db.select({ dismissible: announcements.dismissible }).from(announcements).where(eq(announcements.id, id))
     if (!found)
-        throw new ORPCError("NOT_FOUND", { message: "No such message" })
+        throw fail("NOT_FOUND", "MESSAGE_NOT_FOUND")
     if (!found.dismissible)
-        throw new ORPCError("FORBIDDEN", { message: "This message can't be closed." })
+        throw fail("FORBIDDEN", "MESSAGE_NOT_DISMISSIBLE")
     await db.insert(announcementDismissals).values({ userId, announcementId: id }).onConflictDoNothing()
 }
 
@@ -100,7 +100,7 @@ export const listAnnouncements = (db: Reader) => adminAnnouncements(db)
 async function oneAnnouncement(db: Reader, id: string) {
     const [found] = await adminAnnouncements(db, id)
     if (!found)
-        throw new ORPCError("NOT_FOUND", { message: "No such announcement" })
+        throw fail("NOT_FOUND", "ANNOUNCEMENT_NOT_FOUND")
     return found
 }
 
@@ -117,11 +117,11 @@ export async function updateAnnouncement(db: Db, actorId: string, { id, ...chang
     await db.transaction(async tx => {
         const [from] = await tx.select().from(announcements).where(eq(announcements.id, id)).for("update")
         if (!from)
-            throw new ORPCError("NOT_FOUND", { message: "No such announcement" })
+            throw fail("NOT_FOUND", "ANNOUNCEMENT_NOT_FOUND")
         const startsAt = changes.startsAt ?? from.startsAt
         const endsAt = changes.endsAt === undefined ? from.endsAt : changes.endsAt
         if (endsAt && endsAt <= startsAt)
-            throw new ORPCError("BAD_REQUEST", { message: "The end must be after the start." })
+            throw fail("BAD_REQUEST", "ANNOUNCEMENT_END_BEFORE_START")
         await tx.update(announcements).set({ ...changes, updatedAt: new Date() }).where(eq(announcements.id, id))
         await audit(tx, { actorId, action: "admin.announcement.update", targetType: "announcement", targetId: id, meta: { fields: Object.keys(changes) } })
     })
@@ -134,7 +134,7 @@ export async function endAnnouncement(db: Db, actorId: string, id: string, now =
         const [from] = await tx.select({ startsAt: announcements.startsAt, endsAt: announcements.endsAt }).from(announcements)
             .where(eq(announcements.id, id)).for("update")
         if (!from)
-            throw new ORPCError("NOT_FOUND", { message: "No such announcement" })
+            throw fail("NOT_FOUND", "ANNOUNCEMENT_NOT_FOUND")
         if (from.endsAt && from.endsAt <= now)
             return
         const startsAt = from.startsAt < now ? from.startsAt : new Date(now.getTime() - 1000)

@@ -8,4 +8,3 @@ export function isDisposable(email: string) {
     return labels.some((_, i) => disposable.has(labels.slice(i).join(".")))
 }
 
-export const DISPOSABLE_MESSAGE = "Please use a permanent email address"

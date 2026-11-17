@@ -46,8 +46,8 @@ describe("packages", () => {
     })
 
     test("an admin sets a price with its currency, and the change is audited", async () => {
-        expect(await refusal(admin.api.billing.updatePackage({ id: "basic_28", priceMinor: 5000 }))).toBe("BAD_REQUEST undefined")
-        expect(await refusal(admin.api.billing.updatePackage({ id: "nope", active: false }))).toBe("NOT_FOUND undefined")
+        expect(await refusal(admin.api.billing.updatePackage({ id: "basic_28", priceMinor: 5000 }))).toBe("BAD_REQUEST PRICE_NEEDS_CURRENCY")
+        expect(await refusal(admin.api.billing.updatePackage({ id: "nope", active: false }))).toBe("NOT_FOUND PACKAGE_NOT_FOUND")
         expect(await admin.api.billing.updatePackage({ id: "basic_28", priceMinor: 5000, currency: "GHS" })).toMatchObject({ priceMinor: 5000, currency: "GHS", points: 1 })
         expect((await audited("admin.billing.update_package", "basic_28")).at(-1)).toMatchObject({ meta: { from: { priceMinor: null }, to: { priceMinor: 5000, currency: "GHS" } } })
         expect(await admin.api.billing.updatePackage({ id: "basic_28", priceMinor: null, currency: null })).toMatchObject({ priceMinor: null, currency: null })
@@ -98,8 +98,8 @@ describe("a manual purchase", () => {
 
     test("needs a real user and package, and an amount with its currency", async () => {
         const p = await player()
-        expect(await refusal(buy(randomUUID(), "basic_28"))).toBe("NOT_FOUND undefined")
-        expect(await refusal(buy(p.id, "gold"))).toBe("NOT_FOUND undefined")
+        expect(await refusal(buy(randomUUID(), "basic_28"))).toBe("NOT_FOUND USER_NOT_FOUND")
+        expect(await refusal(buy(p.id, "gold"))).toBe("NOT_FOUND PACKAGE_NOT_FOUND")
         expect(await refusal(admin.api.billing.recordPurchase({ userId: p.id, packageId: "basic_28", amountMinor: 100 }))).toBe("BAD_REQUEST undefined")
         expect(await api.db.select().from(purchases).where(eq(purchases.buyerId, p.id))).toEqual([])
     })
@@ -198,6 +198,12 @@ describe("redeeming a code", () => {
         expect([...await periodsOf(a.id), ...await periodsOf(b.id)]).toHaveLength(1)
     })
 
+    test("a refused code says which refusal it is and reads in English", async () => {
+        const friend = await player()
+        const error = await friend.api.billing.redeemCode({ code: "GGE-0000-0000-0000" }).catch((e: unknown) => e)
+        expect(error).toMatchObject({ code: "NOT_FOUND", message: "That code isn't valid. Check it and try again.", data: { code: CODE_INVALID, params: {} } })
+    })
+
     test("an unknown, a used and a revoked code are each refused", async () => {
         const [buyer, friend] = [await player(), await player()]
         const { codes } = await buy(buyer.id, "team5_28")
@@ -211,7 +217,7 @@ describe("redeeming a code", () => {
         await admin.api.billing.revokeCode({ codeId: codes[1]!.id })
         expect(await audited("admin.billing.revoke_code", codes[1]!.id)).toHaveLength(1)
         expect(await refusal(friend.api.billing.redeemCode({ code: codes[1]!.code }))).toBe(`CONFLICT ${CODE_REVOKED}`)
-        expect(await refusal(admin.api.billing.revokeCode({ codeId: codes[0]!.id }))).toBe(`CONFLICT ${CODE_USED}`)
+        expect(await refusal(admin.api.billing.revokeCode({ codeId: codes[0]!.id }))).toBe("CONFLICT CANCEL_CODE_USED")
         expect(await periodsOf(friend.id)).toEqual([])
         expect((await buyer.api.billing.myCodes()).map(c => c.status).toSorted()).toEqual(["redeemed", "revoked", "unused", "unused", "unused"])
     })
@@ -224,7 +230,7 @@ describe("redeeming a code", () => {
         const guess = () => refusal(guesser.api.billing.redeemCode({ code: "GGE-0000-0000-0000" }))
         for (let i = 0; i < 10; i++)
             expect(await guess()).toBe(`NOT_FOUND ${CODE_INVALID}`)
-        expect(await guess()).toBe("TOO_MANY_REQUESTS undefined")
+        expect(await guess()).toBe("TOO_MANY_REQUESTS TOO_MANY_ATTEMPTS")
     })
 })
 
@@ -247,7 +253,7 @@ describe("a refund", () => {
         expect(await pointsBalance(api.db, buyer.id)).toBe(-2)
         expect((await ledgerOf(buyer.id)).filter(row => row.reason === "refund")).toMatchObject([{ delta: -5, purchaseId: purchase.id }])
         expect(await audited("admin.billing.refund", purchase.id)).toMatchObject([{ meta: { codesRevoked: 4, pointsTakenBack: 5 } }])
-        expect(await refusal(admin.api.billing.markRefunded({ purchaseId: randomUUID() }))).toBe("NOT_FOUND undefined")
+        expect(await refusal(admin.api.billing.markRefunded({ purchaseId: randomUUID() }))).toBe("NOT_FOUND PURCHASE_NOT_FOUND")
     })
 })
 
@@ -267,6 +273,6 @@ describe("while billing is off", () => {
 
     test("an unverified player is refused before anything else", async () => {
         const p = await api.signup()
-        expect(await refusal(p.api.billing.redeemCode({ code: "GGE-0000-0000-0000" }))).toBe("FORBIDDEN undefined")
+        expect(await refusal(p.api.billing.redeemCode({ code: "GGE-0000-0000-0000" }))).toBe("FORBIDDEN EMAIL_VERIFY_REQUIRED")
     })
 })

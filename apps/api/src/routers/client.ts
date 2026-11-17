@@ -1,4 +1,4 @@
-import { implement, ORPCError } from "@orpc/server"
+import { implement } from "@orpc/server"
 import { asc } from "drizzle-orm"
 import { gameAccounts, servers } from "@gge/db"
 import { clientContract } from "@gge/contracts"
@@ -21,20 +21,21 @@ import { exportData } from "../services/data-export.ts"
 import { detectLocale, setLocale } from "../services/i18n.ts"
 import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
 import { currentUser, login, logout, requestPasswordReset, resetPassword, signup, tooMany, verifyEmail } from "./auth.ts"
+import { fail } from "../errors.ts"
 
 const os = implement(clientContract).$context<Ctx>()
 
 const authed = os.middleware(async ({ context, next }) => {
     const user = await currentUser(context, "client")
     if (!user)
-        throw new ORPCError("UNAUTHORIZED", { message: "Please sign in" })
+        throw fail("UNAUTHORIZED", "SIGN_IN_REQUIRED")
     return next({ context: { user } })
 })
 
 /** Running bots needs a confirmed email; sign-in, resend and account settings don't. */
 const verified = authed.concat(async ({ context, next }) => {
     if (!context.user.emailVerified)
-        throw new ORPCError("FORBIDDEN", { message: "Verify your email to continue" })
+        throw fail("FORBIDDEN", "EMAIL_VERIFY_REQUIRED")
     return next()
 })
 
@@ -124,7 +125,7 @@ export const clientRouter = os.router({
             const ids = [...new Set(input.accountIds)]
             const owned = await db.select({ id: gameAccounts.id }).from(gameAccounts).where(ownedBy(user.id, ids))
             if (owned.length !== ids.length)
-                throw new ORPCError("NOT_FOUND", { message: "No such account" })
+                throw fail("NOT_FOUND", "ACCOUNT_NOT_FOUND")
             return subscriptionTokens(env.CENTRIFUGO_TOKEN_SECRET, user.id, ids)
         }),
     },

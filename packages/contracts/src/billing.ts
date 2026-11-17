@@ -4,7 +4,7 @@ import { PERIOD_SOURCES, PLAN_IDS } from "./plans.ts"
 
 /** A player called a billing endpoint while app_settings.billing_live is off. */
 export const BILLING_NOT_LIVE = "BILLING_NOT_LIVE"
-/** Comes with `needed`: how many more points the redemption takes. */
+/** Comes with `data.params.count`: how many more points the redemption takes. */
 export const NOT_ENOUGH_POINTS = "NOT_ENOUGH_POINTS"
 /** Why a license code wasn't redeemed: no such code, already redeemed, or cancelled by an admin or a refund. */
 export const CODE_INVALID = "CODE_INVALID"

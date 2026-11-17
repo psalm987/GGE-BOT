@@ -9,8 +9,9 @@ export type CatalogProblem = {
 
 const PLURAL_KEY = /^(.+)_(zero|one|two|few|many|other)$/
 
+/** `{{name}}` and `{{name, format(options)}}`, which i18next fills from the same param. */
 const placeholders = (text: string): string =>
-    [...new Set([...text.matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]))].sort().join(",")
+    [...new Set([...text.matchAll(/\{\{-?\s*([\w.]+)\s*(?:,[^}]*)?\}\}/g)].map((m) => m[1]))].sort().join(",")
 
 type Split = { plain: Record<string, string>; families: Map<string, Map<string, string>> }
 
@@ -84,9 +85,13 @@ export function checkCatalogs(catalogs: Catalogs, base = "en"): CatalogProblem[]
                     add(namespace, prefix, "plural")
                     continue
                 }
+                // A singular form may drop the count ("one bot"), so only `other` has to carry them all.
                 const reference = placeholders(baseFamily.get("other") ?? [...baseFamily.values()][0] ?? "")
-                for (const text of family.values()) {
-                    if (text.trim() !== "" && placeholders(text) !== reference) {
+                const allowed = new Set(reference.split(","))
+                for (const [category, text] of family) {
+                    const found = placeholders(text)
+                    const ok = category === "other" || !baseFamily.has("other") ? found === reference : found.split(",").every(name => name === "" || allowed.has(name))
+                    if (text.trim() !== "" && !ok) {
                         add(namespace, prefix, "placeholders")
                         break
                     }

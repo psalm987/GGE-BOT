@@ -4,9 +4,9 @@ import { Alert, Button, Input, type InputRef } from "antd"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CODE_INVALID, CODE_REVOKED, CODE_USED } from "@gge/contracts"
-import { ParchmentCard } from "@gge/ui"
+import { messageOf, ParchmentCard } from "@gge/ui"
 import { formatWhen } from "../../alert-banners.ts"
-import { messageOf, orpc, queryClient } from "../../api.ts"
+import { orpc, queryClient } from "../../api.ts"
 import { codeComplete, maskCode } from "../../plan-model.ts"
 
 const KNOWN = new Set([CODE_INVALID, CODE_USED, CODE_REVOKED])

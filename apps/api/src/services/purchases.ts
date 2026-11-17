@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL } from "drizzle-orm"
 import type { AdminPurchase, Package, PlanId, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage } from "@gge/contracts"
 import { insertNotification, licenseCodes, packages, pointsLedger, purchases, users, type Db } from "@gge/db"
@@ -6,6 +5,7 @@ import { audit } from "./audit.ts"
 import { listCodes, mintCodes } from "./codes.ts"
 import { appendPeriod } from "./plans.ts"
 import { alertsChanged } from "./realtime.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
@@ -16,7 +16,7 @@ export async function updatePackage(db: Db, actorId: string, { id, ...changes }:
     return db.transaction(async tx => {
         const [from] = await tx.select().from(packages).where(eq(packages.id, id)).for("update")
         if (!from)
-            throw new ORPCError("NOT_FOUND", { message: "No such package" })
+            throw fail("NOT_FOUND", "PACKAGE_NOT_FOUND")
         const to = {
             priceMinor: changes.priceMinor === undefined ? from.priceMinor : changes.priceMinor,
             currency: changes.currency === undefined ? from.currency : changes.currency,
@@ -24,7 +24,7 @@ export async function updatePackage(db: Db, actorId: string, { id, ...changes }:
             active: changes.active ?? from.active,
         }
         if ((to.priceMinor === null) !== (to.currency === null))
-            throw new ORPCError("BAD_REQUEST", { message: "A price needs a currency, and a currency needs a price." })
+            throw fail("BAD_REQUEST", "PRICE_NEEDS_CURRENCY")
         const [updated] = await tx.update(packages).set(to).where(eq(packages.id, id)).returning()
         const { priceMinor, currency, points, active } = from
         await audit(tx, { actorId, action: "admin.billing.update_package", targetType: "package", targetId: id, meta: { from: { priceMinor, currency, points, active }, to } })
@@ -114,10 +114,10 @@ export async function recordPurchase(db: Db, actorId: string, input: RecordPurch
     const id = await db.transaction(async tx => {
         const [buyer] = await tx.select({ id: users.id }).from(users).where(eq(users.id, input.userId))
         if (!buyer)
-            throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            throw fail("NOT_FOUND", "USER_NOT_FOUND")
         const [pkg] = await tx.select().from(packages).where(eq(packages.id, input.packageId))
         if (!pkg)
-            throw new ORPCError("NOT_FOUND", { message: "No such package" })
+            throw fail("NOT_FOUND", "PACKAGE_NOT_FOUND")
         const [purchase] = await tx.insert(purchases).values({
             buyerId: buyer.id, packageId: pkg.id, seats: pkg.seats, days: pkg.days, points: pkg.points,
             amountMinor: input.amountMinor ?? null, currency: input.currency ?? null,
@@ -142,11 +142,11 @@ export async function markRefunded(db: Db, actorId: string, purchaseId: string, 
     await db.transaction(async tx => {
         const [purchase] = await tx.select({ status: purchases.status }).from(purchases).where(eq(purchases.id, purchaseId)).for("update")
         if (!purchase)
-            throw new ORPCError("NOT_FOUND", { message: "No such purchase" })
+            throw fail("NOT_FOUND", "PURCHASE_NOT_FOUND")
         if (purchase.status === "refunded")
             return
         if (purchase.status !== "paid")
-            throw new ORPCError("CONFLICT", { message: "Only a paid purchase can be refunded." })
+            throw fail("CONFLICT", "PURCHASE_NOT_PAID")
         await tx.update(purchases).set({ status: "refunded" }).where(eq(purchases.id, purchaseId))
         const revoked = await tx.update(licenseCodes).set({ revokedAt: now })
             .where(and(eq(licenseCodes.purchaseId, purchaseId), isNull(licenseCodes.redeemedAt), isNull(licenseCodes.revokedAt)))

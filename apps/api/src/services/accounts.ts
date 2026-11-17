@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import {
     appSettings, botRuns, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publishMany, servers, users,
@@ -12,6 +11,7 @@ import {
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 import { claimTrialAccounts } from "./trial-guard.ts"
+import { fail } from "../errors.ts"
 
 export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
     const rows = await db.select().from(pluginCatalog).orderBy(asc(pluginCatalog.key))
@@ -35,7 +35,7 @@ async function validSettings(db: Db, ownerId: string, settings: PluginSettings) 
         return normalizePluginSettings(await loadCatalog(db), settings, await attackLimitFor(db, ownerId))
     } catch (error) {
         if (error instanceof PluginSettingsError)
-            throw new ORPCError("BAD_REQUEST", { message: error.message })
+            throw fail("BAD_REQUEST", error.problem.code, error.problem.params as never)
         throw error
     }
 }
@@ -43,12 +43,12 @@ async function validSettings(db: Db, ownerId: string, settings: PluginSettings) 
 async function assertServer(db: Db, serverId: number) {
     const [server] = await db.select({ id: servers.id }).from(servers).where(eq(servers.id, serverId))
     if (!server)
-        throw new ORPCError("BAD_REQUEST", { message: "Unknown server" })
+        throw fail("BAD_REQUEST", "SERVER_UNKNOWN")
 }
 
 const duplicate = (error: unknown) => {
     if (isUniqueViolation(error, "game_accounts_server_name"))
-        throw new ORPCError("CONFLICT", { message: "This game account is already added" })
+        throw fail("CONFLICT", "ACCOUNT_DUPLICATE")
     throw error
 }
 
@@ -85,14 +85,14 @@ async function planStanding(db: Reader, ownerIds: string[]) {
 async function lockPlan(tx: Reader, ownerId: string): Promise<OwnerPlan> {
     const [row] = await tx.select(planOwnerColumns).from(users).where(eq(users.id, ownerId)).for("update")
     if (!row)
-        throw new ORPCError("NOT_FOUND", { message: "No such user" })
+        throw fail("NOT_FOUND", "USER_NOT_FOUND")
     return (await loadPlanOwners(tx, [row], new Date())).get(ownerId)!
 }
 
-/** Why the plan refuses a write. `overLimit` is the message for a player who has a plan and is past what it covers. */
-const planRefusal = (owner: OwnerPlan, overLimit: string) => new ORPCError("FORBIDDEN", owner.noPlan
-    ? { message: "You don't have an active plan. Get a plan to run your bots.", data: { code: NO_PLAN } }
-    : { message: overLimit, data: { code: PLAN_LIMIT } })
+type PlanLimit = { context: "add" | "change" | "start" | "none"; count: number }
+
+/** Why the plan refuses a write. `overLimit` says which write, for a player who has a plan and is past what it covers. */
+const planRefusal = (owner: OwnerPlan, overLimit: PlanLimit) => owner.noPlan ? fail("FORBIDDEN", NO_PLAN) : fail("FORBIDDEN", PLAN_LIMIT, overLimit)
 
 /**
  * One free trial per game account: while the owner is on theirs, the accounts they run are marked as used, and one that
@@ -100,11 +100,11 @@ const planRefusal = (owner: OwnerPlan, overLimit: string) => new ORPCError("FORB
  */
 async function keepTrialAccountsOnce(tx: Pick<Db, "select" | "insert">, owner: OwnerPlan, ownerId: string, running: { serverId: number; name: string }[]) {
     if (owner.onTrial && !await claimTrialAccounts(tx, ownerId, running))
-        throw new ORPCError("FORBIDDEN", { message: "This game account already used a free trial. Choose a plan to run it.", data: { code: TRIAL_GAME_ACCOUNT_USED } })
+        throw fail("FORBIDDEN", TRIAL_GAME_ACCOUNT_USED)
 }
 
 /** Runs a write that may change which accounts count, and refuses it if it grows the counted total past the plan. */
-async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: (owner: OwnerPlan) => Promise<T>, refusal: (maxBots: number) => string) {
+async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: (owner: OwnerPlan) => Promise<T>, refusal: PlanLimit["context"]) {
     const owner = await lockPlan(tx, ownerId)
     const before = countedAccounts(await ownerAccounts(tx, ownerId))
     const result = await change(owner)
@@ -112,12 +112,10 @@ async function keepWithinPlan<T>(tx: Reader, ownerId: string, change: (owner: Ow
         // Growth is what's refused, so a player already over a lowered limit can still edit what they have.
         const after = countedAccounts(await ownerAccounts(tx, ownerId))
         if (after > owner.maxBots && after > before)
-            throw planRefusal(owner, refusal(owner.maxBots))
+            throw planRefusal(owner, { context: refusal, count: owner.maxBots })
     }
     return result
 }
-
-const bots = (n: number) => `${n} bot${n === 1 ? "" : "s"}`
 
 /** The account's schedule, and when it next starts if it is wanted but outside its windows right now. Sleeping is worked out here, never stored. */
 function scheduleOf(account: { id: string; desiredState: "running" | "stopped"; schedule: unknown }, now: Date) {
@@ -171,7 +169,7 @@ const ownedBy = (ownerId: string, ids?: string[]) =>
 export async function getOwnedAccount(db: Db, ownerId: string, id: string) {
     const [account] = await listAccounts(db, ownedBy(ownerId, [id]))
     if (!account)
-        throw new ORPCError("NOT_FOUND", { message: "No such account" })
+        throw fail("NOT_FOUND", "ACCOUNT_NOT_FOUND")
     const { ownerId: _, ...rest } = account
     return rest
 }
@@ -201,7 +199,7 @@ export async function createAccount(db: Db, sealKey: string, ownerId: string,
         }).returning({ id: gameAccounts.id })
         await replaceSettings(tx, account!.id, settings)
         return account!.id
-    }, maxBots => `Your plan allows ${bots(maxBots)}. Remove one to add another.`)).catch(duplicate)
+    }, "add")).catch(duplicate)
     return getOwnedAccount(db, ownerId, id)
 }
 
@@ -225,7 +223,7 @@ export async function updateAccount(db: Db, sealKey: string, ownerId: string,
             await keepTrialAccountsOnce(tx, owner, ownerId, [account])
         if (settings)
             await replaceSettings(tx, input.id, settings)
-    }, maxBots => `Your plan allows ${bots(maxBots)}, and this change would make this account count as one more. Remove a bot first.`)).catch(duplicate)
+    }, "change")).catch(duplicate)
     return getOwnedAccount(db, ownerId, input.id)
 }
 
@@ -254,7 +252,7 @@ export async function startAccounts(db: Db, ownerId: string, ids: string[]) {
         const entitled = entitledAccountIds(owner, accounts)
         const starting = accounts.filter(a => ids.includes(a.id))
         if (starting.some(a => !entitled.has(a.id)))
-            throw planRefusal(owner, planRunsMessage(owner.maxBots))
+            throw planRefusal(owner, planRunsMessage(owner.maxBots).params)
         await keepTrialAccountsOnce(tx, owner, ownerId, starting)
         return setDesiredState(tx, ownedBy(ownerId, ids), "running")
     })

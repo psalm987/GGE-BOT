@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-import { ORPCError } from "@orpc/server"
 import { and, asc, count, eq, isNotNull } from "drizzle-orm"
 import { PAYMENTS_DISABLED, type BillingConfig, type Checkout, type PaymentOutcome, type PublicUser, type PurchaseStatus } from "@gge/contracts"
 import { isBillingLive, licenseCodes, packages, planPeriods, purchases, type Db } from "@gge/db"
@@ -10,6 +9,7 @@ import type { Paystack, PaystackTransaction } from "./paystack.ts"
 import { periodColumns } from "./plans.ts"
 import { billingSettings } from "./points.ts"
 import { fulfil } from "./purchases.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -27,10 +27,10 @@ async function paystackFor(ctx: Pick<Ctx, "db" | "paystack">, role: PublicUser["
 }
 
 const paymentsDisabled = () =>
-    new ORPCError("FORBIDDEN", { message: "Online payment isn't available yet. Contact support to buy.", data: { code: PAYMENTS_DISABLED } })
+    fail("FORBIDDEN", PAYMENTS_DISABLED)
 
 const providerDown = (cause: unknown) =>
-    new ORPCError("BAD_GATEWAY", { message: "The payment provider didn't answer. Try again in a minute.", cause })
+    fail("BAD_GATEWAY", "PAYMENT_PROVIDER_DOWN", undefined, cause)
 
 export async function billingConfig(ctx: Pick<Ctx, "db" | "paystack">, role: PublicUser["role"]): Promise<BillingConfig> {
     const [billingLive, paystack, forSale, settings] = await Promise.all([
@@ -52,9 +52,9 @@ export async function checkout(ctx: Pick<Ctx, "db" | "env" | "paystack">, user: 
         throw paymentsDisabled()
     const [pkg] = await ctx.db.select().from(packages).where(and(eq(packages.id, packageId), eq(packages.active, true)))
     if (!pkg || pkg.priceMinor === null || pkg.currency === null)
-        throw new ORPCError("NOT_FOUND", { message: "That package isn't sold online." })
+        throw fail("NOT_FOUND", "PACKAGE_NOT_SOLD")
     if (!user.email)
-        throw new ORPCError("BAD_REQUEST", { message: "Add an email address first" })
+        throw fail("BAD_REQUEST", "EMAIL_REQUIRED")
     const reference = `gge_${randomUUID()}`
     const [purchase] = await ctx.db.insert(purchases).values({
         buyerId: user.id, packageId: pkg.id, seats: pkg.seats, days: pkg.days, points: pkg.points,
@@ -119,7 +119,7 @@ export async function confirmPayment(ctx: Pick<Ctx, "db" | "paystack">, userId: 
     const [purchase] = await ctx.db.select({ id: purchases.id, status: purchases.status }).from(purchases)
         .where(and(eq(purchases.provider, "paystack"), eq(purchases.providerRef, reference), eq(purchases.buyerId, userId)))
     if (!purchase)
-        throw new ORPCError("NOT_FOUND", { message: "No such payment" })
+        throw fail("NOT_FOUND", "PAYMENT_NOT_FOUND")
     if (waiting(purchase.status)) {
         if (!ctx.paystack)
             throw paymentsDisabled()

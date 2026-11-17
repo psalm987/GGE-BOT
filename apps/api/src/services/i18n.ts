@@ -1,8 +1,8 @@
 import { and, eq, isNull, ne, or } from "drizzle-orm"
 import { resolveLocale, type Locale } from "@gge/i18n"
 import { users } from "@gge/db"
-import { ORPCError } from "@orpc/server"
 import type { Ctx } from "../context.ts"
+import { fail } from "../errors.ts"
 
 export type Detected = { locale: Locale; country: string | null; source: "ip" | "header" | "default" }
 
@@ -12,7 +12,7 @@ export type Detected = { locale: Locale; country: string | null; source: "ip" | 
  */
 export async function detectLocale(ctx: Ctx, userId?: string): Promise<Detected> {
     if (!ctx.limits.detect.hit(ctx.req.ip))
-        throw new ORPCError("TOO_MANY_REQUESTS", { message: "Too many requests" })
+        throw fail("TOO_MANY_REQUESTS", "RATE_LIMITED")
     const country = await ctx.lookupCountry(ctx.req.ip)
     const { locale, source } = resolveLocale({ country, acceptLanguage: ctx.req.headers["accept-language"] })
     if (userId)

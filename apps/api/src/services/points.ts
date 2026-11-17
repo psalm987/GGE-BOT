@@ -1,10 +1,10 @@
-import { ORPCError } from "@orpc/server"
 import { and, desc, eq, lt, lte, sql } from "drizzle-orm"
 import { NOT_ENOUGH_POINTS, type BillingSettings, type PointsRedemption, type PointsSummary } from "@gge/contracts"
 import { appSettings, planPeriods, pointsLedger, users, type Db } from "@gge/db"
 import { audit } from "./audit.ts"
 import { appendPeriod, lockUser, periodColumns } from "./plans.ts"
 import { alertsChanged } from "./realtime.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -59,14 +59,14 @@ export async function redeemPoints(db: Db, userId: string, idempotencyKey: strin
                 ? await tx.select(periodColumns).from(planPeriods).where(eq(planPeriods.id, earlier.periodId))
                 : []
             if (!period)
-                throw new ORPCError("CONFLICT", { message: "This redemption was already made." })
+                throw fail("CONFLICT", "REDEMPTION_REPEATED")
             return { balance: await pointsBalance(tx, userId, earlier.id), period }
         }
         const { pointsRedeemCost: cost, pointsRedeemDays: days, pointsRedeemPlan: planId } = await billingSettings(tx)
         const balance = await pointsBalance(tx, userId)
         if (balance < cost) {
             const needed = cost - balance
-            throw new ORPCError("FORBIDDEN", { message: `You need ${needed} more point${needed === 1 ? "" : "s"} to redeem.`, data: { code: NOT_ENOUGH_POINTS, needed } })
+            throw fail("FORBIDDEN", NOT_ENOUGH_POINTS, { count: needed })
         }
         const period = await appendPeriod(tx, { userId, planId, days, source: "points" }, now)
         await tx.insert(pointsLedger).values({ userId, delta: -cost, reason: "redeem", periodId: period.id, idempotencyKey })
@@ -79,7 +79,7 @@ export async function adjustPoints(db: Db, actorId: string, { userId, delta, not
     return db.transaction(async tx => {
         const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update")
         if (!user)
-            throw new ORPCError("NOT_FOUND", { message: "No such user" })
+            throw fail("NOT_FOUND", "USER_NOT_FOUND")
         await tx.insert(pointsLedger).values({ userId, delta, reason: "admin", note, createdBy: actorId })
         const balance = await pointsBalance(tx, userId)
         await alertsChanged(tx, userId)

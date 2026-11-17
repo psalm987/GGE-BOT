@@ -20,6 +20,11 @@ const catalog: PluginCatalogEntry[] = [
     { key: "commander", force: false, hidden: true, options: [] },
 ]
 
+const problemOf = (run: () => unknown) => {
+    try { run() } catch (error) { return (error as PluginSettingsError).problem }
+    return undefined
+}
+
 describe("normalizePluginSettings", () => {
     test("accepts valid values and turns a numeric-string select into its index", () => {
         const out = normalizePluginSettings(catalog, {
@@ -76,7 +81,7 @@ describe("bounded number options", () => {
     const save = (options: Record<string, string>) => normalizePluginSettings(bounded, { attack: { enabled: true, options } })
 
     test("rejects values outside the range or not numbers", () => {
-        expect(() => save({ attackDelaySeconds: "4.5" })).toThrow("attack.attackDelaySeconds must be between 15 and 600")
+        expect(problemOf(() => save({ attackDelaySeconds: "4.5" }))).toEqual({ code: "PLUGIN_OPTION_RANGE", params: { where: "attack.attackDelaySeconds", min: 15, max: 600 } })
         expect(() => save({ attackDelaySeconds: "601" })).toThrow(PluginSettingsError)
         expect(() => save({ attackDelaySeconds: "abc" })).toThrow(PluginSettingsError)
     })
@@ -109,7 +114,7 @@ describe("attack plugin cap", () => {
     })
 
     test("rejects more attack plugins than the limit and counts only attack plugins", () => {
-        expect(() => normalizePluginSettings(attackers, turnOn(5), 4)).toThrow("Your plan allows 4 attack plugins at once")
+        expect(problemOf(() => normalizePluginSettings(attackers, turnOn(5), 4))).toEqual({ code: "PLUGIN_ATTACK_CAP", params: { count: 4 } })
         expect(() => normalizePluginSettings(attackers, turnOn(4), 4)).not.toThrow()
     })
 

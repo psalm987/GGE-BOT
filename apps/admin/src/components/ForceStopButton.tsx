@@ -2,7 +2,8 @@ import { StopOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
 import { App, Button, Popconfirm } from "antd"
 import { useTranslation } from "react-i18next"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { messageOf } from "@gge/ui"
+import { orpc, queryClient } from "../api.ts"
 
 /** Stops a running account after a confirmation; renders nothing for one that is already stopped. */
 export function ForceStopButton({ account }: { account: { id: string; name: string; desiredState: "running" | "stopped" } }) {

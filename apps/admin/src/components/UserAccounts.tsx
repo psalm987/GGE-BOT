@@ -4,7 +4,7 @@ import { Button, Flex, Table, Typography } from "antd"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
-import { CrestEmpty, LogTerminal, RunsPanel, SigilStatus, useLogText } from "@gge/ui"
+import { CrestEmpty, LogTerminal, RunsPanel, SigilStatus, messageOf, useLogText } from "@gge/ui"
 import { client, orpc } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 import { ForceStopButton } from "./ForceStopButton.tsx"
@@ -42,7 +42,7 @@ function AccountHistory({ account }: { account: Account }) {
             <Typography.Title level={5}>{t("userAccounts.logs")}</Typography.Title>
             <div role="region" aria-label={t("userAccounts.logs")}>
                 <LogTerminal style={{ height: 480 }} lines={lines} renderText={english}
-                    loading={log.isPending} error={log.isError ? log.error.message : null} onRetry={() => void log.refetch()}
+                    loading={log.isPending} error={log.isError ? messageOf(log.error) : null} onRetry={() => void log.refetch()}
                     hasOlder={log.hasNextPage} loadingOlder={log.isFetchingNextPage} onLoadOlder={() => void log.fetchNextPage()} />
             </div>
         </section>

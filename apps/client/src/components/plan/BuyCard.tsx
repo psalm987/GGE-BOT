@@ -3,8 +3,8 @@ import { useMutation } from "@tanstack/react-query"
 import { Alert, App, Button, Skeleton } from "antd"
 import { useTranslation } from "react-i18next"
 import type { BillingConfig, Package } from "@gge/contracts"
-import { CrestEmpty, ParchmentCard, formatMoney } from "@gge/ui"
-import { messageOf, orpc } from "../../api.ts"
+import { CrestEmpty, formatMoney, messageOf, ParchmentCard } from "@gge/ui"
+import { orpc } from "../../api.ts"
 
 /** The packages for sale, each with what it gives and the points it earns, and a Pay button when paying online works. */
 export function BuyCard({ config }: { config: BillingConfig | undefined }) {

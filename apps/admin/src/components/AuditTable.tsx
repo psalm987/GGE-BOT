@@ -2,8 +2,8 @@ import { useInfiniteQuery } from "@tanstack/react-query"
 import { Button, Table, Typography } from "antd"
 import dayjs from "dayjs"
 import { useTranslation } from "react-i18next"
-import { CrestEmpty } from "@gge/ui"
-import { client, messageOf } from "../api.ts"
+import { CrestEmpty, messageOf } from "@gge/ui"
+import { client } from "../api.ts"
 import { QueryError } from "./AdminPage.tsx"
 
 type Entry = Awaited<ReturnType<typeof client.audit.list>>[number]

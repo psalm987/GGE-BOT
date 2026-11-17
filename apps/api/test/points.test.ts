@@ -18,7 +18,7 @@ afterAll(() => api.close())
 
 const DAY = 24 * 60 * 60 * 1000
 const setBilling = (billingLive: boolean) => api.db.update(appSettings).set({ billingLive })
-type Refusal = { code: string; data?: { code?: string; needed?: number } }
+type Refusal = { code: string; message: string; data?: { code?: string; params?: { count?: number } } }
 const refusal = (promise: Promise<unknown>) => promise.then(() => "ok", (e: Refusal) => `${e.code} ${e.data?.code}`)
 const periodsOf = (userId: string) => api.db.select().from(planPeriods).where(eq(planPeriods.userId, userId)).orderBy(asc(planPeriods.startsAt))
 const ledgerOf = (userId: string) => api.db.select().from(pointsLedger).where(eq(pointsLedger.userId, userId)).orderBy(asc(pointsLedger.id))
@@ -77,14 +77,14 @@ describe("redeeming points", () => {
         const [first, second] = [await player(8), await player(8)]
         const idempotencyKey = randomUUID()
         await first.api.billing.redeemPoints({ idempotencyKey })
-        expect(await refusal(second.api.billing.redeemPoints({ idempotencyKey }))).toBe("CONFLICT undefined")
+        expect(await refusal(second.api.billing.redeemPoints({ idempotencyKey }))).toBe("CONFLICT REDEMPTION_REPEATED")
         expect(await pointsBalance(api.db, second.id)).toBe(8)
     })
 
     test("7 points are one short", async () => {
         const p = await player(7)
         const error = await p.api.billing.redeemPoints({ idempotencyKey: randomUUID() }).catch(e => e as Refusal)
-        expect(error).toMatchObject({ code: "FORBIDDEN", data: { code: NOT_ENOUGH_POINTS, needed: 1 } })
+        expect(error).toMatchObject({ code: "FORBIDDEN", message: "You need 1 more point to redeem.", data: { code: NOT_ENOUGH_POINTS, params: { count: 1 } } })
         expect(await pointsBalance(api.db, p.id)).toBe(7)
         expect(await periodsOf(p.id)).toEqual([])
     })
@@ -92,7 +92,7 @@ describe("redeeming points", () => {
     test("a negative balance refuses", async () => {
         const p = await player(-3)
         const error = await p.api.billing.redeemPoints({ idempotencyKey: randomUUID() }).catch(e => e as Refusal)
-        expect(error).toMatchObject({ data: { code: NOT_ENOUGH_POINTS, needed: 11 } })
+        expect(error).toMatchObject({ message: "You need 11 more points to redeem.", data: { code: NOT_ENOUGH_POINTS, params: { count: 11 } } })
     })
 
     test("the redeemed period queues right behind the one the player has", async () => {
@@ -147,7 +147,7 @@ describe("an admin's adjustment", () => {
         const p = await player(0)
         expect(await refusal(admin.api.billing.adjustPoints({ userId: p.id, delta: 1, note: "x" }))).toBe("BAD_REQUEST undefined")
         expect(await refusal(admin.api.billing.adjustPoints({ userId: p.id, delta: 0, note: "nothing" }))).toBe("BAD_REQUEST undefined")
-        expect(await refusal(admin.api.billing.adjustPoints({ userId: randomUUID(), delta: 1, note: "nobody" }))).toBe("NOT_FOUND undefined")
+        expect(await refusal(admin.api.billing.adjustPoints({ userId: randomUUID(), delta: 1, note: "nobody" }))).toBe("NOT_FOUND USER_NOT_FOUND")
     })
 })
 

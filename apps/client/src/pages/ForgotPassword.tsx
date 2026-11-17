@@ -3,8 +3,8 @@ import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input } from "antd"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import { AuthShell } from "@gge/ui"
-import { messageOf, orpc } from "../api.ts"
+import { AuthShell, messageOf } from "@gge/ui"
+import { orpc } from "../api.ts"
 
 export function ForgotPassword() {
     const { t } = useTranslation("client")

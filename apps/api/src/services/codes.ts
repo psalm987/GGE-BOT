@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto"
-import { ORPCError } from "@orpc/server"
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import { CODE_INVALID, CODE_REVOKED, CODE_USED, codeFromBytes, codeStatus, normalizeCode, type LicenseCode, type Period, type PlanId } from "@gge/contracts"
 import { licenseCodes, purchases, users, type Db } from "@gge/db"
 import { audit } from "./audit.ts"
 import { appendPeriod } from "./plans.ts"
+import { fail } from "../errors.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -32,8 +32,6 @@ export async function myCodes(db: Reader, userId: string) {
     return codes.sort((a, b) => order.get(a.purchaseId)! - order.get(b.purchaseId)!)
 }
 
-const refused = (status: "NOT_FOUND" | "CONFLICT", message: string, code: string) => new ORPCError(status, { message, data: { code } })
-
 /**
  * Turns a code into time on its plan for whoever redeems it, the buyer included. The lock on the code row makes two
  * redeemers take turns, so the second finds it used.
@@ -41,15 +39,15 @@ const refused = (status: "NOT_FOUND" | "CONFLICT", message: string, code: string
 export async function redeemCode(db: Db, userId: string, typed: string, now = new Date()): Promise<{ period: Period }> {
     const code = normalizeCode(typed)
     if (!code)
-        throw refused("NOT_FOUND", "That code isn't valid. Check it and try again.", CODE_INVALID)
+        throw fail("NOT_FOUND", CODE_INVALID)
     return db.transaction(async tx => {
         const [found] = await tx.select().from(licenseCodes).where(eq(licenseCodes.code, code)).for("update")
         if (!found)
-            throw refused("NOT_FOUND", "That code isn't valid. Check it and try again.", CODE_INVALID)
+            throw fail("NOT_FOUND", CODE_INVALID)
         if (found.redeemedAt)
-            throw refused("CONFLICT", "This code has already been used.", CODE_USED)
+            throw fail("CONFLICT", CODE_USED)
         if (found.revokedAt)
-            throw refused("CONFLICT", "This code was cancelled.", CODE_REVOKED)
+            throw fail("CONFLICT", CODE_REVOKED)
         const period = await appendPeriod(tx, { userId, planId: found.planId, days: found.days, source: "code", codeId: found.id }, now)
         await tx.update(licenseCodes).set({ redeemedBy: userId, redeemedAt: now }).where(eq(licenseCodes.id, found.id))
         await audit(tx, { actorId: userId, action: "billing.code.redeem", targetType: "license_code", targetId: found.id })
@@ -62,9 +60,9 @@ export async function revokeCode(db: Db, actorId: string, codeId: string, now = 
     await db.transaction(async tx => {
         const [found] = await tx.select().from(licenseCodes).where(eq(licenseCodes.id, codeId)).for("update")
         if (!found)
-            throw new ORPCError("NOT_FOUND", { message: "No such code" })
+            throw fail("NOT_FOUND", "CODE_NOT_FOUND")
         if (found.redeemedAt)
-            throw refused("CONFLICT", "This code has already been used, so it can't be cancelled.", CODE_USED)
+            throw fail("CONFLICT", "CANCEL_CODE_USED")
         if (found.revokedAt)
             return
         await tx.update(licenseCodes).set({ revokedAt: now }).where(and(eq(licenseCodes.id, codeId)))

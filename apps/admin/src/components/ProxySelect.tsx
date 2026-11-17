@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Select, Typography } from "antd"
 import { useTranslation } from "react-i18next"
-import { client, messageOf, orpc, queryClient } from "../api.ts"
+import { messageOf } from "@gge/ui"
+import { client, orpc, queryClient } from "../api.ts"
 
 type Account = Awaited<ReturnType<typeof client.accounts.list>>["items"][number]
 const UNASSIGNED = "unassigned"

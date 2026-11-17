@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto"
-import { ORPCError } from "@orpc/server"
 import { botChannel, userChannel, type UserEvent } from "@gge/contracts"
 import { publish, type Db } from "@gge/db"
+import { fail } from "../errors.ts"
 
 /** Short, so a revoked session loses live updates soon; the client asks for a new token before this runs out. */
 export const TOKEN_TTL_SECONDS = 15 * 60
@@ -11,7 +11,7 @@ const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("b
 /** An HS256 JWT, the kind Centrifugo checks against its client.token.hmac_secret_key. */
 function sign(secret: string | undefined, claims: Record<string, string>) {
     if (!secret)
-        throw new ORPCError("NOT_IMPLEMENTED", { message: "Live updates are not set up on this server" })
+        throw fail("NOT_IMPLEMENTED", "LIVE_UPDATES_OFF")
     const iat = Math.floor(Date.now() / 1000)
     const body = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ ...claims, iat, exp: iat + TOKEN_TTL_SECONDS })}`
     return { token: `${body}.${createHmac("sha256", secret).update(body).digest("base64url")}` }

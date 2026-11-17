@@ -1,4 +1,3 @@
-import { ORPCError } from "@orpc/server"
 import { and, eq, isNull, ne, sql } from "drizzle-orm"
 import { auditLog, disconnectUser, users } from "@gge/db"
 import { claimToken, issueToken } from "../auth/email-tokens.ts"
@@ -7,14 +6,14 @@ import { COOKIE_NAME, hashToken, revokeUserSessions, type SessionUser } from "..
 import { isUniqueViolation, type Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { clientLink, sendEmail } from "../services/email.ts"
-import { DISPOSABLE_MESSAGE, isDisposable } from "../services/email-policy.ts"
-import { BAD_LINK, mailVerification, sendVerification, storePassword, tooMany } from "./auth.ts"
+import { isDisposable } from "../services/email-policy.ts"
+import { mailVerification, sendVerification, storePassword, tooMany } from "./auth.ts"
+import { fail } from "../errors.ts"
 
-const EMAIL_IN_USE = "That email is already in use"
 
 export async function resendVerification(ctx: Ctx, user: SessionUser) {
     if (!user.email)
-        throw new ORPCError("BAD_REQUEST", { message: "Add an email address first" })
+        throw fail("BAD_REQUEST", "EMAIL_REQUIRED")
     if (user.emailVerified)
         return
     if (!ctx.limits.email.hit(`verify:${user.id}`))
@@ -24,7 +23,7 @@ export async function resendVerification(ctx: Ctx, user: SessionUser) {
 
 export async function addEmail(ctx: Ctx, user: SessionUser, input: { email: string }) {
     if (isDisposable(input.email))
-        throw new ORPCError("BAD_REQUEST", { message: DISPOSABLE_MESSAGE })
+        throw fail("BAD_REQUEST", "EMAIL_DISPOSABLE")
     if (!ctx.limits.email.hit(`verify:${user.id}`))
         throw tooMany()
     // One transaction, so a failure to store the token can't leave an address nobody was sent a link for.
@@ -36,11 +35,11 @@ export async function addEmail(ctx: Ctx, user: SessionUser, input: { email: stri
             .returning({ id: users.id })
             .catch(error => {
                 if (isUniqueViolation(error, "users_email_canonical"))
-                    throw new ORPCError("CONFLICT", { message: EMAIL_IN_USE })
+                    throw fail("CONFLICT", "EMAIL_IN_USE")
                 throw error
             })
         if (!updated)
-            throw new ORPCError("CONFLICT", { message: "Your email is already confirmed. Change it in Settings." })
+            throw fail("CONFLICT", "EMAIL_ALREADY_CONFIRMED")
         await audit(tx, { actorId: user.id, action: "account.email.add" })
         return issueToken(tx, { userId: user.id, purpose: "verify_email", email: input.email })
     })
@@ -57,7 +56,7 @@ async function confirmPassword(ctx: Ctx, user: SessionUser, purpose: string, pas
         throw tooMany()
     const [row] = await ctx.db.select().from(users).where(eq(users.id, user.id))
     if (!row || !await verifyPassword(row, password))
-        throw new ORPCError("BAD_REQUEST", { message: "Your current password is wrong" })
+        throw fail("BAD_REQUEST", "PASSWORD_WRONG")
     ctx.limits.user.reset(bucket)
     return row
 }
@@ -78,17 +77,17 @@ export async function changePassword(ctx: Ctx, user: SessionUser, input: { curre
 export async function changeEmail(ctx: Ctx, user: SessionUser, input: { email: string; password: string }) {
     const row = await confirmPassword(ctx, user, "emailchange", input.password)
     if (!row.email)
-        throw new ORPCError("BAD_REQUEST", { message: "Add an email address first" })
+        throw fail("BAD_REQUEST", "EMAIL_REQUIRED")
     if (!row.emailVerifiedAt)
-        throw new ORPCError("BAD_REQUEST", { message: "Verify your current email before you change it" })
+        throw fail("BAD_REQUEST", "EMAIL_UNVERIFIED_CHANGE")
     if (isDisposable(input.email))
-        throw new ORPCError("BAD_REQUEST", { message: DISPOSABLE_MESSAGE })
+        throw fail("BAD_REQUEST", "EMAIL_DISPOSABLE")
     if (input.email === row.email.toLowerCase())
-        throw new ORPCError("BAD_REQUEST", { message: "That is already your email" })
+        throw fail("BAD_REQUEST", "EMAIL_UNCHANGED")
     const [taken] = await ctx.db.select({ id: users.id }).from(users)
         .where(and(eq(users.emailCanonical, sql`canonical_email(${input.email})`), ne(users.id, user.id)))
     if (taken)
-        throw new ORPCError("CONFLICT", { message: EMAIL_IN_USE })
+        throw fail("CONFLICT", "EMAIL_IN_USE")
     if (!ctx.limits.email.hit(`change:${user.id}`))
         throw tooMany()
 
@@ -105,7 +104,7 @@ export async function confirmEmailChange(ctx: Ctx, input: { token: string }) {
     const change = await ctx.db.transaction(async tx => {
         const claimed = await claimToken(tx, "change_email", input.token)
         if (!claimed?.currentEmail)
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         // Only while the account still has the address the link was issued against, so a link from before another change is dead.
         const [user] = await tx.update(users)
             .set({ email: claimed.email, emailVerifiedAt: new Date(), updatedAt: new Date() })
@@ -113,11 +112,11 @@ export async function confirmEmailChange(ctx: Ctx, input: { token: string }) {
             .returning({ id: users.id })
             .catch(error => {
                 if (isUniqueViolation(error, "users_email_canonical"))
-                    throw new ORPCError("CONFLICT", { message: EMAIL_IN_USE })
+                    throw fail("CONFLICT", "EMAIL_IN_USE")
                 throw error
             })
         if (!user)
-            throw new ORPCError("BAD_REQUEST", { message: BAD_LINK })
+            throw fail("BAD_REQUEST", "LINK_INVALID")
         await revokeUserSessions(tx, user.id)
         await audit(tx, { actorId: user.id, action: "account.email.changed" })
         return { userId: user.id, from: claimed.currentEmail, to: claimed.email }
@@ -129,12 +128,12 @@ export async function confirmEmailChange(ctx: Ctx, input: { token: string }) {
 export async function deleteMe(ctx: Ctx, user: SessionUser, input: { password: string; confirmUsername: string }) {
     const row = await confirmPassword(ctx, user, "delete", input.password)
     if (input.confirmUsername.toLowerCase() !== row.username.toLowerCase())
-        throw new ORPCError("BAD_REQUEST", { message: "Type your username to confirm" })
+        throw fail("BAD_REQUEST", "USERNAME_CONFIRM")
     await ctx.db.transaction(async tx => {
         // Locked, so two admins deleting themselves at once can't both see the other as the one who stays.
         const admins = await tx.select({ id: users.id }).from(users).where(and(eq(users.role, "admin"), eq(users.status, "active"))).for("update")
         if (admins.length === 1 && admins[0]!.id === row.id)
-            throw new ORPCError("CONFLICT", { message: "You are the only admin. Make someone else an admin before you delete this account." })
+            throw fail("CONFLICT", "LAST_ADMIN")
         // The rows outlive the user with no actor. All of meta goes, not only the keys known to hold
         // personal data (signup's ip and emailCanonical), so a key added later is erased too.
         await tx.update(auditLog).set({ meta: null }).where(eq(auditLog.actorId, row.id))

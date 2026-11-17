@@ -128,7 +128,7 @@ export const clientContract = {
         points: oc.input(z.object({ before: z.number().int().optional(), limit: z.number().int().min(1).max(50).default(20) })).output(PointsSummary),
         /**
          * Spends the redeem cost on a period queued behind the caller's last. Refused with data.code NOT_ENOUGH_POINTS and
-         * `needed`. A repeat with the same key spends nothing and answers as the first call did.
+         * `data.params.count` (the points still missing). A repeat with the same key spends nothing and answers as the first call did.
          */
         redeemPoints: oc.input(z.object({ idempotencyKey: z.uuid() })).output(PointsRedemption),
         /**

@@ -59,7 +59,7 @@ export async function initI18n({ app, detect }: { app: "client" | "admin"; detec
         keySeparator: false,
         nsSeparator: false,
         defaultNS: "common",
-        ns: ["common", "ui", app, "bot"],
+        ns: ["common", "ui", "errors", app, "bot"],
         interpolation: { escapeValue: false },
         react: { useSuspense: false },
     })

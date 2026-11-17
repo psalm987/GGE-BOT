@@ -6,9 +6,9 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useSearchParams } from "react-router"
 import { CURRENCIES, PLAN_IDS, PURCHASE_STATUSES, type AdminPurchase, type BillingSettings, type BillingStatus, type Package, type PlanRow, type PurchaseStatus } from "@gge/contracts"
-import { CrestEmpty, ParchmentCard, formatMoney, majorToMinor, minorToMajor } from "@gge/ui"
+import { CrestEmpty, formatMoney, majorToMinor, messageOf, minorToMajor, ParchmentCard } from "@gge/ui"
 import "./admin.css"
-import { messageOf, orpc, queryClient } from "../api.ts"
+import { orpc, queryClient } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 
 const TABS = ["plans", "packages", "settings", "purchases"] as const

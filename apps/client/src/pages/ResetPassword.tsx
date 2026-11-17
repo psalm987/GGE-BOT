@@ -2,8 +2,8 @@ import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form } from "antd"
 import { useTranslation } from "react-i18next"
 import { Link, useSearchParams } from "react-router"
-import { AuthShell } from "@gge/ui"
-import { messageOf, orpc } from "../api.ts"
+import { AuthShell, messageOf } from "@gge/ui"
+import { orpc } from "../api.ts"
 import { PasswordFields } from "../components/PasswordFields.tsx"
 
 export function ResetPassword() {

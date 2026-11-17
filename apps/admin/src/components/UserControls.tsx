@@ -2,7 +2,8 @@ import { CheckCircleOutlined, CrownOutlined, LogoutOutlined, SafetyOutlined, Sto
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Button, InputNumber, Popconfirm, Select, Space } from "antd"
 import { useTranslation } from "react-i18next"
-import { client, messageOf, orpc, queryClient } from "../api.ts"
+import { messageOf } from "@gge/ui"
+import { client, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { useAttackCapOptions } from "../pages/Settings.tsx"
 

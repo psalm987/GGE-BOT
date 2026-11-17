@@ -5,7 +5,7 @@ import { useDeferredValue, useId, useMemo, useState, type CSSProperties } from "
 import { useTranslation } from "react-i18next"
 import type { PublicAccount } from "@gge/contracts"
 import {
-    Field, LevelFilter, LogSearch, LogTerminal, TagFilter, activeFilters, filterLines, formatForDownload, useLogText, type TerminalAccount,
+    Field, LevelFilter, LogSearch, LogTerminal, TagFilter, activeFilters, filterLines, formatForDownload, messageOf, useLogText, type TerminalAccount,
 } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { AppLayout } from "../components/AppLayout.tsx"
@@ -160,7 +160,7 @@ export function Logs() {
                     </div>
                 )}
                 <LogTerminal style={{ flex: 1, minHeight: 320 }} lines={shown} renderText={renderText} accounts={labels} showAccount
-                    loading={feed.isPending} error={feed.isError ? feed.error.message : null} onRetry={refresh}
+                    loading={feed.isPending} error={feed.isError ? messageOf(feed.error) : null} onRetry={refresh}
                     hasOlder={feed.hasNextPage} loadingOlder={feed.isFetchingNextPage} onLoadOlder={() => void feed.fetchNextPage()}
                     filtered={active > 0} onClearFilters={clear} highlight={q}
                     onTagClick={tag => addTo("plugins", tag)} onAccountClick={id => addTo("accountIds", id)}

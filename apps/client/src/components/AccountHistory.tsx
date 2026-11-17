@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Grid } from "antd"
 import { useDeferredValue, useMemo, useState } from "react"
-import { LevelFilter, LogSearch, LogTerminal, NO_FILTERS, RunsPanel, TagFilter, activeFilters, facetsOf, filterLines, useLogText, type LogFilters } from "@gge/ui"
+import { LevelFilter, LogSearch, LogTerminal, NO_FILTERS, RunsPanel, TagFilter, activeFilters, facetsOf, filterLines, messageOf, useLogText, type LogFilters } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { useLogFeed } from "../log-feed.ts"
 
@@ -28,7 +28,7 @@ export function AccountLogs({ accountId }: { accountId: string }) {
                 <TagFilter value={filters.plugins} onChange={plugins => set({ plugins })} options={facets.plugins} style={{ flex: "1 1 100%" }} />
             </div>
             <LogTerminal style={{ height: "min(60dvh, 560px)" }} lines={shown} renderText={renderText}
-                loading={feed.isPending} error={feed.isError ? feed.error.message : null} onRetry={() => void feed.refetch()}
+                loading={feed.isPending} error={feed.isError ? messageOf(feed.error) : null} onRetry={() => void feed.refetch()}
                 hasOlder={feed.hasNextPage} loadingOlder={feed.isFetchingNextPage} onLoadOlder={() => void feed.fetchNextPage()}
                 filtered={activeFilters(filters) > 0} onClearFilters={() => setFilters(NO_FILTERS)} highlight={q}
                 onTagClick={tag => { if (!filters.plugins.includes(tag)) set({ plugins: [...filters.plugins, tag] }) }}
