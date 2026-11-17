@@ -44,6 +44,11 @@ export type OwnerPlan = PlanOwner & {
     nextChange: Date | null
 }
 
+/** How many accounts this user may run at `now`: the one limit every screen and check shares. */
+export async function loadAccountLimit(db: Reader, owner: OwnerRow, now = new Date()) {
+    return (await loadPlanOwners(db, [owner], now)).get(owner.id)!.maxBots
+}
+
 /**
  * Each owner as entitledAccountIds takes them, with `maxBots` already the limit that applies at `now`.
  * While billing is off that is users.max_bots and no period is read.

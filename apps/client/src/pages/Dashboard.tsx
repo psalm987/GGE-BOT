@@ -75,7 +75,7 @@ export function Dashboard() {
     const list = accounts.data ?? []
     const running = list.filter(a => a.status?.actualState === "running").length
     const counted = list.filter(a => !a.isTwin).length
-    const limit = me?.role === "admin" ? undefined : me?.maxBots
+    const limit = me?.role === "admin" ? undefined : me?.accountLimit
     const atLimit = limit !== undefined && counted >= limit
     const overLimit = list.filter(a => !a.entitled).length
     const runs = limit === undefined ? undefined : planRunsMessage(limit)

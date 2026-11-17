@@ -181,3 +181,28 @@ describe("with billing live", () => {
         }
     })
 })
+
+describe("the account limit a player is shown", () => {
+    const setBilling = (billingLive: boolean) => api.db.update(appSettings).set({ billingLive })
+    afterAll(() => setBilling(false))
+
+    test("billing off shows users.max_bots, billing live shows the plan, and an override replaces it", async () => {
+        const p = await api.player("limitshown")
+        const id = (await api.db.select({ id: users.id }).from(users).where(eq(users.username, "limitshown")))[0]!.id
+        await api.db.update(users).set({ maxBots: 5 }).where(eq(users.id, id))
+        const shown = async () => (await p.api.auth.me())!.accountLimit
+
+        await setBilling(false)
+        expect(await shown()).toBe(5)
+
+        await setBilling(true)
+        expect(await shown()).toBe(0)
+        await append(id)
+        expect(await shown()).toBe(1)
+        await api.db.update(users).set({ maxBotsOverride: 3 }).where(eq(users.id, id))
+        expect(await shown()).toBe(3)
+
+        await setBilling(false)
+        expect(await shown()).toBe(5)
+    })
+})

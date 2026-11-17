@@ -29,7 +29,8 @@ export const AdminLoginStep = z.object({ step: z.enum(["totp", "enroll"]) })
 export const LocaleCode = z.enum(LOCALE_CODES)
 
 /** `locale` is the language the user picked; null is Automatic. */
-export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), maxBots: z.number().int(), locale: LocaleCode.nullable() })
+/** `accountLimit` is how many accounts the user may run now, from accountLimit(): users.max_bots while billing is off, the plan once it is live. */
+export const PublicUser = z.object({ id: z.uuid(), username: z.string(), role: Role, email: z.string().nullable(), emailVerified: z.boolean(), accountLimit: z.number().int(), locale: LocaleCode.nullable() })
 export type PublicUser = z.infer<typeof PublicUser>
 
 export const BotStatus = z.object({
@@ -95,7 +96,9 @@ export const Server = z.object({ id: z.number().int(), label: z.string() })
 export const Page = z.object({ limit: z.number().int().min(1).max(200).default(50), offset: z.number().int().min(0).default(0) })
 export const Search = z.string().trim().max(64).optional()
 
-export const AdminUser = PublicUser.omit({ locale: true }).extend({
+export const AdminUser = PublicUser.omit({ locale: true, accountLimit: true }).extend({
+    /** users.max_bots, the limit while billing is off. */
+    maxBots: z.number().int(),
     status: UserStatus,
     /** Replaces the plan's account limit while billing is live; null follows the plan. */
     maxBotsOverride: z.number().int().nullable(),

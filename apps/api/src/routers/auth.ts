@@ -1,6 +1,6 @@
 import type {} from "@fastify/cookie"
 import { and, eq, isNotNull, sql } from "drizzle-orm"
-import { users, type Db } from "@gge/db"
+import { loadAccountLimit, users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
 import { isLocale } from "@gge/i18n"
 import { claimToken, issueToken } from "../auth/email-tokens.ts"
@@ -26,8 +26,8 @@ function setSessionCookie(ctx: Ctx, audience: Audience, token: string) {
     })
 }
 
-export const publicUser = (user: typeof users.$inferSelect): PublicUser =>
-    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, maxBots: user.maxBots, locale: user.locale })
+export const publicUser = async (db: Pick<Db, "select">, user: typeof users.$inferSelect): Promise<PublicUser> =>
+    ({ id: user.id, username: user.username, role: user.role, email: user.email, emailVerified: user.emailVerifiedAt !== null, accountLimit: await loadAccountLimit(db, user), locale: user.locale })
 
 export async function startSession(ctx: Ctx, audience: Audience, user: PublicUser) {
     const token = await createSession(ctx.db, { userId: user.id, audience, ip: ctx.req.ip, userAgent: ctx.req.headers["user-agent"] })
@@ -95,7 +95,7 @@ export async function verifyCredentials(ctx: Ctx, audience: Audience, input: { l
 export async function login(ctx: Ctx, input: { login: string; password: string }) {
     const user = await verifyCredentials(ctx, "client", input)
     await audit(ctx.db, { actorId: user.id, action: "auth.login.client" })
-    return startSession(ctx, "client", publicUser(user))
+    return startSession(ctx, "client", await publicUser(ctx.db, user))
 }
 
 export async function logout(ctx: Ctx, audience: Audience) {
@@ -139,7 +139,7 @@ export async function signup(ctx: Ctx, input: { username: string; email: string;
         return { user, token }
     })
     await mailVerification(ctx, user.id, input.email, token)
-    return startSession(ctx, "client", publicUser(user))
+    return startSession(ctx, "client", await publicUser(ctx.db, user))
 }
 
 

@@ -68,7 +68,7 @@ async function guess<T>(ctx: Ctx, challenge: Challenge, wrong: "TOTP_CODE_WRONG"
 async function finishSignIn(ctx: Ctx, challenge: Challenge) {
     await endChallenge(ctx, challenge)
     await audit(ctx.db, { actorId: challenge.user.id, action: "auth.login.admin" })
-    return startSession(ctx, "admin", publicUser(challenge.user))
+    return startSession(ctx, "admin", await publicUser(ctx.db, challenge.user))
 }
 
 export async function verifyTotp(ctx: Ctx, input: { code: string } | { recoveryCode: string }) {

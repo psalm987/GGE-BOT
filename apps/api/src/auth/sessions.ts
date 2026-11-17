@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto"
 import { and, eq, gt, ne, sql } from "drizzle-orm"
-import { disconnectUser, sessions, users, type Db } from "@gge/db"
+import { disconnectUser, loadAccountLimit, planOwnerColumns, sessions, users, type Db } from "@gge/db"
 import type { PublicUser } from "@gge/contracts"
 
 export type Audience = "client" | "admin"
@@ -35,7 +35,7 @@ export async function findSessionUser(db: Db, token: string, audience: Audience)
     const id = hashToken(token)
     const [row] = await db
         .select({
-            user: { id: users.id, username: users.username, role: users.role, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, locale: users.locale },
+            user: { username: users.username, email: users.email, emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, locale: users.locale, ...planOwnerColumns },
             lastSeenAt: sessions.lastSeenAt,
         })
         .from(sessions)
@@ -47,7 +47,8 @@ export async function findSessionUser(db: Db, token: string, audience: Audience)
         await db.update(sessions)
             .set({ lastSeenAt: new Date(), expiresAt: new Date(Date.now() + SESSION_TTL_MS[audience]) })
             .where(eq(sessions.id, id))
-    return row.user
+    const { maxBots, maxBotsOverride, ...user } = row.user
+    return { ...user, accountLimit: await loadAccountLimit(db, { id: user.id, role: user.role, maxBots, maxBotsOverride }) }
 }
 
 /** Ends one session and closes the user's live connections; a tab that is still signed in elsewhere reconnects. */

@@ -19,7 +19,7 @@ const userId = async (username: string) => (await admin.api.users.list({ search:
 describe("one bot per player", () => {
     test("a new player gets one bot, with the limit explained when they ask for a second", async () => {
         const p = await api.player()
-        expect((await p.api.auth.me())!.maxBots).toBe(1)
+        expect((await p.api.auth.me())!.accountLimit).toBe(1)
         await p.api.accounts.create(newAccount())
         const error = await p.api.accounts.create(newAccount()).catch(e => e as { code: string; message: string })
         expect(error).toMatchObject({ code: "FORBIDDEN", message: "Your plan allows 1 bot. Remove one to add another." })
