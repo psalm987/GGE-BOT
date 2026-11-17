@@ -1,0 +1,9 @@
+{
+  "name": "@gge/i18n-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "literals": "node find-literals.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

@@ -480,6 +480,8 @@ importers:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
 
+  tools/i18n: {}
+
   tools/import-sqlite:
     dependencies:
       '@gge/contracts':

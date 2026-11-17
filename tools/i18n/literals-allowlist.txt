@@ -1,0 +1,2 @@
+# Text that stays the same in every language: brand names, symbols, units.
+# `"text"` is allowed anywhere, `path: "text"` only in that file.
