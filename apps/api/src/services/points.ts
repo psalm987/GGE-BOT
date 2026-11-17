@@ -3,7 +3,7 @@ import { and, desc, eq, lt, lte, sql } from "drizzle-orm"
 import { NOT_ENOUGH_POINTS, type BillingSettings, type PointsRedemption, type PointsSummary } from "@gge/contracts"
 import { appSettings, planPeriods, pointsLedger, users, type Db } from "@gge/db"
 import { audit } from "./audit.ts"
-import { appendPeriod, lockUser } from "./plans.ts"
+import { appendPeriod, lockUser, periodColumns } from "./plans.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -43,8 +43,6 @@ export async function pointsSummary(db: Reader, userId: string, { before, limit 
     ])
     return { balance, cost: settings.pointsRedeemCost, days: settings.pointsRedeemDays, plan: settings.pointsRedeemPlan, history }
 }
-
-const periodColumns = { id: planPeriods.id, planId: planPeriods.planId, startsAt: planPeriods.startsAt, endsAt: planPeriods.endsAt, source: planPeriods.source }
 
 /**
  * Spends the redeem cost on a period queued behind the user's last. The lock on the user row makes two requests take

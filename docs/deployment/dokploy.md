@@ -51,6 +51,7 @@ TOTP_ENCRYPTION_KEY=
 CENTRIFUGO_TOKEN_SECRET=
 MAXMIND_ACCOUNT_ID=
 MAXMIND_LICENSE_KEY=
+PAYSTACK_SECRET_KEY=
 MAX_ACCOUNTS=50
 START_GAP_MS=2000
 GAME_CLIENT_VERSION=
@@ -121,6 +122,27 @@ MaxMind's licence asks apps to credit the data. The player app's Settings page d
 
 **Behind Cloudflare.** If Cloudflare proxies your domain, Traefik must trust Cloudflare's IP ranges so it passes the visitor's address on in `X-Forwarded-For`. Without that, every lookup sees a Cloudflare edge address and the whole world gets one country. Add Cloudflare's published ranges to Traefik's `forwardedHeaders.trustedIPs` for the web entrypoint. Caddy inside `web` already trusts Traefik's private address (`infra/Caddyfile.dokploy`), so Traefik is the hop to fix.
 
+## Paystack
+
+Players pay for plans through Paystack. Until an admin presses **Go live** on the admin app's **Billing** page, nobody can pay and every player keeps the free limit. These steps get Paystack ready for that switch.
+
+1. Create a business account at paystack.com. Every account has two secret keys. A test key (`sk_test_…`) takes only Paystack's test cards and moves no money. A live key (`sk_live_…`) charges real cards, and works once Paystack has approved the business.
+2. In the Paystack dashboard, open **Settings → API Keys & Webhooks**. Copy the test secret key into the Environment tab as `PAYSTACK_SECRET_KEY`.
+3. On the same page, set the test webhook URL to `https://app.<domain>/webhooks/paystack`. Paystack signs every event with the secret key, and the API refuses an event whose signature doesn't match ([security.md](security.md#payments)).
+4. Deploy.
+
+**Currencies.** Paystack charges in GHS, KES, NGN, ZAR and USD only, and each package has one price in one of them. Paystack has no EUR, so price packages for European players in USD. Ask Paystack to turn on USD for the merchant account first, because a USD charge fails without it.
+
+### Go live
+
+1. Set `PAYSTACK_SECRET_KEY` and deploy, as above.
+2. On the **Billing** page, give each package you sell a price and a currency. A package without a price isn't sold online.
+3. Sign in to the player app as an admin and buy a package with one of Paystack's test cards. An admin can pay before billing is live; a player can't. Under **Billing → Purchases**, check that the purchase is paid and delivered.
+4. Put the live secret key in `PAYSTACK_SECRET_KEY`, set the live webhook URL to the same address, and deploy. Don't go live on a test key: players could then pay with test cards.
+5. Press **Go live**.
+
+To stop taking payments, press **Back to free** on the same page. A payment that was already started is still delivered when Paystack confirms it.
+
 ## Operating it
 
 - **Upgrades:** push to the branch and press Deploy (or turn on Auto Deploy). `migrate` runs first; the runner gets 60 seconds to stop its bots, and the new one starts them again spaced `START_GAP_MS` apart. Take a dump first when a release adds migrations ([operations.md](operations.md)).
@@ -137,3 +159,4 @@ MaxMind's licence asks apps to credit the data. The player app's Settings page d
 | App loads but sign-in says "Origin not allowed" | `DOMAIN` doesn't match the hosts in the Domains tab |
 | Signed in, then signed out on reload | The site is being opened over plain HTTP; session cookies are Secure-only |
 | Deploy fails with "set … in Dokploy's Environment tab" | A required variable is empty |
+| A Paystack payment went through, but the purchase stays pending until the buyer comes back to the app | Paystack's webhook URL for the key in use (test or live) isn't `https://app.<domain>/webhooks/paystack` |

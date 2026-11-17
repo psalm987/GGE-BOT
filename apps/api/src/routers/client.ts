@@ -6,6 +6,7 @@ import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
 import { requireBillingLive } from "../services/billing.ts"
 import { myCodes, redeemCode } from "../services/codes.ts"
+import { billingConfig, checkout, confirmPayment } from "../services/payments.ts"
 import { myPurchases } from "../services/purchases.ts"
 import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
@@ -122,6 +123,9 @@ export const clientRouter = os.router({
         }),
     },
     billing: {
+        config: os.billing.config.use(verified).handler(({ context }) => billingConfig(context, context.user.role)),
+        checkout: os.billing.checkout.use(verified).handler(({ context, input }) => checkout(context, context.user, input.packageId)),
+        confirm: os.billing.confirm.use(verified).handler(({ context, input }) => confirmPayment(context, context.user.id, input.reference)),
         points: os.billing.points.use(billing).handler(({ context: { db, user }, input }) => pointsSummary(db, user.id, input)),
         redeemPoints: os.billing.redeemPoints.use(billing).handler(async ({ context: { db, user }, input }) => {
             const redemption = await redeemPoints(db, user.id, input.idempotencyKey)

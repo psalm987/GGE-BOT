@@ -33,6 +33,9 @@ http://app.{$DOMAIN} {
 	handle /rpc/* {
 		reverse_proxy api:3000
 	}
+	handle /webhooks/* {
+		reverse_proxy api:3000
+	}
 	handle /healthz {
 		reverse_proxy api:3000
 	}

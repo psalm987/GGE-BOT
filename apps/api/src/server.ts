@@ -10,10 +10,12 @@ import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
+import { paystackWebhook } from "./routers/paystack-webhook.ts"
 import { createGeoip } from "./services/geoip.ts"
 import { clientLink } from "./services/email.ts"
 import { logMailer, type Mailer } from "./services/mailer.ts"
 import { createNotificationMailer, type NotificationMailer } from "./services/notification-mailer.ts"
+import { createPaystack } from "./services/paystack.ts"
 import { createRateLimiter } from "./services/rate-limit.ts"
 
 declare module "fastify" {
@@ -35,7 +37,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
     const app = Fastify({ logger, trustProxy: true })
     Sentry.setupFastifyErrorHandler(app)
     await app.register(cookie)
-    // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc and /healthz.
+    // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc, /webhooks and /healthz.
     await app.register(metricsPlugin.default, { endpoint: "/metrics", routeMetrics: { routeBlacklist: ["/metrics", "/healthz"] } })
     // oRPC reads the raw body itself.
     app.addContentTypeParser("*", (_req, _payload, done) => done(null, undefined))
@@ -58,6 +60,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
         redeemCode: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
     }
     const lookupCountry = createGeoip({ url: env.GEOIP_URL })
+    const paystack = env.PAYSTACK_SECRET_KEY ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL }) : undefined
     // oRPC turns handler errors into responses itself, so Fastify's error hook never sees them.
     const logServerError = (error: unknown) => {
         const status = (error as { status?: number })?.status
@@ -73,13 +76,14 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
             // call whose Origin isn't one of our apps.
             if (!origins.includes(req.headers.origin ?? ""))
                 return reply.status(403).send({ message: "Origin not allowed" })
-            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, log: req.log, limits, mailer, lookupCountry } })
+            const { matched } = await handler.handle(req, reply, { prefix: prefix as `/${string}`, context: { db, env, req, reply, log: req.log, limits, mailer, lookupCountry, paystack } })
             if (!matched)
                 return reply.status(404).send({ message: "Not found" })
         })
 
     mount("/rpc", new RPCHandler(clientRouter, { interceptors: [onError(logServerError)] }), env.CLIENT_ORIGINS)
     mount("/admin/rpc", new RPCHandler(adminRouter, { interceptors: [onError(logServerError)] }), env.ADMIN_ORIGINS)
+    await app.register(paystackWebhook({ db, secretKey: env.PAYSTACK_SECRET_KEY, paystack }))
 
     app.get("/healthz", async () => {
         await db.execute(sql`select 1`)

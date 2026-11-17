@@ -96,6 +96,16 @@ The only active admin can't delete their own account. Make another user an admin
 
 **What the audit log keeps.** The user's entries stay, with their action, target, and time, but with no actor and no `meta`. `meta` is where sign-up stores the IP address and the canonical email. The API clears all of `meta` instead of removing named keys, so a key that a later version adds is erased too. For a deleted admin, the cost is that the details of their admin actions, such as the bot limit they set, are lost. Entries that other people wrote about the user keep the user's ID as the target. Entries are pruned after `AUDIT_RETENTION_DAYS`. Backups made before the deletion still hold the account until they expire.
 
+## Payments
+
+Players pay on Paystack's own checkout page. Card details go to Paystack and never reach the API, the database or a log. For each purchase the API stores the package, the price and currency, Paystack's transaction reference and the status.
+
+- **Verified through the API.** A purchase is delivered only after the API asks Paystack's verify endpoint about the reference, with the secret key, and Paystack answers `success` for exactly the purchase's amount and currency. Nothing the browser sends back, and nothing in a webhook body except the reference, is trusted.
+- **Signed webhooks.** `POST /webhooks/paystack` must carry `x-paystack-signature`: the hex HMAC-SHA512 of the exact request body under the secret key. The API compares it in constant time and answers 401 to anything else. The route has no Origin check, because Paystack's servers send no Origin; the signature takes its place.
+- **Delivered once.** A lock on the purchase row makes a webhook and a return-page confirm that arrive together take turns. The second finds the purchase delivered and changes nothing.
+- **Left for an admin.** A success for another amount or currency marks the purchase failed and writes `billing.paystack.amount_mismatch` to the audit log. A payment whose buyer deleted their account is marked paid, delivers nothing, and writes `billing.paystack.paid_without_buyer`. Settle both by hand in the Paystack dashboard.
+- **The secret key** is only in the API's environment. With it, someone can read your transactions and sign webhooks the API accepts. If it leaks, roll it in the Paystack dashboard and deploy the new one.
+
 ## Live updates
 
 The browser gets status changes and log lines from Centrifugo over a websocket at `/connection/websocket`. The socket carries no cookie. Two kinds of token, both signed by the API with `CENTRIFUGO_TOKEN_SECRET` (HS256) and valid for 15 minutes, decide what a socket can see.

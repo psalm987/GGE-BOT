@@ -7,6 +7,7 @@ import {
 } from "@gge/db"
 import type { Ctx } from "../context.ts"
 import { myCodes } from "./codes.ts"
+import { periodColumns } from "./plans.ts"
 import { purchaseColumns } from "./purchases.ts"
 
 /** Everything stored about the user. Each query names its columns, so a sealed password or a password hash is never read. */
@@ -42,8 +43,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
         db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(asc(notifications.id)),
         db.select({ action: auditLog.action, targetType: auditLog.targetType, targetId: auditLog.targetId, meta: auditLog.meta, ts: auditLog.ts })
             .from(auditLog).where(eq(auditLog.actorId, userId)).orderBy(asc(auditLog.id)),
-        db.select({ id: planPeriods.id, planId: planPeriods.planId, startsAt: planPeriods.startsAt, endsAt: planPeriods.endsAt, source: planPeriods.source })
-            .from(planPeriods).where(eq(planPeriods.userId, userId)).orderBy(asc(planPeriods.startsAt)),
+        db.select(periodColumns).from(planPeriods).where(eq(planPeriods.userId, userId)).orderBy(asc(planPeriods.startsAt)),
         db.select(purchaseColumns).from(purchases).innerJoin(packages, eq(packages.id, purchases.packageId))
             .where(eq(purchases.buyerId, userId)).orderBy(asc(purchases.createdAt), asc(purchases.id)),
         myCodes(db, userId),

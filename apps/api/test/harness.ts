@@ -3,7 +3,7 @@ import { RPCLink } from "@orpc/client/fetch"
 import { eq, sql } from "drizzle-orm"
 import { inject } from "vitest"
 import type { AdminApi, ClientApi } from "@gge/contracts"
-import { appSettings, createDb, gameAccounts, pluginCatalog, servers, users, type Db } from "@gge/db"
+import { appSettings, createDb, gameAccounts, packages, pluginCatalog, servers, users, type Db } from "@gge/db"
 import { generateEncryptionKey, generateSealKeyPair } from "@gge/crypto"
 import { hashPassword } from "../src/auth/passwords.ts"
 import { storeConfirmedSecret } from "../src/auth/second-factor.ts"
@@ -57,6 +57,7 @@ export async function startApi(env: Partial<Env> = {}) {
     ])
     await db.insert(pluginCatalog).values(catalog)
     await db.insert(appSettings).values({ id: 1 }).onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: "4", billingLive: false, trialDays: 7, pointsRedeemCost: 8, pointsRedeemDays: 28, pointsRedeemPlan: "basic" } })
+    await db.update(packages).set({ priceMinor: null, currency: null, points: sql`${packages.seats}`, active: true })
     const keys = generateSealKeyPair()
     const totpKey = generateEncryptionKey()
     const sent: MailMessage[] = []

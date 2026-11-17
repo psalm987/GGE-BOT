@@ -3,6 +3,7 @@ import type { Db } from "@gge/db"
 import type { Env } from "./env.ts"
 import type { Geoip } from "./services/geoip.ts"
 import type { Mailer } from "./services/mailer.ts"
+import type { Paystack } from "./services/paystack.ts"
 import type { RateLimiter } from "./services/rate-limit.ts"
 
 export type Ctx = {
@@ -22,6 +23,8 @@ export type Ctx = {
     mailer: Mailer
     /** Country of an IP; null when unknown. */
     lookupCountry: Geoip
+    /** Paystack with the secret key; undefined on a deployment without PAYSTACK_SECRET_KEY. */
+    paystack: Paystack | undefined
 }
 
 /** A Postgres unique violation, optionally on one named constraint. */

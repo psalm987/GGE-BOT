@@ -13,6 +13,8 @@ export const CODE_REVOKED = "CODE_REVOKED"
 
 /** Go-live was asked for on a deployment with no PAYSTACK_SECRET_KEY. */
 export const PAYSTACK_NOT_CONFIGURED = "PAYSTACK_NOT_CONFIGURED"
+/** A checkout with no Paystack key on the API, or by a player while billing is off. */
+export const PAYMENTS_DISABLED = "PAYMENTS_DISABLED"
 
 export const BillingStatus = z.object({
     billingLive: z.boolean(),
@@ -160,3 +162,32 @@ export const RecordPurchase = z.object({
     note: z.string().trim().max(500).optional(),
 }).refine(input => (input.amountMinor === undefined) === (input.currency === undefined), { path: ["currency"], message: "give an amount and its currency together" })
 export type RecordPurchase = z.infer<typeof RecordPurchase>
+
+/** What the Plan page offers the caller. */
+export const BillingConfig = z.object({
+    /** Whether the caller can pay online now: Paystack is set up and billing is live, or the caller is an admin trying it out. */
+    onlinePayments: z.boolean(),
+    /** The active packages that have a price, in display order. */
+    packages: z.array(Package),
+    pointsCost: z.number().int(),
+    pointsDays: z.number().int(),
+})
+export type BillingConfig = z.infer<typeof BillingConfig>
+
+/** Where to send the buyer to pay. Paystack sends them back to /plan/return with `reference`. */
+export const Checkout = z.object({ authorizationUrl: z.url(), reference: z.string() })
+export type Checkout = z.infer<typeof Checkout>
+
+/** A purchase paid online, as Paystack last reported it, and what it gave once delivered. */
+export const PaymentOutcome = z.object({
+    status: PurchaseStatus,
+    /** null until the purchase is delivered. */
+    delivered: z.object({
+        /** The time a Basic package added; null for a Team package. */
+        period: Period.nullable(),
+        /** How many codes a Team package gave. They are listed with the buyer's codes. */
+        codes: z.number().int(),
+        points: z.number().int(),
+    }).nullable(),
+})
+export type PaymentOutcome = z.infer<typeof PaymentOutcome>

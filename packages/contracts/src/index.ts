@@ -1,7 +1,8 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import {
-    AdminPurchase, BillingSettings, BillingStatus, LicenseCode, Package, Period, PointsRedemption, PointsSummary, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage,
+    AdminPurchase, BillingConfig, BillingSettings, BillingStatus, Checkout, LicenseCode, Package, PaymentOutcome, Period, PointsRedemption, PointsSummary, Purchase, PurchaseStatus,
+    RecordPurchase, UpdatePackage,
 } from "./billing.ts"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
@@ -98,8 +99,23 @@ export const clientContract = {
         /** One token per account, all or nothing: any id that isn't the caller's refuses the whole call. */
         subscriptionTokens: oc.input(z.object({ accountIds: z.array(z.uuid()).min(1).max(50) })).output(z.record(z.uuid(), z.string())),
     },
-    /** Refused with data.code BILLING_NOT_LIVE while billing is off, except for an admin trying it out. */
+    /**
+     * Refused with data.code BILLING_NOT_LIVE while billing is off, except for an admin trying it out. config, checkout and
+     * confirm are not, and say how they answer instead.
+     */
     billing: {
+        /** Answers while billing is off too, with onlinePayments false for a player. */
+        config: oc.output(BillingConfig),
+        /**
+         * Starts paying for a package with Paystack: send the browser to authorizationUrl. Refused with data.code PAYMENTS_DISABLED
+         * without a Paystack key on the API, or for a player while billing is off.
+         */
+        checkout: oc.input(z.object({ packageId: z.string().min(1).max(64) })).output(Checkout),
+        /**
+         * Asks Paystack how the caller's payment went and delivers it if it was paid in full. For the return page, with the
+         * reference Paystack adds to its URL. Repeating it delivers nothing more. Works while billing is off, for a payment started before.
+         */
+        confirm: oc.input(z.object({ reference: z.string().trim().min(1).max(100) })).output(PaymentOutcome),
         /** `before` is the id of the oldest history entry already shown. */
         points: oc.input(z.object({ before: z.number().int().optional(), limit: z.number().int().min(1).max(50).default(20) })).output(PointsSummary),
         /**

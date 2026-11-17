@@ -6,6 +6,9 @@ type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+/** A period as players see it. */
+export const periodColumns = { id: planPeriods.id, planId: planPeriods.planId, startsAt: planPeriods.startsAt, endsAt: planPeriods.endsAt, source: planPeriods.source }
+
 /** Every write to a user's periods or points takes this first, so they take turns with each other and with the plan checks in accounts.ts. */
 export async function lockUser(tx: Tx, userId: string) {
     const [user] = await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for("update")
