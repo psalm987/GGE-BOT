@@ -8,7 +8,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | --- | --- | --- | --- | --- | --- |
 | bg | Bulgarian | 2026-11-18 | pending | |  |
 | cs | Czech | 2026-11-18 | pending | |  |
-| da | Danish | pending | pending | |  |
+| da | Danish | 2026-11-18 | pending | |  |
 | de | German | 2026-11-18 | pending | |  |
 | el | Greek | 2026-11-18 | pending | |  |
 | es | Spanish | pending | pending | |  |
