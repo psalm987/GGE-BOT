@@ -7,7 +7,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | Locale | Language | Machine-translated | Native review | Reviewer | Notes |
 | --- | --- | --- | --- | --- | --- |
 | bg | Bulgarian | pending | pending | |  |
-| cs | Czech | pending | pending | |  |
+| cs | Czech | 2026-11-18 | pending | |  |
 | da | Danish | pending | pending | |  |
 | de | German | pending | pending | |  |
 | el | Greek | pending | pending | |  |
