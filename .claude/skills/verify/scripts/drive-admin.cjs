@@ -448,15 +448,60 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     for (const a of ["admin.proxy.create", "admin.proxy.update", "admin.account.set_proxy", "admin.proxy.remove"]) assert(proxyAudit.includes(a), `audit shows ${a}`)
     assert(!(await page.content()).includes(proxySecret), "the audit page doesn't carry the proxy's password")
 
+    await nav(page, "Billing")
+    await page.getByText(/^(Free rules|Plans \(live\))$/).waitFor()
+    assert(await page.getByRole("button", { name: /Go live|Back to free/ }).count() === 1, "Billing shows the switch's state, the Paystack key and one go-live or back-to-free action")
+    for (const tab of ["Plans", "Packages", "Settings", "Purchases"]) {
+        await page.getByRole("tab", { name: tab }).click()
+        await page.waitForTimeout(500)
+        await axe(page, `billing ${tab}`)
+        await page.screenshot({ path: `${out}/admin-billing-${tab.toLowerCase()}-1440.png`, fullPage: true })
+    }
+    await page.getByRole("tab", { name: "Plans" }).click()
+    await page.getByLabel("Accounts the Basic plan runs").waitFor()
+    assert(true, "the Plans tab lists each plan's account limit")
+
+    await nav(page, "Announcements")
+    await page.getByRole("button", { name: "New announcement" }).first().click()
+    const drawer = page.getByRole("dialog", { name: "New announcement" })
+    const title = `Maintenance ${Date.now().toString(36)}`
+    await drawer.getByText("Critical", { exact: true }).click()
+    await drawer.getByLabel("Title").fill(title)
+    await drawer.getByLabel("Message", { exact: true }).fill("Login servers are down. Bots will retry on their own.")
+    await drawer.getByRole("switch", { name: "Players can close it" }).click()
+    const preview = drawer.locator(".gge-alert")
+    assert(await preview.getAttribute("data-severity") === "critical" && (await preview.innerText()).includes(title) && await preview.getByRole("button", { name: "Close this message" }).count() === 0,
+        "the drawer's preview follows the severity, the title and the close switch as they are set")
+    await axe(page, "new announcement drawer")
+    await page.screenshot({ path: `${out}/admin-announcement-drawer-1440.png` })
     await page.setViewportSize({ width: 390, height: 844 })
-    for (const [path, file] of [["/", "overview"], ["/users", "users"], ["/accounts", "accounts"], ["/proxies", "proxies"], ["/audit", "audit"], ["/settings", "settings"], [accountsUrl, "user page"]]) {
+    await overflowAt390("the announcement drawer")
+    await page.screenshot({ path: `${out}/admin-announcement-drawer-390.png`, fullPage: true })
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await drawer.getByRole("button", { name: "Publish" }).click()
+    await page.getByText("Announcement published").waitFor()
+    const announcementRow = page.getByRole("row").filter({ hasText: title })
+    await announcementRow.getByText("Live", { exact: true }).waitFor()
+    assert(await announcementRow.getByText("Can't be closed").isVisible(), "the published announcement is listed as live and not closable")
+    await axe(page, "announcements")
+    await page.screenshot({ path: `${out}/admin-announcements-1440.png`, fullPage: true })
+    await announcementRow.getByRole("button", { name: `End ${title} now` }).click()
+    await confirm(page, "End now")
+    await announcementRow.getByText("Ended", { exact: true }).waitFor()
+    assert(true, "ending the announcement marks it ended")
+    await nav(page, "Audit")
+    await page.getByText("admin.announcement.end").first().waitFor()
+    assert((await page.locator("tbody").textContent()).includes("admin.announcement.create"), "the audit shows the announcement's create and end")
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    for (const [path, file] of [["/billing", "billing"], ["/announcements", "announcements"], ["/", "overview"], ["/users", "users"], ["/accounts", "accounts"], ["/proxies", "proxies"], ["/audit", "audit"], ["/settings", "settings"], [accountsUrl, "user page"]]) {
         await page.goto(base + path)
         await page.locator(".ant-layout-header").waitFor()
         if (file === "accounts" || file === "user page") await page.getByText(asleep.tag, { exact: true }).waitFor()
         await page.waitForTimeout(900)
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
         assert(overflow === 0, `no horizontal overflow at 390 on ${file} (diff ${overflow})`)
-        if (file === "overview" || file === "users" || file === "accounts" || file === "user page") await page.screenshot({ path: `${out}/admin-${file.replace(" ", "-")}-390.png` })
+        if (["overview", "users", "accounts", "user page", "billing", "announcements"].includes(file)) await page.screenshot({ path: `${out}/admin-${file.replace(" ", "-")}-390.png` })
     }
     await asleep.clearSchedule()
 

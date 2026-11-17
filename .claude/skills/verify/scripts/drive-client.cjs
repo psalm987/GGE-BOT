@@ -240,6 +240,201 @@ async function driveLogs(page) {
     await page.setViewportSize({ width: 1280, height: 860 })
 }
 
+const WIDE_VIEW = { width: 1440, height: 900 }, PHONE_VIEW = { width: 390, height: 844 }
+const randomIp = () => `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${1 + Math.floor(Math.random() * 254)}`
+
+/** One player-API call from outside a browser, as a fresh IP so the per-IP sign-up limit never trips. Returns the answer and any cookies set. */
+async function clientCall(path, body, cookie) {
+    const res = await fetch(`${API_URL}/rpc/${path}`, { method: "POST", headers: { origin: CLIENT_URL, "content-type": "application/json", "x-forwarded-for": randomIp(), ...(cookie && { cookie }) }, body: JSON.stringify({ json: body }) })
+    return { json: (await res.json()).json, cookies: res.headers.getSetCookie().map(c => c.split(";")[0]) }
+}
+
+/** An admin-API call as the seeded admin. `meta` marks Date fields the way oRPC's wire format does. */
+async function adminCall(path, body, meta) {
+    adminCookie ??= await adminSessionCookie({ apiUrl: API_URL, adminUrl: ADMIN_URL })
+    const res = await fetch(`${API_URL}/admin/rpc/${path}`, { method: "POST", headers: { origin: ADMIN_URL, "content-type": "application/json", cookie: adminCookie }, body: JSON.stringify({ json: body, meta }) })
+    return (await res.json()).json
+}
+
+/** A player signed up and confirmed through the API: what billing needs as a starting point, with no gate to click through. */
+async function verifiedPlayer(prefix) {
+    const name = prefix + Date.now().toString(36)
+    const email = `${name}@example.test`
+    const { cookies } = await clientCall("auth/signup", { username: name, email, password: "a-strong-password" })
+    await clientCall("auth/verifyEmail", { token: new URL(emailedLink(email)).searchParams.get("token") })
+    return { name, email, cookie: cookies.find(c => c.startsWith("gge_session=")) }
+}
+
+const asCookie = (pair, url) => ({ name: pair.split("=")[0], value: pair.slice(pair.indexOf("=") + 1), url })
+const overflowOf = page => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+
+/** axe and a screenshot at 1440 and at 390, with no sideways scroll on the phone. */
+async function atBothWidths(page, file, what) {
+    await page.setViewportSize(WIDE_VIEW)
+    await axe(page, `${what} 1440`)
+    await page.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(300)
+    await axe(page, `${what} 390`)
+    assert(await overflowOf(page) <= 0, `no horizontal overflow on ${what} at 390`)
+    await page.screenshot({ path: `${out}/${file}-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+}
+
+/**
+ * Plans, banners and Paystack. With billing off a new player sees no plan anywhere, and an announcement closes for
+ * good. With the stack started on the stub Paystack it then goes live from the admin app, buys Basic through the
+ * stub, gets a Team-5 purchase recorded for it, has a second player redeem one of the codes from a shared link, and
+ * goes back to free.
+ */
+async function driveBilling(browser) {
+    const start = await adminCall("billing/status", {})
+    if (start.billingLive)
+        await adminCall("billing/setLive", { live: false })
+    const p1 = await verifiedPlayer("b")
+    const player = await (await browser.newContext({ viewport: WIDE_VIEW })).newPage()
+    await player.context().addCookies([asCookie(p1.cookie, CLIENT_URL)])
+    const alertsLoaded = () => player.waitForResponse(r => r.url().includes("/rpc/alerts/list"))
+    const banner = text => player.locator(".gge-alert", { hasText: text })
+
+    let loaded = alertsLoaded()
+    await player.goto(`${CLIENT_URL}/`)
+    await player.getByText("No accounts yet").waitFor()
+    await loaded
+    assert(await player.getByRole("menuitem", { name: "Plan" }).count() === 0, "billing off: the player's nav has no Plan")
+    assert(await player.locator(".gge-alert").count() === 0, "billing off: a new player sees no plan, trial or points banner")
+    await player.goto(`${CLIENT_URL}/plan`)
+    await player.waitForURL(url => url.pathname === "/")
+    assert(true, "billing off: /plan sends a player back to their accounts")
+    await player.goto(`${CLIENT_URL}/settings`)
+    await player.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
+    assert(await player.getByRole("switch", { name: "Email me when my free trial starts" }).count() === 0, "billing off: Settings hides the four plan email switches")
+
+    const title = `Servers restart ${Date.now().toString(36)}`
+    const announcement = await adminCall("announcements/create", {
+        severity: "warning", title, body: "The game servers restart at 02:00 UTC. Your bots reconnect by themselves.", linkUrl: "https://example.com/status",
+        startsAt: new Date(Date.now() - 60_000).toISOString(), endsAt: null, dismissible: true,
+    }, [[1, "startsAt"]])
+    await player.goto(`${CLIENT_URL}/`)
+    await banner(title).waitFor()
+    assert(await banner(title).getAttribute("role") === "status" && await banner(title).getByRole("link", { name: "Learn more" }).count() === 1, "an admin's announcement shows under the header as a status with its Learn more link")
+    await atBothWidths(player, "billing-01-announcement", "announcement banner")
+    await banner(title).getByRole("button", { name: "Close this message" }).click()
+    await banner(title).waitFor({ state: "detached" })
+    loaded = alertsLoaded()
+    await player.reload()
+    await loaded
+    await player.getByText("No accounts yet").waitFor()
+    assert(await banner(title).count() === 0, "a closed announcement stays closed after a reload")
+    await adminCall("announcements/end", { id: announcement.id })
+
+    if (!start.paystackConfigured) {
+        console.log("skip: billing live steps need PAYSTACK_SECRET_KEY=sk_test_dummy and PAYSTACK_BASE_URL pointing at stub-paystack.cjs")
+        return
+    }
+
+    adminCookie ??= await adminSessionCookie({ apiUrl: API_URL, adminUrl: ADMIN_URL })
+    const admin = await (await browser.newContext({ viewport: WIDE_VIEW })).newPage()
+    await admin.context().addCookies([asCookie(adminCookie, ADMIN_URL)])
+    await admin.goto(`${ADMIN_URL}/billing`)
+    await admin.getByText("Test key", { exact: true }).waitFor()
+    assert(await admin.getByText("This is a Paystack test key: it takes no real money.").isVisible(), "the admin's Billing page warns that the Paystack key is a test key")
+    await admin.getByRole("tab", { name: "Packages" }).click()
+    const basic = admin.locator(".gge-package-row", { hasText: "basic_28" })
+    await basic.getByLabel("Price").fill("5")
+    const save = basic.getByRole("button", { name: "Save basic_28" })
+    // A run before this one may have set the same price already, which leaves nothing to save.
+    if (await save.isEnabled()) {
+        await save.click()
+        await admin.getByText("basic_28 saved").waitFor()
+    }
+    assert((await adminCall("billing/packages", {})).some(p => p.id === "basic_28" && p.priceMinor === 500 && p.currency === "USD"), "the admin prices Basic at 5.00 USD on the Packages tab")
+    await atBothWidths(admin, "billing-02-admin-packages", "admin billing packages")
+    await admin.getByRole("button", { name: "Go live" }).click()
+    const goLive = admin.getByRole("dialog", { name: "Go live with plans?" })
+    await goLive.getByText(/active players? will get a 7-day trial\. When it ends, bots beyond their plan stop\./).waitFor()
+    assert(await goLive.getByText("This is a Paystack test key: it takes no real money.").isVisible(), "the go-live dialog says how many players get a trial and warns about the test key again")
+    await admin.waitForTimeout(400)
+    await axe(admin, "admin go-live dialog")
+    await admin.screenshot({ path: `${out}/billing-03-go-live-dialog-1440.png` })
+    await goLive.getByRole("button", { name: "Go live" }).click()
+    await admin.getByText("Plans (live)").waitFor()
+    assert(true, "going live turns the switch on")
+    await atBothWidths(admin, "billing-04-admin-live", "admin billing live")
+
+    loaded = alertsLoaded()
+    await player.goto(`${CLIENT_URL}/`)
+    await loaded
+    await banner("Your free trial ends in").waitFor()
+    assert((await banner("Your free trial ends in").innerText()).includes("7 days"), "once live, the player sees their 7-day trial banner")
+    await atBothWidths(player, "billing-05-trial-banner", "trial banner")
+    await player.getByRole("menuitem", { name: "Plan" }).click()
+    await player.waitForURL(url => url.pathname === "/plan")
+    await player.locator(".gge-package", { hasText: "$5" }).waitFor()
+    assert(await player.locator(".gge-plan-name").innerText() === "Basic" && await player.getByText("Free trial").first().isVisible(), "the Plan page shows Basic on a free trial and Basic for sale at $5")
+    await atBothWidths(player, "billing-06-plan", "plan page")
+
+    await player.getByRole("button", { name: /^Pay \$5 for Basic/ }).click()
+    await player.waitForURL(/\/plan\/return\?reference=gge_/)
+    await player.getByText("Payment received").waitFor()
+    assert(await player.getByText("You earned 1 point.").isVisible(), "paying through the stub lands on the return page, which says what was added and the point earned")
+    await atBothWidths(player, "billing-07-return", "payment return page")
+    await player.getByRole("button", { name: "Go to your plan" }).click()
+    await player.locator(".gge-points-balance", { hasText: "1 point" }).waitFor()
+    assert(true, "the Plan page shows 1 point")
+
+    await admin.goto(`${ADMIN_URL}/users?plan=trial`)
+    await admin.getByRole("link", { name: p1.name }).waitFor()
+    assert(true, "the admin's Users page lists the player under the On a trial filter")
+    await admin.screenshot({ path: `${out}/billing-08-admin-users-1440.png` })
+    await admin.getByRole("link", { name: p1.name }).click()
+    await admin.getByRole("tab", { name: "Plan" }).click()
+    await admin.getByRole("button", { name: "Record purchase" }).click()
+    const record = admin.getByRole("dialog", { name: `Record a purchase for ${p1.name}` })
+    await record.getByLabel("Package").click()
+    await admin.locator(".ant-select-item-option", { hasText: "team5_28" }).click()
+    await record.getByRole("button", { name: "Record purchase" }).click()
+    await admin.getByText("Purchase recorded").waitFor()
+    await admin.locator(".ant-tag", { hasText: "Unused" }).nth(4).waitFor()
+    assert(true, "the admin records a Team-5 purchase on the player's Plan tab and sees its 5 codes")
+    await atBothWidths(admin, "billing-09-admin-user-plan", "admin user plan")
+
+    await player.reload()
+    await player.getByRole("tab", { name: "Team codes" }).click()
+    await player.locator("code.gge-code").nth(4).waitFor()
+    const code = await player.locator("code.gge-code").first().innerText()
+    assert(/^GGE-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code), "the player sees their 5 Team codes")
+
+    const p2 = await verifiedPlayer("r")
+    const friend = await (await browser.newContext({ viewport: WIDE_VIEW })).newPage()
+    await friend.goto(`${CLIENT_URL}/redeem?code=${encodeURIComponent(code)}`)
+    await friend.getByText("Sign in or create an account to redeem your code").waitFor()
+    await friend.getByLabel("Username or email").fill(p2.name)
+    await friend.getByLabel("Password").fill("a-strong-password")
+    await friend.getByRole("button", { name: "Sign in" }).click()
+    await friend.getByText("Code redeemed").waitFor()
+    assert(await friend.getByText("28 days of Team added.").isVisible(), "a second player opens the shared link signed out, signs in, and the code is redeemed")
+    await atBothWidths(friend, "billing-10-redeemed", "redeem link")
+    await player.reload()
+    await player.getByRole("tab", { name: "Team codes" }).click()
+    await player.getByText(p2.name).waitFor()
+    assert(true, "the buyer sees who redeemed the code")
+
+    await admin.goto(`${ADMIN_URL}/billing`)
+    await admin.getByRole("button", { name: "Back to free" }).click()
+    await admin.locator(".ant-popover").getByRole("button", { name: "Back to free" }).click()
+    await admin.getByText("Free rules").waitFor()
+    loaded = alertsLoaded()
+    await player.goto(`${CLIENT_URL}/`)
+    await loaded
+    await player.getByText("No accounts yet").waitFor()
+    assert(await banner("Your free trial").count() === 0 && await player.getByRole("menuitem", { name: "Plan" }).count() === 0, "back to free: the trial banner and the Plan nav are gone")
+
+    for (const [who, cookie] of [[p1, p1.cookie], [p2, (await friend.context().cookies()).filter(c => c.name === "gge_session").map(c => `${c.name}=${c.value}`)[0]]])
+        await clientCall("account/deleteMe", { password: "a-strong-password", confirmUsername: who.name }, cookie)
+    await Promise.all([player.context().close(), admin.context().close(), friend.context().close()])
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } })
@@ -567,7 +762,8 @@ async function driveLogs(page) {
     await hailRow.getByText("Over plan limit").waitFor()
     assert(await hailRow.getByRole("button", { name: `Start ${hail}` }).isDisabled(), "after the admin lowers the limit the newest account shows Over plan limit with Start disabled")
     assert(await galeRows.first().getByRole("button", { name: `Start ${gale}` }).isEnabled(), "the oldest account can still start")
-    assert(await page.getByText("1 account is over your plan limit and can't start.").isVisible(), "the page explains the over-limit account")
+    await page.locator(".gge-alert", { hasText: "1 account is stopped: your plan allows 1." }).waitFor()
+    assert(true, "a banner under the header explains the over-limit account")
     await hailRow.getByText("Over plan limit").hover()
     await page.getByRole("tooltip").filter({ hasText: "Your plan runs your oldest bot" }).waitFor()
     assert(true, "the over-limit state explains itself in a tooltip")
@@ -808,6 +1004,7 @@ async function driveLogs(page) {
         await page.getByText("Wrong username or password").waitFor()
     }
     assert(true, "the deleted account's username and email no longer sign in")
+    await driveBilling(browser)
     await browser.close()
     console.log("ALL OK")
 })().catch(e => { console.error(e.message); process.exit(1) })

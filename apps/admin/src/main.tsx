@@ -9,7 +9,9 @@ import { CampaignProvider, initI18n } from "@gge/ui"
 import { client, queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { Accounts } from "./pages/Accounts.tsx"
+import { Announcements } from "./pages/Announcements.tsx"
 import { Audit } from "./pages/Audit.tsx"
+import { Billing } from "./pages/Billing.tsx"
 import { Login } from "./pages/Login.tsx"
 import { Overview } from "./pages/Overview.tsx"
 import { Proxies } from "./pages/Proxies.tsx"
@@ -37,6 +39,8 @@ createRoot(document.getElementById("root")!, {
                         <Route path="/users/:id" element={guarded(<UserDetail />)} />
                         <Route path="/accounts" element={guarded(<Accounts />)} />
                         <Route path="/proxies" element={guarded(<Proxies />)} />
+                        <Route path="/billing" element={guarded(<Billing />)} />
+                        <Route path="/announcements" element={guarded(<Announcements />)} />
                         <Route path="/audit" element={guarded(<Audit />)} />
                         <Route path="/settings" element={guarded(<Settings />)} />
                         <Route path="*" element={<Navigate to="/" replace />} />

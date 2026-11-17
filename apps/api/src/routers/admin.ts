@@ -1,7 +1,7 @@
 import { implement, ORPCError } from "@orpc/server"
 import { and, count, desc, eq, gt, ilike, inArray, like, lt, max, or, sql } from "drizzle-orm"
-import { appSettings, auditLog, botRuns, botStatus, gameAccounts, runnerHeartbeat, sessions, userTotp, users, type Db } from "@gge/db"
-import { adminContract } from "@gge/contracts"
+import { appSettings, auditLog, botRuns, botStatus, gameAccounts, planPeriods, runnerHeartbeat, sessions, userTotp, users, type Db } from "@gge/db"
+import { adminContract, type PlanId } from "@gge/contracts"
 import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
@@ -13,6 +13,7 @@ import { revokeCode } from "../services/codes.ts"
 import { listPackages, listPurchases, markRefunded, recordPurchase, updatePackage } from "../services/purchases.ts"
 import { adjustPoints, billingSettings, updateBillingSettings } from "../services/points.ts"
 import { detectLocale } from "../services/i18n.ts"
+import { endPeriodNow, grantDays, listPlans, setLimitOverride, updatePlan, userPlan } from "../services/plan-admin.ts"
 import { alertsChanged } from "../services/realtime.ts"
 import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
@@ -22,14 +23,30 @@ import { currentUser, logout } from "./auth.ts"
 /** A LIKE pattern for "contains", with `%`, `_` and backslash in the text matched literally. */
 const contains = (text: string) => `%${text.replace(/[%_\\]/g, "\\$&")}%`
 
-/** Every `AdminUser` column, with the account count; filter, then group by user id. */
+/** The user's period covering now, and the end of their whole queue, which runs on from it without a gap. */
+const currentSource = sql<string | null>`(select ${planPeriods.source} from ${planPeriods} where ${planPeriods.userId} = ${users.id} and ${planPeriods.startsAt} <= now() and ${planPeriods.endsAt} > now() limit 1)`
+const currentPlanId = sql<PlanId | null>`(select ${planPeriods.planId} from ${planPeriods} where ${planPeriods.userId} = ${users.id} and ${planPeriods.startsAt} <= now() and ${planPeriods.endsAt} > now() limit 1)`
+const coverEnd = sql`(select max(${planPeriods.endsAt}) from ${planPeriods} where ${planPeriods.userId} = ${users.id} and ${planPeriods.endsAt} > now())`
+
+const PLAN_FILTERS = {
+    trial: sql`${currentSource} = 'trial'`,
+    expiring: sql`${coverEnd} <= now() + interval '7 days'`,
+    none: sql`${currentSource} is null and ${users.role} = 'user'`,
+}
+
+/** Every `AdminUser` column, with the account count; filter, then group by user id, then map with withPlan. */
 const adminUsers = (db: Db) => db.select({
     id: users.id, username: users.username, role: users.role, email: users.email,
-    emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, status: users.status, createdAt: users.createdAt,
+    emailVerified: sql<boolean>`${users.emailVerifiedAt} is not null`, maxBots: users.maxBots, maxBotsOverride: users.maxBotsOverride, status: users.status, createdAt: users.createdAt,
     attackPluginCap: users.attackPluginCap,
     accountCount: count(gameAccounts.id),
     totpEnabled: sql<boolean>`exists (select 1 from ${userTotp} where ${userTotp.userId} = ${users.id} and ${userTotp.confirmedAt} is not null)`,
+    planId: currentPlanId, planSource: currentSource, planEndsAt: sql<Date | null>`${coverEnd}`.mapWith(planPeriods.endsAt),
 }).from(users).leftJoin(gameAccounts, eq(gameAccounts.ownerId, users.id))
+
+const withPlan = <T extends { planId: PlanId | null; planSource: string | null; planEndsAt: Date | null }>({ planId, planSource, planEndsAt, ...user }: T) => ({
+    ...user, plan: planId && planEndsAt ? { planId, isTrial: planSource === "trial", endsAt: planEndsAt } : null,
+})
 
 const os = implement(adminContract).$context<Ctx>()
 
@@ -92,6 +109,7 @@ export const adminRouter = os.router({
                 input.search ? ilike(users.username, contains(input.search)) : undefined,
                 input.role ? eq(users.role, input.role) : undefined,
                 input.status ? eq(users.status, input.status) : undefined,
+                input.plan ? PLAN_FILTERS[input.plan] : undefined,
             )
             const [items, [total]] = await Promise.all([
                 adminUsers(db)
@@ -101,7 +119,7 @@ export const adminRouter = os.router({
                     .limit(input.limit).offset(input.offset),
                 db.select({ n: count() }).from(users).where(where),
             ])
-            return { items, total: total!.n }
+            return { items: items.map(withPlan), total: total!.n }
         }),
         get: os.users.get.use(admin).handler(async ({ context: { db }, input }) => {
             const [user] = await adminUsers(db).where(eq(users.id, input.id)).groupBy(users.id)
@@ -113,7 +131,7 @@ export const adminRouter = os.router({
                     .where(and(eq(sessions.userId, input.id), gt(sessions.expiresAt, sql`now()`))).groupBy(sessions.audience),
             ])
             const sessionsOf = (audience: "client" | "admin") => live.find(row => row.audience === audience)?.n ?? 0
-            return { ...user, lastLoginAt: login?.ts ?? null, sessions: { client: sessionsOf("client"), admin: sessionsOf("admin") } }
+            return { ...withPlan(user), lastLoginAt: login?.ts ?? null, sessions: { client: sessionsOf("client"), admin: sessionsOf("admin") } }
         }),
         setStatus: os.users.setStatus.use(admin).handler(async ({ context: { db, user }, input }) => {
             notSelf(user.id, input.id, "You can't disable yourself")
@@ -148,6 +166,7 @@ export const adminRouter = os.router({
             })
             await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots, stopped } })
         }),
+        setLimitOverride: os.users.setLimitOverride.use(admin).handler(({ context: { db, user }, input }) => setLimitOverride(db, user.id, input.id, input.maxBotsOverride)),
         setAttackPluginCap: os.users.setAttackPluginCap.use(admin).handler(async ({ context: { db, user }, input }) => {
             const [before] = await db.select({ cap: users.attackPluginCap }).from(users).where(eq(users.id, input.id))
             if (!before)
@@ -195,6 +214,11 @@ export const adminRouter = os.router({
         purchases: os.billing.purchases.use(admin).handler(({ context: { db }, input }) => listPurchases(db, input)),
         markRefunded: os.billing.markRefunded.use(admin).handler(({ context: { db, user }, input }) => markRefunded(db, user.id, input.purchaseId)),
         revokeCode: os.billing.revokeCode.use(admin).handler(({ context: { db, user }, input }) => revokeCode(db, user.id, input.codeId)),
+        plans: os.billing.plans.use(admin).handler(({ context: { db } }) => listPlans(db)),
+        updatePlan: os.billing.updatePlan.use(admin).handler(({ context: { db, user }, input }) => updatePlan(db, user.id, input)),
+        userPlan: os.billing.userPlan.use(admin).handler(({ context: { db }, input }) => userPlan(db, input.userId)),
+        grantDays: os.billing.grantDays.use(admin).handler(({ context: { db, user }, input }) => grantDays(db, user.id, input)),
+        endPeriod: os.billing.endPeriod.use(admin).handler(({ context: { db, user }, input }) => endPeriodNow(db, user.id, input.userId)),
     },
     announcements: {
         list: os.announcements.list.use(admin).handler(({ context: { db } }) => listAnnouncements(db)),

@@ -8,6 +8,7 @@ import { audit } from "../services/audit.ts"
 import { requireBillingLive } from "../services/billing.ts"
 import { myCodes, redeemCode } from "../services/codes.ts"
 import { billingConfig, checkout, confirmPayment } from "../services/payments.ts"
+import { myPlan } from "../services/plans.ts"
 import { myPurchases } from "../services/purchases.ts"
 import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
@@ -129,7 +130,11 @@ export const clientRouter = os.router({
     },
     billing: {
         config: os.billing.config.use(verified).handler(({ context }) => billingConfig(context, context.user.role)),
-        checkout: os.billing.checkout.use(verified).handler(({ context, input }) => checkout(context, context.user, input.packageId)),
+        checkout: os.billing.checkout.use(verified).handler(({ context, input }) => {
+            if (!context.limits.checkout.hit(`user:${context.user.id}`))
+                throw tooMany()
+            return checkout(context, context.user, input.packageId)
+        }),
         confirm: os.billing.confirm.use(verified).handler(({ context, input }) => confirmPayment(context, context.user.id, input.reference)),
         points: os.billing.points.use(billing).handler(({ context: { db, user }, input }) => pointsSummary(db, user.id, input)),
         redeemPoints: os.billing.redeemPoints.use(billing).handler(async ({ context: { db, user }, input }) => {
@@ -149,6 +154,7 @@ export const clientRouter = os.router({
         }),
         myCodes: os.billing.myCodes.use(billing).handler(({ context: { db, user } }) => myCodes(db, user.id)),
         myPurchases: os.billing.myPurchases.use(billing).handler(({ context: { db, user } }) => myPurchases(db, user.id)),
+        myPlan: os.billing.myPlan.use(billing).handler(({ context: { db, user } }) => myPlan(db, user.id)),
     },
     plugins: {
         catalog: os.plugins.catalog.use(verified).handler(async ({ context }) =>

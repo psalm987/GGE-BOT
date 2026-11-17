@@ -2,8 +2,8 @@ import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
 import { AdminAnnouncement, Alerts, CreateAnnouncement, POINTS_NUDGE, UpdateAnnouncement } from "./alerts.ts"
 import {
-    AdminPurchase, BillingConfig, BillingSettings, BillingStatus, Checkout, LicenseCode, Package, PaymentOutcome, Period, PointsRedemption, PointsSummary, Purchase, PurchaseStatus,
-    RecordPurchase, UpdatePackage,
+    AdminPeriod, AdminPurchase, BillingConfig, BillingSettings, BillingStatus, Checkout, GrantDays, LicenseCode, MyPlan, Package, PaymentOutcome, Period, PlanRow, PointsRedemption,
+    PointsSummary, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage, UserPlan,
 } from "./billing.ts"
 import { DataExport } from "./data-export.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
@@ -116,7 +116,7 @@ export const clientContract = {
         config: oc.output(BillingConfig),
         /**
          * Starts paying for a package with Paystack: send the browser to authorizationUrl. Refused with data.code PAYMENTS_DISABLED
-         * without a Paystack key on the API, or for a player while billing is off.
+         * without a Paystack key on the API, or for a player while billing is off. Five a player per 10 minutes, then TOO_MANY_REQUESTS.
          */
         checkout: oc.input(z.object({ packageId: z.string().min(1).max(64) })).output(Checkout),
         /**
@@ -139,6 +139,8 @@ export const clientContract = {
         /** The codes of the Team packages the caller bought, newest purchase first. */
         myCodes: oc.output(z.array(LicenseCode)),
         myPurchases: oc.output(z.array(Purchase)),
+        /** The caller's plan now, what is queued behind it, and how many accounts it runs. */
+        myPlan: oc.output(MyPlan),
     },
     plugins: {
         catalog: oc.output(z.array(PluginCatalogEntry)),
@@ -168,12 +170,15 @@ export const adminContract = {
     overview: oc.output(Overview),
     users: {
         /** `search` matches a username, case-insensitively, anywhere in it. Newest first. */
-        list: oc.input(Page.extend({ search: Search, role: Role.optional(), status: UserStatus.optional() }))
+        /** `plan`: on a trial now, cover running out within 7 days, or no plan covering now. */
+        list: oc.input(Page.extend({ search: Search, role: Role.optional(), status: UserStatus.optional(), plan: z.enum(["trial", "expiring", "none"]).optional() }))
             .output(z.object({ items: z.array(AdminUser), total: z.number().int() })),
         get: oc.input(Id).output(AdminUserDetail),
         setStatus: oc.input(Id.extend({ status: UserStatus })).output(z.void()),
         setRole: oc.input(Id.extend({ role: Role })).output(z.void()),
         setMaxBots: oc.input(Id.extend({ maxBots: z.number().int().min(0).max(50) })).output(z.void()),
+        /** Replaces the plan's account limit for this user while billing is live; null follows the plan again. */
+        setLimitOverride: oc.input(Id.extend({ maxBotsOverride: z.number().int().min(0).max(50).nullable() })).output(z.void()),
         /** null clears the override, so the user follows the global default. */
         setAttackPluginCap: oc.input(Id.extend({ cap: AttackPluginCap.nullable() })).output(z.void()),
         revokeSessions: oc.input(Id).output(z.void()),
@@ -212,6 +217,14 @@ export const adminContract = {
         markRefunded: oc.input(z.object({ purchaseId: z.uuid() })).output(AdminPurchase),
         /** Refused with data.code CODE_USED for a code someone has redeemed. */
         revokeCode: oc.input(z.object({ codeId: z.uuid() })).output(z.void()),
+        /** The plans and how many accounts each runs. */
+        plans: oc.output(z.array(PlanRow)),
+        updatePlan: oc.input(z.object({ id: PlanRow.shape.id, maxAccounts: z.number().int().min(0).max(50) })).output(PlanRow),
+        userPlan: oc.input(z.object({ userId: z.uuid() })).output(UserPlan),
+        /** Queues days on a plan behind the user's last period. The note says why and goes in the audit log. */
+        grantDays: oc.input(GrantDays).output(AdminPeriod),
+        /** Ends the period covering now and moves the queued ones up, so nothing is left with a gap. `ended` is false when none covered now. */
+        endPeriod: oc.input(z.object({ userId: z.uuid() })).output(z.object({ ended: z.boolean() })),
     },
     /** Banners shown to every player. Each change is audited. */
     announcements: {

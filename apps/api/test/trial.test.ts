@@ -89,7 +89,7 @@ describe("with a Paystack key", () => {
             expect(before).toMatchObject({ billingLive: false, paystackConfigured: true })
             const trialsBefore = (await api.db.select().from(planPeriods).where(eq(planPeriods.source, "trial"))).length
 
-            expect(await admin.api.billing.setLive({ live: true })).toEqual({ billingLive: true, paystackConfigured: true, usersGettingTrial: 0 })
+            expect(await admin.api.billing.setLive({ live: true })).toEqual({ billingLive: true, paystackConfigured: true, paystackMode: "test", usersGettingTrial: 0 })
 
             const trials = await api.db.select().from(planPeriods).where(eq(planPeriods.source, "trial"))
             expect(trials.length - trialsBefore).toBe(before.usersGettingTrial)

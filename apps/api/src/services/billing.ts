@@ -32,7 +32,8 @@ const owedTrial = (db: Reader) => and(
 
 export async function billingStatus(db: Reader, env: Env): Promise<BillingStatus> {
     const [billingLive, [owed]] = await Promise.all([isBillingLive(db), db.select({ n: count() }).from(users).where(owedTrial(db))])
-    return { billingLive, paystackConfigured: !!env.PAYSTACK_SECRET_KEY, usersGettingTrial: owed!.n }
+    const key = env.PAYSTACK_SECRET_KEY
+    return { billingLive, paystackConfigured: !!key, paystackMode: key ? key.startsWith("sk_test_") ? "test" : "live" : null, usersGettingTrial: owed!.n }
 }
 
 const setSwitch = (tx: Pick<Db, "insert">, billingLive: boolean) => tx.insert(appSettings).values({ id: 1, billingLive })

@@ -1,6 +1,7 @@
-import { and, desc, eq, gt, gte, lte, sql } from "drizzle-orm"
-import type { PeriodSource, PlanId } from "@gge/contracts"
-import { appSettings, insertNotification, planPeriods, users, type Db } from "@gge/db"
+import { and, asc, desc, eq, gt, gte, lte, sql } from "drizzle-orm"
+import { countedAccounts, type MyPlan, type PeriodSource, type PlanId } from "@gge/contracts"
+import { appSettings, insertNotification, loadPlanOwners, loadPlanStates, planOwnerColumns, planPeriods, users, type Db } from "@gge/db"
+import { ownerAccounts } from "./accounts.ts"
 
 type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
 
@@ -79,4 +80,22 @@ export async function endCurrentPeriod(tx: Tx, userId: string, now = new Date())
         .set({ startsAt: sql`${planPeriods.startsAt} - ${cut}`, endsAt: sql`${planPeriods.endsAt} - ${cut}` })
         .where(and(eq(planPeriods.userId, userId), gte(planPeriods.startsAt, current.endsAt)))
     return current
+}
+
+/** What the Plan page shows the player: the plan covering now, the queue behind it, and accounts against the limit. */
+export async function myPlan(db: Pick<Db, "select">, userId: string, now = new Date()): Promise<MyPlan> {
+    const [[owner], periods, accounts, states] = await Promise.all([
+        db.select(planOwnerColumns).from(users).where(eq(users.id, userId)),
+        db.select(periodColumns).from(planPeriods).where(and(eq(planPeriods.userId, userId), gt(planPeriods.endsAt, now))).orderBy(asc(planPeriods.startsAt)),
+        ownerAccounts(db, userId),
+        loadPlanStates(db, [userId], now),
+    ])
+    const limits = (await loadPlanOwners(db, [owner!], now)).get(userId)!
+    const plan = states.get(userId)?.plan
+    return {
+        current: plan ? { planId: plan.planId, isTrial: plan.isTrial, endsAt: plan.endsAt } : null,
+        periods,
+        limit: owner!.role === "admin" ? null : limits.maxBots,
+        counted: countedAccounts(accounts),
+    }
 }

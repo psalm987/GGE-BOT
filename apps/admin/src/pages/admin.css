@@ -1,0 +1,8 @@
+/* Admin pages that need more than antd gives. The Billing Packages tab: one editable row per package, ruled apart. */
+.gge-package-rows { display: grid; }
+.gge-package-row { padding-block: 16px; border-bottom: 1px solid var(--gge-rule); }
+.gge-package-row:first-child { padding-top: 4px; }
+.gge-package-row:last-child { border-bottom: 0; }
+
+/* The announcement drawer's live preview stays at the top while the form scrolls. */
+.gge-announcement-preview { position: sticky; top: -24px; z-index: 2; margin: 8px -24px 24px; padding: 8px 24px 12px; background: #211A15; }

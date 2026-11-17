@@ -1,0 +1,56 @@
+/* The Plan page. Colours come from the theme's custom properties in @gge/ui. */
+.gge-plan .ant-card-body { display: grid; gap: 20px; align-content: start; }
+
+.gge-plan-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+.gge-plan-name { font-size: 28px; font-weight: 700; color: var(--gge-gold); line-height: 1.1; }
+.gge-plan-ends { display: grid; justify-items: end; gap: 2px; text-align: end; }
+.gge-plan-ends strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.gge-plan-none { display: grid; gap: 4px; }
+
+.gge-plan-usage { display: grid; gap: 2px; }
+.gge-plan-usage-label { display: flex; justify-content: space-between; gap: 12px; color: var(--gge-muted); }
+.gge-plan-usage-label strong { color: var(--gge-parchment); font-variant-numeric: tabular-nums; }
+
+.gge-plan-queue ol { list-style: none; margin: 8px 0 0; padding: 0; border-inline-start: 2px solid var(--gge-rule); }
+.gge-plan-queue li { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 8px 0 8px 18px; }
+.gge-plan-queue li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -6px;
+    top: 15px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gge-ink);
+    border: 2px solid var(--gge-rule);
+}
+.gge-plan-queue li[data-now]::before { background: var(--gge-gold); border-color: var(--gge-gold); }
+.gge-plan-queue-when { color: var(--gge-muted); font-variant-numeric: tabular-nums; }
+
+.gge-packages { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.gge-package {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    border: 1px solid var(--gge-rule);
+    border-radius: 8px;
+    background: rgba(243, 231, 201, 0.03);
+}
+.gge-package-name { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.04em; font-weight: 700; font-size: 17px; }
+.gge-package-price { font-size: 26px; font-weight: 700; color: var(--gge-gold); font-variant-numeric: tabular-nums; }
+.gge-package-days { color: var(--gge-muted); font-size: 14px; }
+.gge-package-gives { flex: 1; display: grid; gap: 6px; align-content: start; margin: 10px 0 14px; padding: 0; list-style: none; }
+.gge-package-gives .anticon { color: var(--gge-gold); margin-inline-end: 4px; }
+
+.gge-code-input input, .gge-code-input { font-family: var(--gge-mono); letter-spacing: 0.06em; }
+.gge-code { font-family: var(--gge-mono); font-size: 14px; letter-spacing: 0.04em; white-space: nowrap; }
+.gge-field-hint { color: var(--gge-muted); font-size: 13px; }
+.gge-field-error { color: var(--gge-level-error); font-size: 13px; }
+
+.gge-points { display: grid; gap: 14px; }
+.gge-points-balance { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.gge-return { display: grid; justify-items: center; gap: 12px; max-width: 560px; margin: 24px auto; text-align: center; }
+.gge-return .anticon { font-size: 44px; }
+.gge-return-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }

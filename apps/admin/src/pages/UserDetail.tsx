@@ -9,9 +9,10 @@ import { orpc } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
 import { AuditTable } from "../components/AuditTable.tsx"
 import { UserAccounts } from "../components/UserAccounts.tsx"
+import { UserPlanPanel } from "../components/UserPlanPanel.tsx"
 import { AttackCapSelect, BotLimitInput, UserActionButtons, useUserActions } from "../components/UserControls.tsx"
 
-const TABS = ["profile", "accounts", "audit"] as const
+const TABS = ["profile", "plan", "accounts", "audit"] as const
 type Tab = (typeof TABS)[number]
 
 const codeOf = (error: unknown) => (error as { code?: string } | null)?.code
@@ -79,6 +80,7 @@ export function UserDetail() {
                                 </>
                             ),
                         },
+                        { key: "plan", label: t("userDetail.plan"), children: <UserPlanPanel userId={u.id} username={u.username} isAdmin={u.role === "admin"} /> },
                         { key: "accounts", label: tc("nav.accounts"), children: <UserAccounts userId={u.id} /> },
                         { key: "audit", label: t("nav.audit"), children: <AuditTable actorId={u.id} targetId={u.id} emptyHint={t("userDetail.auditEmpty")} /> },
                     ] satisfies { key: Tab; label: string; children: React.ReactNode }[]} />

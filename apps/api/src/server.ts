@@ -65,6 +65,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
         dataExport: createRateLimiter({ max: 1, windowMs: 10 * 60_000 }),
         detect: createRateLimiter({ max: 60, windowMs: 60_000 }),
         redeemCode: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
+        checkout: createRateLimiter({ max: 5, windowMs: 10 * 60_000 }),
     }
     const lookupCountry = createGeoip({ url: env.GEOIP_URL })
     const paystack = env.PAYSTACK_SECRET_KEY ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL }) : undefined

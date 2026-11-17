@@ -12,7 +12,7 @@ const refusal = (promise: Promise<unknown>) => promise.then(() => "ok", (e: { co
 
 test("without a Paystack key, going live is refused and the switch stays off", async () => {
     const admin = await api.signedInAdmin()
-    expect(await admin.api.billing.status()).toMatchObject({ billingLive: false, paystackConfigured: false })
+    expect(await admin.api.billing.status()).toMatchObject({ billingLive: false, paystackConfigured: false, paystackMode: null })
     const error = await admin.api.billing.setLive({ live: true }).catch(e => e as { code: string; data?: { code?: string } })
     expect(error).toMatchObject({ code: "PRECONDITION_FAILED", data: { code: PAYSTACK_NOT_CONFIGURED } })
     expect(await isBillingLive(api.db)).toBe(false)

@@ -1,4 +1,4 @@
-import { AuditOutlined, CloudServerOutlined, DashboardOutlined, SettingOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
+import { AuditOutlined, CloudServerOutlined, CreditCardOutlined, DashboardOutlined, NotificationOutlined, SettingOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
 import { Alert, Button } from "antd"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
@@ -12,6 +12,8 @@ const NAV = [
     { key: "users", path: "/users", label: { key: "nav.users", ns: "admin" }, icon: <UserOutlined /> },
     { key: "accounts", path: "/accounts", label: { key: "nav.accounts", ns: "common" }, icon: <TeamOutlined /> },
     { key: "proxies", path: "/proxies", label: { key: "nav.proxies", ns: "admin" }, icon: <CloudServerOutlined /> },
+    { key: "billing", path: "/billing", label: { key: "nav.billing", ns: "admin" }, icon: <CreditCardOutlined /> },
+    { key: "announcements", path: "/announcements", label: { key: "nav.announcements", ns: "admin" }, icon: <NotificationOutlined /> },
     { key: "audit", path: "/audit", label: { key: "nav.audit", ns: "admin" }, icon: <AuditOutlined /> },
     { key: "settings", path: "/settings", label: { key: "nav.settings", ns: "common" }, icon: <SettingOutlined /> },
 ]

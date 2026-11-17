@@ -1,5 +1,6 @@
 import * as z from "zod"
 import { LOCALE_CODES } from "@gge/i18n"
+import { PLAN_IDS } from "./plans.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 import { Schedule } from "./schedule.ts"
 
@@ -91,6 +92,10 @@ export const Search = z.string().trim().max(64).optional()
 
 export const AdminUser = PublicUser.omit({ locale: true }).extend({
     status: UserStatus,
+    /** Replaces the plan's account limit while billing is live; null follows the plan. */
+    maxBotsOverride: z.number().int().nullable(),
+    /** The plan covering now and when the user's cover runs out; null when none covers now. */
+    plan: z.object({ planId: z.enum(PLAN_IDS), isTrial: z.boolean(), endsAt: z.date() }).nullable(),
     /** null: the user follows the global default. */
     attackPluginCap: AttackPluginCap.nullable(),
     createdAt: z.date(),

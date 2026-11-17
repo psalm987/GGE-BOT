@@ -19,6 +19,8 @@ export const PAYMENTS_DISABLED = "PAYMENTS_DISABLED"
 export const BillingStatus = z.object({
     billingLive: z.boolean(),
     paystackConfigured: z.boolean(),
+    /** Whether the key is a test key (sk_test_), which takes no real money; null without a key. */
+    paystackMode: z.enum(["test", "live"]).nullable(),
     /** Active, verified players with no trial yet: the ones going live would give one to. */
     usersGettingTrial: z.number().int(),
 })
@@ -165,6 +167,8 @@ export type RecordPurchase = z.infer<typeof RecordPurchase>
 
 /** What the Plan page offers the caller. */
 export const BillingConfig = z.object({
+    /** Plans restrict players. While false, players see no plan, trial or points anywhere. */
+    billingLive: z.boolean(),
     /** Whether the caller can pay online now: Paystack is set up and billing is live, or the caller is an admin trying it out. */
     onlinePayments: z.boolean(),
     /** The active packages that have a price, in display order. */
@@ -191,3 +195,50 @@ export const PaymentOutcome = z.object({
     }).nullable(),
 })
 export type PaymentOutcome = z.infer<typeof PaymentOutcome>
+
+/** The caller's plan, for the Plan page. */
+export const MyPlan = z.object({
+    /** Covering now; `endsAt` is when the whole queue runs out. null when no period covers now. */
+    current: z.object({ planId: PlanId, isTrial: z.boolean(), endsAt: z.date() }).nullable(),
+    /** The current period and every one queued behind it, soonest first. */
+    periods: z.array(Period),
+    /** How many accounts may run now; null for no limit (admins). */
+    limit: z.number().int().nullable(),
+    /** Accounts that count toward the limit: event twins ride free. */
+    counted: z.number().int(),
+})
+export type MyPlan = z.infer<typeof MyPlan>
+
+export const PlanRow = z.object({ id: PlanId, name: z.string(), maxAccounts: z.number().int() })
+export type PlanRow = z.infer<typeof PlanRow>
+
+export const AdminPeriod = Period.extend({
+    /** The admin who granted it; null for other sources, or once that admin is gone. */
+    grantedBy: z.string().nullable(),
+    note: z.string().nullable(),
+})
+export type AdminPeriod = z.infer<typeof AdminPeriod>
+
+export const AdminPointsEntry = PointsEntry.extend({ note: z.string().nullable(), createdBy: z.string().nullable() })
+export type AdminPointsEntry = z.infer<typeof AdminPointsEntry>
+
+/** Everything about one player's plan an admin manages on their page. */
+export const UserPlan = z.object({
+    current: MyPlan.shape.current,
+    /** Every period, latest first. */
+    periods: z.array(AdminPeriod),
+    /** Replaces the plan's account limit for this player while billing is live; null follows the plan. */
+    maxBotsOverride: z.number().int().nullable(),
+    points: z.object({ balance: z.number().int(), history: z.array(AdminPointsEntry) }),
+    /** The codes of the Team packages they bought. */
+    codes: z.array(LicenseCode),
+})
+export type UserPlan = z.infer<typeof UserPlan>
+
+export const GrantDays = z.object({
+    userId: z.uuid(),
+    planId: PlanId,
+    days: z.number().int().min(1).max(366),
+    note: z.string().trim().min(3).max(500),
+})
+export type GrantDays = z.infer<typeof GrantDays>

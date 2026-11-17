@@ -1,7 +1,7 @@
 import { LockOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Form, Input, Switch, Typography } from "antd"
-import { NOTIFICATION_KINDS, type NotificationPrefs } from "@gge/contracts"
+import { NOTIFICATION_KINDS, type NotificationKind, type NotificationPrefs } from "@gge/contracts"
 import { useTranslation } from "react-i18next"
 import { LanguagePicker, ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
@@ -9,6 +9,10 @@ import { useMe, useSaveLocale } from "../auth.tsx"
 import { ChangeEmailCard, DeleteAccountCard, ExportDataCard } from "../components/AccountCards.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PasswordFields } from "../components/PasswordFields.tsx"
+import { useBillingConfig } from "../use-billing.ts"
+
+/** About the player's plan, so only worth a switch once plans restrict anyone. */
+const PLAN_KINDS = new Set<NotificationKind>(["trial_started", "plan_expiring", "plan_expired", "purchase_completed"])
 
 function EmailPrefs() {
     const { message } = App.useApp()
@@ -16,6 +20,7 @@ function EmailPrefs() {
     const me = useMe().data
     const key = orpc.account.notificationPrefs.queryKey()
     const prefs = useQuery(orpc.account.notificationPrefs.queryOptions())
+    const billingLive = !!useBillingConfig().data?.billingLive
     const save = useMutation(orpc.account.setNotificationPrefs.mutationOptions({
         // Flip the switch at once; roll back if the server refuses.
         onMutate: async next => {
@@ -32,7 +37,7 @@ function EmailPrefs() {
     }))
     return (
         <ParchmentCard title={t("emailWhen.title")} style={{ maxWidth: 480, marginBottom: 16 }}>
-            {NOTIFICATION_KINDS.map(kind => (
+            {NOTIFICATION_KINDS.filter(kind => billingLive || !PLAN_KINDS.has(kind)).map(kind => (
                 <div key={kind} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minHeight: 44 }}>
                     <span id={`email-when-${kind}`}>{t(`emailWhen.${kind}`)}</span>
                     <Switch aria-labelledby={`email-when-title email-when-${kind}`} checked={prefs.data?.[kind] ?? false} disabled={!prefs.data}

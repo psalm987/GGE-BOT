@@ -99,7 +99,19 @@ describe("while billing is live", () => {
         const config = await (await api.player()).api.billing.config()
         expect(config.onlinePayments).toBe(true)
         expect(config.packages.map(p => [p.id, p.priceMinor, p.currency])).toEqual([["basic_28", 500, "USD"], ["team5_28", 2000, "USD"]])
-        expect(config).toMatchObject({ pointsCost: 8, pointsDays: 28 })
+        expect(config).toMatchObject({ billingLive: true, pointsCost: 8, pointsDays: 28 })
+    })
+
+    test("the admin is told the key is a test key", async () => {
+        expect(await (await api.signedInAdmin()).api.billing.status()).toMatchObject({ paystackConfigured: true, paystackMode: "test" })
+    })
+
+    test("a player can open five checkouts in ten minutes, then is told to wait", async () => {
+        const player = await api.player()
+        for (let i = 0; i < 5; i++)
+            await player.api.billing.checkout({ packageId: "basic_28" })
+        expect(await refusal(player.api.billing.checkout({ packageId: "basic_28" }))).toBe("TOO_MANY_REQUESTS undefined")
+        expect(await refusal((await api.player()).api.billing.checkout({ packageId: "basic_28" }))).toBe("ok")
     })
 
     test("a package with no price can't be bought online", async () => {

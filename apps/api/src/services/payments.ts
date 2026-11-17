@@ -33,12 +33,13 @@ const providerDown = (cause: unknown) =>
     new ORPCError("BAD_GATEWAY", { message: "The payment provider didn't answer. Try again in a minute.", cause })
 
 export async function billingConfig(ctx: Pick<Ctx, "db" | "paystack">, role: PublicUser["role"]): Promise<BillingConfig> {
-    const [paystack, forSale, settings] = await Promise.all([
+    const [billingLive, paystack, forSale, settings] = await Promise.all([
+        isBillingLive(ctx.db),
         paystackFor(ctx, role),
         ctx.db.select().from(packages).where(and(eq(packages.active, true), isNotNull(packages.priceMinor))).orderBy(asc(packages.sort), asc(packages.id)),
         billingSettings(ctx.db),
     ])
-    return { onlinePayments: !!paystack, packages: forSale, pointsCost: settings.pointsRedeemCost, pointsDays: settings.pointsRedeemDays }
+    return { billingLive, onlinePayments: !!paystack, packages: forSale, pointsCost: settings.pointsRedeemCost, pointsDays: settings.pointsRedeemDays }
 }
 
 /**

@@ -19,7 +19,7 @@ export type Ctx = {
      * `userTotal`. `user` also caps wrong second-factor codes per admin. `email` caps mail sent to one address; `signup` caps new accounts per IP;
      * `dataExport` caps data downloads per user. `redeemCode` caps wrong license codes, per player and per IP.
      */
-    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter; detect: RateLimiter; redeemCode: RateLimiter }
+    limits: { ip: RateLimiter; user: RateLimiter; userTotal: RateLimiter; email: RateLimiter; signup: RateLimiter; dataExport: RateLimiter; detect: RateLimiter; redeemCode: RateLimiter; checkout: RateLimiter }
     mailer: Mailer
     /** Country of an IP; null when unknown. */
     lookupCountry: Geoip

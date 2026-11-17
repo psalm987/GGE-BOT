@@ -3,3 +3,4 @@
 "GGE Command"
 "you@example.com"
 "xxxxx-xxxxx"
+apps/client/src/components/plan/RedeemCodeCard.tsx: "GGE-XXXX-XXXX-XXXX"
