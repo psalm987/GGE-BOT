@@ -2,6 +2,7 @@ export { AlertItem, AlertStack, type AlertAction, type AlertBanner, type AlertSe
 export { AuthShell } from "./AuthShell.tsx"
 export { CampaignLayout, type NavItem } from "./CampaignLayout.tsx"
 export { CampaignProvider } from "./CampaignProvider.tsx"
+export { CommandPalette, searchCommands, type CommandGroup, type CommandItem } from "./CommandPalette.tsx"
 export { Crest } from "./Crest.tsx"
 export { CrestEmpty } from "./CrestEmpty.tsx"
 export { LanguagePicker } from "./LanguagePicker.tsx"

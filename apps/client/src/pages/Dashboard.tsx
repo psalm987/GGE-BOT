@@ -30,22 +30,25 @@ export function Dashboard() {
     const servers = useQuery(orpc.servers.list.queryOptions())
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
-    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
+    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount; plugin?: string }>({ open: false })
 
-    // A notification links here as /?account=<id>. The id is taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
+    // A notification links here as /?account=<id>, and the command palette adds &plugin=<key> to open that plugin's settings.
+    // Both are taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
     const [params, setParams] = useSearchParams()
     const wanted = params.get("account")
+    const wantedPlugin = params.get("plugin") ?? undefined
     useEffect(() => {
         if (!wanted || !accounts.data)
             return
         const account = accounts.data.find(a => a.id === wanted)
         if (account)
-            setDrawer({ open: true, account })
+            setDrawer({ open: true, account, plugin: wantedPlugin })
         setParams(current => {
             current.delete("account")
+            current.delete("plugin")
             return current
         }, { replace: true })
-    }, [wanted, accounts.data, setParams])
+    }, [wanted, wantedPlugin, accounts.data, setParams])
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()
@@ -182,7 +185,7 @@ export function Dashboard() {
                 )}
             </ParchmentCard>
 
-            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} onClose={() => setDrawer({ open: false })} />
+            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} openPlugin={drawer.plugin} onClose={() => setDrawer({ open: false })} />
         </AppLayout>
     )
 }

@@ -482,5 +482,7 @@
   "dashboard.top.errors": "Errors",
   "dashboard.top.open": "Open {{name}}",
   "dashboard.top.emptyTitle": "No attacks logged yet",
-  "dashboard.top.emptyHint": "Turn on an attack plugin on an account and start it. The accounts that attack most appear here."
+  "dashboard.top.emptyHint": "Turn on an attack plugin on an account and start it. The accounts that attack most appear here.",
+  "palette.accountKeyword": "account",
+  "palette.pluginKeyword": "plugin settings"
 }

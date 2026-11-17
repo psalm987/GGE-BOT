@@ -17,7 +17,7 @@ type Values = { name: string; serverId: number; password?: string; externalEvent
  * Add or edit one game account: settings, plugins and schedule, and for existing accounts its logs and runs.
  * With twinOf, it adds that account's event twin, prefilled with its name and server.
  */
-export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; onClose: () => void }) {
+export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; openPlugin?: string; onClose: () => void }) {
     const { message, modal } = App.useApp()
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
@@ -29,6 +29,12 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     const [tab, setTab] = useState("overview")
     // `account` is as it was when the drawer opened, so the form isn't reset under the player. The status shown is the current one.
     const current = useQuery({ ...orpc.accounts.list.queryOptions(), select: list => list.find(a => a.id === account?.id), enabled: Boolean(account) }).data ?? account
+
+    // The command palette opens a plugin's settings, which live on the Settings tab.
+    useEffect(() => {
+        if (open && openPlugin)
+            setTab("settings")
+    }, [open, openPlugin])
 
     useEffect(() => {
         if (!open || !catalog.data)
@@ -114,7 +120,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
                 <Switch />
             </Form.Item>
             <Form.Item label={t("drawer.plugins")}>
-                <PluginSettingsForm catalog={catalog.data ?? []} account={current} onSavePlugin={savePluginOptions} />
+                <PluginSettingsForm catalog={catalog.data ?? []} account={current} onSavePlugin={savePluginOptions} openPlugin={open ? openPlugin : undefined} />
             </Form.Item>
             {isNew && schedule}
         </>

@@ -442,3 +442,28 @@ body {
 .gge-top-accounts .gge-num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gge-top-accounts-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .gge-top-accounts-name { min-height: 44px; padding-inline: 0; font-weight: 700; height: auto; }
+
+/* The command palette: a search box over grouped options, every option at least 44px tall. */
+.gge-cmdk .ant-modal { top: 12dvh; }
+.gge-cmdk .ant-modal-container { padding: 0; }
+.gge-cmdk .ant-modal-header { margin: 0; padding: 0; }
+.gge-cmdk-input { padding: 14px 16px !important; border-bottom: 1px solid var(--gge-rule) !important; border-radius: 0 !important; }
+.gge-cmdk-list { max-height: min(52dvh, 420px); overflow-y: auto; padding: 4px 8px 8px; }
+.gge-cmdk-group { padding: 10px 8px 4px; color: var(--gge-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.gge-cmdk-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-inline-start: 3px solid transparent;
+    cursor: pointer;
+}
+.gge-cmdk-option[data-active="true"] { background: rgba(224, 165, 38, 0.14); border-inline-start-color: var(--gge-gold); }
+.gge-cmdk-icon { display: inline-flex; width: 18px; color: var(--gge-gold); }
+.gge-cmdk-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gge-cmdk-hint { color: var(--gge-muted); font-size: 13px; }
+.gge-cmdk-empty { padding: 24px 12px; color: var(--gge-muted); text-align: center; }
+.gge-cmdk-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 16px; border-top: 1px solid var(--gge-rule); color: var(--gge-muted); font-size: 12px; }
+@media (max-width: 575.98px) { .gge-cmdk .ant-modal { top: 8px; max-width: calc(100vw - 16px); margin-inline: auto; } .gge-cmdk-foot { display: none; } }

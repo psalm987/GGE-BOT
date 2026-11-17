@@ -1,9 +1,11 @@
-import { CrownOutlined, ProfileOutlined, SettingOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons"
+import { CrownOutlined, ProfileOutlined, SettingOutlined, SyncOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
 import { Grid, Tag, type MenuProps } from "antd"
-import { useEffect, type ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
-import { CampaignLayout } from "@gge/ui"
+import { CampaignLayout, type CommandItem } from "@gge/ui"
+import { orpc } from "../api.ts"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
 import { pendingCode } from "../plan-model.ts"
 import { useRealtimeState } from "../realtime.ts"
@@ -31,6 +33,29 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     const reconnecting = useRealtimeState() === "polling"
     const planVisible = usePlanVisible()
     const { pathname } = useLocation()
+    const { t: tb } = useTranslation("bot")
+    const verifiedUser = !!me.data?.emailVerified
+    const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), enabled: verifiedUser })
+    const servers = useQuery({ ...orpc.servers.list.queryOptions(), enabled: verifiedUser })
+    const catalog = useQuery({ ...orpc.plugins.catalog.queryOptions(), enabled: verifiedUser })
+    // Accounts open their drawer through the Dashboard's ?account= link, and a plugin's settings through ?plugin=.
+    const commands = useMemo<CommandItem[]>(() => {
+        const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
+        const configurable = catalog.data?.filter(entry => entry.options.length > 0) ?? []
+        return (accounts.data ?? []).flatMap(account => [
+            {
+                id: `account:${account.id}`, group: "accounts" as const, label: account.name, hint: serverLabel.get(account.serverId), icon: <UserOutlined />,
+                keywords: [t("palette.accountKeyword")], run: () => navigate(`/?account=${account.id}`),
+            },
+            ...configurable.map(entry => {
+                const label = tb(entry.key, { defaultValue: entry.key })
+                return {
+                    id: `plugin:${account.id}:${entry.key}`, group: "plugins" as const, label, hint: account.name, icon: <SettingOutlined />,
+                    keywords: [entry.key, t("palette.pluginKeyword")], run: () => navigate(`/?account=${account.id}&plugin=${entry.key}`),
+                }
+            }),
+        ])
+    }, [accounts.data, servers.data, catalog.data, tb, t, navigate])
     // A code from a shared link waits through sign-up and the email check, then is redeemed on the first page they reach.
     const verified = !!me.data?.emailVerified
     useEffect(() => {
@@ -57,6 +82,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             username={me.data?.username ?? ""}
             onLogout={signOut}
             onLanguageChange={saveLocale}
+            commands={commands}
             accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}

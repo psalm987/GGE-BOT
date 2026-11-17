@@ -1,7 +1,7 @@
 import { SettingOutlined } from "@ant-design/icons"
 import { App, Button, Form, Switch, Tag, Typography } from "antd"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { PluginCatalogEntry, PublicAccount } from "@gge/contracts"
 import { palette } from "@gge/ui"
@@ -14,14 +14,17 @@ export { pluginFormValues, toPluginSettings, type PluginFormValues } from "../pl
 /** Persists one plugin's options for an account that exists. Without it, a new account keeps them in its form until it is added. */
 export type SavePluginOptions = (entry: PluginCatalogEntry, options: OptionValues) => Promise<void>
 
-function PluginRow({ entry, atAttackLimit, account, values, onSave }: {
-    entry: PluginCatalogEntry; atAttackLimit: boolean; account: PublicAccount | undefined; values: PluginFormValues | undefined; onSave?: SavePluginOptions
+function PluginRow({ entry, atAttackLimit, account, values, onSave, autoOpen }: {
+    entry: PluginCatalogEntry; atAttackLimit: boolean; account: PublicAccount | undefined; values: PluginFormValues | undefined; onSave?: SavePluginOptions; autoOpen: boolean
 }) {
     const { t } = useTranslation("bot")
     const { t: tc } = useTranslation("client")
     const { message } = App.useApp()
     const form = Form.useFormInstance()
-    const [open, setOpen] = useState(false)
+    const openable = entry.options.length > 0
+    const [open, setOpen] = useState(autoOpen && openable)
+    // Asked for while this row is already on screen, such as from the command palette with the drawer open.
+    useEffect(() => { if (autoOpen && openable) setOpen(true) }, [autoOpen, openable])
     const label = t(entry.key, { defaultValue: entry.key })
     const enabled = entry.force || Boolean(values?.[entry.key]?.enabled)
     const botRunning = account?.status?.actualState === "running"
@@ -74,7 +77,7 @@ function AttackAwareSwitch({ label, blockTurningOn, checked, onChange }: { label
  * One row per plugin, built from the catalog: an enable switch, its status while the bot runs, and a button that opens
  * its settings dialog. Lives inside a Form whose `plugins` field holds PluginFormValues.
  */
-export function PluginSettingsForm({ catalog, account, onSavePlugin }: { catalog: PluginCatalogEntry[]; account?: PublicAccount; onSavePlugin?: SavePluginOptions }) {
+export function PluginSettingsForm({ catalog, account, onSavePlugin, openPlugin }: { catalog: PluginCatalogEntry[]; account?: PublicAccount; onSavePlugin?: SavePluginOptions; openPlugin?: string }) {
     const { t } = useTranslation("client")
     const limit = useQuery(orpc.plugins.attackLimit.queryOptions()).data
     const values = Form.useWatch("plugins") as PluginFormValues | undefined
@@ -89,7 +92,7 @@ export function PluginSettingsForm({ catalog, account, onSavePlugin }: { catalog
                 </Typography.Paragraph>
             )}
             {catalog.filter(e => !e.hidden).map(entry =>
-                <PluginRow key={entry.key} entry={entry} atAttackLimit={atLimit} account={account} values={values} onSave={onSavePlugin} />)}
+                <PluginRow key={entry.key} entry={entry} atAttackLimit={atLimit} account={account} values={values} onSave={onSavePlugin} autoOpen={openPlugin === entry.key} />)}
         </div>
     )
 }

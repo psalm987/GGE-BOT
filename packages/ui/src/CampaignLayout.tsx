@@ -1,10 +1,12 @@
-import { LogoutOutlined, UserOutlined } from "@ant-design/icons"
+import { GlobalOutlined, LogoutOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons"
 import { Avatar, Button, Dropdown, Grid, Layout, Menu, Typography, type MenuProps } from "antd"
-import { useState, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+import { LOCALES, LOCALE_CODES } from "@gge/i18n"
+import { CommandPalette, paletteShortcut, usePaletteShortcut, type CommandItem } from "./CommandPalette.tsx"
 import { Crest } from "./Crest.tsx"
 import { LanguagePicker } from "./LanguagePicker.tsx"
-import type { Preference } from "./i18n/store.ts"
+import { setPreference, useLocale, type Preference } from "./i18n/store.ts"
 
 export type NavItem = { key: string; label: string; icon: ReactNode }
 
@@ -13,7 +15,7 @@ export type NavItem = { key: string; label: string; icon: ReactNode }
  * bar with the page title and the user's banner. The sider collapses to icons
  * below 992px.
  */
-export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, banners, username, onLogout, accountMenu = [], onLanguageChange, children }: {
+export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, banners, username, onLogout, accountMenu = [], onLanguageChange, commands = [], children }: {
     product: string
     nav: NavItem[]
     activeKey: string
@@ -28,15 +30,37 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
     accountMenu?: NonNullable<MenuProps["items"]>
     /** Fires after the user picks a language in the header, for apps that also save it to the account. */
     onLanguageChange?: (preference: Preference) => void
+    /** What the command palette can do besides the pages, languages and signing out, such as opening an account. */
+    commands?: CommandItem[]
     children: ReactNode
 }) {
     const { t } = useTranslation("ui")
     const [collapsed, setCollapsed] = useState(false)
     const screens = Grid.useBreakpoint()
     const phone = !screens.md
+    const { t: tc } = useTranslation()
+    const { detected } = useLocale()
+    const [paletteOpen, setPaletteOpen] = useState(false)
+    usePaletteShortcut(() => setPaletteOpen(open => !open))
+    const shortcut = paletteShortcut()
+    const paletteItems = useMemo<CommandItem[]>(() => {
+        const language = (value: Preference, name: string, hint?: string): CommandItem => ({
+            id: `language:${value}`, group: "language", label: t("palette.language", { name }), hint, icon: <GlobalOutlined />,
+            keywords: [tc("language.label")],
+            run: () => void setPreference(value).then(() => onLanguageChange?.(value)),
+        })
+        return [
+            ...nav.map(n => ({ id: `page:${n.key}`, group: "pages" as const, label: n.label, icon: n.icon, run: () => onNavigate(n.key) })),
+            ...commands,
+            language("auto", tc("language.automatic"), detected ? LOCALES[detected].nativeName : undefined),
+            ...LOCALE_CODES.map(code => language(code, LOCALES[code].nativeName, LOCALES[code].englishName)),
+            { id: "session:signOut", group: "session" as const, label: t("nav.signOut"), icon: <LogoutOutlined />, run: onLogout },
+        ]
+    }, [nav, commands, detected, t, tc, onNavigate, onLogout, onLanguageChange])
     const userMenu: MenuProps["items"] = [
+        ...(phone ? [{ key: "palette", icon: <SearchOutlined />, label: t("palette.open"), onClick: () => setPaletteOpen(true) }] : []),
         ...accountMenu,
-        ...(accountMenu.length ? [{ type: "divider" as const }] : []),
+        ...(phone || accountMenu.length ? [{ type: "divider" as const }] : []),
         { key: "logout", icon: <LogoutOutlined />, label: t("nav.signOut"), danger: true, onClick: onLogout },
     ]
     return (
@@ -56,6 +80,13 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                 <Layout.Header style={{ display: "flex", alignItems: "center", gap: phone ? 8 : 16, borderBottom: "1px solid #3A2E1F", ...(phone && { padding: "0 12px 0 56px" }) }}>
                     <Typography.Title level={3} className="gge-display" ellipsis style={{ margin: 0, flex: 1, minWidth: 0, fontSize: phone ? 17 : 20 }}>{title}</Typography.Title>
                     {extra}
+                    {/* On a phone the header has no room for another button, so the account menu opens it. */}
+                    {!phone && (
+                        <Button type="text" onClick={() => setPaletteOpen(true)} aria-haspopup="dialog" aria-keyshortcuts={shortcut.aria}
+                            aria-label={t("palette.open")} icon={<SearchOutlined />} style={{ height: 44, minWidth: 44 }}>
+                            <span>{t("palette.trigger")}</span> <kbd className="gge-kbd" aria-hidden>{t(shortcut.apple ? "palette.keyApple" : "palette.keyOther")}</kbd>
+                        </Button>
+                    )}
                     <LanguagePicker onChange={onLanguageChange} />
                     <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                         <Button type="text" aria-label={t("nav.accountMenuFor", { username })} style={{ height: 44 }}>
@@ -67,6 +98,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                 {banners}
                 <Layout.Content className="gge-content" style={{ padding: phone ? 12 : 24, maxWidth: 1400, width: "100%", margin: "0 auto" }}>{children}</Layout.Content>
             </Layout>
+            <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
         </Layout>
     )
 }
