@@ -1,0 +1,19 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "buy_tools_with_coins": {
+    "cmd": "sbp",
+    "payload": {
+      "PID": 32,
+      "BT": 0,
+      "TID": 27,
+      "AMT": 10,
+      "KID": 0,
+      "AID": -1,
+      "PC2": -1,
+      "BA": 0,
+      "PWR": 0,
+      "_PO": -1
+    }
+  },
+  "note": "Package 32 = Battering ram (wod 611) x1 for 430 C1 in items; the live offer list is sei event 27 PIDS. Reply {gcu, gui, grc, cpi, sin, vip, ...}; errors 10 NOT_ENOUGH_CURRENCY1, 154 STORAGE_CAPACITY_REACHED."
+}

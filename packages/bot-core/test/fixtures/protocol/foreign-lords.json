@@ -1,0 +1,57 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "find_target_fnm": {
+    "cmd": "fnm",
+    "payload": {
+      "T": 21,
+      "KID": 0,
+      "LMIN": -1,
+      "LMAX": -1,
+      "NID": -701
+    }
+  },
+  "pick_difficulty_sede": {
+    "cmd": "sede",
+    "payload": {
+      "EID": 71,
+      "EDID": 1,
+      "C2U": 0
+    },
+    "note": "EDID 1..4 free, 5..11 need C2U:1 and rentC2Cost rubies"
+  },
+  "points_pep": {
+    "cmd": "pep",
+    "payload": {
+      "EID": 71
+    },
+    "reply_fields": {
+      "EID": 71,
+      "OR": "[playerRank, allianceRank]",
+      "OP": "[playerGloryPoints, allianceGloryPoints]"
+    }
+  },
+  "attack_info_adi": {
+    "cmd": "adi",
+    "payload": {
+      "SX": 100,
+      "SY": 200,
+      "TX": 110,
+      "TY": 210,
+      "KID": 0
+    }
+  },
+  "gaa_AI_shape": [
+    "areaType(21)",
+    "X",
+    "Y",
+    "dungeonLevel",
+    "secondsSinceEspionage",
+    "hasPeaceMode(0/1)",
+    "baseWallBonus",
+    "baseGateBonus",
+    "baseMoatBonus",
+    "alreadyRerolled(0/1)",
+    "eventAutoScalingCampID"
+  ],
+  "ownerID": -1000
+}

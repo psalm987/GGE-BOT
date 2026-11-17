@@ -1,0 +1,111 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "note": "Banners have slotTypes 1,2,9 and go in a wave tool list (L/M/R .T as [wodID, amount]); AST holds 3 support-tool wodIDs (slotType 10) or -1.",
+  "cmd": "cra",
+  "payload": {
+    "SX": 100,
+    "SY": 200,
+    "TX": 110,
+    "TY": 210,
+    "KID": 0,
+    "LID": 1,
+    "WT": 0,
+    "HBW": -1,
+    "BPC": 0,
+    "ATT": 0,
+    "AV": 0,
+    "LP": 0,
+    "FC": 0,
+    "PTT": 0,
+    "SD": 0,
+    "ICA": 0,
+    "CD": 99,
+    "A": [
+      {
+        "L": {
+          "T": [
+            [
+              661,
+              5
+            ]
+          ],
+          "U": [
+            [
+              10,
+              100
+            ]
+          ]
+        },
+        "M": {
+          "T": [
+            [
+              611,
+              10
+            ]
+          ],
+          "U": [
+            [
+              10,
+              100
+            ]
+          ]
+        },
+        "R": {
+          "T": [
+            [
+              661,
+              5
+            ]
+          ],
+          "U": [
+            [
+              10,
+              100
+            ]
+          ]
+        }
+      }
+    ],
+    "BKS": [],
+    "AST": [
+      -1,
+      -1,
+      -1
+    ],
+    "RW": [
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ],
+      [
+        -1,
+        0
+      ]
+    ],
+    "ASCT": 0
+  }
+}

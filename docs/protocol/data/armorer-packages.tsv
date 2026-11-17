@@ -1,0 +1,177 @@
+packageID	packageType	comment1	comment2	unitID	unitAmount	packagePriceC1	packagePriceC2	minLevel	maxLevel	stock	maxBuyPerClick	relationIDs	validKingdoms
+573	currency	1 resourceVillageTokens - Ruby Package	Armorer	-	-	-	900	18	-	-	-	999	-
+2031	currency	SaleDaysLuckyWheelTicket	Armorer	-	-	-	8000	70	99	-	-	999	-
+524	constructionItem	CIS towerFarmhouse Appearance	Armorer	-	-	-	19800	45	70	-	-	251	-
+478	constructionItem	CIS Hospital Appearance	Armorer	-	-	-	34800	45	70	-	-	251	-
+20007	constructionItem	CI Storehouse Appearance	Armorer	-	-	-	45000	45	70	-	-	251	-
+20008	constructionItem	CI Quarry Appearance	Armorer	-	-	-	19000	45	70	-	-	251	-
+20009	constructionItem	CI Lumbermill Appearance	Armorer	-	-	-	40000	45	70	-	-	251	-
+20010	constructionItem	CI Mill Appearance	Armorer	-	-	-	49000	45	70	-	-	251	-
+20011	constructionItem	CI Woodcutter Appearance	Armorer	-	-	-	17500	45	70	-	-	251	-
+20012	constructionItem	CI Marketplace Appearance	Armorer	-	-	-	49000	45	70	-	-	251	-
+20013	constructionItem	CI Stonemason Appearance	Armorer	-	-	-	35000	45	70	-	-	251	-
+20014	constructionItem	CI barrack Appearnace	Armorer	-	-	-	45000	45	70	-	-	251	-
+20015	constructionItem	CI Keep Appearance 	Armorer	-	-	-	65000	45	70	-	-	251	-
+1139	constructionItem	CIS Hospital Heal Speed lvl 12	Armorer	-	-	-	69000	45	70	100	-	250	-
+1140	constructionItem	CIS Keep UnitAmountWall lvl 12	Armorer	-	-	-	79000	45	70	100	-	250	-
+1141	constructionItem	CIS Woodcutter Wood production Increase lvl 12	Armorer	-	-	-	29000	45	70	100	-	250	-
+1142	constructionItem	CIS Quarry Stone production Increase lvl 12	Armorer	-	-	-	29000	45	70	100	-	250	-
+563	rewardBag	common1 more random	Armorer	-	-	-	9000	45	-	-	-	252	-
+564	rewardBag	common2 more random	Armorer	-	-	-	9000	45	-	-	-	252	-
+565	rewardBag	common1&2 more random	Armorer	-	-	-	9000	45	-	-	-	252	-
+566	rewardBag	common1	Armorer	-	-	-	10000	45	-	-	-	252	-
+567	rewardBag	common2	Armorer	-	-	-	10000	45	-	-	-	252	-
+568	rewardBag	common1&2	Armorer	-	-	-	10000	45	-	-	-	252	-
+715	rewardBag	common1 more random large	Armorer	-	-	-	16000	45	-	-	-	252	-
+716	rewardBag	common2 more random large	Armorer	-	-	-	16000	45	-	-	-	252	-
+717	rewardBag	 common1&2 more random large	Armorer	-	-	-	16000	45	-	-	-	252	-
+718	rewardBag	 common1 large	Armorer	-	-	-	17000	45	-	-	-	252	-
+719	rewardBag	common2 large	Armorer	-	-	-	17000	45	-	-	-	252	-
+720	rewardBag	common1&2 large	Armorer	-	-	-	17000	45	-	-	-	252	-
+1943	currency	common3	Armorer	-	-	-	100	45	-	-	-	252	-
+1944	currency	common4	Armorer	-	-	-	150	45	-	-	-	252	-
+1945	currency	rare3	Armorer	-	-	-	200	45	-	-	-	252	-
+1946	currency	rare4	Armorer	-	-	-	300	45	-	-	-	252	-
+1947	currency	epic2	Armorer	-	-	-	600	45	-	-	-	252	-
+1948	currency	legendary2	Armorer	-	-	-	750	45	-	-	-	252	-
+798	tool	EliteComboRam	Armorer	113	1	-	83	70	-	-	-	150,157,159	-
+799	tool	EliteTonnelon	Armorer	114	1	-	70	70	-	-	-	150,156,159	-
+800	tool	EliteComboBundles	Armorer	115	1	-	88	70	-	-	-	150,158,159	-
+801	tool	EliteAlmondShield	Armorer	116	1	-	80	70	-	-	-	150,155,159	-
+26	tool	Veteran banner	Armorer	745	1	-	750	48	-	-	-	150,159	-
+28	tool	Scaling ladder	Armorer	614	1	220	-	4	-	-	-	150,156	-
+29	tool	Belfry	Armorer	649	1	-	27	4	-	-	-	150,156	-
+30	tool	Defense rocks	Armorer	637	1	550	-	3	-	-	-	151,156	-
+31	tool	Machicolation	Armorer	627	1	-	53	3	-	-	-	151,156	-
+32	tool	Battering ram	Armorer	611	1	430	-	4	-	-	-	150,157	-
+33	tool	Heavy ram	Armorer	648	1	-	32	4	-	-	-	150,157	-
+34	tool	Castle gate reinforcement	Armorer	626	1	1720	-	3	-	-	-	151,157	-
+35	tool	Portcullis	Armorer	622	1	-	58	3	-	-	-	151,157	-
+36	tool	Mantlet	Armorer	620	1	810	-	17	-	-	-	150,155	-
+37	tool	Shield wall	Armorer	651	1	-	31	17	-	-	-	150,155	-
+38	tool	Flaming arrows	Armorer	629	1	3210	-	16	-	-	-	151,155	-
+39	tool	Arrow slit	Armorer	624	1	-	58	16	-	-	-	151,155	-
+40	tool	Wood bundle	Armorer	617	1	1610	-	38	-	-	-	150,158	-
+41	tool	Boulders	Armorer	650	1	-	46	38	-	-	-	150,158	-
+42	tool	Sharpened stakes	Armorer	634	1	5780	-	38	-	-	-	151,158	-
+43	tool	Fire moat	Armorer	625	1	-	68	38	-	-	-	151,158	-
+256	tool	Ballast stone	Armorer	56	1	8140	-	4	-	-	-	150	-
+257	tool	Heavy ballast stone	Armorer	57	1	-	249	4	-	-	-	150	-
+275	tool	Hero' banner	Armorer	77	1	-	34	5	-	-	-	150,159	-
+393	tool	ChampionBanner	Armorer	24	1	-	46	5	-	-	-	150,159	-
+509	tool	EliteXPTool	Armorer	91	1	-	45	6	-	-	-	150,159	-
+880	tool	FleetShield	Armorer	125	1	-	25	6	-	-	-	150,155	-
+549	tool	AllianceCityCoinBoost	Armorer	65	1	1150	-	6	-	-	-	999	-
+550	tool	PremiumAllianceCityCoinBoost	Armorer	66	1	-	22	6	-	-	-	150,159	-
+551	tool	EliteAllianceCityCoinBoost	Armorer	94	1	-	165	6	-	-	-	150,159	-
+552	tool	AllianceCityTokenBoost	Armorer	95	1	-	49	6	-	-	-	150,159	-
+553	tool	PremiumAllianceCityTokenBoost	Armorer	96	1	-	126	6	-	-	-	150,159	-
+554	tool	EliteAllianceCityTokenBoost	Armorer	97	1	-	314	6	-	-	-	150,159	-
+943	rewardBag	common1 more randomlarge unfocused	Armorer	-	-	-	4000	45	-	10	-	252	-
+944	rewardBag	common1 more randomxlarge unfocused	Armorer	-	-	-	5500	45	-	10	-	252	-
+945	rewardBag	common2 more randomlarge unfocused	Armorer	-	-	-	4000	45	-	10	-	252	-
+946	rewardBag	common2 more randomxlarge unfocused	Armorer	-	-	-	5500	45	-	10	-	252	-
+947	rewardBag	common1&2 more randomlarge unfocused	Armorer	-	-	-	4000	45	-	10	-	252	-
+948	rewardBag	common1&2 more randomxlarge unfocused	Armorer	-	-	-	5500	45	-	10	-	252	-
+949	rewardBag	rare1 more randommedium focused	Armorer	-	-	-	6000	45	-	2	-	252	-
+950	rewardBag	rare1 more randomlarge focused	Armorer	-	-	-	9000	45	-	2	-	252	-
+951	rewardBag	rare2 more randommedium focused	Armorer	-	-	-	10000	45	-	2	-	252	-
+952	rewardBag	rare2 more randomlarge focused	Armorer	-	-	-	16000	45	-	2	-	252	-
+953	rewardBag	epic1 more randomsmall focused	Armorer	-	-	-	8000	45	-	2	-	252	-
+954	rewardBag	epic1 more randommedium focused	Armorer	-	-	-	16000	45	-	2	-	252	-
+955	rewardBag	legendary1 more randomsmall focused	Armorer	-	-	-	19000	45	-	1	-	252	-
+957	soldier	EventKnight ExtraLarge	Armorer	655	2000	-	105000	70	99	3	-	102,100	-
+958	soldier	EventKnight Large	Armorer	655	1000	-	63000	6	99	3	-	102,100	-
+959	soldier	EventKnight Mid	Armorer	655	500	-	34000	6	99	4	-	102,100	-
+960	soldier	EventKnight Small	Armorer	655	200	-	14000	6	69	5	-	102,100	-
+961	soldier	EventCrossbowMan ExtraLarge	Armorer	656	2000	-	130000	70	99	3	-	103,100	-
+962	soldier	EventCrossbowMan Large	Armorer	656	1000	-	80000	6	99	3	-	103,100	-
+963	soldier	EventCrossbowMan Mid	Armorer	656	500	-	43000	6	99	4	-	103,100	-
+964	soldier	EventCrossbowMan Small	Armorer	656	200	-	18000	6	69	5	-	103,100	-
+965	soldier	Elite Arrowthrower	Armorer	12	500	-	138000	6	99	5	-	103,101	-
+966	soldier	Elite Flamethrower	Armorer	11	500	-	147000	6	99	5	-	102,101	-
+1370	tool	6%glory	Armorer	152	1	-	67	6	99	-	-	150,159	-
+1371	tool	8%glory	Armorer	153	1	-	84	6	99	-	-	150,159	-
+1372	tool	6%Ram	Armorer	154	1	-	95	6	99	-	-	150,157,159	-
+1373	tool	6%ladder	Armorer	156	1	-	80	6	99	-	-	150,156,159	-
+1374	tool	6%bundles	Armorer	158	1	-	101	6	99	-	-	150,158,159	-
+1375	tool	6%shield	Armorer	160	1	-	92	6	99	-	-	150,155,159	-
+1376	tool	8%Ram	Armorer	155	1	-	119	6	99	-	-	150,157,159	-
+1377	tool	8%ladder	Armorer	157	1	-	100	6	99	-	-	150,156,159	-
+1378	tool	8%bundles	Armorer	159	1	-	126	6	99	-	-	150,158,159	-
+1379	tool	8%shield	Armorer	161	1	-	115	6	99	-	-	150,155,159	-
+1330	constructionItem	Alien Keep CI	Armorer	-	-	-	99000	45	70	-	-	251	-
+1162	soldier	2000	Optional Armorer Temp Server	309	1	83	-	6	99	-	-	102,100	-
+1163	soldier	2000	Optional Armorer Temp Server	312	1	75	-	6	99	-	-	103,100	-
+1164	soldier	2000	Optional Armorer Temp Server	308	1	90	-	6	99	-	-	102,101	-
+1165	soldier	2000	Optional Armorer Temp Server	311	1	78	-	6	99	-	-	103,101	-
+1166	soldier	2000	Optional Armorer Temp Server	22	1	155	-	6	99	-	-	102,100	-
+1167	soldier	2000	Optional Armorer Temp Server	23	1	150	-	6	99	-	-	103,100	-
+1168	soldier	2000	Optional Armorer Temp Server	686	1	61	-	6	99	-	-	102,101	-
+1169	soldier	2000	Optional Armorer Temp Server	687	1	54	-	6	99	-	-	103,101	-
+1170	soldier	2000	Optional Armorer Temp Server	781	1	-	20	6	99	-	-	102,100	-
+1171	soldier	2000	Optional Armorer Temp Server	782	1	-	18	6	99	-	-	103,100	-
+1172	soldier	2000	Optional Armorer Temp Server	11	1	-	38	6	99	-	-	102,101	-
+1173	soldier	2000	Optional Armorer Temp Server	12	1	-	36	6	99	-	-	103,101	-
+1226	tool	EliteXP Tool	Optional Armorer Temp Server	91	1	-	13	6	99	-	-	150,159	-
+1227	tool	EliteShields	Optional Armorer Temp Server	651	1	-	12	6	99	-	-	150,155	-
+1228	tool	EliteBoulders	Optional Armorer Temp Server	650	1	-	14	6	99	-	-	150,158	-
+1229	tool	EliteLadder	Optional Armorer Temp Server	649	1	-	8	6	99	-	-	150,156	-
+1230	tool	EliteRam	Optional Armorer Temp Server	648	1	-	10	6	99	-	-	150,157	-
+1231	tool	PremiumShields	Optional Armorer Temp Server	635	1	-	5	6	99	-	-	150,155	-
+1232	tool	PremiumBoulders	Optional Armorer Temp Server	642	1	-	5	6	99	-	-	150,158	-
+1233	tool	PremiumLadder	Optional Armorer Temp Server	640	1	-	4	6	99	-	-	150,156	-
+1234	tool	PremiumRam	Optional Armorer Temp Server	641	1	-	4	6	99	-	-	150,157	-
+1235	tool	ArrowSlit	Optional Armorer Temp Server	624	1	-	17	6	99	-	-	151,155	-
+1236	tool	Portcullis	Optional Armorer Temp Server	622	1	-	17	6	99	-	-	151,157	-
+1237	tool	MurderHole	Optional Armorer Temp Server	627	1	-	16	6	99	-	-	151,156	-
+1238	tool	FireMoat	Optional Armorer Temp Server	625	1	-	20	6	99	-	-	151,158	-
+1239	tool	TarPitchCattle	Optional Armorer Temp Server	647	1	-	7	6	99	-	-	151,156	-
+1240	tool	PremiumMat	Optional Armorer Temp Server	644	1	-	11	6	99	-	-	151,157	-
+1241	tool	Bulwark	Optional Armorer Temp Server	645	1	-	9	6	99	-	-	151,155	-
+1242	tool	Braziers	Optional Armorer Temp Server	629	1	-	11	6	99	-	-	151,155	-
+1359	currency	HeritageBoosterKey	Optional Armorer Temp Server	-	-	-	129	6	99	-	-	999	-
+2044	currency	TonicBoosterKey	Optional Armorer Temp Server	-	-	-	500	6	99	-	-	999	-
+2057	currency	Tonics	Optional Armorer Temp Server	-	-	-	5000	6	99	-	-	999	-
+1594	currency	InfluenceBoosterKey	Optional Armorer BattleGround	-	-	-	129	6	99	-	-	999	-
+1959	currency	LegendaryMaterial(SC)	Optional Armorer BattleGround	-	-	200	-	6	99	30	-	999	-
+1960	currency	LegendaryToken(SC)	Optional Armorer BattleGround	-	-	200	-	6	99	40	-	999	-
+1961	currency	LegendaryMaterial(HC)	Optional Armorer BattleGround	-	-	-	150	6	99	30	-	999	-
+1962	currency	LegendaryToken(HC)	Optional Armorer BattleGround	-	-	-	150	6	99	40	-	999	-
+2051	currency	StatuetteBoosterKey	Optional Armorer BattleGround	-	-	-	129	6	99	-	-	999	-
+1304	currency	Construction Material: Common1	Armorer	-	-	-	110	45	70	-	-	253	-
+1305	currency	Construction Material: Common2	Armorer	-	-	-	110	45	70	-	-	253	-
+1306	currency	Construction Material: Rare1	Armorer	-	-	-	150	45	70	-	-	254	-
+1307	currency	Construction Material: Rare2	Armorer	-	-	-	85	45	70	-	-	254	-
+1308	currency	Construction Material: Epic1	Armorer	-	-	-	440	45	70	-	-	255	-
+1309	currency	Construction Material: Legendary1	Armorer	-	-	-	310	45	70	-	-	256	-
+385	tool	BerimondAntiRam	Berimond Armorer	775	1	-	22	-	-	-	-	150,157,159	10
+386	tool	BerimondAntiLadder	Berimond Armorer	776	1	-	19	-	-	-	-	150,156,159	10
+387	tool	BerimondAntiBundle	Berimond Armorer	777	1	-	24	-	-	-	-	150,158,159	10
+388	tool	BerimondAntiShields	Berimond Armorer	778	1	-	21	-	-	-	-	150,155,159	10
+389	tool	BerimondAntiBanner	Berimond Armorer	779	1	-	124	15	-	-	-	150,159	10
+390	tool	BerimondPointBoost	Berimond Armorer	16	1	-	19	15	-	-	-	150,159	10
+391	tool	EliteBerimondPointBoost	Berimond Armorer	17	1	-	62	15	-	-	-	150,159	10
+1087	tool	BerimondPointBoost	Berimond Armorer	16	1	-	19	15	-	-	-	150,159	-
+1088	tool	EliteBerimondPointBoost	Berimond Armorer	17	1	-	62	15	-	-	-	150,159	-
+1614	tool	BerimondAntiRam	Berimond Armorer	775	1	-	96	15	-	-	-	150,157,159	-
+1615	tool	BerimondAntiLadder	Berimond Armorer	776	1	-	81	15	-	-	-	150,156,159	-
+1616	tool	BerimondAntiBundle	Berimond Armorer	777	1	-	108	15	-	-	-	150,158,159	-
+1617	tool	BerimondAntiShields	Berimond Armorer	778	1	-	102	15	-	-	-	150,155,159	-
+1618	tool	BerimondAntiBanner	Berimond Armorer	779	1	-	124	15	-	-	-	150,159	-
+2472	tool	Defense rocks	Armorer	637	1	110	-	6	99	-	-	151,156	-
+2473	tool	Machicolation	Armorer	627	1	-	53	6	99	-	-	151,156	-
+2474	tool	Castle gate reinforcement	Armorer	626	1	344	-	6	99	-	-	151,157	-
+2475	tool	Portcullis	Armorer	622	1	-	58	6	99	-	-	151,157	-
+2476	tool	Flaming arrows	Armorer	629	1	642	-	6	99	-	-	151,155	-
+2477	tool	Arrow slit	Armorer	624	1	-	58	6	99	-	-	151,155	-
+2478	tool	Sharpened stakes	Armorer	634	1	1156	-	6	99	-	-	151,158	-
+2479	tool	Fire moat	Armorer	625	1	-	68	6	99	-	-	151,158	-
+5636	tool	BerimondAntiRamT2	Berimond Armorer	509	1	-	44	-	-	-	-	150,157,159	10
+5637	tool	BerimondAntiLadderT2	Berimond Armorer	582	1	-	40	-	-	-	-	150,156,159	10
+5638	tool	BerimondAntiBundleT2	Berimond Armorer	599	1	-	45	-	-	-	-	150,158,159	10
+5639	tool	BerimondAntiShieldsT2	Berimond Armorer	600	1	-	42	-	-	-	-	150,155,159	10
+5640	tool	BerimondAntiRamT3	Berimond Armorer	621	1	-	56	-	-	-	-	150,157,159	10
+5641	tool	BerimondAntiLadderT3	Berimond Armorer	681	1	-	52	-	-	-	-	150,156,159	10
+5642	tool	BerimondAntiBundleT3	Berimond Armorer	682	1	-	59	-	-	-	-	150,158,159	10
+5643	tool	BerimondAntiShieldsT3	Berimond Armorer	683	1	-	54	-	-	-	-	150,155,159	10

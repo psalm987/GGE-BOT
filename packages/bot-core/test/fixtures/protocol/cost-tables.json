@@ -1,0 +1,325 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "openGate_before_discounts": [
+    {
+      "openGateCounter_OGC": 0,
+      "CD0_6h_rubies": 450,
+      "CD1_12h_rubies": 700
+    },
+    {
+      "openGateCounter_OGC": 1,
+      "CD0_6h_rubies": 1110,
+      "CD1_12h_rubies": 1720
+    },
+    {
+      "openGateCounter_OGC": 2,
+      "CD0_6h_rubies": 2090,
+      "CD1_12h_rubies": 3260
+    },
+    {
+      "openGateCounter_OGC": 3,
+      "CD0_6h_rubies": 3600,
+      "CD1_12h_rubies": 5600
+    },
+    {
+      "openGateCounter_OGC": 4,
+      "CD0_6h_rubies": 5910,
+      "CD1_12h_rubies": 9190
+    },
+    {
+      "openGateCounter_OGC": 5,
+      "CD0_6h_rubies": 9460,
+      "CD1_12h_rubies": 14720
+    },
+    {
+      "openGateCounter_OGC": 6,
+      "CD0_6h_rubies": 14940,
+      "CD1_12h_rubies": 23240
+    },
+    {
+      "openGateCounter_OGC": 7,
+      "CD0_6h_rubies": 23390,
+      "CD1_12h_rubies": 36390
+    },
+    {
+      "openGateCounter_OGC": 8,
+      "CD0_6h_rubies": 36450,
+      "CD1_12h_rubies": 56700
+    },
+    {
+      "openGateCounter_OGC": 9,
+      "CD0_6h_rubies": 36450,
+      "CD1_12h_rubies": 56700
+    }
+  ],
+  "dethrone_rerollCosts_alien": [
+    {
+      "rerollCount": 1,
+      "exile_c1": 24000,
+      "fortify_c2": 1200
+    },
+    {
+      "rerollCount": 2,
+      "exile_c1": 48000,
+      "fortify_c2": 1210
+    },
+    {
+      "rerollCount": 3,
+      "exile_c1": 72000,
+      "fortify_c2": 1240
+    },
+    {
+      "rerollCount": 4,
+      "exile_c1": 120000,
+      "fortify_c2": 1270
+    },
+    {
+      "rerollCount": 5,
+      "exile_c1": 192000,
+      "fortify_c2": 1340
+    },
+    {
+      "rerollCount": 6,
+      "exile_c1": 312000,
+      "fortify_c2": 1440
+    },
+    {
+      "rerollCount": 7,
+      "exile_c1": 504000,
+      "fortify_c2": 1630
+    },
+    {
+      "rerollCount": 8,
+      "exile_c1": 816000,
+      "fortify_c2": 1970
+    },
+    {
+      "rerollCount": 9,
+      "exile_c1": 1320000,
+      "fortify_c2": 2650
+    },
+    {
+      "rerollCount": 10,
+      "exile_c1": 2136000,
+      "fortify_c2": 4100
+    },
+    {
+      "rerollCount": 11,
+      "exile_c1": 3456000,
+      "fortify_c2": 7750
+    },
+    {
+      "rerollCount": 12,
+      "exile_c1": 5592000,
+      "fortify_c2": 15500
+    },
+    {
+      "rerollCount": 13,
+      "exile_c1": 9048000,
+      "fortify_c2": 31000
+    },
+    {
+      "rerollCount": 14,
+      "exile_c1": 14640000,
+      "fortify_c2": 62000
+    },
+    {
+      "rerollCount": 15,
+      "exile_c1": 23688000,
+      "fortify_c2": 124000
+    },
+    {
+      "rerollCount": 16,
+      "exile_c1": 38328000,
+      "fortify_c2": 248010
+    },
+    {
+      "rerollCount": 17,
+      "exile_c1": 62016000,
+      "fortify_c2": 496020
+    },
+    {
+      "rerollCount": 18,
+      "exile_c1": 100344000,
+      "fortify_c2": 992030
+    },
+    {
+      "rerollCount": 19,
+      "exile_c1": 162360000,
+      "fortify_c2": 1984060
+    },
+    {
+      "rerollCount": 20,
+      "exile_c1": 262704000,
+      "fortify_c2": 3968120
+    }
+  ],
+  "alienDifficulties_sede_EDID": [
+    {
+      "difficultyID": "1",
+      "eventID": "71",
+      "difficultyTypeID": "1",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "2",
+      "eventID": "71",
+      "difficultyTypeID": "2",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "3",
+      "eventID": "71",
+      "difficultyTypeID": "3",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "4",
+      "eventID": "71",
+      "difficultyTypeID": "4",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "5",
+      "eventID": "71",
+      "difficultyTypeID": "5",
+      "isLocked": "1",
+      "rentC2Cost": "10000"
+    },
+    {
+      "difficultyID": "6",
+      "eventID": "71",
+      "difficultyTypeID": "6",
+      "isLocked": "1",
+      "rentC2Cost": "17500"
+    },
+    {
+      "difficultyID": "7",
+      "eventID": "71",
+      "difficultyTypeID": "7",
+      "isLocked": "1",
+      "rentC2Cost": "25000"
+    },
+    {
+      "difficultyID": "8",
+      "eventID": "71",
+      "difficultyTypeID": "8",
+      "isLocked": "1",
+      "rentC2Cost": "32500"
+    },
+    {
+      "difficultyID": "9",
+      "eventID": "71",
+      "difficultyTypeID": "9",
+      "isLocked": "1",
+      "rentC2Cost": "40000"
+    },
+    {
+      "difficultyID": "10",
+      "eventID": "71",
+      "difficultyTypeID": "10",
+      "isLocked": "1",
+      "rentC2Cost": "47500"
+    },
+    {
+      "difficultyID": "11",
+      "eventID": "71",
+      "difficultyTypeID": "11",
+      "isLocked": "1",
+      "rentC2Cost": "55000"
+    },
+    {
+      "difficultyID": "101",
+      "eventID": "103",
+      "difficultyTypeID": "1",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "102",
+      "eventID": "103",
+      "difficultyTypeID": "2",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "103",
+      "eventID": "103",
+      "difficultyTypeID": "3",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "104",
+      "eventID": "103",
+      "difficultyTypeID": "4",
+      "isLocked": null,
+      "rentC2Cost": null
+    },
+    {
+      "difficultyID": "105",
+      "eventID": "103",
+      "difficultyTypeID": "5",
+      "isLocked": "1",
+      "rentC2Cost": "10000"
+    },
+    {
+      "difficultyID": "106",
+      "eventID": "103",
+      "difficultyTypeID": "6",
+      "isLocked": "1",
+      "rentC2Cost": "17500"
+    },
+    {
+      "difficultyID": "107",
+      "eventID": "103",
+      "difficultyTypeID": "7",
+      "isLocked": "1",
+      "rentC2Cost": "25000"
+    },
+    {
+      "difficultyID": "108",
+      "eventID": "103",
+      "difficultyTypeID": "8",
+      "isLocked": "1",
+      "rentC2Cost": "32500"
+    },
+    {
+      "difficultyID": "109",
+      "eventID": "103",
+      "difficultyTypeID": "9",
+      "isLocked": "1",
+      "rentC2Cost": "40000"
+    },
+    {
+      "difficultyID": "110",
+      "eventID": "103",
+      "difficultyTypeID": "10",
+      "isLocked": "1",
+      "rentC2Cost": "47500"
+    },
+    {
+      "difficultyID": "111",
+      "eventID": "103",
+      "difficultyTypeID": "11",
+      "isLocked": "1",
+      "rentC2Cost": "55000"
+    }
+  ],
+  "stationDuration": {
+    "WT_hours_range": [
+      1,
+      99
+    ],
+    "freeHours": {
+      "castle": 12,
+      "occupied": 24,
+      "capitalOrMetropol": 72
+    },
+    "rubiesPerExtraHour": 275
+  }
+}

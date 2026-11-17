@@ -1,0 +1,55 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "list_spl": {
+    "cmd": "spl",
+    "payload": {
+      "LID": 1
+    },
+    "reply_fields": [
+      "LID",
+      "QS (queue)",
+      "PS (current production slot)",
+      "RM (recruitment mode)",
+      "TCT (seconds left)"
+    ]
+  },
+  "produce_bup": {
+    "cmd": "bup",
+    "payload": {
+      "LID": 1,
+      "WID": 611,
+      "AMT": 50,
+      "PO": -1,
+      "PWR": 0,
+      "SK": 73,
+      "SID": 0,
+      "AID": 1234567
+    },
+    "note": "SID = kingdom id, AID = castle areaId; LID 1 is shared by siege and defence workshops"
+  },
+  "unlock_slot_ups": {
+    "cmd": "ups",
+    "payload": {
+      "LID": 1
+    },
+    "note": "UNLOCK_C2=375 rubies"
+  },
+  "research_rei": {
+    "cmd": "rei",
+    "payload": {},
+    "reply_fields": {
+      "BR": "[bought researchIDs]",
+      "ARID": "active research",
+      "ARRT": "seconds left"
+    }
+  },
+  "sceat_skills_skl": {
+    "cmd": "skl",
+    "payload": {},
+    "reply_fields": {
+      "SIDS": "[active sceat skill IDs] -> sceatSkills.effects 46&wod (enableUnits) / 84&wod (disableUnits)",
+      "SID": "legend skills",
+      "SP": "skill points"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "support_info_sdi": {
+    "cmd": "sdi",
+    "payload": {
+      "TX": 300,
+      "TY": 400,
+      "SX": 100,
+      "SY": 200
+    },
+    "reply_fields": [
+      "SCID (source castle id)",
+      "gaa.AI/OI (target)",
+      "gui.I/SHI (own inventory)",
+      "UYL/AUYL/UWL (yard/alliance-yard/wall unit limits)",
+      "S/AS/B/LS (spy army info)",
+      "gli (lords)"
+    ]
+  },
+  "station_cds": {
+    "cmd": "cds",
+    "payload": {
+      "SID": 1234567,
+      "TX": 300,
+      "TY": 400,
+      "LID": 1,
+      "WT": 12,
+      "HBW": -1,
+      "BPC": 0,
+      "PTT": 0,
+      "SD": 0,
+      "A": [
+        [
+          10,
+          200
+        ],
+        [
+          608,
+          300
+        ]
+      ]
+    },
+    "note": "SID = source castle objectId; WT = hours 1..99; A = flat [wodID, amount] list; reply {gcu, O, A(movement)}"
+  },
+  "recall_mcm": {
+    "cmd": "mcm",
+    "payload": {
+      "MID": 987654
+    },
+    "note": "MID = gam movement M.MID of your T=1 (MOVEMENTTYPE_DEFENCE) movement; reply {A: updated movement}"
+  },
+  "list_gam": {
+    "cmd": "gam",
+    "payload": {},
+    "stationed_when": "M.T==1 && M.OID==me && M.PT>=M.TT; UM.TWD/UM.PWD = total/passed station seconds"
+  }
+}

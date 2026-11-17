@@ -1,0 +1,36 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "open_6h": {
+    "cmd": "mos",
+    "payload": {
+      "CID": 1234567,
+      "KID": 0,
+      "CD": 0
+    }
+  },
+  "open_12h": {
+    "cmd": "mos",
+    "payload": {
+      "CID": 1234567,
+      "KID": 0,
+      "CD": 1
+    }
+  },
+  "cancel": {
+    "cmd": "mos",
+    "payload": {
+      "CID": 1234567,
+      "KID": 0,
+      "CD": -1
+    }
+  },
+  "reply_fields": {
+    "gcu": "{C1, C2}",
+    "CID": "castle id",
+    "KID": "kingdom",
+    "RPT": "remaining open-gate seconds (0 = finished)"
+  },
+  "errors": {
+    "2 INVALID_PARAMETER_VALUE": "protection mode active (error_openGate_eilandProtection)"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "find_target_fnm": {
+    "cmd": "fnm",
+    "payload": {
+      "T": 34,
+      "KID": 0,
+      "LMIN": -1,
+      "LMAX": -1,
+      "NID": -701
+    }
+  },
+  "pick_difficulty_sede": {
+    "cmd": "sede",
+    "payload": {
+      "EID": 103,
+      "EDID": 101,
+      "C2U": 0
+    },
+    "note": "EDID 101..104 free, 105..111 rented"
+  },
+  "points_pep": {
+    "cmd": "pep",
+    "payload": {
+      "EID": 103
+    }
+  },
+  "ownerID": -1002
+}

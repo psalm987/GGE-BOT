@@ -1,0 +1,20 @@
+{
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "exile_with_coins": {
+    "cmd": "rae",
+    "payload": {
+      "XPOS": 110,
+      "YPOS": 210,
+      "RCK": "C1"
+    }
+  },
+  "fortify_with_rubies": {
+    "cmd": "rae",
+    "payload": {
+      "XPOS": 110,
+      "YPOS": 210,
+      "RCK": "C2"
+    }
+  },
+  "note": "RCK is a server currency key; soft keys come from sei RCKS. Key order follows JSON.stringify insertion (XPOS,YPOS defaults first, then RCK). Reply: error code only; ALL_OK opens a success dialog."
+}

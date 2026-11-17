@@ -20,7 +20,10 @@ credentials/
 screenshots/
 .verify-evidence/
 data/
+!docs/protocol/data/
 .turbo/
 dist/
 infra/.env
 .audit
+# Downloaded game client for tools/protocol (about 43 MB)
+tools/protocol/dl/
