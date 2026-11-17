@@ -50,7 +50,7 @@ Each page ends with a table that gives every fact its level and the single live 
 | `fame-tools.tsv` | The 53 tools with a `fameBonus` |
 | `armorer-packages.tsv` | Every armourer package, with prices, stock and level limits |
 | `tool-unlocks.tsv` | Each Sceat skill and research that enables or disables a workshop tool |
-| `error-codes.tsv` | The 433 server error codes |
+| `error-codes.tsv` | The 433 server error codes. `packages/bot-core/err-classes.json` sorts them into severe and "not now" for the logs |
 
 To regenerate the tables and fixtures from a newer client, follow [`tools/protocol/README.md`](../../tools/protocol/README.md).
 

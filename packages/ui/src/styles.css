@@ -17,6 +17,7 @@
     --gge-level-info: #BFAE8A;
     --gge-level-warn: #F08C2E;
     --gge-level-error: #FF7B8A;
+    --gge-level-notnow: #A99BEA;
     --gge-tag-0: #6CB6F5;
     --gge-tag-1: #4FD1C5;
     --gge-tag-2: #7DD87A;
@@ -245,6 +246,7 @@ body {
 .gge-term-level[data-level="0"] { color: var(--gge-level-info); }
 .gge-term-level[data-level="1"] { color: var(--gge-level-warn); }
 .gge-term-level[data-level="2"] { color: var(--gge-level-error); font-weight: 500; }
+.gge-term-level[data-level="3"] { color: var(--gge-level-notnow); }
 .gge-term-level .anticon { font-size: 0.85em; }
 .gge-term-tag, .gge-term-acct {
     max-width: 100%;
@@ -357,6 +359,7 @@ body {
 }
 .gge-overview { display: grid; gap: 12px; }
 .gge-overview-note { margin: 0; font-size: 13px; }
+.gge-overview-note a { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Banners under the header: a severity rule on the inline-start edge, the icon, the words, one action and a close button. */
 .gge-alerts { display: grid; gap: 8px; width: 100%; max-width: 1400px; margin: 0 auto; padding: 16px 24px 0; box-sizing: border-box; }
@@ -394,4 +397,32 @@ body {
         padding-inline-start: 12px;
     }
     .gge-alert-action { justify-content: flex-start; padding-bottom: 6px; }
+}
+
+/* An account's top errors: the class in words and an icon, the game's code, how often and when. */
+.gge-top-errors { display: grid; gap: 8px; }
+.gge-top-error-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gge-top-error {
+    display: grid;
+    grid-template-columns: minmax(max-content, 9.5rem) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 4px 12px;
+    min-height: 44px;
+    padding: 6px 12px;
+    border: 1px solid var(--gge-rule);
+    border-inline-start-width: 3px;
+    border-radius: 6px;
+}
+.gge-top-error[data-class="severe"] { border-inline-start-color: var(--gge-level-error); }
+.gge-top-error[data-class="notNow"] { border-inline-start-color: var(--gge-level-notnow); }
+.gge-top-error[data-class="other"] { border-inline-start-color: var(--gge-level-warn); }
+.gge-top-error-class { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.gge-top-error[data-class="severe"] .gge-top-error-class { color: var(--gge-level-error); }
+.gge-top-error[data-class="notNow"] .gge-top-error-class { color: var(--gge-level-notnow); }
+.gge-top-error[data-class="other"] .gge-top-error-class { color: var(--gge-level-warn); }
+.gge-top-error code { font-family: var(--gge-mono); font-size: 13px; overflow-wrap: anywhere; }
+.gge-top-error-count, .gge-top-error-when { color: var(--gge-muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 575.98px) {
+    .gge-top-error { grid-template-columns: 1fr auto; }
+    .gge-top-error-class, .gge-top-error code { grid-column: 1 / -1; }
 }

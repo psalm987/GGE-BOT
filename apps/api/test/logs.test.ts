@@ -50,6 +50,18 @@ describe("the global log feed", () => {
         expect(probing).toEqual([])
     })
 
+    test("the not-now level, 3, filters and counts like any other", async () => {
+        const { alice, a1 } = await setup()
+        await api.db.insert(botLogs).values([
+            { accountId: a1.id, level: 3, message: "a1 cooling down", plugin: "ggeBot", parts: parts("ggeBot") },
+            { accountId: a1.id, level: 3, message: "a1 no resources", plugin: "ggeBot", parts: parts("ggeBot") },
+        ])
+        expect(messages(await alice.api.logs.feed({ levels: [3] }))).toEqual(["a1 no resources", "a1 cooling down"])
+        expect(messages(await alice.api.logs.feed({ levels: [2, 3] }))).toEqual(["a1 no resources", "a1 cooling down", "a1 nomads error"])
+        expect((await alice.api.logs.facets()).levels.find(l => l.level === 3)?.count).toBe(2)
+        expect(await codeOf(alice.api.logs.feed({ levels: [4 as 3] }))).toBe("BAD_REQUEST")
+    })
+
     test("a foreign account id passed alongside one's own adds nothing", async () => {
         const { alice, a1, b1 } = await setup()
         const lines = await alice.api.logs.feed({ accountIds: [a1.id, b1.id] })

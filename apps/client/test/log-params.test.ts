@@ -21,8 +21,13 @@ test("the bell's deep link reads as one account's errors", () => {
     expect(readLogParams(new URLSearchParams(`account=${A1}&level=2`))).toEqual({ ...NO_FILTERS, accountIds: [A1], levels: [2] })
 })
 
-test("a level that isn't 0, 1 or 2 is ignored, and level 0 is not assumed when absent", () => {
-    for (const level of ["3", "-1", "warn", "", " ", "1.5"])
+test("level 3, the game said not now, is read and written like the others", () => {
+    expect(readLogParams(new URLSearchParams(`account=${A1}&level=3`))).toEqual({ ...NO_FILTERS, accountIds: [A1], levels: [3] })
+    expect(writeLogParams({ ...NO_FILTERS, levels: [3] }).toString()).toBe("level=3")
+})
+
+test("a level that isn't 0, 1, 2 or 3 is ignored, and level 0 is not assumed when absent", () => {
+    for (const level of ["4", "-1", "warn", "", " ", "1.5"])
         expect(readLogParams(new URLSearchParams({ level })).levels).toEqual([])
     expect(readLogParams(new URLSearchParams("level=0")).levels).toEqual([0])
 })

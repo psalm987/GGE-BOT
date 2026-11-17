@@ -27,6 +27,8 @@ export const palette = {
     levelInfo: "#BFAE8A",
     levelWarn: "#F08C2E",
     levelError: "#FF7B8A",
+    /** The game said "not now": calm, since it passes by itself. */
+    levelNotNow: "#A99BEA",
     /** Banner severities: the accent draws the inline-start rule and the icon on its ground. Each also shows an icon shape and a word. */
     banner: {
         info: { accent: "#6FA3F0", ground: "#29282B" },

@@ -3,6 +3,7 @@
   "level.info": "Info",
   "level.warn": "Warning",
   "level.error": "Error",
+  "level.notNow": "Game said not now",
   "filter.text": "Filter text",
   "filter.textShortcut": "Press / to filter",
   "filter.level": "Level",

@@ -172,7 +172,8 @@ export const LogLine = z.object({
 export const FeedLine = LogLine.extend({ accountId: z.uuid() })
 export type FeedLine = z.infer<typeof FeedLine>
 
-export const LogLevel = z.union([z.literal(0), z.literal(1), z.literal(2)])
+/** 0 info, 1 warning, 2 error, 3 the game said "not now": a refusal that is only the state of the game and passes by itself. */
+export const LogLevel = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
 
 export const FeedInput = z.object({
     accountIds: z.array(z.uuid()).max(50).optional(),

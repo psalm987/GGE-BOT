@@ -1,12 +1,13 @@
-export type Level = 0 | 1 | 2
+export type Level = 0 | 1 | 2 | 3
 /** Each level's word, as a key in the `ui` catalog, and as it is written in a downloaded file. */
 export const LEVELS = [
     { level: 0, word: "level.info", file: "INFO " },
     { level: 1, word: "level.warn", file: "WARN " },
     { level: 2, word: "level.error", file: "ERROR" },
+    { level: 3, word: "level.notNow", file: "LATER" },
 ] as const satisfies readonly { level: Level; word: string; file: string }[]
 export const levelOf = (level: number) => LEVELS[level] ?? LEVELS[0]
-export const isLevel = (value: unknown): value is Level => value === 0 || value === 1 || value === 2
+export const isLevel = (value: unknown): value is Level => value === 0 || value === 1 || value === 2 || value === 3
 
 /** A log line as the terminal shows it. The feed API and the live channel both send this shape. */
 export type TerminalLine = {

@@ -46,6 +46,13 @@ describe("filterLines", () => {
         expect(ids(filterLines(lines, { ...NO_FILTERS, levels: [0], accountIds: ["b"], plugins: ["feast"] }, inPolish))).toEqual([])
     })
 
+    test("a line the game said not now to is a level of its own", () => {
+        const later = { ...lines[3]!, id: 6, level: 3 }
+        expect(ids(filterLines([later, ...lines], { ...NO_FILTERS, levels: [3] }, inPolish))).toEqual([6])
+        expect(ids(filterLines([later, ...lines], { ...NO_FILTERS, levels: [2, 3] }, inPolish))).toEqual([6, 5])
+        expect(formatForDownload([later], { renderText: () => "x" })).toContain(" LATER ")
+    })
+
     test("a tag filter never matches an untagged line", () => {
         expect(filterLines(lines, { ...NO_FILTERS, plugins: ["null"] }, inPolish)).toEqual([])
     })

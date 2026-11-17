@@ -696,7 +696,7 @@ async function driveOverview(page) {
     const tile = label => tiles.filter({ hasText: label }).locator(".gge-kpi-value")
     assert(await tile("Cash").innerText() === (48_250_310).toLocaleString("en"), "the cash tile shows the figure with locale grouping")
     assert((await tile("Cash").evaluate(el => getComputedStyle(el).fontVariantNumeric)).includes("tabular-nums"), "tile figures use tabular numbers")
-    assert(/^Updated .+\. Food, mead/.test(await drawer.locator(".gge-overview-note").innerText()), "the Overview says when its figures were last updated")
+    assert(/^Updated .+\. Food, mead/.test(await drawer.locator(".gge-overview-note").first().innerText()), "the Overview says when its figures were last updated")
     await axe(page, "account overview")
     await atBothWidths(page, "overview", "the account Overview")
 
@@ -731,6 +731,48 @@ async function driveOverview(page) {
     await drawerClosed(page)
 }
 
+/** Errors split in two: the Overview's top errors say how serious each is in words, and the Logs page filters the lines the game said "not now" to. */
+async function driveErrorSplit(page) {
+    const refusal = (level, code) => insertLogLine({ accountName: "Ironhold", level, plugin: "ggeBot", parts: ["cra", code] })
+    for (let i = 0; i < 3; i++) await refusal(3, "COOLING_DOWN")
+    await refusal(3, "NOT_ENOUGH_CURRENCY1")
+    await refusal(2, "INVALID_PARAMETER_VALUE")
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(CLIENT_URL)
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    const drawer = page.getByRole("dialog")
+    const list = drawer.locator(".gge-top-error")
+    await list.first().waitFor()
+    const first = await list.first().innerText()
+    assert(/Game said not now/.test(first) && first.includes("COOLING_DOWN") && /\d+ times?/.test(first), `the Overview lists the most frequent refusal first, with its class in words and a count (${first.replace(/\n/g, " | ")})`)
+    const severe = list.filter({ hasText: "INVALID_PARAMETER_VALUE" })
+    assert(/Severe/.test(await severe.innerText()) && await severe.getAttribute("data-class") === "severe", "a severe code says Severe, not only a colour")
+    assert(await drawer.locator(".gge-top-error-class svg").count() === await list.count(), "every top error has an icon beside its class word")
+    assert(/Counted from the latest \d+ warning and error lines/.test(await drawer.locator(".gge-top-errors").innerText()), "the Overview says how many lines the top errors were counted from")
+    await axe(page, "overview with top errors")
+    await atBothWidths(page, "overview-top-errors", "the Overview with top errors")
+    await page.setViewportSize(WIDE_VIEW)
+    await drawer.getByRole("link", { name: "See the logs" }).click()
+    await page.waitForURL(/\/logs\?account=/)
+    const facets = await rpc(page, "logs/facets")
+    const notNow = facets.levels.find(l => l.level === 3).count
+    const level = page.locator(".gge-logs-filters .ant-segmented-item", { hasText: "Game said not now" })
+    await level.filter({ hasText: String(notNow) }).waitFor()
+    assert(true, `the level filter offers Game said not now with its count (${notNow})`)
+    await level.click()
+    await page.waitForFunction(() => new URL(location.href).searchParams.get("level") === "3")
+    const log = page.getByRole("log", { name: "Bot log" })
+    await page.locator(".gge-logs-count").filter({ hasText: new RegExp(`^${notNow.toLocaleString("en")} of `) }).waitFor()
+    const rows = await termRows(log)
+    assert(rows.length > 0 && rows.every(r => r.level === "3"), "the filter leaves only the lines the game said not now to, and level=3 is in the URL")
+    assert(await log.locator(".gge-term-level").first().innerText() === "Game said not now", "each such line says Game said not now beside its icon")
+    await axe(page, "logs filtered to not now")
+    await page.screenshot({ path: `${out}/logs-not-now-1440.png` })
+    await page.reload()
+    await level.waitFor()
+    assert(await page.locator(".gge-logs-filters .ant-segmented-item-selected").innerText().then(t => t.includes("Game said not now")), "the not-now filter survives a reload")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "glory-settings") {
@@ -752,6 +794,7 @@ async function driveOverview(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveOverview(demo)
+        await driveErrorSplit(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -1131,6 +1174,7 @@ async function driveOverview(page) {
     await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
     await driveLogs(seeded)
     await driveOverview(seeded)
+    await driveErrorSplit(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()

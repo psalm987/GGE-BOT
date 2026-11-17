@@ -1,13 +1,17 @@
-import { CaretRightFilled, CoffeeOutlined, DollarOutlined, ExperimentOutlined, GoldOutlined, SketchOutlined, ThunderboltOutlined } from "@ant-design/icons"
+import { CaretRightFilled, ClockCircleFilled, CloseCircleFilled, CoffeeOutlined, DollarOutlined, ExperimentOutlined, GoldOutlined, SketchOutlined, ThunderboltOutlined, WarningFilled } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
-import { App, Button, Typography } from "antd"
+import { App, Button, Skeleton, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import type { ReactNode } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import type { AccountResources, PublicAccount } from "@gge/contracts"
 import { CrestEmpty, messageOf } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
+import { topErrors, type ErrorClass } from "../game-errors.ts"
+import { useLogFeed } from "../log-feed.ts"
 
 dayjs.extend(relativeTime)
 
@@ -31,6 +35,52 @@ function Tile({ label, icon, value, format, missing }: { label: string; icon: Re
                 ? <span className="gge-kpi-value" data-missing><span aria-hidden>{"—"}</span><span className="gge-sr-only">{missing}</span></span>
                 : <span className="gge-kpi-value">{format(value)}</span>}
         </div>
+    )
+}
+
+const ERROR_CLASSES: Record<ErrorClass | "other", { icon: ReactNode; word: string }> = {
+    severe: { icon: <CloseCircleFilled aria-hidden />, word: "overview.errors.severe" },
+    notNow: { icon: <ClockCircleFilled aria-hidden />, word: "overview.errors.notNow" },
+    other: { icon: <WarningFilled aria-hidden />, word: "overview.errors.other" },
+}
+const TOP_ERRORS = 5
+
+/** The codes the game refused this account with most, from the warnings and errors the runner kept. Each says in words how serious it is. */
+function TopErrors({ accountId }: { accountId: string }) {
+    const { t, i18n } = useTranslation("client")
+    const ids = useMemo(() => [accountId], [accountId])
+    const { lines, feed } = useLogFeed({ accountIds: ids, levels: [1, 2, 3], plugins: [] }, ids)
+    const top = useMemo(() => topErrors(lines, TOP_ERRORS), [lines])
+    const number = new Intl.NumberFormat(i18n.language)
+    const heading = <Typography.Title level={5} className="gge-display" style={{ margin: 0 }}>{t("overview.errors.title")}</Typography.Title>
+    if (feed.isPending)
+        return <section className="gge-top-errors" aria-busy>{heading}<Skeleton active title={false} paragraph={{ rows: 2 }} /></section>
+    if (feed.isError)
+        return <section className="gge-top-errors">{heading}<Typography.Text type="secondary" role="alert">{t("overview.errors.failed")}</Typography.Text></section>
+    return (
+        <section className="gge-top-errors">
+            {heading}
+            {top.length === 0 ? (
+                <Typography.Text type="secondary">{t("overview.errors.none")}</Typography.Text>
+            ) : (
+                <ol className="gge-top-error-list">
+                    {top.map(({ code, errorClass, count, lastAt }) => {
+                        const { icon, word } = ERROR_CLASSES[errorClass ?? "other"]
+                        return (
+                            <li key={code} className="gge-top-error" data-class={errorClass ?? "other"}>
+                                <span className="gge-top-error-class">{icon} {t(word)}</span>
+                                <code>{code}</code>
+                                <span className="gge-top-error-count">{t("overview.errors.times", { count, formatted: number.format(count) })}</span>
+                                <time dateTime={lastAt.toISOString()} className="gge-top-error-when">{dayjs(lastAt).fromNow()}</time>
+                            </li>
+                        )
+                    })}
+                </ol>
+            )}
+            <Typography.Paragraph type="secondary" className="gge-overview-note">
+                {t("overview.errors.basis", { count: lines.length })} <Link to={`/logs?account=${accountId}`}>{t("overview.errors.seeLogs")}</Link>
+            </Typography.Paragraph>
+        </section>
     )
 }
 
@@ -74,6 +124,7 @@ export function AccountOverview({ account }: { account: PublicAccount }) {
                     : t("overview.updatedUnknown")}
                 {" "}{t("overview.stormNote")}
             </Typography.Paragraph>
+            <TopErrors accountId={account.id} />
         </div>
     )
 }

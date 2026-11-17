@@ -1,4 +1,4 @@
-import { ArrowDownOutlined, CaretRightOutlined, CloseCircleFilled, CodeOutlined, InfoCircleFilled, PauseOutlined, WarningFilled } from "@ant-design/icons"
+import { ArrowDownOutlined, CaretRightOutlined, ClockCircleFilled, CloseCircleFilled, CodeOutlined, InfoCircleFilled, PauseOutlined, WarningFilled } from "@ant-design/icons"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Button } from "antd"
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
@@ -45,7 +45,7 @@ const FOLLOWING: Follow = { mode: "following" }
 
 type Item<L> = { kind: "start" } | { kind: "day"; day: string; ts: Date } | { kind: "line"; line: L }
 
-const LEVEL_ICONS = [<InfoCircleFilled />, <WarningFilled />, <CloseCircleFilled />]
+const LEVEL_ICONS = [<InfoCircleFilled />, <WarningFilled />, <CloseCircleFilled />, <ClockCircleFilled />]
 
 /** How close to the bottom, in pixels, still counts as at the newest line. */
 const AT_END = 8

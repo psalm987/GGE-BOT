@@ -13,6 +13,7 @@ const { I18n } = require("i18n")
 const ggeConfig = require("./config.js")
 const ActionType = require("./actions.json")
 const err = require("./err.json")
+const { errorClass } = require("./errClass.js")
 const metrics = require("./metrics.js")
 const { jittered, loginTiming } = require("./timing.js")
 const { pause } = require("./pacing.js")
@@ -70,6 +71,8 @@ if (!botConfig.internalWorker) {
     console.info = (...msg) => mngLog(0, msg)
     console.warn = (...msg) => mngLog(1, msg)
     console.error = (...msg) => mngLog(2, msg)
+    // Level 3: the game said "not now" and it will pass, so it stays out of the warnings and errors.
+    console.notNow = (...msg) => mngLog(3, msg)
     console.debug = ggeConfig.debug ? _console.debug : _ => { }
     console.trace = _console.trace
 }
@@ -156,6 +159,12 @@ function fatal(reason) {
  */
 const waitForResult = (key, timeout, func) => metrics.time("bot_game_rtt_seconds", { command: key }, waitForReply(key, timeout, func))
 
+/** A refusal from the game, at the level its class says: severe is an error, "not now" has its own level, anything else a warning. */
+function logRefusal(key, msg) {
+    const log = { severe: console.error, notNow: console.notNow }[errorClass(msg)] ?? console.warn
+    log(key, msg)
+}
+
 const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
     if (timeout == undefined)
         reject(`waitForResult: No timeout specified`)
@@ -184,7 +193,7 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
             if (msg == "TIMED_OUT" && timedOut++ == 5)
                 exitWorker("TOO_MANY_TIMEOUTS")
             
-            console.warn(key, msg)
+            logRefusal(key, msg)
 
             reject(msg)
         }, timeout * timeoutMultiplier * 5)
@@ -200,7 +209,7 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
         if (!func(Object(data), Number(_result)))
             return
         if(_result != 0)
-            console.warn(key, msg)
+            logRefusal(key, msg)
 
         xtHandler.removeListener(key, helperFunction)
         clearInterval(timer)

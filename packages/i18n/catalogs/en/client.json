@@ -454,5 +454,16 @@
   "overview.updated": "Updated {{when}}.",
   "overview.lastKnown": "The bot is stopped. These are the figures from its last run, {{when}}.",
   "overview.updatedUnknown": "The game has not said when these figures were read.",
-  "overview.stormNote": "Food, mead and aquamarine are the Storm Islands castle's. A figure the game reports as zero shows a dash."
+  "overview.stormNote": "Food, mead and aquamarine are the Storm Islands castle's. A figure the game reports as zero shows a dash.",
+  "overview.errors.title": "Top errors",
+  "overview.errors.severe": "Severe",
+  "overview.errors.notNow": "Game said not now",
+  "overview.errors.other": "Other refusal",
+  "overview.errors.none": "The game hasn't refused this bot anything lately.",
+  "overview.errors.failed": "Couldn't load the errors. Reopen this tab to try again.",
+  "overview.errors.times_one": "{{formatted}} time",
+  "overview.errors.times_other": "{{formatted}} times",
+  "overview.errors.basis_one": "Counted from the latest warning or error line kept for this account.",
+  "overview.errors.basis_other": "Counted from the latest {{count}} warning and error lines kept for this account.",
+  "overview.errors.seeLogs": "See the logs"
 }

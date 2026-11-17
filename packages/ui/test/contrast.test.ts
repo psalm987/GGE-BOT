@@ -44,6 +44,7 @@ test.each([
     ["info level", palette.levelInfo],
     ["warning level", palette.levelWarn],
     ["error level", palette.levelError],
+    ["not-now level", palette.levelNotNow],
     ["log time and day dividers", palette.muted],
 ])("%s is readable as log text", (_, color) => {
     for (const [name, ground] of Object.entries(logGrounds))
@@ -59,7 +60,7 @@ test("the stylesheet's log colours are the palette's", () => {
     const cssVar = (name: string) => css.match(new RegExp(`--gge-${name}:\\s*(#[0-9A-Fa-f]{6});`))?.[1]?.toUpperCase()
     expect(cssVar("terminal")).toBe(palette.terminal)
     expect(cssVar("muted")).toBe(palette.muted)
-    expect([cssVar("level-info"), cssVar("level-warn"), cssVar("level-error")]).toEqual([palette.levelInfo, palette.levelWarn, palette.levelError])
+    expect([cssVar("level-info"), cssVar("level-warn"), cssVar("level-error"), cssVar("level-notnow")]).toEqual([palette.levelInfo, palette.levelWarn, palette.levelError, palette.levelNotNow])
     expect(palette.tags.map((_, i) => cssVar(`tag-${i}`))).toEqual([...palette.tags])
 })
 
