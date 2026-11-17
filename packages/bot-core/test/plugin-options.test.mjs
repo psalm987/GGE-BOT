@@ -15,7 +15,9 @@ function optionKeysRead(source) {
     const code = source.split("\n").filter(line => !line.trim().startsWith("//")).join("\n")
     const dotted = [...code.matchAll(/(?<!module\.exports\.)\bpluginOptions\??\.(\w+)/g)].map(m => m[1])
     const indexed = [...code.matchAll(/\bpluginOptions\[["'](\w+)["']\]/g)].map(m => m[1])
-    return new Set([...dotted, ...indexed])
+    // A plugin that reads its own options through a `setting("key")` helper; a shared core's helper reads its callers' options.
+    const helper = /\bconst setting = key => botConfig\.plugins\.\w+/.test(code) ? [...code.matchAll(/\bsetting\(["'](\w+)["']\)/g)].map(m => m[1]) : []
+    return new Set([...dotted, ...indexed, ...helper])
 }
 
 function optionKeysDeclared(relPath, source) {

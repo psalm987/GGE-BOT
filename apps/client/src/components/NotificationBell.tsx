@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router"
 import type { Notification } from "@gge/contracts"
 import { notificationsQuery, orpc, queryClient } from "../api.ts"
+import { logsLinkFor } from "../log-params.ts"
 import { useMe } from "../auth.tsx"
 import { applyNotificationEvent, unreadCount } from "../notification-events.ts"
 import { useNotificationText } from "../notification-text.ts"
@@ -89,7 +90,7 @@ export function NotificationBell() {
                                     </small>
                                 </button>
                                 {!gone && (
-                                    <Link className="gge-notification-logs" to={`/logs?account=${n.accountId}&level=2`} aria-label={t("notifications.viewLogsFor", { account: n.data.accountName })}
+                                    <Link className="gge-notification-logs" to={logsLinkFor(n)} aria-label={t("notifications.viewLogsFor", { account: n.data.accountName })}
                                         onClick={() => {
                                             if (!n.readAt)
                                                 markRead.mutate({ ids: [n.id] })

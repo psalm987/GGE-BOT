@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { PluginState } from "@gge/contracts"
+import { BotNotice, PluginState } from "@gge/contracts"
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
@@ -103,6 +103,7 @@ export type SupervisorDeps = {
         closeRun(id: number | undefined, reason: string, error?: string | null): Promise<void>
         setStatus(accountId: string, patch: StatusPatch): Promise<void>
         setPluginState(accountId: string, plugin: string, state: PluginState): Promise<void>
+        notifyOwner(accountId: string, notice: BotNotice): Promise<void>
         touchHeartbeat(accountId: string): Promise<void>
         endAccount(accountId: string, ending: AccountEnding): Promise<void>
         proxyOk(proxyId: string): Promise<void>
@@ -446,6 +447,14 @@ export class Supervisor {
                     this.track(store.setPluginState(id, plugin, state.data))
                 else
                     this.log.warn("dropped an invalid plugin status", id)
+                break
+            }
+            case Action.Notify: {
+                const notice = BotNotice.safeParse(payload)
+                if (notice.success)
+                    this.track(store.notifyOwner(id, notice.data))
+                else
+                    this.log.warn("dropped an invalid notice", id)
                 break
             }
             case Action.Started:

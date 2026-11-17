@@ -20,4 +20,12 @@ function statusReporter(filename) {
     }
 }
 
-module.exports = { statusReporter }
+/**
+ * Asks the runner to tell the account's owner, in the bell and by email if they chose it: a BotNotice from
+ * @gge/contracts. `key` names the one event, so the same key twice notifies once.
+ */
+function notifyOwner(kind, data, key) {
+    parentPort.postMessage([ActionType.Notify, { kind, data, key }])
+}
+
+module.exports = { statusReporter, notifyOwner }

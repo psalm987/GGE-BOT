@@ -88,6 +88,8 @@
   "emailWhen.plan_expiring": "my plan is about to end",
   "emailWhen.plan_expired": "my plan has ended",
   "emailWhen.purchase_completed": "a purchase goes through",
+  "emailWhen.incoming_attack": "a player attacks one of my castles (Auto Station)",
+  "emailWhen.station_result": "Auto Station moves troops out or opens the gates",
   "emailWhen.sentTo": "Emails go to {{email}}. Each of these also shows under the bell, whatever you choose here.",
   "emailWhen.unverified": "Confirm your email address to get these. Until then they only show under the bell.",
   "settings.password.title": "Change password",

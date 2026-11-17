@@ -21,5 +21,14 @@
   "purchase_completed.codes_other": "{{count}} single-use codes are ready to share.",
   "purchase_completed.time": "The time is added to your plan.",
   "purchase_completed.points_one": "You earned {{count}} point.",
-  "purchase_completed.points_other": "You earned {{count}} points."
+  "purchase_completed.points_other": "You earned {{count}} points.",
+  "incoming_attack.title": "{{attacker}} is attacking {{castle}} on {{accountName}}",
+  "incoming_attack.body": "The attack lands at {{arrival, when}}. Auto Station moves the troops out just before.",
+  "station_result.stationed.title": "Troops left {{castle}} on {{accountName}} before the attack",
+  "station_result.stationed.body": "They are stationed at {{destination}} and come home once the attack has landed.",
+  "station_result.stationed.bodyNoDestination": "They are stationed at an alliance castle and come home once the attack has landed.",
+  "station_result.gates_opened.title": "Gates opened at {{castle}} on {{accountName}}",
+  "station_result.gates_opened.body": "No alliance castle could take the troops, so the gates were opened for {{rubies}} rubies.",
+  "station_result.unprotected.title": "Auto Station couldn't move the troops out of {{castle}} on {{accountName}}",
+  "station_result.unprotected.body": "No alliance castle could take them and the gates stayed shut. The logs say why."
 }

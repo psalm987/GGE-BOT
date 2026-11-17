@@ -29,6 +29,7 @@ if (require('node:worker_threads').isMainThread) {
 const { RateLimiter } = require('limiter')
 const { resources } = require('../../protocols')
 const { botConfig, playerInfo, xtHandler, sendXT, waitForResult } = require('../../ggeBot')
+const { isCastleLocked } = require("../../castleLock.js")
 const stables = require("../../paths.js").loadItem("horses")
 
 const getTotalAmountTools = (e, t, n) =>
@@ -386,8 +387,13 @@ async function openAttackDialog({ SX, SY, TX, TY, KID }) {
  *
  * With `context.dryRun` it logs the `cra` instead, sends nothing and returns
  * `{ dryRun: true }`. No march will free the commander, so the caller must.
+ *
+ * Throws "CASTLE_LOCKED", sending nothing, while Auto Station is moving the
+ * source castle's troops out (castleLock.js).
  */
 async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, ...context } = {}) {
+    if (isCastleLocked(kingdomID, attackInfo.SX, attackInfo.SY))
+        throw "CASTLE_LOCKED"
     if (dryRun) {
         console.log("dryRunAttack", JSON.stringify(attackInfo))
         return { dryRun: true }

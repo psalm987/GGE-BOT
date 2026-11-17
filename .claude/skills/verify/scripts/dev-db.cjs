@@ -1,11 +1,11 @@
 // Writes into the dev Postgres what only a running bot would, so the drivers can see it arrive live:
 // - log: one bot log line, the way apps/runner/src/store.ts writes it: the bot_logs row and its
 //   centrifugo_outbox publish in one transaction, so Centrifugo delivers it to every open log view.
-// - notify: a crash-loop notification for an account's owner, the way insertNotification in packages/db does,
-//   marked as already emailed so the dev mailer leaves it alone.
+// - notify: a crash-loop (or, with a kind, an incoming-attack) notification for an account's owner, the way
+//   insertNotification in packages/db does, marked as already emailed so the dev mailer leaves it alone.
 // Usage: node dev-db.cjs log <account name> <level 0|1|2> <plugin> <part>...   e.g. log Ironhold 1 feast notEnoughFoodToFeast
-//        node dev-db.cjs notify <account name>
-// Or require it for insertLogLine({ accountName, level, plugin, parts }) and insertNotification({ accountName }).
+//        node dev-db.cjs notify <account name> [crash_loop|incoming_attack]
+// Or require it for insertLogLine({ accountName, level, plugin, parts }) and insertNotification({ accountName, kind }).
 // The Postgres URL comes from DATABASE_URL, else from the `pnpm dev` banner in DEV_LOG (default /tmp/gge-dev.log).
 const fs = require("node:fs")
 const path = require("node:path")
@@ -59,14 +59,20 @@ function insertLogLine({ accountName, level, plugin, parts: rest }) {
     })
 }
 
-function insertNotification({ accountName }) {
+/** The details of each kind `notify` can write, beside the account snapshot. */
+const DETAILS = {
+    crash_loop: () => ({ failures: 8, lastError: "The bot stopped responding" }),
+    incoming_attack: account => ({ attacker: "Raider", castle: `${account.name} Keep`, arrival: new Date(Date.now() + 10 * 60_000).toISOString() }),
+}
+
+function insertNotification({ accountName, kind = "crash_loop" }) {
     return withAccount(accountName, async (db, account) => {
-        const data = { accountName: account.name, serverLabel: account.label, failures: 8, lastError: "The bot stopped responding" }
+        const data = { accountName: account.name, serverLabel: account.label, ...DETAILS[kind](account) }
         const { rows: [row] } = await db.query(
             `insert into notifications (user_id, account_id, kind, data, dedup_key, email_state)
-             values ($1, $2, 'crash_loop', $3, $4, 'skipped') returning id, created_at`,
-            [account.owner_id, account.id, JSON.stringify(data), `verify:${Date.now()}`])
-        const notification = { id: Number(row.id), kind: "crash_loop", data, accountId: account.id, createdAt: row.created_at, readAt: null }
+             values ($1, $2, $3, $4, $5, 'skipped') returning id, created_at`,
+            [account.owner_id, account.id, kind, JSON.stringify(data), `verify:${Date.now()}`])
+        const notification = { id: Number(row.id), kind, data, accountId: account.id, createdAt: row.created_at, readAt: null }
         await publish(db, `personal:user#${account.owner_id}`, { v: 1, kind: "notification", notification })
         return notification
     })
@@ -100,9 +106,9 @@ if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)
     const run = command === "log" && accountName && ["0", "1", "2"].includes(level) && plugin
         ? insertLogLine({ accountName, level: Number(level), plugin, parts: parts.map(p => /^\d+$/.test(p) ? Number(p) : p) })
-        : command === "notify" && accountName ? insertNotification({ accountName }) : undefined
+        : command === "notify" && accountName && (!level || level in DETAILS) ? insertNotification({ accountName, kind: level }) : undefined
     if (!run) {
-        console.error("usage: node dev-db.cjs log <account name> <level 0|1|2> <plugin> <part>...\n       node dev-db.cjs notify <account name>")
+        console.error("usage: node dev-db.cjs log <account name> <level 0|1|2> <plugin> <part>...\n       node dev-db.cjs notify <account name> [crash_loop|incoming_attack]")
         process.exit(2)
     }
     run.then(result => console.log(JSON.stringify(result))).catch(error => { console.error(error.message); process.exit(1) })

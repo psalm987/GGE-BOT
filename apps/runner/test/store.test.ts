@@ -140,6 +140,28 @@ test("a notification outlives its account and keeps the account's name", async (
     expect(await mine()).toMatchObject([{ accountId: null, kind: "crash_loop", data: { accountName: account!.name, failures: 8, lastError: "boom" } }])
 })
 
+test("a bot's notice reaches its owner with the account's name and server, once per key", async () => {
+    const notice = { kind: "station_result", key: "0:1001:1", data: { castle: "Keep", outcome: "stationed", destination: "Ally (3:4)", rubies: null } } as const
+    await store.notifyOwner(accountId, notice)
+    await store.notifyOwner(accountId, notice)
+    await store.notifyOwner(accountId, { ...notice, key: "0:1001:2" })
+
+    const [account] = await db.select().from(gameAccounts).where(eq(gameAccounts.id, accountId))
+    const rows = await mine()
+    expect(rows).toMatchObject([
+        { accountId, kind: "station_result", data: { accountName: account!.name, serverLabel: "India 1", castle: "Keep", outcome: "stationed", destination: "Ally (3:4)" } },
+        { kind: "station_result" },
+    ])
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events.map(e => e.kind), "nothing about the account's state changes").toEqual(["notification", "notification"])
+})
+
+test("a notice for a deleted account is dropped", async () => {
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
+    await store.notifyOwner(accountId, { kind: "incoming_attack", key: "k", data: { attacker: "Raider", castle: "Keep", arrival: "2031-02-03T04:05:06.000Z" } })
+    expect(await mine()).toEqual([])
+})
+
 test("each new message wakes Centrifugo's consumer on its partition", async () => {
     const listener = await db.$pool.connect()
     try {

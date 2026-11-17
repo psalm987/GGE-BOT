@@ -343,8 +343,8 @@ async function driveBilling(browser) {
     await player.waitForURL(url => url.pathname === "/")
     assert(true, "billing off: /plan sends a player back to their accounts")
     await player.goto(`${CLIENT_URL}/settings`)
-    await player.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
-    assert(await player.getByRole("switch", { name: "Email me when my free trial starts" }).count() === 0, "billing off: Settings hides the four plan email switches")
+    await player.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 6)
+    assert(await player.getByRole("switch", { name: "Email me when my free trial starts" }).count() === 0, "billing off: Settings hides the four plan email switches and shows the four bot and two Auto Station ones")
 
     const title = `Servers restart ${Date.now().toString(36)}`
     const announcement = await adminCall("announcements/create", {
@@ -633,6 +633,80 @@ async function drivePluginSettings(page) {
     }
     await page.setViewportSize({ width: 1280, height: 860 })
     await rpc(page, "accounts/update", { id: ironhold.id, plugins: seeded })
+}
+
+/**
+ * The Auto Station dialog (Simple and Advanced, the gate fallback off with its ruby cost in the label, a fixed
+ * destination row with its kingdom picker) and an incoming-attack notification in the bell, at 1440 and 390.
+ */
+async function driveStationSettings(page) {
+    const shots = path.join(out, "station-run")
+    require("fs").mkdirSync(shots, { recursive: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(CLIENT_URL)
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    await page.getByRole("button", { name: "Auto Station settings" }).click()
+    const dialog = page.getByRole("dialog", { name: "Auto Station settings" })
+    await dialog.getByRole("button", { name: "Save" }).waitFor()
+    const view = async which => { await dialog.locator(".ant-segmented-item", { hasText: which }).click(); await page.waitForTimeout(150) }
+
+    await view("Simple")
+    assert(await dialog.getByText("This plugin ends your beginner or peace protection", { exact: false }).count() > 0
+        || await dialog.getByText("Sending troops to an alliance castle ends your beginner or peace protection.").isVisible(), "the dialog says stationing ends protection")
+    assert(await dialog.getByLabel("Move the troops out this long before the attack lands").inputValue() === "60", "troops leave 60 seconds before the attack by default")
+    const gate = dialog.getByLabel("If no alliance castle takes the troops, open the gates (costs 450 to 56,700 rubies, more each time)")
+    assert(await gate.isVisible(), "the gate fallback names its ruby cost")
+    assert(await dialog.locator(".ant-select-content", { hasText: /^Off$/ }).count() === 1, "the gate fallback is off by default")
+    assert(!(await dialog.getByText("Dry run: log the station, recall and gate commands instead of sending them").isVisible()), "Simple hides Dry run")
+    await dialog.getByRole("button", { name: "Add row" }).first().click()
+    await dialog.getByLabel("Kingdom, row 1").click()
+    await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: "Everwinter Glacier" }).first().click()
+    await dialog.getByLabel("X, row 1").fill("310")
+    await dialog.getByLabel("Y, row 1").fill("402")
+    assert(await dialog.locator(".ant-select-content", { hasText: "Everwinter Glacier" }).count() === 1, "a fixed destination row picks its kingdom by name")
+    await axe(page, "auto station dialog simple 1440")
+    await page.screenshot({ path: `${shots}/auto-station-simple-1440.png` })
+
+    await view("Advanced")
+    assert(await dialog.getByText("Dry run: log the station, recall and gate commands instead of sending them").isVisible(), "Advanced shows Dry run")
+    assert(await dialog.getByRole("checkbox", { name: "Watch outposts" }).isChecked(), "outposts are watched by default")
+    await axe(page, "auto station dialog advanced 1440")
+    await page.screenshot({ path: `${shots}/auto-station-advanced-1440.png` })
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow at 390 with the Auto Station dialog open")
+    await axe(page, "auto station dialog advanced 390")
+    await page.screenshot({ path: `${shots}/auto-station-advanced-390.png` })
+    await dialog.getByLabel("Kingdom, row 1").scrollIntoViewIfNeeded()
+    const kingdom = await dialog.getByLabel("Kingdom, row 1").boundingBox()
+    const form = await dialog.locator("form").boundingBox()
+    assert(kingdom.x >= 0 && form.x + form.width <= PHONE_VIEW.width, `at 390 a destination row scrolls inside its table instead of widening the form past the screen (form ends at ${form.x + form.width})`)
+    await page.screenshot({ path: `${shots}/auto-station-rows-390.png` })
+    await view("Simple")
+    await page.screenshot({ path: `${shots}/auto-station-simple-390.png` })
+    await dialog.getByRole("button", { name: "Cancel" }).click()
+    await page.getByRole("button", { name: "Discard" }).click()
+    await dialog.waitFor({ state: "hidden" })
+    await page.keyboard.press("Escape")
+
+    for (const [viewport, width] of [[WIDE_VIEW, 1440], [PHONE_VIEW, 390]]) {
+        await page.setViewportSize(viewport)
+        await page.goto(CLIENT_URL)
+        const notice = await insertNotification({ accountName: "Ironhold", kind: "incoming_attack" })
+        await page.getByRole("button", { name: /^Notifications, [1-9]\d* unread$/ }).click()
+        const item = page.getByText("Raider is attacking Ironhold Keep on Ironhold").first()
+        await item.waitFor()
+        await page.getByText("Auto Station moves the troops out just before.", { exact: false }).first().waitFor()
+        assert(true, `the bell words an incoming attack at ${width}`)
+        const href = await page.getByRole("link", { name: "View logs for Ironhold" }).first().getAttribute("href")
+        assert(href === `/logs?account=${notice.accountId}&tag=autoStation`, `its View logs link opens Ironhold's Auto Station lines (${href})`)
+        await axe(page, `bell incoming attack ${width}`)
+        assert(await overflowOf(page) <= 0, `no horizontal overflow at ${width} with the bell open`)
+        await page.screenshot({ path: `${shots}/bell-incoming-attack-${width}.png` })
+        await page.keyboard.press("Escape")
+    }
+    await page.setViewportSize({ width: 1280, height: 860 })
 }
 
 /** The Foreign Lords and Bloodcrow glory dialogs: the Simple and Advanced split and the off-by-default safety options, at 1440 and 390. */
@@ -1001,6 +1075,17 @@ async function drivePalette(page, browser) {
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
+    if (process.env.DRIVE_ONLY === "station-settings") {
+        const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveStationSettings(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "plugin-settings") {
         const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
         await demo.goto(`${CLIENT_URL}/login`)
@@ -1063,6 +1148,8 @@ async function drivePalette(page, browser) {
         .map(async what => await emailWhen(what).getAttribute("aria-checked") === "true"))
     await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length >= 4)
     assert((await emailsOn()).join() === "true,true,true,false", "email alerts default to on for bans, rejected passwords and crash loops, off for the shutoff timer")
+    assert(await emailWhen("a player attacks one of my castles (Auto Station)").getAttribute("aria-checked") === "false"
+        && await emailWhen("Auto Station moves troops out or opens the gates").getAttribute("aria-checked") === "false", "the two Auto Station emails start off")
     let saves = 0
     page.on("response", response => { if (response.url().includes("/rpc/account/notificationPrefs")) saves++ })
     await emailWhen("the game bans an account").click()

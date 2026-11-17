@@ -45,6 +45,26 @@ movementEvents.on("return", (/** @type {import("../protocols.js").ClassTypes.Mov
 
     freeCommander(movement.lord.lordID)
 })
+/** The 0-based commander positions a whitelist like "1-5,9" picks, or the list unchanged when it is empty or parsed already. */
+function parseWhitelist(commanderWhitelist) {
+    if ([, 0, ""].includes(commanderWhitelist) || Array.isArray(commanderWhitelist))
+        return commanderWhitelist
+    return commanderWhitelist.split(",").map(e => {
+        let [start, end] = e.split("-").map(Number)
+
+        return Array.from({ length: (end ?? start) - start + 1 }, (_, i) => start + i - 1)
+    }).flat()
+}
+
+/** A whitelisted commander that is free right now, marked used; undefined when none is. Never waits. */
+function takeFreeCommander(commanderWhitelist) {
+    const whitelist = parseWhitelist(commanderWhitelist)
+    const lord = commanders.find(e => (!whitelist || whitelist.includes(e.lordPosition)) && !usedCommanders.includes(e.lordID))
+    if (lord)
+        useCommander(lord.lordID)
+    return lord
+}
+
 /**
  * 
  * @param {string} commanderWhitelist 
@@ -54,14 +74,7 @@ movementEvents.on("return", (/** @type {import("../protocols.js").ClassTypes.Mov
  */
 
 const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sortCallback) => {
-    if (![, 0, ""].includes(commanderWhitelist) &&
-        !Array.isArray(commanderWhitelist)) {
-        commanderWhitelist = commanderWhitelist.split(",").map(e => {
-            let [start, end] = e.split("-").map(Number)
-            
-            return Array.from({ length: (end ?? start) - start + 1 }, (_, i) => start + i - 1)
-        }).flat()
-    }
+    commanderWhitelist = parseWhitelist(commanderWhitelist)
 
     if (commanders.length == 0)
         commanders = Array.from((await waitForResult("gli", 1000 * 10))[0].C)
@@ -111,6 +124,7 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
 module.exports = {
     movementEvents,
     waitForCommanderAvailable,
+    takeFreeCommander,
     useCommander,
     freeCommander
 }

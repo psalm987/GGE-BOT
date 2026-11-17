@@ -295,6 +295,7 @@ events.once("load", async () => {
                 case "COOLING_DOWN":
                 case "TIMED_OUT":
                 case "MISSING_UNITS":
+                case "CASTLE_LOCKED":
                 case "CANT_START_NEW_ARMIES":
                     return true
                 default:

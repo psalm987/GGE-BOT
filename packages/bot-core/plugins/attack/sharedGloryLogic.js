@@ -413,6 +413,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                     case "COOLING_DOWN":
                     case "TIMED_OUT":
                     case "MISSING_UNITS":
+                    case "CASTLE_LOCKED":
                     case "CANT_START_NEW_ARMIES":
                         console.warn(e)
                         break

@@ -1,5 +1,5 @@
 import { eq, inArray, isNull, sql } from "drizzle-orm"
-import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
+import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type BotNotice, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
 import {
     botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
@@ -168,6 +168,21 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     // Without a run there is nothing to recognise a repeat by, so each report stands alone.
                     dedupKey: `${kind}:${accountId}:${runId ?? `at-${Date.now()}`}`,
                 })
+            })
+        },
+
+        /**
+         * A running bot asked to tell the account's owner something. The store adds the account's name and server.
+         * The same notice key for the same account notifies once. A deleted account is left alone.
+         */
+        async notifyOwner(accountId: string, { kind, key, data }: BotNotice) {
+            await db.transaction(async tx => {
+                const [account] = await tx.select({ ownerId: gameAccounts.ownerId, name: gameAccounts.name, label: servers.label })
+                    .from(gameAccounts).innerJoin(servers, eq(servers.id, gameAccounts.serverId)).where(eq(gameAccounts.id, accountId))
+                if (!account)
+                    return
+                const content = { kind, data: { ...data, accountName: account.name, serverLabel: account.label } } as NotificationContent
+                await insertNotification(tx, { ...content, userId: account.ownerId, accountId, dedupKey: `${kind}:${accountId}:${key}` })
             })
         },
 

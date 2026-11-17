@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
+import type { NotificationKind } from "@gge/contracts"
 import { NO_FILTERS, isLevel, type LogFilters } from "@gge/ui/log-filter"
 
 const distinct = (values: string[], max: number) => [...new Set(values.filter(Boolean))].slice(0, max)
@@ -29,6 +30,18 @@ export function writeLogParams(filters: LogFilters): URLSearchParams {
     if (filters.q.trim())
         params.set("q", filters.q)
     return params
+}
+
+/** Notifications about what Auto Station saw and did; their log lines are that plugin's, at every level. */
+const STATION_KINDS = new Set<NotificationKind>(["incoming_attack", "station_result"])
+
+/** Where the bell's "View logs" goes for a notification about an account: its errors, or Auto Station's lines. */
+export function logsLinkFor({ kind, accountId }: { kind: NotificationKind; accountId: string | null }) {
+    const accountIds = accountId ? [accountId] : []
+    const filters: LogFilters = STATION_KINDS.has(kind)
+        ? { ...NO_FILTERS, accountIds, plugins: ["autoStation"] }
+        : { ...NO_FILTERS, accountIds, levels: [2] }
+    return `/logs?${writeLogParams(filters)}`
 }
 
 const TYPING_SETTLE_MS = 250

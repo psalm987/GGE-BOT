@@ -132,6 +132,22 @@ describe("plugin states", () => {
     })
 })
 
+describe("notices from a running bot", () => {
+    test("a valid notice notifies the owner once per key, and one the bot may not raise is dropped with a warning", async () => {
+        const warnings: unknown[][] = []
+        supervisor = makeSupervisor({ logger: { warn: (...args) => void warnings.push(args), error() {} } })
+        const id = await addAccount("notify-a")
+        await reconcile()
+
+        await until(async () => (await notified(id)).length === 1 && warnings.length === 1)
+        await until(async () => (await status(id))?.actualState === "running")
+        const [row] = await notified(id)
+        expect(row).toMatchObject({ kind: "incoming_attack", emailState: "pending", data: { accountName: "notify-a", serverLabel: expect.any(String), attacker: "Raider", castle: "Keep" } })
+        expect(await notified(id)).toHaveLength(1)
+        expect(warnings[0]).toEqual(["dropped an invalid notice", id])
+    })
+})
+
 describe("starting and stopping", () => {
     test("starts every wanted account with its decrypted password and plugins, one login at a time", async () => {
         const a = await addAccount("ok-a")

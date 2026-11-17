@@ -17,16 +17,20 @@ export type ItemCatalog = z.infer<typeof ItemCatalog>
 export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins"])
 export type NumberUnit = z.infer<typeof NumberUnit>
 
-/** A column of a Rows option: a castle, a game item, or a bounded number. */
+/** The game's kingdoms by id: Great Empire, Burning Sands, Everwinter Glacier, Fire Peaks, Storm Islands and Berimond. */
+export const KINGDOM_IDS = [0, 1, 2, 3, 4, 10] as const
+
+/** A column of a Rows option: a castle, a kingdom, a game item, or a bounded number. */
 export const RowColumn = z.discriminatedUnion("type", [
     z.object({ key, type: z.literal("castle") }),
+    z.object({ key, type: z.literal("kingdom") }),
     z.object({ key, type: z.literal("tool") }),
     z.object({ key, type: z.literal("troop") }),
     z.object({ key, type: z.literal("number"), min: z.number(), max: z.number(), default: z.number().optional() }),
 ])
 export type RowColumn = z.infer<typeof RowColumn>
 
-/** One row of a Rows option, by column key: a castle, an item's wodID, or a number. */
+/** One row of a Rows option, by column key: a castle, a kingdom id, an item's wodID, or a number. */
 export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
 export type RowValue = z.infer<typeof RowValue>
 
@@ -151,7 +155,10 @@ function checkRow(columns: RowColumn[], row: unknown, where: string): RowValue {
     for (const column of columns) {
         const cell = parsed.data[column.key]
         const at = `${where}.${column.key}`
-        if (column.type === "castle" ? !CastleRef.safeParse(cell).success : column.type !== "number" && !Number.isInteger(cell))
+        const valid = column.type === "castle" ? CastleRef.safeParse(cell).success
+            : column.type === "kingdom" ? (KINGDOM_IDS as readonly unknown[]).includes(cell)
+            : column.type === "number" || Number.isInteger(cell)
+        if (!valid)
             throw new PluginSettingsError({ code: column.type === "castle" ? "PLUGIN_OPTION_CASTLE" : "PLUGIN_OPTION_ITEM", params: { where: at } })
         if (column.type === "number" && !inRange(cell, column.min, column.max))
             throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where: at, min: column.min, max: column.max } })

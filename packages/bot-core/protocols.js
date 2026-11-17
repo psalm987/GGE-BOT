@@ -561,6 +561,7 @@ class CastleResourceInfo extends EventEmitter {
         this.hasDefenseWorkshop = Boolean(e.DW)
         this.hasHospital = Boolean(e.H)
         e.OGT ? this.openGateTime = Number(e.OGT) : undefined
+        e.OGC !== undefined ? this.openGateCount = Number(e.OGC) : undefined
         e.gca?.BD ? this.buildings = Array.from(e.gca.BD).map(BuildingInfo) : undefined
         e.scl?.OIDL ? this.buildingSlots = Array.from(e.scl.OIDL).map(Number) : undefined
         // this.ownerInfo: new OwnerInfo(o.O)
@@ -1172,7 +1173,8 @@ async function newMovement(movement) {
         movementEvents.emit("returning", movement)
     // console.log(`${Math.floor((movement.totalTime - (movement.deltaTime - Date.now()) + 1000) / 1000)} seconds`)
     setTimeout(() => {
-        const movementIndex = movements.findIndex(e => e.id == movement.id)
+        // By identity: a recalled station's march home reuses its id and must outlive the station's own timer.
+        const movementIndex = movements.findIndex(e => e === movement)
         if(movementIndex == -1) {
             debugger
             return
@@ -1268,6 +1270,17 @@ xtHandler.on("cra", (o, r) => r == 0 ?
 xtHandler.on("cat", (o, r) => {
     if(r == 0) 
         new Movement(o.A, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))
+})
+// A station reply carries the new march, and a recall reply the same march turned home (docs/protocol/stationing.md).
+xtHandler.on("cds", (o, r) => r == 0 && o.A?.M ? new Movement(o.A, Array.from(o.O ?? []).map(o => new OwnerInfo(o))) : undefined)
+xtHandler.on("mcm", (o, r) => {
+    if (r != 0 || !o.A?.M)
+        return
+    // A station still on its way would take the march home's fields but end at its own arrival time.
+    const index = movements.findIndex(m => m.id == Number(o.A.M.MID))
+    const [outbound] = index == -1 ? [] : movements.splice(index, 1)
+    const march = o.A.UM || !outbound ? o.A : { ...o.A, UM: { L: { ID: outbound.lord.lordID, VIS: outbound.lord.lordPosition } } }
+    new Movement(march, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))
 })
 xtHandler.on("gam", (o, r) => r == 0 ? 
     Array.from(o.M ?? []).map(e => new Movement(e, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))) : undefined)

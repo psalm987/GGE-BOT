@@ -11,7 +11,7 @@ afterAll(() => api.close())
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 
 const PLAN_PREFS = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true }
-const DEFAULT_PREFS = { banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...PLAN_PREFS }
+const DEFAULT_PREFS = { banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...PLAN_PREFS, incoming_attack: false, station_result: false }
 
 const banned = (accountName: string): NotificationContent => ({ kind: "banned", data: { accountName, serverLabel: "India 1", bannedUntil: null } })
 const shutoff = (accountName: string): NotificationContent => ({ kind: "shutoff", data: { accountName, serverLabel: "India 1" } })
@@ -172,7 +172,7 @@ describe("emailing notifications", () => {
 
     test("a kind the player turned off is skipped while the others still go out", async () => {
         const alice = await player()
-        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...PLAN_PREFS })
+        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...PLAN_PREFS, incoming_attack: false, station_result: false })
         const off = await notify(alice.id, banned("Ironhold"))
         const on = await notify(alice.id, shutoff("Ravenmoor"))
 
@@ -182,6 +182,23 @@ describe("emailing notifications", () => {
         expect(await row(on)).toMatchObject({ emailState: "sent" })
         expect(digestsTo(alice.email)).toHaveLength(1)
         expect(digestsTo(alice.email)[0]!.text).not.toContain("Ironhold")
+    })
+
+    test("Auto Station notifications stay under the bell unless the player asks for the emails", async () => {
+        const alice = await player()
+        const attack: NotificationContent = { kind: "incoming_attack", data: { accountName: "Ironhold", serverLabel: "India 1", attacker: "Raider", castle: "Keep", arrival: "2031-02-10T09:30:00.000Z" } }
+        const result: NotificationContent = { kind: "station_result", data: { accountName: "Ironhold", serverLabel: "India 1", castle: "Keep", outcome: "stationed", destination: "Ally (3:4)", rubies: null } }
+        const quiet = [await notify(alice.id, attack), await notify(alice.id, result)]
+        await api.mailTick()
+        for (const id of quiet)
+            expect(await row(id)).toMatchObject({ emailState: "skipped" })
+        expect(digestsTo(alice.email)).toEqual([])
+
+        await alice.api.account.setNotificationPrefs({ ...DEFAULT_PREFS, incoming_attack: true })
+        const asked = await notify(alice.id, attack)
+        await api.mailTick()
+        expect(await row(asked)).toMatchObject({ emailState: "sent" })
+        expect(digestsTo(alice.email)[0]!.text).toContain("Raider is attacking Keep on Ironhold")
     })
 
     test("a notice about the plan, which has no server, is emailed under its own title", async () => {
@@ -415,7 +432,10 @@ describe("email preferences", () => {
     test("a change is saved for that player only", async () => {
         const alice = await player()
         const bob = await player()
-        const chosen = { banned: false, auth_failed: true, crash_loop: false, shutoff: true, trial_started: true, plan_expiring: false, plan_expired: true, purchase_completed: false }
+        const chosen = {
+            banned: false, auth_failed: true, crash_loop: false, shutoff: true, trial_started: true, plan_expiring: false, plan_expired: true, purchase_completed: false,
+            incoming_attack: true, station_result: false,
+        }
 
         await alice.api.account.setNotificationPrefs(chosen)
 

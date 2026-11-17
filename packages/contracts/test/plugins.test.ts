@@ -138,6 +138,12 @@ describe("the richer option types", () => {
                 ],
             },
             { type: "CastlePicker", key: "source" },
+            {
+                type: "Rows", key: "destinations", default: [], columns: [
+                    { key: "kingdom", type: "kingdom" },
+                    { key: "x", type: "number", min: 0, max: 1300 },
+                ],
+            },
         ],
     }]
     const save = (options: Record<string, unknown>) =>
@@ -155,6 +161,8 @@ describe("the richer option types", () => {
         expect(save({ stopMinutesBefore: 45, bannerOrder: [661, 24, 660], reserve: [row], source: { kingdom: 2, id: 77 } }))
             .toEqual({ stopMinutesBefore: 45, bannerOrder: [661, 24, 660], reserve: [row], source: { kingdom: 2, id: 77 } })
         expect(save({ source: null, bannerOrder: [], reserve: [] })).toEqual({ source: null, bannerOrder: [], reserve: [] })
+        expect(save({ destinations: [{ kingdom: 2, x: 10 }, { kingdom: 0, x: 5 }] }), "a kingdom column takes the game's kingdom ids")
+            .toEqual({ destinations: [{ kingdom: 2, x: 10 }, { kingdom: 0, x: 5 }] })
     })
 
     test.each([
@@ -168,6 +176,7 @@ describe("the richer option types", () => {
         ["a row number out of range", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: 602, keep: -1 }] }, "PLUGIN_OPTION_RANGE"],
         ["a row item that is a castle", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: { kingdom: 0, id: 2 }, keep: 1 }] }, "PLUGIN_OPTION_ITEM"],
         ["a castle without its kingdom", { source: { id: 77 } }, "PLUGIN_OPTION_CASTLE"],
+        ["a kingdom the game doesn't have", { destinations: [{ kingdom: 7, x: 10 }] }, "PLUGIN_OPTION_ITEM"],
     ])("rejects %s with a code the browser can translate", (_, options, code) => {
         expect(() => save(options)).toThrow(PluginSettingsError)
         try { save(options) } catch (error) { expect((error as PluginSettingsError).problem.code).toBe(code) }
@@ -175,7 +184,7 @@ describe("the richer option types", () => {
 
     test("gives workers the defaults, and brings a saved number back into range", () => {
         expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: {} } }).attackForeign)
-            .toEqual({ state: true, stopMinutesBefore: 30, bannerOrder: [660, 661], reserve: [] })
+            .toEqual({ state: true, stopMinutesBefore: 30, bannerOrder: [660, 661], reserve: [], destinations: [] })
         expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: 900 } } }).attackForeign!.stopMinutesBefore).toBe(240)
         expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: "junk" } } }).attackForeign!.stopMinutesBefore).toBe(30)
     })

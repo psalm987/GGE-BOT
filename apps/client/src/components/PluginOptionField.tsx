@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Typography } from "antd"
 import { useRef, useState, type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
-import type { AccountCastle, CastleRef, GameItem, GameItemKind, ItemCatalog, PluginOptionDef, RowColumn, RowValue } from "@gge/contracts"
+import { KINGDOM_IDS, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginOptionDef, type RowColumn, type RowValue } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 
@@ -123,7 +123,13 @@ function ItemSelect({ kind, value, onChange, label }: { kind: GameItemKind; valu
         options={items.map(item => ({ value: item.id, label: nameOf(item) }))} />
 }
 
-/** A table the player adds rows to: per castle, per tool or per troop, with a number. */
+function KingdomSelect({ value, onChange, label }: { value?: number; onChange: (v: number | undefined) => void; label: string }) {
+    const kingdomName = useKingdomName()
+    return <Select aria-label={label} value={value} onChange={onChange} style={{ width: "100%" }}
+        options={KINGDOM_IDS.map(kingdom => ({ value: kingdom, label: kingdomName(kingdom) }))} />
+}
+
+/** A table the player adds rows to: per castle, kingdom, tool or troop, with a number. */
 function Rows({ columns, castles, value = [], onChange, id }: { columns: RowColumn[]; castles: AccountCastle[]; value?: RowValue[]; onChange?: (v: RowValue[]) => void; id?: string }) {
     const { t } = useTranslation("client")
     const { t: tb } = useTranslation("bot")
@@ -154,6 +160,7 @@ function Rows({ columns, castles, value = [], onChange, id }: { columns: RowColu
                                 return (
                                     <div key={c.key}>
                                         {c.type === "castle" ? <CastleSelect castles={castles} aria-label={label} value={row[c.key] as CastleRef | undefined} onChange={v => set(index, c.key, v)} />
+                                            : c.type === "kingdom" ? <KingdomSelect label={label} value={row[c.key] as number | undefined} onChange={v => set(index, c.key, v)} />
                                             : c.type === "number" ? <InputNumber aria-label={label} min={c.min} max={c.max} value={row[c.key] as number | undefined} style={{ width: "100%" }}
                                                 onChange={v => set(index, c.key, v ?? undefined)} />
                                             : <ItemSelect kind={COLUMN_KIND[c.type]} label={label} value={row[c.key] as number | undefined} onChange={v => set(index, c.key, v)} />}

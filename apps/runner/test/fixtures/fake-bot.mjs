@@ -60,6 +60,14 @@ switch (mode) {
             post([24, { plugin: "", state: "bogus", reasonKey: 5, params: null }])
         }
     // falls through
+    case "notify":
+        if (mode === "notify") {
+            const notice = { kind: "incoming_attack", key: "0:1001:42", data: { attacker: "Raider", castle: "Keep", arrival: "2031-02-03T04:05:06.000Z" } }
+            post([25, notice])
+            post([25, notice])
+            post([25, { kind: "banned", key: "k", data: { bannedUntil: null } }])
+        }
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))

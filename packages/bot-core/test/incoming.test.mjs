@@ -86,6 +86,20 @@ describe("the incoming attack detector", () => {
         expect(seen).toEqual([])
     })
 
+    test("an attack on the player's own castle counts whatever the alliances, so a player outside any alliance is warned too", () => {
+        const bot = fakeBot()
+        bot.playerInfo.playerID = 5
+        loadModule("plugins/incoming.js", { bot, items: { units } })
+        const seen = []
+        bot.events.on("incoming:new", attack => seen.push(attack.movementId))
+        const loner = { OID: 5, N: "Ada" }
+        const raider = { OID: 6, N: "Stranger" }
+
+        bot.xtHandler.emit("gam", { M: [march({ id: 7, from: 6 }), march({ id: 8, from: 5, to: 6 }), march({ id: 9, from: -801 })], O: [loner, raider] }, 0)
+
+        expect(seen).toEqual([7])
+    })
+
     test("each movement type the alert covered still counts as an attack", () => {
         const { seen, gam } = detector()
 

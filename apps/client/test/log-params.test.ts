@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import { NO_FILTERS } from "@gge/ui/log-filter"
-import { readLogParams, writeLogParams } from "../src/log-params.ts"
+import { logsLinkFor, readLogParams, writeLogParams } from "../src/log-params.ts"
 
 test("an empty URL is no filter, and no filter is an empty URL", () => {
     expect(readLogParams(new URLSearchParams())).toEqual(NO_FILTERS)
@@ -24,6 +24,13 @@ test("the bell's deep link reads as one account's errors", () => {
 test("level 3, the game said not now, is read and written like the others", () => {
     expect(readLogParams(new URLSearchParams(`account=${A1}&level=3`))).toEqual({ ...NO_FILTERS, accountIds: [A1], levels: [3] })
     expect(writeLogParams({ ...NO_FILTERS, levels: [3] }).toString()).toBe("level=3")
+})
+
+test("the bell links a stopped bot to its errors, and an Auto Station notice to that plugin's lines of the account", () => {
+    const at = (link: string) => readLogParams(new URLSearchParams(link.split("?")[1]))
+    expect(logsLinkFor({ kind: "crash_loop", accountId: A1 })).toBe(`/logs?account=${A1}&level=2`)
+    expect(at(logsLinkFor({ kind: "incoming_attack", accountId: A1 }))).toEqual({ ...NO_FILTERS, accountIds: [A1], plugins: ["autoStation"] })
+    expect(at(logsLinkFor({ kind: "station_result", accountId: A1 }))).toEqual({ ...NO_FILTERS, accountIds: [A1], plugins: ["autoStation"] })
 })
 
 test("a level that isn't 0, 1, 2 or 3 is ignored, and level 0 is not assumed when absent", () => {

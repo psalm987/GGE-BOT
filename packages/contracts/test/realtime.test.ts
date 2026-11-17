@@ -79,9 +79,9 @@ describe("notification events", () => {
 })
 
 describe("email preferences", () => {
-    const plan = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true }
+    const plan = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true, incoming_attack: false, station_result: false }
 
-    test("a kind the player never chose takes its default: shutoff emails start off, the rest on", () => {
+    test("a kind the player never chose takes its default: shutoff and Auto Station emails start off, the rest on", () => {
         expect(notificationPrefs({})).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...plan })
         expect(notificationPrefs({ banned: false, shutoff: true })).toEqual({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...plan })
     })
@@ -89,6 +89,11 @@ describe("email preferences", () => {
     test("preferences stored before the plan kinds existed get those kinds on", () => {
         expect(notificationPrefs({ banned: true, auth_failed: false, crash_loop: true, shutoff: true }))
             .toEqual({ banned: true, auth_failed: false, crash_loop: true, shutoff: true, ...plan })
+    })
+
+    test("preferences stored before the Auto Station kinds existed get those kinds off, since attacks can come often", () => {
+        const stored = { banned: false, auth_failed: true, crash_loop: true, shutoff: true, trial_started: false, plan_expiring: true, plan_expired: true, purchase_completed: true }
+        expect(notificationPrefs(stored)).toEqual({ ...stored, incoming_attack: false, station_result: false })
     })
 
     test("a stored value that isn't preferences falls back to the defaults", () => {

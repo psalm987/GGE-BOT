@@ -7,7 +7,7 @@ const { movementEvents } = require("../protocols.js")
 const attackTypes = [0, 25, 31, 24, 29]
 
 /**
- * A player outside the alliance attacking an alliance member, as it is
+ * A player attacking one of our castles, or a player outside the alliance attacking an alliance member, as it is
  * emitted with `incoming:new`, `incoming:updated` and `incoming:cleared`.
  * @typedef {Object} IncomingAttack
  * @property {Number} movementId
@@ -28,8 +28,9 @@ const isHostile = movement =>
     attackTypes.includes(movement.type) &&
     movement.sourceOwner.ownerID >= 0 &&
     movement.targetOwner.ownerID >= 0 &&
-    movement.sourceOwner.allianceID != playerInfo.alliance.id &&
-    movement.targetOwner.allianceID == playerInfo.alliance.id
+    movement.sourceOwner.ownerID != playerInfo.playerID &&
+    (movement.targetOwner.ownerID == playerInfo.playerID ||
+        movement.sourceOwner.allianceID != playerInfo.alliance.id && movement.targetOwner.allianceID == playerInfo.alliance.id)
 
 function armyOf(movement) {
     if (!movement.canSeeArmy)

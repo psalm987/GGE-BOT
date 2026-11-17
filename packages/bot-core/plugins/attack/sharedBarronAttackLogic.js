@@ -286,6 +286,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                 case "TIMED_OUT":
                 case "MISSING_UNITS":
                 case "ATTACK_TOO_MANY_UNITS":
+                case "CASTLE_LOCKED":
                     return true
                 case "CANT_START_NEW_ARMIES":
                 default:

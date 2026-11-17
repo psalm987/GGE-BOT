@@ -23,5 +23,6 @@
     "Metrics": 21,
     "Heartbeat": 22,
     "Discord": 23,
-    "PluginStatus": 24
+    "PluginStatus": 24,
+    "Notify": 25
 }

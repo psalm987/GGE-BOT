@@ -1,8 +1,9 @@
 import { createRequire } from "node:module"
+import path from "node:path"
 import { afterEach, expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
-const { loadModule, fakeBot } = require("./harness/load.cjs")
+const { loadModule, fakeBot, repo } = require("./harness/load.cjs")
 
 afterEach(() => vi.useRealTimers())
 
@@ -54,6 +55,28 @@ test("after a rejected attack, no attack goes out until the fresh castle list ar
     await expect(b).resolves.toBeTruthy()
     expect(log).toEqual(["send cra", "reply cra 101", "send dcl", "reply dcl", "send cra", "reply cra 0"])
     expect(local).toBe(bot.server.units)
+})
+
+test("no attack leaves a castle Auto Station has locked, and attacks from other castles still go", async () => {
+    vi.useFakeTimers()
+    const { sendAttack, log } = serverBot(50)
+    const { lockCastle, unlockCastle } = require(path.join(repo, "castleLock.js"))
+    lockCastle(0, 100, 200)
+
+    await expect(sendAttack({ amount: 10, SX: 100, SY: 200, x: 1, y: 2 }, 0, 1, 2)).rejects.toBe("CASTLE_LOCKED")
+    await expect(sendAttack({ amount: 10, SX: 100, SY: 200, x: 1, y: 2 }, 0, 1, 2, { dryRun: true })).rejects.toBe("CASTLE_LOCKED")
+    expect(log).toEqual([])
+
+    sendAttack({ amount: 10, SX: 100, SY: 200, x: 1, y: 2 }, 2, 1, 2).catch(() => {})
+    const otherCastle = sendAttack({ amount: 10, SX: 101, SY: 200, x: 1, y: 2 }, 0, 1, 2)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(log.filter(line => line == "send cra"), "the same spot in another kingdom and another castle both send").toHaveLength(2)
+    await expect(otherCastle).resolves.toBeTruthy()
+
+    unlockCastle(0, 100, 200)
+    const unlocked = sendAttack({ amount: 10, SX: 100, SY: 200, x: 1, y: 2 }, 0, 1, 2)
+    await vi.advanceTimersByTimeAsync(1_000)
+    await expect(unlocked).resolves.toBeTruthy()
 })
 
 test("a timed-out attack resyncs before the queue moves on", async () => {
