@@ -25,7 +25,7 @@
 | `PROXY_REQUIRED` | runner | no | `true` stops an account that has no proxy from connecting directly. The account doesn't start and shows "No proxy is free". Default `false` ([operations.md](operations.md#proxies)). |
 | `BOT_HUMANIZE` | runner | no | Comma list of humanization flags to turn on: `pin_jitter`, `measured_timing`, `lognormal_delays`, `map_grid`, `nch`, `login_sequence`, `attack_dialog`. Empty: all off. The runner refuses to start on an unknown name ([observability.md](observability.md#humanization-flags)). |
 | `BOT_HUMANIZE_ACCOUNTS` | runner | no | Comma list of account ids that get the `BOT_HUMANIZE` flags. Empty: every account. |
-| `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` | runner | no | Enables the Discord plugins. Each bot currently opens its own Discord connection with this token. |
+| `DISCORD_TOKEN` | runner | no | Discord bot token. Enables the Discord plugins. The runner opens one Discord connection with it for all bots; the bots never receive the token ([architecture.md](../architecture.md#discord)). |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
 | `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |

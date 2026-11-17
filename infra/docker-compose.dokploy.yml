@@ -104,7 +104,6 @@ services:
       BOT_HUMANIZE: ${BOT_HUMANIZE:-}
       BOT_HUMANIZE_ACCOUNTS: ${BOT_HUMANIZE_ACCOUNTS:-}
       DISCORD_TOKEN: ${DISCORD_TOKEN:-}
-      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
       METRICS_PORT: "9464"
     volumes: [gamedata:/data]
 

@@ -36,12 +36,13 @@ function fakeBot(overrides = {}) {
  * Requires a repo module in worker mode with the game connection replaced.
  * `bot` stands in for ggeBot.js; `items` maps item file names to contents
  * (the real ones are downloaded at boot and are not in the repo).
+ * `parentPort` stands in for the host's end of the worker's message port.
  */
-function loadModule(relPath, { bot = fakeBot(), items = {}, extra = {}, mainThread = false } = {}) {
+function loadModule(relPath, { bot = fakeBot(), items = {}, extra = {}, mainThread = false, parentPort = { postMessage() {}, on() {} } } = {}) {
     const originalLoad = Module._load
     Module._load = function (request, parent, isMain) {
         if (request === "node:worker_threads")
-            return { isMainThread: mainThread, parentPort: { postMessage() {}, on() {} }, workerData: bot.botConfig }
+            return { isMainThread: mainThread, parentPort, workerData: bot.botConfig }
         if (/(^|\/)ggeBot(\.js)?$/.test(request))
             return bot
         const item = request.match(/\/items\/([^/]+)\.json$/)

@@ -20,8 +20,8 @@ const Env = z.object({
     /** The HTML5 client build the bot announces at login; set it with GAME_CLIENT_VERSION after a game update. */
     GAME_CLIENT_BUILD: optional.pipe(z.coerce.number<string>().int().positive().optional()),
     TIMEOUT_MULTIPLIER: z.coerce.number().positive().default(1),
+    /** Logs the runner's one Discord client in. Workers never see it. */
     DISCORD_TOKEN: optional,
-    DISCORD_CLIENT_ID: optional,
     FONT_PATH: optional,
     DEBUG: z.stringbool().default(false),
     /** Download items, language and server list at boot; off only for offline development. */
@@ -56,8 +56,8 @@ export const workerConfig = (env: Env) => ({
     timeoutMultiplier: env.TIMEOUT_MULTIPLIER,
     gameClientVersion: env.GAME_CLIENT_VERSION,
     gameClientBuild: env.GAME_CLIENT_BUILD,
-    discordToken: env.DISCORD_TOKEN,
-    discordClientId: env.DISCORD_CLIENT_ID,
+    /** Whether the runner holds a Discord connection for the Discord plugins to use. */
+    discordHub: Boolean(env.DISCORD_TOKEN),
     fontPath: env.FONT_PATH,
     debug: env.DEBUG,
     inboundStaleMs: env.INBOUND_STALE_MS,

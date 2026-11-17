@@ -16,12 +16,10 @@ if (require('node:worker_threads').isMainThread)
         ]
     }
 
-const { PresenceUpdateStatus, AttachmentBuilder } = require("discord.js")
-
 const { botConfig, playerInfo, i18n } = require("../../ggeBot.js")
 const { movementEvents, KingdomID } = require("../../protocols.js")
 const { createLayout } = require("../../imageGen.js")
-const { clientReady, client } = require("./discord.js")
+const { clientReady, client, findMember } = require("./discord.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 
@@ -34,6 +32,12 @@ const kingdomName = [
 ]
 
 const storedMessages = new WeakMap()
+
+const layoutFile = movement => ({
+    attachment: createLayout(movement.left, movement.middle, movement.right, movement.courtyard),
+    name: "attack.png"
+})
+const isAway = member => !["online", "dnd"].includes(member.presence?.status)
 
 movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     await clientReady
@@ -56,14 +60,11 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         const message = await storedMessages.get(movement)
         if (message) {
             if (message?.attachments.size == 0) {
-                const stream = await createLayout(movement.left, movement.middle, movement.right, movement.courtyard)
-                stream.on("error", console.warn)
-                message.edit({
+                // Kept, so the next sighting of this attack sees the picture and doesn't draw it again.
+                storedMessages.set(movement, message.edit({
                     content: message.content,
-                    files: [
-                        new AttachmentBuilder(stream)
-                    ]
-                })
+                    files: [layoutFile(movement)]
+                }).catch(e => (console.warn(e), message)))
             }
             return
         }
@@ -91,7 +92,8 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         return
 
     const clicks = Math.round(Math.sqrt(Math.pow(movement.sourceAttack.x - movement.targetAttack.x, 2) + Math.pow(movement.sourceAttack.y - movement.targetAttack.y, 2)) * 10) / 10
-    const member = channelAlert.members.find(e => e.displayName == (botConfig.externalEvent ? movement.targetOwner.name.replace(/_[^_]+$/, '') : movement.targetOwner.name))
+    const targetName = botConfig.externalEvent ? movement.targetOwner.name.replace(/_[^_]+$/, '') : movement.targetOwner.name
+    const member = channelAlert && await findMember(channelAlert, targetName)
     const mention = member?.displayName ? `<@${member.id}> ` : ``
     const data = {
         content : `${mention}` +  (pluginOptions.mentionEveryone ? " @everyone" : "") +
@@ -103,23 +105,20 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
     }
 
     if (movement.canSeeArmy)
-        data.files = [new AttachmentBuilder(await createLayout(movement.left, movement.middle, movement.right,movement.courtyard))]
+        data.files = [layoutFile(movement)]
     
     storedMessages.set(movement, await channel.send(data))
 
     if (!channelAlert)
         return
 
-    if (member != undefined) {
-        const shouldAlertMember = () => member?.presence?.status == undefined ||
-            member.presence.status !== PresenceUpdateStatus.Online &&
-            member.presence.status !== PresenceUpdateStatus.DoNotDisturb
-        if (movement.kingdomID != KingdomID.stormIslands && shouldAlertMember()) {
-            const spreadAlert = () => shouldAlertMember() ? channelAlert.send(`<@${member.id}> `) : undefined
-            setTimeout(spreadAlert, timeLeft * 1000 / 4).unref()
-            setTimeout(spreadAlert, timeLeft * 1000 / 3).unref()
-            setTimeout(spreadAlert, timeLeft * 1000 / 2).unref()
-            setTimeout(spreadAlert, timeLeft * 1000 / 1.5).unref()
+    if (member && movement.kingdomID != KingdomID.stormIslands && isAway(member)) {
+        const spreadAlert = async () => {
+            const current = await findMember(channelAlert, targetName)
+            if (current && isAway(current))
+                await channelAlert.send(`<@${current.id}> `)
         }
+        for (const divisor of [4, 3, 2, 1.5])
+            setTimeout(() => spreadAlert().catch(console.warn), timeLeft * 1000 / divisor).unref()
     }
 })

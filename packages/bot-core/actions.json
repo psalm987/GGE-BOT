@@ -21,5 +21,6 @@
     "KillBot": 19,
     "BotState": 20,
     "Metrics": 21,
-    "Heartbeat": 22
+    "Heartbeat": 22,
+    "Discord": 23
 }

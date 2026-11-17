@@ -47,6 +47,13 @@ switch (mode) {
             break
         }
     // falls through
+    case "discord":
+        post([23, { id: 1, op: "channelSend", args: { channelId: "1", payload: { content: `hello from ${workerData.name}` } } }])
+        parentPort.on("message", ([type, payload]) => {
+            if (type === 23)
+                post([5, 0, [`discord reply ${payload.ok} `, payload.result?.content ?? payload.error?.message]])
+        })
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))

@@ -126,6 +126,11 @@ export type SupervisorDeps = {
     logger?: Pick<Console, "warn" | "error">
     /** Receives each worker's metric batch. */
     onMetrics?: (batch: never) => void
+    /** The shared Discord connection: takes each worker's Action.Discord requests and answers on its port. */
+    discord?: {
+        request(port: Pick<WorkerLike, "postMessage">, payload: unknown): void
+        release(port: Pick<WorkerLike, "postMessage">): void
+    }
 }
 
 export function workerDataFor(spec: BotSpec, password: string, ggeConfig: Record<string, unknown>, proxyUrl?: string) {
@@ -400,7 +405,7 @@ export class Supervisor {
         bot.terminal = undefined
         bot.failure = undefined
         const runId = bot.runId = this.deps.store.openRun(id)
-        worker.on("message", message => this.onMessage(bot, message))
+        worker.on("message", message => this.onMessage(bot, worker, message))
         worker.on("error", error => {
             // Emitted before "exit", so onExit records it as the run's error.
             if ((error as NodeJS.ErrnoException).code === "ERR_WORKER_OUT_OF_MEMORY")
@@ -411,7 +416,7 @@ export class Supervisor {
             void this.onExit(bot, worker, runId).catch(error => this.log.error("exit handling failed", error)).finally(resolve)))
     }
 
-    private onMessage(bot: Bot, [type, payload, extra]: unknown[]) {
+    private onMessage(bot: Bot, worker: WorkerLike, [type, payload, extra]: unknown[]) {
         const id = bot.spec.accountId
         const { store } = this.deps
         bot.lastBeat = this.now()
@@ -425,6 +430,9 @@ export class Supervisor {
                 break
             case Action.Metrics:
                 this.deps.onMetrics?.(payload as never)
+                break
+            case Action.Discord:
+                this.deps.discord?.request(worker, payload)
                 break
             case Action.StatusUser:
                 this.track(store.setStatus(id, { resources: payload, heartbeat: true }))
@@ -473,6 +481,7 @@ export class Supervisor {
     }
 
     private async onExit(bot: Bot, worker: WorkerLike, runId: Promise<number | undefined>) {
+        this.deps.discord?.release(worker)
         const intended = this.endReasons.get(worker)
         const failure = bot.failure
         const reason = intended ?? bot.terminal?.state ?? failure?.endReason ?? "crash"

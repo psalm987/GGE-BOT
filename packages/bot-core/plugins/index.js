@@ -14,9 +14,13 @@ dir.forEach(file => {
 
     if(fs.lstatSync(__dirname + pathSeperator + file).isDirectory())
         return 
-    //Ew hacky...
-    if((!ggeConfig.discordToken || !ggeConfig.discordClientId) && file.includes("discord"))
-        return    
+    // The runner's Discord hub (discordHub) or, on the legacy host, a token for each bot to log in with.
+    const hasDiscord = ggeConfig.discordHub || (ggeConfig.discordToken && ggeConfig.discordClientId)
+    if(!hasDiscord && file.includes("discord"))
+        return
+    // Slash commands need a Discord client inside the bot, which only the legacy host gives it.
+    if(ggeConfig.discordHub && path.basename(file) == "slashCommands.js")
+        return
 
     if(path.extname(file) != ".js")
         return

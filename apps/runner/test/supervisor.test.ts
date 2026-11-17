@@ -7,10 +7,12 @@ import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "../src/catalog.ts"
-import { humanizeFor, parseEnv } from "../src/env.ts"
+import { DiscordHub } from "../src/discord-hub.ts"
+import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
 import { edgeDelayMs, loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
 import { Supervisor, type WorkerLike } from "../src/supervisor.ts"
+import { FakeDiscord } from "./fixtures/fake-discord.ts"
 
 const fakeBot = fileURLToPath(new URL("./fixtures/fake-bot.mjs", import.meta.url))
 const keys = generateSealKeyPair()
@@ -212,6 +214,67 @@ describe("starting and stopping", () => {
         await reconcile()
         await new Promise(r => setTimeout(r, 200))
         expect(spawned).toHaveLength(0)
+    })
+})
+
+describe("Discord", () => {
+    const quiet = { log() {}, warn() {}, error() {} }
+
+    test("a worker's Discord request is carried out by the runner's client, and the answer goes back to that worker", async () => {
+        const client = new FakeDiscord()
+        client.channel("1")
+        const hub = new DiscordHub({ token: "secret-token", createClient: () => client, logger: quiet })
+        hub.start()
+        supervisor = makeSupervisor({ discord: hub, ggeConfig: workerConfig(parseEnv({ DATABASE_URL: "postgres://x", SEAL_PRIVATE_KEY: "k", DISCORD_TOKEN: "secret-token" })) })
+        const a = await addAccount("discord-a")
+        const b = await addAccount("discord-b")
+        await reconcile()
+
+        await until(async () => (await logs(a)).includes("discord reply true hello from discord-a"))
+        await until(async () => (await logs(b)).includes("discord reply true hello from discord-b"))
+        expect((await logs(a)).filter(l => l.startsWith("discord reply"))).toHaveLength(1)
+        expect(client.channel("1").log.map(m => m.content).sort()).toEqual(["hello from discord-a", "hello from discord-b"])
+        expect(client.logins).toEqual(["secret-token"])
+
+        expect(spawned).toHaveLength(2)
+        expect(spawned[0]!.ggeConfig).toMatchObject({ discordHub: true })
+        expect(JSON.stringify(spawned)).not.toContain("secret-token")
+        await hub.stop()
+    })
+
+    test("a stopped worker no longer hears the channels it subscribed to", async () => {
+        const client = new FakeDiscord()
+        const hub = new DiscordHub({ token: "t", createClient: () => client, logger: quiet })
+        hub.start()
+        const heard: unknown[] = []
+        supervisor = makeSupervisor({
+            discord: hub,
+            spawn: workerData => {
+                const worker = new Worker(fakeBot, { workerData })
+                const post = worker.postMessage.bind(worker)
+                worker.postMessage = (message: unknown) => {
+                    if ((message as [number, { event?: string }])[1]?.event)
+                        heard.push(message)
+                    post(message)
+                }
+                // The fake bot never subscribes, so the test does it on the worker's behalf.
+                hub.request(worker, { id: 99, op: "subscribe", args: { channelIds: ["1"] } })
+                return worker
+            },
+        })
+        const id = await addAccount("discord-sub")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+        client.channel("1").receive("while running")
+        expect(heard).toHaveLength(1)
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "stopped")
+        client.channel("1").receive("after the stop")
+
+        expect(heard).toHaveLength(1)
+        await hub.stop()
     })
 })
 

@@ -95,6 +95,29 @@ The runner deletes read notifications after 30 days and every notification after
 
 Every worker start is a `bot_runs` row, closed with the reason it ended.
 
+## Discord
+
+The runner holds the only Discord connection (`apps/runner/src/discord-hub.ts`). It logs in once with `DISCORD_TOKEN`, however many bots run. Without the token it doesn't log in, and the Discord plugins aren't offered.
+
+A bot's Discord plugins never see the token and never load `discord.js`. Each call is a message to the runner, `[Action.Discord, { id, op, args }]`, and the runner answers that worker with `[Action.Discord, { id, ok, result | error }]`. In the worker, `packages/bot-core/discord/hub-client.js` wraps these messages in the few `discord.js` methods the plugins use.
+
+| Operation | Does |
+|---|---|
+| `whoAmI` | Returns the Discord bot's user ID. |
+| `channelFetch` | Checks that a channel exists and is a text channel. |
+| `channelSend` | Posts a message. A picture travels as bytes with a file name. |
+| `messageEdit` | Edits a message the Discord bot posted. |
+| `messagesFetch` | Returns a channel's latest messages. |
+| `memberFind` | Finds a channel member by display name, with their presence. |
+| `subscribe` | Asks for the messages posted in the given channels from now on. |
+
+- **Channel messages:** the runner forwards a new message only to the workers subscribed to its channel, as `[Action.Discord, { event: "messageCreate", message }]`. A worker's subscriptions end when it exits.
+- **Fairness:** each worker has at most 4 requests in progress and 100 waiting. A request beyond that fails with `busy`, so one bot can't hold up the others.
+- **Before the login finishes:** a request waits up to 30 seconds, then fails with `not_ready`. The worker asks again.
+- **A failed login:** the runner retries with backoff, from 5 seconds up to 5 minutes. It doesn't retry a token or intents that Discord rejects; requests then fail with `unavailable` until the runner restarts with a working token.
+
+Slash commands (`plugins/discord/slashCommands.js`) aren't available under the runner. They need a Discord client inside each bot and one command registration per bot, and they never worked in this stack. The legacy host (`main.js`) still loads them, and there each bot still opens its own Discord connection (`packages/bot-core/discord/in-process-client.js`).
+
 ## Run schedules
 
 A player can limit an account to run windows, so the bot keeps the hours a person would. The schedule is the `game_accounts.schedule` JSON column. `null` means the account runs whenever it is started.

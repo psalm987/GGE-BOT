@@ -8,7 +8,6 @@ if (require('node:worker_threads').isMainThread)
         ]
     }
 
-const { AttachmentBuilder } = require("discord.js")
 const { botConfig, playerInfo, i18n } = require("../../ggeBot.js")
 const { movementEvents, KingdomID } = require("../../protocols.js")
 const { createLayout } = require("../../imageGen.js")
@@ -64,7 +63,7 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
         `${kingdomName[movement.kingdomID]} ${clicks}${i18n.__("incomingClicks")}` +
         "```" +
         `<t:${Math.round(Date.now() / 1000 + timeLeft)}:R>`
-    data.files = [new AttachmentBuilder(await createLayout(movement.left, movement.middle, movement.right,movement.courtyard))]
+    data.files = [{ attachment: createLayout(movement.left, movement.middle, movement.right, movement.courtyard), name: "attack.png" }]
 
     await channel.send(data)
 })

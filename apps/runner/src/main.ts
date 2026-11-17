@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm"
 import { CHANNELS, createDb, servers } from "@gge/db"
 import { openSealed } from "@gge/crypto"
 import { publishCatalog, readPluginRegistry } from "./catalog.ts"
+import { createDiscordClient, DiscordHub } from "./discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
 import { readServers, refreshGameData } from "./game-data.ts"
 import { acquireRunnerLock } from "./lock.ts"
@@ -25,8 +26,12 @@ const db = createDb(env.DATABASE_URL)
 const store = createStore(db)
 const ggeConfig = workerConfig(env)
 
+const discord = new DiscordHub({ token: env.DISCORD_TOKEN, createClient: createDiscordClient })
+discord.start()
+
 let applyMetrics: (batch: MetricBatch) => void = () => {}
 const supervisor = new Supervisor({
+    discord,
     spawn: workerData => new Worker(ggeBotPath, { workerData, resourceLimits: { maxOldGenerationSizeMb: env.WORKER_MAX_OLD_MB } }),
     onMetrics: (batch: MetricBatch) => applyMetrics(batch),
     store,
@@ -115,6 +120,7 @@ for (const signal of ["SIGTERM", "SIGINT"] as const)
         clearTimeout(edgeTimer)
         metricsServer.close()
         await supervisor.stopAll("deploy")
+        await discord.stop().catch(error => console.error("stopping Discord failed", error))
         await store.flushLogs()
         await lock.release()
         await db.$pool.end()

@@ -110,7 +110,7 @@ The browser gets status changes and log lines from Centrifugo over a websocket a
 
 ## Known limits
 
-- Discord: when `DISCORD_TOKEN` is set, each bot opens its own Discord connection with the same token. A single shared client is planned.
+- Discord: any account's Discord plugin can post to, and read, any channel the Discord bot can reach, because a channel is chosen by its ID in the plugin settings. Add the Discord bot only to servers whose members you trust with that.
 - Rate limits are in memory in the single API process; running two API replicas would split them, and a restart clears them.
 - An admin who never signed in after two-factor sign-in arrived, or who was just reset, is guarded by the password alone until they enroll.
 - There is no automatic re-seal for key rotation ([backup-restore.md](backup-restore.md)).

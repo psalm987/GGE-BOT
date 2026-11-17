@@ -141,7 +141,7 @@ Nobody has a self-serve checkout. Payment and a free trial are an open opportuni
 | Alliance chat in the dashboard or Discord | | ◑ | | ● | 🟡 | `plugins/discord/chat.js` loads only when `DISCORD_TOKEN` is set. E shows chat per castle and can send. |
 | In-game mail from the dashboard | | | | ● | ❌ | |
 | Discord incoming-attack alerts | ● | ◑ | | ◐ | 🟡 | `plugins/discord/incomingAttacks.js` exists, but in the new stack `apps/runner/src/supervisor.ts` never passes `discordData`, and the `discord_links` table is unused. C updates one card per castle live and pings a backup role. |
-| Discord slash commands | ● | | | ◐ | 🟡 | `slashCommands.js` (rankings) never registers in the new stack. C has `/status`, `/link`, `/boost`. |
+| Discord slash commands | ● | | | ◐ | 🟡 | `slashCommands.js` (rankings) runs only on the legacy host; the runner doesn't load it. C has `/status`, `/link`, `/boost`. |
 | World intel, leaderboards, history | ● | | | ● | 🟡 | Ranking slash commands only. E has an alliance leaderboard by power or event. |
 | PvP coach and shared PvP leaderboard | ● | | | | ❌ | |
 

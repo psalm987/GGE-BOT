@@ -1,12 +1,19 @@
 import { describe, expect, test } from "vitest"
-import { humanizeFor, parseEnv } from "../src/env.ts"
+import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
 
 const required = { DATABASE_URL: "postgres://x", SEAL_PRIVATE_KEY: "k" }
 
 describe("parseEnv", () => {
     test("empty optional variables from compose count as unset", () => {
-        const env = parseEnv({ ...required, GAME_CLIENT_VERSION: "", DISCORD_TOKEN: "", DISCORD_CLIENT_ID: "", FONT_PATH: "" })
-        expect(env).toMatchObject({ GAME_CLIENT_VERSION: undefined, DISCORD_TOKEN: undefined, DISCORD_CLIENT_ID: undefined, FONT_PATH: undefined })
+        const env = parseEnv({ ...required, GAME_CLIENT_VERSION: "", DISCORD_TOKEN: "", FONT_PATH: "" })
+        expect(env).toMatchObject({ GAME_CLIENT_VERSION: undefined, DISCORD_TOKEN: undefined, FONT_PATH: undefined })
+    })
+
+    test("a worker's config says whether Discord is available but never carries the token", () => {
+        const withToken = workerConfig(parseEnv({ ...required, DISCORD_TOKEN: "secret-token" }))
+        expect(withToken.discordHub).toBe(true)
+        expect(JSON.stringify(withToken)).not.toContain("secret-token")
+        expect(workerConfig(parseEnv({ ...required, DISCORD_TOKEN: "" })).discordHub).toBe(false)
     })
 
     test("the client build is unset by default and read as a number when set", () => {
