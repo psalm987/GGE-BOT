@@ -12,6 +12,7 @@
     "lint": "eslint . && oxlint",
     "i18n:literals": "node tools/i18n/find-literals.ts",
     "i18n:glossary": "node tools/i18n/glossary.ts",
+    "i18n:check": "node tools/i18n/check-locale.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:formal",
     "outdated": "npm-check-updates",
     "dev": "pnpm --filter @gge/dev dev"

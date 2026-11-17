@@ -5,6 +5,7 @@
   "scripts": {
     "literals": "node find-literals.ts",
     "glossary": "node glossary.ts",
+    "check": "node check-locale.ts",
     "typecheck": "tsc -p tsconfig.json"
   }
 }
