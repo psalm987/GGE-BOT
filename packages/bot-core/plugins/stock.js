@@ -20,7 +20,7 @@ const queues = new Map()
  * game yet: it takes the names `bup` sends (WID, AMT) or a `[wodID, amount]` pair.
  */
 function orderOf(slot) {
-    const order = slot.P
+    const order = slot?.P
     const wodID = Array.isArray(order) ? order[0] : order?.WID
     const amount = Array.isArray(order) ? order[1] : order?.AMT
     return Number.isFinite(Number(wodID)) && Number.isFinite(Number(amount)) ? { wodID: Number(wodID), amount: Number(amount) } : undefined
@@ -29,34 +29,43 @@ function orderOf(slot) {
 /**
  * What an `spl` reply says about a queue: the orders waiting or in production, the slots that are free to fill
  * (the rule the old barracks plugin used: no order in it and not locked, `SI.RUT` 0), and the seconds left on the
- * order in production.
+ * order in production. `PS`, the order in production, counts when it parses. The queue is `unknown` when the reply
+ * has no `QS` or an occupied slot's order can't be read, since what it holds can't be counted then.
  */
 function parseQueue(reply) {
-    const slots = Array.isArray(reply.QS) ? reply.QS : []
     const orders = new Map()
+    const add = order => orders.set(order.wodID, (orders.get(order.wodID) ?? 0) + order.amount)
     let freeSlots = 0
-    for (const slot of slots) {
+    let unknown = !Array.isArray(reply.QS)
+    for (const slot of Array.isArray(reply.QS) ? reply.QS : []) {
         if (slot?.P) {
             const order = orderOf(slot)
             if (order)
-                orders.set(order.wodID, (orders.get(order.wodID) ?? 0) + order.amount)
+                add(order)
+            else
+                unknown = true
         } else if (slot && slot.SI?.RUT !== 0)
             freeSlots++
     }
-    return { orders, freeSlots, seconds: Number.isFinite(Number(reply.TCT)) ? Number(reply.TCT) : undefined }
+    const producing = reply.PS && typeof reply.PS == "object" ? orderOf({ P: reply.PS }) : undefined
+    if (producing)
+        add(producing)
+    return { orders, freeSlots, unknown, seconds: Number.isFinite(Number(reply.TCT)) ? Number(reply.TCT) : undefined }
 }
 
 /**
  * Reads `castle`'s tool queue. The queue belongs to the castle the bot is in, so call this from inside setCastle.
- * Resolves to `{ freeSlots, seconds }`, or undefined when the game doesn't answer.
+ * Resolves to `{ freeSlots, seconds, unknown }`, or undefined when the game doesn't answer.
  */
 async function readQueue(castle) {
     const { reply, result } = await ask("spl", { LID: TOOLS_LIST })
     if (result !== 0)
         return
-    const { orders, freeSlots, seconds } = parseQueue(reply)
+    const { orders, freeSlots, seconds, unknown } = parseQueue(reply)
+    if (unknown)
+        console.warn("stockQueueUnknown", castleKey(castle), JSON.stringify(reply))
     queues.set(castleKey(castle), { readAt: Date.now(), orders })
-    return { freeSlots, seconds }
+    return { freeSlots, seconds, unknown }
 }
 
 /** Counts an order the bot just queued, until the next read of that queue replaces it. */

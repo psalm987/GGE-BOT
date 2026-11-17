@@ -146,10 +146,10 @@ function affordable(unit, castle, floor) {
 }
 
 /** Outcomes of one target, best first. */
-const OUTCOMES = ["queued", "met", "queueFull", "noResources", "levelLocked", "noWorkshop"]
+const OUTCOMES = ["queued", "met", "queueUnknown", "queueFull", "noResources", "levelLocked", "noWorkshop"]
 /** The blockers in the order the status names them when nothing was queued. */
-const BLOCKERS = ["noWorkshop", "levelLocked", "noResources", "queueFull"]
-const STATUS_KEY = { noWorkshop: "statusToolsmithNoWorkshop", levelLocked: "statusToolsmithLevelLocked", noResources: "statusToolsmithNoResources", queueFull: "statusToolsmithQueueFull" }
+const BLOCKERS = ["noWorkshop", "levelLocked", "noResources", "queueUnknown", "queueFull"]
+const STATUS_KEY = { noWorkshop: "statusToolsmithNoWorkshop", levelLocked: "statusToolsmithLevelLocked", noResources: "statusToolsmithNoResources", queueFull: "statusToolsmithQueueFull", queueUnknown: "statusToolsmithQueueUnknown" }
 
 const asRows = value => Array.isArray(value) ? value : []
 const asNumber = (value, fallback) => Number.isFinite(Number(value)) && value !== "" && value !== null ? Number(value) : fallback
@@ -202,6 +202,15 @@ async function cycle(active) {
             const queue = await stock.readQueue(castle)
             if (!queue)
                 return
+            if (queue.unknown) {
+                console.warn("toolsmithQueueUnknown", castle.kingdomID, castle.id)
+                rows.forEach((row, i) => {
+                    const workshop = WORKSHOPS[units.get(row.tool).name]
+                    if (workshop && castle[workshop.flag] && (!row.castle || row.castle.kingdom == castle.kingdomID && row.castle.id == castle.id))
+                        outcomes[i].add("queueUnknown")
+                })
+                return
+            }
             if (queue.seconds !== undefined && queue.seconds > 0)
                 soonest = Math.min(soonest ?? Infinity, queue.seconds)
             let free = queue.freeSlots

@@ -42,7 +42,7 @@ test("a queue is read into per-tool totals, locked and occupied slots are not fr
         { SI: { RUT: 1 } },
         { SI: { RUT: 0 } },
     ] })
-    expect(queue).toEqual({ orders: new Map([[614, 100]]), freeSlots: 1, seconds: 120 })
+    expect(queue).toEqual({ orders: new Map([[614, 100]]), freeSlots: 1, unknown: false, seconds: 120 })
 })
 
 test("queued tools count for half an hour, then drop out so tools that finished aren't counted twice", () => {
@@ -63,4 +63,12 @@ test("only our own marches count as travelling, and a kingdom narrows them", () 
     bot.xtHandler.emit("gam", { M: [march(1, 7, 0, [[614, 20]]), march(2, 7, 1, [[614, 5]]), march(3, 3, 0, [[614, 900]])], O: [] }, 0)
     expect(mod.toolStock(614).travelling).toBe(25)
     expect(mod.toolStock(614, { kingdom: 1 }).travelling).toBe(5)
+})
+
+test("the order in production counts, and an order it can't read makes the queue unknown", () => {
+    const { mod } = account()
+    expect(mod.parseQueue({ QS: [{ SI: { RUT: 1 } }], PS: { WID: 614, AMT: 30 } })).toMatchObject({ orders: new Map([[614, 30]]), unknown: false })
+    expect(mod.parseQueue({ QS: [{ P: { X: 1 } }] }).unknown).toBe(true)
+    expect(mod.parseQueue({}).unknown).toBe(true)
+    expect(mod.parseQueue({ QS: [], PS: 3 }).unknown).toBe(false)
 })

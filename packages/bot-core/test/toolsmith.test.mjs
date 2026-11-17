@@ -32,8 +32,8 @@ const WORKSHOP_LEVEL = { 1: 165, 2: 166, 3: 167, 4: 256 }
 const DEFENCE_WORKSHOP = 176
 
 /** A castle as the game reports it. `workshop` is the siege workshop's level, `defence` whether there is a defence workshop. */
-const castle = (id, { kingdom = 0, wood = 100_000, stone = 100_000, workshop = 4, defence = false, tools = {}, queue = [], slots = 5, seconds = 0 } = {}) =>
-    ({ id, kingdom, wood, stone, workshop, defence, tools, queue, slots, seconds })
+const castle = (id, { kingdom = 0, wood = 100_000, stone = 100_000, workshop = 4, defence = false, tools = {}, queue = [], slots = 5, seconds = 0, spl } = {}) =>
+    ({ id, kingdom, wood, stone, workshop, defence, tools, queue, slots, seconds, spl })
 
 /**
  * The plugin against a game that answers dcl, jca, spl, skl and bup from `world`. `skills` is the answer to skl,
@@ -64,7 +64,7 @@ function run({ options = {}, world = [castle(10)], skills = [], movements = [], 
         }
         if (cmd == "spl") {
             const c = world.find(w => w.current)
-            reply("spl", { LID: 1, TCT: c.seconds, QS: [...c.queue.map(([WID, AMT]) => ({ P: { WID, AMT }, SI: { RUT: 1 } })), ...Array.from({ length: c.slots - c.queue.length }, () => ({ SI: { RUT: 1 } }))] })
+            reply("spl", c.spl ?? { LID: 1, TCT: c.seconds, QS: [...c.queue.map(([WID, AMT]) => ({ P: { WID, AMT }, SI: { RUT: 1 } })), ...Array.from({ length: c.slots - c.queue.length }, () => ({ SI: { RUT: 1 } }))] })
         }
         if (cmd == "skl")
             skills !== null && reply("skl", { SIDS: skills })
@@ -100,12 +100,12 @@ describe("the catalog entry", () => {
         expect(mod.pluginOptions.filter(o => o.advanced).map(o => o.key)).toEqual(["castleTargets", "resourceFloor", "dryRunOrders"])
     })
 
-    test.each(["toolsmith", "targets", "castleTargets", "resourceFloor", "dryRunOrders", "toolsmithRefused", "dryRunBup"])("en.json names %s", key => {
+    test.each(["toolsmith", "targets", "castleTargets", "resourceFloor", "dryRunOrders", "toolsmithRefused", "dryRunBup", "toolsmithQueueUnknown", "stockQueueUnknown"])("en.json names %s", key => {
         expect(en[key]).toEqual(expect.any(String))
     })
 
     test("every status key it reports is in en.json", () => {
-        for (const key of ["Starting", "NoTargets", "NoWorkshop", "LevelLocked", "NoResources", "QueueFull", "TargetsMet", "Queued", "NoAnswer"])
+        for (const key of ["Starting", "NoTargets", "NoWorkshop", "LevelLocked", "NoResources", "QueueFull", "TargetsMet", "Queued", "NoAnswer", "QueueUnknown"])
             expect(en[`statusToolsmith${key}`]).toEqual(expect.any(String))
     })
 })
@@ -164,6 +164,45 @@ describe("filling the queue", () => {
         const { bups } = run({ options: ladders(120), world })
         await vi.advanceTimersByTimeAsync(30 * MINUTE)
         expect(bups().map(p => [p.SID, p.AID, p.AMT])).toEqual([[0, 10, 80], [1, 11, 40]])
+    })
+})
+
+describe("a queue it can't read", () => {
+    const slot = P => ({ P, SI: { RUT: 1 } })
+    const free = { SI: { RUT: 1 } }
+
+    test.each([
+        ["an occupied slot whose order has an unknown shape", { QS: [slot({ X: 1 }), free, free] }],
+        ["a reply with no QS", { LID: 1, TCT: 0 }],
+    ])("with %s, nothing is queued there and the status says so", async (_name, spl) => {
+        const { bups, status, bot } = run({ options: ladders(1000), world: [castle(10, { spl })] })
+        await vi.advanceTimersByTimeAsync(20 * MINUTE)
+        expect(bups()).toEqual([])
+        expect(bot.sent.map(([cmd]) => cmd)).not.toContain("ups")
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusToolsmithQueueUnknown", params: { tool: "Ladder" } })
+    })
+
+    test("a castle whose queue is unknown doesn't stop the others", async () => {
+        const world = [castle(10, { spl: { QS: [slot({ X: 1 })] } }), castle(11, { kingdom: 1 })]
+        const { bups } = run({ options: ladders(80), world })
+        await vi.advanceTimersByTimeAsync(20 * MINUTE)
+        expect(bups().map(p => p.AID)).toEqual([11])
+    })
+
+    test("is logged with a key", async () => {
+        const warn = []
+        const { bot } = run({ options: ladders(80), world: [castle(10, { spl: { LID: 1 } })] })
+        console.warn.mockImplementation((...args) => warn.push(args[0]))
+        await vi.advanceTimersByTimeAsync(20 * MINUTE)
+        expect(warn).toContain("toolsmithQueueUnknown")
+        expect(bot).toBeDefined()
+    })
+
+    test("the order in production (PS) counts as queued", async () => {
+        const spl = { QS: [free, free], PS: { WID: 614, AMT: 70 }, TCT: 7200 }
+        const { bups } = run({ options: ladders(100), world: [castle(10, { spl })] })
+        await vi.advanceTimersByTimeAsync(20 * MINUTE)
+        expect(bups().map(p => p.AMT)).toEqual([30])
     })
 })
 

@@ -341,5 +341,8 @@
 	"statusBuyToolsStorageFull": "The armourer says the storage is full, so {{tool}} wasn't bought.",
 	"statusBuyToolsRefused": "The armourer refused to sell {{tool}}. This tries again on the next check.",
 	"statusBuyToolsTargetsMet": "Every target is met. This resumes when stock drops below one.",
-	"statusBuyToolsBought": "Bought {{tools}} tools for {{coins}} coins."
+	"statusBuyToolsBought": "Bought {{tools}} tools for {{coins}} coins.",
+	"statusToolsmithQueueUnknown": "The workshop queue for {{tool}} couldn't be read, so nothing is queued there. This tries again on the next check.",
+	"toolsmithQueueUnknown": "Could not read a workshop queue, so nothing was queued in castle: ",
+	"stockQueueUnknown": "Could not read a workshop queue, so its orders are counted as none: "
 }
