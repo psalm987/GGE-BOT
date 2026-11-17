@@ -5,12 +5,11 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
-import { CampaignProvider } from "@gge/ui"
+import { CampaignProvider, initI18n } from "@gge/ui"
 import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
 import { LiveUpdates } from "./components/LiveUpdates.tsx"
-import { useLanguage } from "./i18n.ts"
 import { ConfirmEmailChange } from "./pages/ConfirmEmailChange.tsx"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
@@ -21,9 +20,8 @@ import { Signup } from "./pages/Signup.tsx"
 import { VerifyEmail } from "./pages/VerifyEmail.tsx"
 
 function Root() {
-    const language = useLanguage()
     return (
-        <CampaignProvider direction={language === "ar" ? "rtl" : "ltr"}>
+        <CampaignProvider>
             <QueryClientProvider client={queryClient}>
                 <BrowserRouter>
                     {/* Outside <Routes>, so moving between pages keeps the one live connection. */}
@@ -44,6 +42,8 @@ function Root() {
         </CampaignProvider>
     )
 }
+
+await initI18n()
 
 createRoot(document.getElementById("root")!, {
     onUncaughtError: Sentry.reactErrorHandler(),

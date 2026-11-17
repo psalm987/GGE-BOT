@@ -2,7 +2,8 @@ import { LockOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Form, Input, Switch, Typography } from "antd"
 import { NOTIFICATION_KINDS, type NotificationKind, type NotificationPrefs } from "@gge/contracts"
-import { ParchmentCard } from "@gge/ui"
+import { useTranslation } from "react-i18next"
+import { LanguagePicker, ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { ChangeEmailCard, DeleteAccountCard, ExportDataCard } from "../components/AccountCards.tsx"
@@ -57,6 +58,7 @@ function EmailPrefs() {
 
 export function Settings() {
     const { message } = App.useApp()
+    const { t } = useTranslation()
     const me = useMe().data
     const [form] = Form.useForm()
     const change = useMutation(orpc.account.changePassword.mutationOptions({
@@ -67,6 +69,9 @@ export function Settings() {
     }))
     return (
         <AppLayout activeKey="settings" title="Settings">
+            <ParchmentCard title={t("language.label")} style={{ maxWidth: 480, marginBottom: 16 }}>
+                <LanguagePicker variant="inline" />
+            </ParchmentCard>
             <EmailPrefs />
             {me?.email && me.emailVerified && <ChangeEmailCard me={me} />}
             <ParchmentCard title="Change password" style={{ maxWidth: 480, marginBottom: 16 }}>

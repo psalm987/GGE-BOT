@@ -111,3 +111,22 @@ body {
 .gge-notifications li button.gge-unread { border-inline-start-color: var(--gge-gold); }
 .gge-notifications li button:not(.gge-unread) strong { font-weight: 500; }
 .gge-notifications li small { color: #BFAE8A; }
+
+.gge-lang-list { max-height: min(60dvh, 420px); overflow-y: auto; margin: 8px 0 0; padding: 0; list-style: none; }
+.gge-lang-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.gge-lang-option:hover { background: rgba(243, 231, 201, 0.05); }
+.gge-lang-option[data-active="true"] {
+    background: rgba(224, 165, 38, 0.14);
+    outline: 2px solid var(--gge-gold);
+    outline-offset: -2px;
+}
+.gge-lang-option small { display: block; color: #BFAE8A; }

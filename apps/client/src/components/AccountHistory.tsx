@@ -1,18 +1,18 @@
 import { useQuery } from "@tanstack/react-query"
-import { LogsPanel, RunsPanel } from "@gge/ui"
+import { useTranslation } from "react-i18next"
+import { LogsPanel, RunsPanel, renderParts } from "@gge/ui"
 import { client, orpc } from "../api.ts"
-import { renderParts, useLanguage } from "../i18n.ts"
 import { useBotLog } from "../realtime.ts"
 
 const PAGE = 100
 
 /** An account's log in the viewer's language, with lines streaming in as they happen. */
 export function AccountLogs({ accountId }: { accountId: string }) {
-    const language = useLanguage()
+    const { t } = useTranslation()
     const { lines, gaps } = useBotLog(accountId)
     return (
         <LogsPanel fetchPage={before => client.accounts.logs({ id: accountId, before, limit: PAGE })} pageSize={PAGE} liveLines={lines} refreshKey={gaps}
-            renderLine={line => line.parts ? renderParts(line.parts, language) : line.message} />
+            renderLine={line => line.parts ? renderParts(t, line.parts) : line.message} />
     )
 }
 

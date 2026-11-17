@@ -1,6 +1,7 @@
 import { Typography } from "antd"
 import type { ReactNode } from "react"
 import { Crest } from "./Crest.tsx"
+import { LanguagePicker } from "./LanguagePicker.tsx"
 
 /** Sign-in layout: a heraldic banner beside the form; the banner folds away on phones. */
 export function AuthShell({ title, subtitle, children, footer, wide }: { title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
@@ -21,6 +22,7 @@ export function AuthShell({ title, subtitle, children, footer, wide }: { title: 
                     {subtitle && <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>{subtitle}</Typography.Paragraph>}
                     {children}
                     {footer && <div style={{ marginTop: 24 }}>{footer}</div>}
+                    <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}><LanguagePicker /></div>
                 </div>
             </main>
             <style>{`@media (max-width: 860px) { .gge-auth-banner { display: none !important } .gge-auth-mark { display: flex !important } }`}</style>

@@ -2,9 +2,9 @@ import { DownOutlined, RightOutlined } from "@ant-design/icons"
 import { Button, Checkbox, Col, Form, Input, Row, Select, Switch, Tag, Typography } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { PluginCatalogEntry, PluginSettings } from "@gge/contracts"
 import { orpc } from "../api.ts"
-import { t, useLanguage } from "../i18n.ts"
 
 type OptionValues = Record<string, string | number | boolean | undefined>
 export type PluginFormValues = Record<string, { enabled: boolean; options: OptionValues }>
@@ -46,21 +46,22 @@ export function toPluginSettings(catalog: PluginCatalogEntry[], values: PluginFo
 }
 
 function OptionField({ pluginKey, def }: { pluginKey: string; def: PluginCatalogEntry["options"][number] }) {
+    const { t } = useTranslation("bot")
     if (def.type === "")
         return null
     if (def.type === "Label")
-        return <Col span={24}><Typography.Text strong className="gge-display" style={{ color: "#E0A526", fontSize: 13 }}>{t(def.key)}</Typography.Text></Col>
+        return <Col span={24}><Typography.Text strong className="gge-display" style={{ color: "#E0A526", fontSize: 13 }}>{t(def.key, { defaultValue: def.key })}</Typography.Text></Col>
     const name = ["plugins", pluginKey, "options", def.key]
     if (def.type === "Checkbox")
-        return <Col xs={24} sm={12}><Form.Item name={name} valuePropName="checked" style={{ marginBottom: 4 }}><Checkbox>{t(def.key)}</Checkbox></Form.Item></Col>
+        return <Col xs={24} sm={12}><Form.Item name={name} valuePropName="checked" style={{ marginBottom: 4 }}><Checkbox>{t(def.key, { defaultValue: def.key })}</Checkbox></Form.Item></Col>
     if (def.type === "Select")
-        return <Col xs={24} sm={12}><Form.Item name={name} label={t(def.key)}><Select options={def.selection.map((label, value) => ({ label, value }))} /></Form.Item></Col>
+        return <Col xs={24} sm={12}><Form.Item name={name} label={t(def.key, { defaultValue: def.key })}><Select options={def.selection.map((label, value) => ({ label, value }))} /></Form.Item></Col>
     const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
     const extra = def.type === "Channel" ? "Discord channel ID"
         : bounds ? `Between ${def.min ?? "any"} and ${def.max ?? "any"}` : undefined
     return (
         <Col xs={24} sm={12}>
-            <Form.Item name={name} label={t(def.key)} extra={extra}>
+            <Form.Item name={name} label={t(def.key, { defaultValue: def.key })} extra={extra}>
                 <Input inputMode={bounds ? "decimal" : undefined} placeholder={def.default ? `Default: ${def.default}` : undefined} />
             </Form.Item>
         </Col>
@@ -68,9 +69,10 @@ function OptionField({ pluginKey, def }: { pluginKey: string; def: PluginCatalog
 }
 
 function PluginRow({ entry, atAttackLimit }: { entry: PluginCatalogEntry; atAttackLimit: boolean }) {
+    const { t } = useTranslation("bot")
     const [open, setOpen] = useState(false)
     const panelId = `plugin-${entry.key}-settings`
-    const label = t(entry.key)
+    const label = t(entry.key, { defaultValue: entry.key })
     return (
         <div style={{ borderBottom: "1px solid #3A2E1F" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 48 }}>
@@ -102,7 +104,6 @@ function AttackAwareSwitch({ label, blockTurningOn, checked, onChange }: { label
 
 /** One row per plugin, built from the catalog: an enable switch and its settings. Lives inside a Form whose `plugins` field holds PluginFormValues. */
 export function PluginSettingsForm({ catalog }: { catalog: PluginCatalogEntry[] }) {
-    useLanguage()
     const limit = useQuery(orpc.plugins.attackLimit.queryOptions()).data
     const values = Form.useWatch("plugins") as PluginFormValues | undefined
     const attackPlugins = catalog.filter(e => e.category === "attack" && !e.force && !e.hidden)

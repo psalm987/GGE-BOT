@@ -109,6 +109,13 @@ const confirm = (page, name) => page.locator(".ant-popover").getByRole("button",
     assert(await page.getByText("Bots by state").isVisible(), "overview shows bots by state")
     await axe(page, "overview")
     await page.screenshot({ path: `${out}/admin-overview-1440.png` })
+    const adminPicker = page.locator('header button[aria-haspopup="dialog"]')
+    assert(await adminPicker.count() === 1 && await adminPicker.innerText() === "English", "the admin header shows the language picker with the current language")
+    await adminPicker.click()
+    assert(await page.getByRole("option").count() === 29, "the admin picker lists Automatic and 28 languages")
+    await page.screenshot({ path: `${out}/admin-language-picker-1440.png` })
+    await page.keyboard.press("Escape")
+    await page.getByRole("listbox").waitFor({ state: "hidden" })
     assert(await page.getByRole("menuitem", { name: "Invites" }).count() === 0, "there is no Invites page")
 
     await nav(page, "Accounts")

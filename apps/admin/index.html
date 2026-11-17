@@ -8,6 +8,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      try {
+        var l = localStorage.getItem("gge.locale")
+        if (/^(bg|cs|da|de|el|en|es|et|fi|fr|ga|hr|hu|it|lt|lv|mt|nl|pl|pt|ro|sk|sl|sv|nb|tr|uk|ar)$/.test(l)) {
+          document.documentElement.lang = l
+          document.documentElement.dir = l === "ar" ? "rtl" : "ltr"
+        }
+      } catch (e) {}
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

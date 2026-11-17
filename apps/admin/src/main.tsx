@@ -5,7 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router"
-import { CampaignProvider } from "@gge/ui"
+import { CampaignProvider, initI18n } from "@gge/ui"
 import { queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { Accounts } from "./pages/Accounts.tsx"
@@ -18,6 +18,8 @@ import { UserDetail } from "./pages/UserDetail.tsx"
 import { Users } from "./pages/Users.tsx"
 
 const guarded = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>
+
+await initI18n()
 
 createRoot(document.getElementById("root")!, {
     onUncaughtError: Sentry.reactErrorHandler(),

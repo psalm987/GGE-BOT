@@ -2,6 +2,7 @@ import { LogoutOutlined, UserOutlined } from "@ant-design/icons"
 import { Avatar, Button, Dropdown, Grid, Layout, Menu, Typography, type MenuProps } from "antd"
 import { useState, type ReactNode } from "react"
 import { Crest } from "./Crest.tsx"
+import { LanguagePicker } from "./LanguagePicker.tsx"
 
 export type NavItem = { key: string; label: string; icon: ReactNode }
 
@@ -48,6 +49,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                 <Layout.Header style={{ display: "flex", alignItems: "center", gap: phone ? 8 : 16, borderBottom: "1px solid #3A2E1F", ...(phone && { padding: "0 12px 0 56px" }) }}>
                     <Typography.Title level={3} className="gge-display" ellipsis style={{ margin: 0, flex: 1, minWidth: 0, fontSize: phone ? 17 : 20 }}>{title}</Typography.Title>
                     {extra}
+                    <LanguagePicker />
                     <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                         <Button type="text" aria-label={`Account menu for ${username}`} style={{ height: 44 }}>
                             <Avatar size="small" icon={<UserOutlined />} style={{ background: "#D7263D" }} />

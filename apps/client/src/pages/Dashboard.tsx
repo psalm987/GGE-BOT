@@ -1,6 +1,6 @@
-import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined, TranslationOutlined } from "@ant-design/icons"
+import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Col, Grid, Popconfirm, Row, Select, Space, Statistic, Table, Tag, Tooltip, Typography } from "antd"
+import { App, Button, Col, Grid, Popconfirm, Row, Space, Statistic, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
@@ -12,7 +12,6 @@ import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { needsAttention } from "../attention.ts"
-import { LANGUAGES, setLanguage, useLanguage, type Language } from "../i18n.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 dayjs.extend(relativeTime)
@@ -22,7 +21,6 @@ const twinKey = (a: Pick<PublicAccount, "serverId" | "name">) => `${a.serverId}:
 
 export function Dashboard() {
     const { message } = App.useApp()
-    const language = useLanguage()
     const phone = !Grid.useBreakpoint().md
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), refetchInterval: pollInterval(useRealtimeState()) })
     const servers = useQuery(orpc.servers.list.queryOptions())
@@ -89,14 +87,8 @@ export function Dashboard() {
         <AppLayout
             activeKey="accounts"
             title="Your accounts"
-            accountMenu={phone ? [{
-                key: "language", icon: <TranslationOutlined />, label: "Language",
-                children: Object.entries(LANGUAGES).map(([value, label]) => ({ key: value, label, onClick: () => setLanguage(value as Language) })),
-            }] : []}
             extra={
                 <Space>
-                    {!phone && <Select<Language> value={language} onChange={setLanguage} aria-label="Language for bot messages" style={{ width: 130 }}
-                        suffix={<TranslationOutlined />} options={Object.entries(LANGUAGES).map(([value, label]) => ({ value: value as Language, label }))} />}
                     <Tooltip title={limitHint}>
                         <Button type="primary" icon={<PlusOutlined />} aria-label="Add account" disabled={atLimit} onClick={() => setDrawer({ open: true })} className="gge-press">{phone ? null : "Add account"}</Button>
                     </Tooltip>
