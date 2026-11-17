@@ -79,7 +79,7 @@ The account keeps the old address until step 3. The link works only while the ac
 
 ### Download your data
 
-**Download my data** returns one JSON file: the profile, the game accounts with their settings, schedule, and status, the plugin settings, the run history, the retained log lines, the notifications, and the audit entries where the player is the actor. The file never contains a game password, sealed or not, or the panel password hash. A player can download once every 10 minutes.
+**Download my data** returns one JSON file: the profile, the game accounts with their settings, schedule, and status, the plugin settings, the run history, the retained log lines, the notifications, and the audit entries where the player is the actor. It also holds the player's plan history: their plan periods, their purchases, the Team codes they bought with each code's status, the codes they redeemed, and their points history. The file never contains a game password, sealed or not, the panel password hash, an admin's note, or a payment provider's reference. A player can download once every 10 minutes.
 
 ### Delete your account
 

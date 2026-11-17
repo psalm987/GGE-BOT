@@ -1,7 +1,10 @@
 import { eq, sql } from "drizzle-orm"
 import pg from "pg"
 import { afterAll, beforeAll, describe, expect, inject, test } from "vitest"
-import { auditLog, botLogs, botRuns, centrifugoOutbox, emailTokens, gameAccounts, insertNotification, sessions, users } from "@gge/db"
+import { auditLog, botLogs, botRuns, centrifugoOutbox, emailTokens, gameAccounts, insertNotification, purchases, sessions, users } from "@gge/db"
+import { redeemCode } from "../src/services/codes.ts"
+import { adjustPoints } from "../src/services/points.ts"
+import { recordPurchase } from "../src/services/purchases.ts"
 import { PASSWORD, allStrings, startApi, type Api } from "./harness.ts"
 
 let api: Api
@@ -191,6 +194,36 @@ describe("downloading your data", () => {
         for (const secret of [GAME_PASSWORD, row.passwordHash, stored!.passwordSealed.toString("base64"), stored!.passwordSealed.toString("hex"), PASSWORD])
             expect(text).not.toContain(secret)
         expect(text, "no session ids").not.toContain((await api.db.select().from(sessions).where(eq(sessions.userId, userId)))[0]!.id)
+    })
+
+    test("the export has the player's plan time, purchases, codes and points, but no admin note or payment reference", async () => {
+        const adminId = await api.newAdmin("ledgerkeeper")
+        const { player, userId } = await playerWithHistory("mara", "MaraKeep")
+        const giver = await api.player("gideon")
+        const giverId = (await giver.api.auth.me())!.id
+        const gift = await recordPurchase(api.db, adminId, { userId: giverId, packageId: "team5_28" })
+        const bought = await recordPurchase(api.db, adminId, { userId, packageId: "team5_28", note: "paid in cash NOTE-ON-PURCHASE" })
+        await redeemCode(api.db, userId, gift.codes[0]!.code)
+        await adjustPoints(api.db, adminId, { userId, delta: 2, note: "goodwill NOTE-ON-POINTS" })
+        await api.db.insert(purchases).values({
+            buyerId: userId, packageId: "basic_28", seats: 1, days: 28, points: 1, amountMinor: 500, currency: "USD",
+            provider: "paystack", providerRef: "gge_REFERENCE-AT-PAYSTACK", status: "pending",
+        })
+
+        const data = await player.api.account.exportData()
+
+        expect(data.planPeriods).toMatchObject([{ planId: "team", source: "code" }])
+        expect(data.purchases).toMatchObject([
+            { id: bought.id, packageId: "team5_28", status: "paid", points: 5 },
+            { packageId: "basic_28", status: "pending", amountMinor: 500, currency: "USD" },
+        ])
+        expect(data.codesBought.map(code => code.code).toSorted()).toEqual(bought.codes.map(code => code.code).toSorted())
+        expect(data.codesBought.every(code => code.status === "unused")).toBe(true)
+        expect(data.codesRedeemed).toMatchObject([{ code: gift.codes[0]!.code, planId: "team", days: 28 }])
+        expect(data.points.map(entry => [entry.reason, entry.delta])).toEqual([["purchase", 5], ["admin", 2]])
+        const text = JSON.stringify(data)
+        for (const hidden of ["NOTE-ON-PURCHASE", "NOTE-ON-POINTS", "gge_REFERENCE-AT-PAYSTACK", "gideon", adminId])
+            expect(text).not.toContain(hidden)
     })
 
     test("a second download within 10 minutes is refused", async () => {

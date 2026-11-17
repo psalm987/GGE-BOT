@@ -1,5 +1,5 @@
 import { ORPCError } from "@orpc/server"
-import { and, asc, count, eq, inArray, isNotNull, notExists, sql } from "drizzle-orm"
+import { and, asc, count, eq, gt, inArray, isNotNull, isNull, notExists, sql } from "drizzle-orm"
 import { BILLING_NOT_LIVE, PAYSTACK_NOT_CONFIGURED, type BillingStatus } from "@gge/contracts"
 import { appSettings, gameAccounts, isBillingLive, planPeriods, trialGameAccounts, users, type Db } from "@gge/db"
 import type { Env } from "../env.ts"
@@ -41,7 +41,8 @@ const setSwitch = (tx: Pick<Db, "insert">, billingLive: boolean) => tx.insert(ap
 /**
  * Turns plans on for every player. Each player owed a trial gets it in the same transaction, so nobody's bots stop
  * for want of a plan the moment the switch flips, and the game accounts they already have count as run on that trial.
- * A repeat finds nobody owed one.
+ * A player an admin let run more than one bot keeps that many as their override, so a plan's smaller size stops
+ * none of them. A repeat finds nobody owed a trial and no limit left to keep.
  */
 export async function goLive(db: Db, env: Env, actorId: string) {
     if (!env.PAYSTACK_SECRET_KEY)
@@ -49,6 +50,9 @@ export async function goLive(db: Db, env: Env, actorId: string) {
     await db.transaction(async tx => {
         await setSwitch(tx, true)
         const now = new Date()
+        const kept = await tx.update(users).set({ maxBotsOverride: sql`${users.maxBots}`, updatedAt: now })
+            .where(and(eq(users.status, "active"), eq(users.role, "user"), gt(users.maxBots, 1), isNull(users.maxBotsOverride)))
+            .returning({ id: users.id })
         const owed = await tx.select({ id: users.id }).from(users).where(owedTrial(tx)).orderBy(asc(users.id))
         for (const { id } of owed)
             await grantTrial(tx, id, now)
@@ -61,7 +65,7 @@ export async function goLive(db: Db, env: Env, actorId: string) {
             ? await tx.insert(trialGameAccounts).values(accounts.map(a => ({ accountHash: trialAccountHash(a), userId: a.ownerId })))
                 .onConflictDoNothing().returning({ hash: trialGameAccounts.accountHash })
             : []
-        await audit(tx, { actorId, action: "admin.billing.go_live", meta: { trialsGranted: owed.length, gameAccountsRecorded: recorded.length } })
+        await audit(tx, { actorId, action: "admin.billing.go_live", meta: { trialsGranted: owed.length, gameAccountsRecorded: recorded.length, limitsKept: kept.length } })
     })
 }
 

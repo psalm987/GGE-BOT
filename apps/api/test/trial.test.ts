@@ -109,6 +109,33 @@ describe("with a Paystack key", () => {
             expect(await audited("admin.billing.go_live")).toMatchObject({ meta: { trialsGranted: 0, gameAccountsRecorded: 0 } })
         })
 
+        test("a player an admin let run three bots keeps all three, on the trial and on a later Basic plan", async () => {
+            await setBilling(false)
+            const p = await api.player("triple")
+            const id = await idOf("triple")
+            await api.db.update(users).set({ maxBots: 3 }).where(eq(users.id, id))
+            const running = [
+                await seedAccount(id, "Triple1", { desiredState: "running" }),
+                await seedAccount(id, "Triple2", { desiredState: "running" }),
+                await seedAccount(id, "Triple3", { desiredState: "running" }),
+            ]
+            const allRun = async () => expect((await p.api.accounts.list()).map(a => ({ id: a.id, entitled: a.entitled, desiredState: a.desiredState })))
+                .toEqual(running.map(accountId => ({ id: accountId, entitled: true, desiredState: "running" })))
+
+            await admin.api.billing.setLive({ live: true })
+
+            expect(await periodsOf(id)).toMatchObject([{ planId: "basic", source: "trial" }])
+            await allRun()
+            expect(await audited("admin.billing.go_live")).toMatchObject({ meta: { limitsKept: 1 } })
+
+            await api.db.delete(planPeriods).where(eq(planPeriods.userId, id))
+            await api.db.transaction(tx => appendPeriod(tx, { userId: id, planId: "basic", days: 28, source: "purchase" }))
+            await allRun()
+
+            await admin.api.billing.setLive({ live: true })
+            expect(await audited("admin.billing.go_live")).toMatchObject({ meta: { limitsKept: 0 } })
+        })
+
         test("confirming an email grants exactly one 7-day trial", async () => {
             const p = await verifiedByLink("fresh")
             const periods = await periodsOf(p.id)

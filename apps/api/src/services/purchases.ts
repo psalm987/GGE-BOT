@@ -60,7 +60,8 @@ export async function fulfil(tx: Tx, purchaseId: string, now = new Date()) {
     return true
 }
 
-const purchaseColumns = {
+/** A purchase as its buyer sees it. */
+export const purchaseColumns = {
     id: purchases.id, packageId: purchases.packageId, planId: packages.planId, seats: purchases.seats, days: purchases.days, points: purchases.points,
     amountMinor: purchases.amountMinor, currency: purchases.currency, status: purchases.status, createdAt: purchases.createdAt, paidAt: purchases.paidAt,
 }
