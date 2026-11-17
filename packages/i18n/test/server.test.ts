@@ -7,9 +7,10 @@ describe("serverT", () => {
         expect(serverT("en")("NOT_ENOUGH_POINTS", { ns: "errors", count: 3 })).toBe("You need 3 more points to redeem.")
     })
 
-    it("falls back to English strings for a locale with no catalog, and formats with that locale", () => {
-        const t = serverT("de")
-        expect(t("CODE_USED", { ns: "errors" })).toBe("This code has already been used.")
+    it("falls back to English for a key the locale lacks, and still formats dates in that locale", () => {
+        const i18n = createServerI18n({ en: { errors: { CODE_USED: "Used." }, common: {} }, de: { errors: {}, common: {} } })
+        const t = i18n.getFixedT("de")
+        expect(t("CODE_USED", { ns: "errors" })).toBe("Used.")
         expect(t("when", { ns: "common", defaultValue: "{{at, when}}", at: new Date("2026-12-08T01:00:00Z") })).toMatch(/^8\. Dez\.? 2026/)
     })
 
