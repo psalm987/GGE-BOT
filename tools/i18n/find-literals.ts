@@ -93,6 +93,13 @@ function calleeRoot(expression: Node): string | undefined {
     return node.kind === SyntaxKind.Identifier ? nameText(node) : undefined
 }
 
+/** CSS in a <style> element is code, not text for the reader. */
+function inStyleElement(node: Node): boolean {
+    if (node.kind !== SyntaxKind.JsxElement) return false
+    const opening = (node as unknown as { openingElement: { tagName: Node } }).openingElement
+    return nameText(opening.tagName) === "style"
+}
+
 function visit(node: Node, out: Node[]): void {
     switch (node.kind) {
         case SyntaxKind.JsxText:
@@ -105,7 +112,7 @@ function visit(node: Node, out: Node[]): void {
             break
         }
         case SyntaxKind.JsxExpression:
-            if (node.parent && (node.parent.kind === SyntaxKind.JsxElement || node.parent.kind === SyntaxKind.JsxFragment)) stringsOf(node, out)
+            if (node.parent && (node.parent.kind === SyntaxKind.JsxElement || node.parent.kind === SyntaxKind.JsxFragment) && !inStyleElement(node.parent)) stringsOf(node, out)
             break
         case SyntaxKind.PropertyAssignment: {
             const p = node as unknown as { name: Node, initializer: Node }

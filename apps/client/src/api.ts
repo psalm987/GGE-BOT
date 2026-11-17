@@ -2,6 +2,7 @@ import { createORPCClient } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import { createTanstackQueryUtils } from "@orpc/tanstack-query"
 import { QueryClient } from "@tanstack/react-query"
+import { getI18n } from "react-i18next"
 import type { ClientApi } from "@gge/contracts"
 
 export const client = createORPCClient<ClientApi>(new RPCLink({
@@ -21,7 +22,7 @@ export const queryClient = new QueryClient({
 })
 
 /** The message the API wrote for people, or a generic one. */
-export const messageOf = (error: unknown) => (error as { message?: string })?.message || "Something went wrong. Try again."
+export const messageOf = (error: unknown) => (error as { message?: string })?.message || getI18n().t("error.generic", { ns: "common" })
 
 const NOTIFICATIONS_PAGE = 20
 /** The player's notifications, a page at a time, newest first. Live events patch this query's data. */

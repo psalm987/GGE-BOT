@@ -1,7 +1,7 @@
 import { LockOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Form, Input, Switch, Typography } from "antd"
-import { NOTIFICATION_KINDS, type NotificationKind, type NotificationPrefs } from "@gge/contracts"
+import { NOTIFICATION_KINDS, type NotificationPrefs } from "@gge/contracts"
 import { useTranslation } from "react-i18next"
 import { LanguagePicker, ParchmentCard } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
@@ -10,16 +10,9 @@ import { ChangeEmailCard, DeleteAccountCard, ExportDataCard } from "../component
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PasswordFields } from "../components/PasswordFields.tsx"
 
-/** Each completes the sentence "Email me when…". */
-const EMAIL_WHEN: Record<NotificationKind, string> = {
-    banned: "the game bans an account",
-    auth_failed: "the game rejects an account's password",
-    crash_loop: "a bot is stopped after repeated crashes",
-    shutoff: "the shutoff timer stops a bot",
-}
-
 function EmailPrefs() {
     const { message } = App.useApp()
+    const { t } = useTranslation("client")
     const me = useMe().data
     const key = orpc.account.notificationPrefs.queryKey()
     const prefs = useQuery(orpc.account.notificationPrefs.queryOptions())
@@ -38,19 +31,19 @@ function EmailPrefs() {
         onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
     }))
     return (
-        <ParchmentCard title="Email me when…" style={{ maxWidth: 480, marginBottom: 16 }}>
+        <ParchmentCard title={t("emailWhen.title")} style={{ maxWidth: 480, marginBottom: 16 }}>
             {NOTIFICATION_KINDS.map(kind => (
                 <div key={kind} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, minHeight: 44 }}>
-                    <span id={`email-when-${kind}`}>{EMAIL_WHEN[kind]}</span>
+                    <span id={`email-when-${kind}`}>{t(`emailWhen.${kind}`)}</span>
                     <Switch aria-labelledby={`email-when-title email-when-${kind}`} checked={prefs.data?.[kind] ?? false} disabled={!prefs.data}
                         onChange={checked => prefs.data && save.mutate({ ...prefs.data, [kind]: checked })} />
                 </div>
             ))}
-            <span id="email-when-title" hidden>Email me when</span>
+            <span id="email-when-title" hidden>{t("emailWhen.label")}</span>
             <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>
                 {me?.email && me.emailVerified
-                    ? <>Emails go to {me.email}. Each of these also shows under the bell, whatever you choose here.</>
-                    : "Confirm your email address to get these. Until then they only show under the bell."}
+                    ? t("emailWhen.sentTo", { email: me.email })
+                    : t("emailWhen.unverified")}
             </Typography.Paragraph>
         </ParchmentCard>
     )
@@ -59,31 +52,32 @@ function EmailPrefs() {
 export function Settings() {
     const { message } = App.useApp()
     const { t } = useTranslation()
+    const { t: tp } = useTranslation("client")
     const me = useMe().data
     const saveLocale = useSaveLocale()
     const [form] = Form.useForm()
     const change = useMutation(orpc.account.changePassword.mutationOptions({
         onSuccess: () => {
             form.resetFields()
-            message.success("Password changed. Your other devices were signed out.")
+            message.success(tp("settings.password.done"))
         },
     }))
     return (
-        <AppLayout activeKey="settings" title="Settings">
+        <AppLayout activeKey="settings" title={t("nav.settings")}>
             <ParchmentCard title={t("language.label")} style={{ maxWidth: 480, marginBottom: 16 }}>
                 <LanguagePicker variant="inline" onChange={saveLocale} />
                 <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>{t("language.geoipAttribution")}</Typography.Paragraph>
             </ParchmentCard>
             <EmailPrefs />
             {me?.email && me.emailVerified && <ChangeEmailCard me={me} />}
-            <ParchmentCard title="Change password" style={{ maxWidth: 480, marginBottom: 16 }}>
+            <ParchmentCard title={tp("settings.password.title")} style={{ maxWidth: 480, marginBottom: 16 }}>
                 {change.error && <Alert type="error" showIcon title={messageOf(change.error)} style={{ marginBottom: 16 }} role="alert" />}
                 <Form form={form} layout="vertical" requiredMark={false} onFinish={({ current, next }) => change.mutate({ current, next })} disabled={change.isPending}>
-                    <Form.Item label="Current password" name="current" rules={[{ required: true, message: "Enter your current password" }]}>
+                    <Form.Item label={tp("settings.password.current")} name="current" rules={[{ required: true, message: tp("settings.password.currentRequired") }]}>
                         <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
                     </Form.Item>
-                    <PasswordFields name="next" label="New password" />
-                    <Button type="primary" htmlType="submit" loading={change.isPending} className="gge-press">Change password</Button>
+                    <PasswordFields name="next" isNew />
+                    <Button type="primary" htmlType="submit" loading={change.isPending} className="gge-press">{tp("settings.password.submit")}</Button>
                 </Form>
             </ParchmentCard>
             <ExportDataCard />

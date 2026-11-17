@@ -7,6 +7,12 @@ const fixtures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..",
 const scan = (allowlist = join(fixtures, "allowlist.txt")) =>
     findLiterals({ root: fixtures, projects: [{ tsconfig: "tsconfig.json", scope: "src" }], allowlist })
 
+describe("shipped sources", () => {
+    it("hold no hard-coded user-visible text", { timeout: 60_000 }, () => {
+        expect(findLiterals().map(format)).toEqual([])
+    })
+})
+
 describe("findLiterals", () => {
     const found = scan().map(format)
 

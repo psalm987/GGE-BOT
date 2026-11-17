@@ -2,6 +2,7 @@ import { DeleteOutlined, DownloadOutlined, LockOutlined, MailOutlined, UserOutli
 import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input, Modal, Typography } from "antd"
 import { useState } from "react"
+import { Trans, useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import type { DataExport, PublicUser } from "@gge/contracts"
 import { ParchmentCard } from "@gge/ui"
@@ -11,6 +12,8 @@ const card = { maxWidth: 480, marginBottom: 16 }
 
 /** For a player whose email is confirmed. One without a confirmed email is asked for it by the email gate instead. */
 export function ChangeEmailCard({ me }: { me: PublicUser }) {
+    const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const [form] = Form.useForm()
     const [sentTo, setSentTo] = useState<string>()
     const change = useMutation(orpc.account.changeEmail.mutationOptions({
@@ -20,20 +23,20 @@ export function ChangeEmailCard({ me }: { me: PublicUser }) {
         },
     }))
     return (
-        <ParchmentCard title="Change email" style={card}>
-            <Typography.Paragraph>Your email is <Typography.Text strong>{me.email}</Typography.Text>. You sign in with it and get your account emails there.</Typography.Paragraph>
-            {sentTo && <Alert type="success" showIcon role="status" style={{ marginBottom: 16 }} title="Check your new inbox"
-                description={`We sent a link to ${sentTo}. It works for 1 hour. Your email stays ${me.email} until you open it. Opening it signs you out on every device, and you sign in again with the new address.`} />}
+        <ParchmentCard title={t("changeEmail.title")} style={card}>
+            <Typography.Paragraph><Trans t={t} i18nKey="changeEmail.current" values={{ email: me.email }} components={{ strong: <Typography.Text strong /> }} /></Typography.Paragraph>
+            {sentTo && <Alert type="success" showIcon role="status" style={{ marginBottom: 16 }} title={t("changeEmail.sentTitle")}
+                description={t("changeEmail.sentBody", { sentTo, current: me.email })} />}
             {change.error && <Alert type="error" showIcon title={messageOf(change.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form form={form} name="change-email" layout="vertical" requiredMark={false} disabled={change.isPending}
                 onFinish={({ email, password }) => { setSentTo(undefined); change.mutate({ email, password }) }}>
-                <Form.Item label="New email" name="email" rules={[{ required: true, type: "email", message: "Enter a valid email" }]}>
+                <Form.Item label={t("changeEmail.newLabel")} name="email" rules={[{ required: true, type: "email", message: tc("validation.email") }]}>
                     <Input prefix={<MailOutlined />} type="email" autoComplete="email" placeholder="you@example.com" />
                 </Form.Item>
-                <Form.Item label="Confirm with your password" name="password" rules={[{ required: true, message: "Enter your password" }]}>
+                <Form.Item label={t("changeEmail.passwordLabel")} name="password" rules={[{ required: true, message: t("validation.enterPassword") }]}>
                     <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
                 </Form.Item>
-                <Button type="primary" htmlType="submit" loading={change.isPending} className="gge-press">Send confirmation link</Button>
+                <Button type="primary" htmlType="submit" loading={change.isPending} className="gge-press">{t("changeEmail.submit")}</Button>
             </Form>
         </ParchmentCard>
     )
@@ -49,26 +52,27 @@ function saveAsFile(data: DataExport) {
 }
 
 export function ExportDataCard() {
+    const { t } = useTranslation("client")
     const download = useMutation(orpc.account.exportData.mutationOptions({ onSuccess: saveAsFile }))
     return (
-        <ParchmentCard title="Your data" style={card}>
-            <Typography.Paragraph>
-                Download a JSON file of everything stored about you: your profile, game accounts and their settings, run history, logs, notifications and your own actions. Game passwords are never included.
-            </Typography.Paragraph>
+        <ParchmentCard title={t("export.title")} style={card}>
+            <Typography.Paragraph>{t("export.body")}</Typography.Paragraph>
             {download.error && <Alert type="error" showIcon title={messageOf(download.error)} style={{ marginBottom: 16 }} role="alert" />}
-            {download.isSuccess && <Alert type="success" showIcon title="Your download has started" style={{ marginBottom: 16 }} role="status" />}
-            <Button icon={<DownloadOutlined />} loading={download.isPending} onClick={() => download.mutate({})}>Download my data</Button>
+            {download.isSuccess && <Alert type="success" showIcon title={t("export.started")} style={{ marginBottom: 16 }} role="status" />}
+            <Button icon={<DownloadOutlined />} loading={download.isPending} onClick={() => download.mutate({})}>{t("export.button")}</Button>
         </ParchmentCard>
     )
 }
 
 export function DeleteAccountCard({ me }: { me: PublicUser }) {
+    const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const navigate = useNavigate()
     const [open, setOpen] = useState(false)
     const [form] = Form.useForm()
     const remove = useMutation(orpc.account.deleteMe.mutationOptions({
         onSuccess: () => {
-            void navigate("/login", { replace: true, state: { notice: "Your account was deleted" } })
+            void navigate("/login", { replace: true, state: { notice: t("delete.notice") } })
             queryClient.clear()
         },
     }))
@@ -77,22 +81,20 @@ export function DeleteAccountCard({ me }: { me: PublicUser }) {
         remove.reset()
     }
     return (
-        <ParchmentCard title="Delete account" style={card}>
-            <Typography.Paragraph>
-                This stops your bots and permanently deletes your account, game accounts, settings, logs and notifications. It can't be undone.
-            </Typography.Paragraph>
-            <Button danger icon={<DeleteOutlined />} onClick={() => setOpen(true)}>Delete account</Button>
-            <Modal open={open} title="Delete your account?" onCancel={close} destroyOnHidden okText="Delete account"
+        <ParchmentCard title={t("delete.title")} style={card}>
+            <Typography.Paragraph>{t("delete.body")}</Typography.Paragraph>
+            <Button danger icon={<DeleteOutlined />} onClick={() => setOpen(true)}>{t("delete.button")}</Button>
+            <Modal open={open} title={t("delete.modalTitle")} onCancel={close} destroyOnHidden okText={t("delete.modalOk")}
                 okButtonProps={{ danger: true, loading: remove.isPending }} cancelButtonProps={{ disabled: remove.isPending }} onOk={() => form.submit()}>
-                <Typography.Paragraph>Your bots stop and everything is deleted for good. Enter your password and type your username, <Typography.Text strong>{me.username}</Typography.Text>, to confirm.</Typography.Paragraph>
+                <Typography.Paragraph><Trans t={t} i18nKey="delete.modalBody" values={{ username: me.username }} components={{ strong: <Typography.Text strong /> }} /></Typography.Paragraph>
                 {remove.error && <Alert type="error" showIcon title={messageOf(remove.error)} style={{ marginBottom: 16 }} role="alert" />}
                 <Form form={form} name="delete-account" layout="vertical" requiredMark={false} disabled={remove.isPending}
                     onFinish={({ password, confirmUsername }) => remove.mutate({ password, confirmUsername })}>
-                    <Form.Item label="Password" name="password" rules={[{ required: true, message: "Enter your password" }]}>
+                    <Form.Item label={tc("field.password")} name="password" rules={[{ required: true, message: t("validation.enterPassword") }]}>
                         <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
                     </Form.Item>
-                    <Form.Item label="Your username" name="confirmUsername" validateTrigger="onSubmit"
-                        rules={[{ validator: (_, value?: string) => value?.trim().toLowerCase() === me.username.toLowerCase() ? Promise.resolve() : Promise.reject(new Error(`Type ${me.username} to confirm`)) }]}>
+                    <Form.Item label={t("delete.usernameLabel")} name="confirmUsername" validateTrigger="onSubmit"
+                        rules={[{ validator: (_, value?: string) => value?.trim().toLowerCase() === me.username.toLowerCase() ? Promise.resolve() : Promise.reject(new Error(t("delete.usernameMismatch", { username: me.username }))) }]}>
                         <Input prefix={<UserOutlined />} autoComplete="off" />
                     </Form.Item>
                 </Form>

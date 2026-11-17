@@ -19,7 +19,7 @@ import { Users } from "./pages/Users.tsx"
 
 const guarded = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>
 
-await initI18n({ detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
+await initI18n({ app: "admin", detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
 
 createRoot(document.getElementById("root")!, {
     onUncaughtError: Sentry.reactErrorHandler(),

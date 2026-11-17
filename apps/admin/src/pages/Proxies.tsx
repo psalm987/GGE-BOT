@@ -4,6 +4,7 @@ import { App, Button, Flex, Form, Input, InputNumber, Modal, Popconfirm, Switch,
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { parseProxyUrl } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
 import { client, messageOf, orpc, queryClient } from "../api.ts"
@@ -20,17 +21,20 @@ const URL_EXAMPLE = "socks5h://user:password@host:1080"
 const when = (date: Date) => <Tooltip title={dayjs(date).format("D MMM YYYY HH:mm:ss")}>{dayjs(date).fromNow()}</Tooltip>
 
 function Health({ proxy }: { proxy: Proxy }) {
+    const { t } = useTranslation("admin")
     if (!proxy.enabled)
         return proxy.disabledReason
-            ? <><Tag color="red">Turned off automatically</Tag><div><Typography.Text type="secondary">{proxy.disabledReason}</Typography.Text></div></>
-            : <Tag>Off</Tag>
+            ? <><Tag color="red">{t("proxies.offAuto")}</Tag><div><Typography.Text type="secondary">{proxy.disabledReason}</Typography.Text></div></>
+            : <Tag>{t("proxies.off")}</Tag>
     if (proxy.consecutiveFailures > 0)
-        return <Tag color="orange">{proxy.consecutiveFailures} failed in a row</Tag>
-    return proxy.lastOkAt ? <><Tag color="green">Healthy</Tag> {when(proxy.lastOkAt)}</> : <Tag>Not used yet</Tag>
+        return <Tag color="orange">{t("proxies.failedInARow", { count: proxy.consecutiveFailures })}</Tag>
+    return proxy.lastOkAt ? <><Tag color="green">{t("proxies.healthy")}</Tag> {when(proxy.lastOkAt)}</> : <Tag>{t("proxies.notUsed")}</Tag>
 }
 
 export function Proxies() {
     const { message } = App.useApp()
+    const { t } = useTranslation("admin")
+    const { t: tc } = useTranslation("common")
     const [editing, setEditing] = useState<Editing>({ name: "closed" })
     const [form] = Form.useForm<Fields>()
     const proxies = useQuery(orpc.proxies.list.queryOptions({ refetchInterval: REFRESH_MS }))
@@ -45,9 +49,9 @@ export function Proxies() {
         },
         onError: (error: unknown) => message.error(messageOf(error)),
     })
-    const create = useMutation(orpc.proxies.create.mutationOptions(settle("Proxy added")))
-    const update = useMutation(orpc.proxies.update.mutationOptions(settle("Proxy updated")))
-    const remove = useMutation(orpc.proxies.remove.mutationOptions(settle("Proxy deleted")))
+    const create = useMutation(orpc.proxies.create.mutationOptions(settle(t("proxies.added"))))
+    const update = useMutation(orpc.proxies.update.mutationOptions(settle(t("proxies.updated"))))
+    const remove = useMutation(orpc.proxies.remove.mutationOptions(settle(t("proxies.deleted"))))
     const saving = create.isPending || update.isPending
     const edited = editing.name === "editing" ? editing.proxy : undefined
 
@@ -60,48 +64,45 @@ export function Proxies() {
     }
 
     return (
-        <AdminPage title="Proxies">
+        <AdminPage title={t("nav.proxies")}>
             {proxies.error && <QueryError error={proxies.error} onRetry={() => void proxies.refetch()} />}
-            <ParchmentCard title="Proxy pool" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing({ name: "creating" })}>Add proxy</Button>}>
-                <Typography.Paragraph type="secondary">
-                    Bots connect to the game through these, so the accounts don't all share the server's address. Each account keeps one proxy,
-                    and an event twin uses its main account's. A proxy that fails 5 connections in a row is turned off, and its accounts move to another.
-                </Typography.Paragraph>
+            <ParchmentCard title={t("proxies.pool")} extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing({ name: "creating" })}>{t("proxies.add")}</Button>}>
+                <Typography.Paragraph type="secondary">{t("proxies.intro")}</Typography.Paragraph>
                 {!proxies.isPending && !proxies.error && rows.length === 0 ? (
-                    <CrestEmpty title="No proxies" hint="Without any, every bot connects directly from the server." />
+                    <CrestEmpty title={t("proxies.emptyTitle")} hint={t("proxies.emptyHint")} />
                 ) : (
                     <Table<Proxy> rowKey="id" loading={proxies.isPending} dataSource={rows} pagination={false} scroll={{ x: 980 }}
                         columns={[
-                            { title: "Label", dataIndex: "label", render: (label: string) => <Typography.Text strong>{label}</Typography.Text> },
-                            { title: "Host", dataIndex: "hostHint", render: (hint: string) => <Typography.Text code>{hint}</Typography.Text> },
+                            { title: t("proxies.col.label"), dataIndex: "label", render: (label: string) => <Typography.Text strong>{label}</Typography.Text> },
+                            { title: t("proxies.col.host"), dataIndex: "hostHint", render: (hint: string) => <Typography.Text code>{hint}</Typography.Text> },
                             {
-                                title: "Enabled", dataIndex: "enabled", width: 90,
+                                title: t("proxies.col.enabled"), dataIndex: "enabled", width: 90,
                                 render: (enabled: boolean, p) => (
-                                    <Switch checked={enabled} aria-label={`${p.label} enabled`} loading={update.isPending && update.variables?.id === p.id}
+                                    <Switch checked={enabled} aria-label={t("proxies.enabledLabel", { label: p.label })} loading={update.isPending && update.variables?.id === p.id}
                                         onChange={next => update.mutate({ id: p.id, enabled: next })} />
                                 ),
                             },
                             {
-                                title: "Load", key: "load", width: 90,
-                                render: (_, p) => <Tooltip title="Accounts assigned / the most the runner assigns on its own">{p.accountCount}/{p.maxAccounts}</Tooltip>,
+                                title: t("proxies.col.load"), key: "load", width: 90,
+                                render: (_, p) => <Tooltip title={t("proxies.loadTip")}>{p.accountCount}/{p.maxAccounts}</Tooltip>,
                             },
-                            { title: "Health", key: "health", render: (_, p) => <Health proxy={p} /> },
+                            { title: t("proxies.col.health"), key: "health", render: (_, p) => <Health proxy={p} /> },
                             {
-                                title: "Last error", dataIndex: "lastError",
+                                title: t("proxies.col.lastError"), dataIndex: "lastError",
                                 render: (error: Proxy["lastError"], p) => error
                                     ? <><Typography.Text code>{error}</Typography.Text> {p.lastErrorAt && when(p.lastErrorAt)}</>
-                                    : <Typography.Text type="secondary">None</Typography.Text>,
+                                    : <Typography.Text type="secondary">{tc("value.none")}</Typography.Text>,
                             },
                             {
                                 title: "", key: "actions", align: "right",
                                 render: (_, p) => (
                                     <Flex gap={8} justify="flex-end">
-                                        <Button icon={<EditOutlined />} aria-label={`Edit ${p.label}`}
-                                            onClick={() => { form.setFieldsValue({ label: p.label, maxAccounts: p.maxAccounts, url: "" }); setEditing({ name: "editing", proxy: p }) }}>Edit</Button>
-                                        <Popconfirm title={`Delete ${p.label}?`} okText="Delete" okButtonProps={{ danger: true }}
-                                            description={p.accountCount ? "Its accounts lose their proxy. The runner gives each another one the next time it starts." : "No account uses it."}
+                                        <Button icon={<EditOutlined />} aria-label={t("proxies.editLabel", { label: p.label })}
+                                            onClick={() => { form.setFieldsValue({ label: p.label, maxAccounts: p.maxAccounts, url: "" }); setEditing({ name: "editing", proxy: p }) }}>{t("proxies.edit")}</Button>
+                                        <Popconfirm title={t("proxies.deleteConfirm", { label: p.label })} okText={tc("action.delete")} okButtonProps={{ danger: true }}
+                                            description={p.accountCount ? t("proxies.deleteBodyUsed") : t("proxies.deleteBodyFree")}
                                             onConfirm={() => remove.mutate({ id: p.id })}>
-                                            <Button danger icon={<DeleteOutlined />} aria-label={`Delete ${p.label}`}>Delete</Button>
+                                            <Button danger icon={<DeleteOutlined />} aria-label={t("proxies.deleteLabel", { label: p.label })}>{tc("action.delete")}</Button>
                                         </Popconfirm>
                                     </Flex>
                                 ),
@@ -109,27 +110,27 @@ export function Proxies() {
                         ]} />
                 )}
             </ParchmentCard>
-            <Modal open={editing.name !== "closed"} onCancel={close} destroyOnHidden title={edited ? `Edit ${edited.label}` : "Add a proxy"}
-                okText={edited ? "Save" : "Add proxy"} confirmLoading={saving} onOk={() => form.submit()}>
+            <Modal open={editing.name !== "closed"} onCancel={close} destroyOnHidden title={edited ? t("proxies.modalEdit", { label: edited.label }) : t("proxies.modalAdd")}
+                okText={edited ? tc("action.save") : t("proxies.add")} confirmLoading={saving} onOk={() => form.submit()}>
                 <Form form={form} layout="vertical" requiredMark={false} disabled={saving} initialValues={{ maxAccounts: 3 }} onFinish={save}>
-                    <Form.Item label="Label" name="label" rules={[{ required: true, whitespace: true, message: "Give the proxy a name" }, { max: 64 }]}>
+                    <Form.Item label={t("proxies.col.label")} name="label" rules={[{ required: true, whitespace: true, message: t("proxies.nameRequired") }, { max: 64 }]}>
                         <Input autoFocus autoComplete="off" />
                     </Form.Item>
-                    <Form.Item label="Proxy URL" name="url"
-                        extra="Stored sealed, so only the runner can read it and it is never shown again. Use socks5h so the proxy looks up the game's address."
+                    <Form.Item label={t("proxies.urlLabel")} name="url"
+                        extra={t("proxies.urlHint")}
                         rules={[{
                             validator: async (_, value?: string) => {
                                 const url = value?.trim()
                                 if (!url && edited)
                                     return
                                 if (!url || !parseProxyUrl(url))
-                                    throw new Error(`Use http, https, socks5 or socks5h with a host and a port, like ${URL_EXAMPLE}`)
+                                    throw new Error(t("proxies.urlInvalid", { example: URL_EXAMPLE }))
                             },
                         }]}>
-                        <Input.Password autoComplete="new-password" spellCheck={false} placeholder={edited ? "Leave empty to keep the current URL" : URL_EXAMPLE} />
+                        <Input.Password autoComplete="new-password" spellCheck={false} placeholder={edited ? t("proxies.urlKeep") : URL_EXAMPLE} />
                     </Form.Item>
-                    <Form.Item label="Accounts" name="maxAccounts" extra="The most accounts the runner puts on this proxy on its own. Pinning an account by hand can go over it."
-                        rules={[{ required: true, message: "Enter a number from 1 to 1000" }]}>
+                    <Form.Item label={t("proxies.maxLabel")} name="maxAccounts" extra={t("proxies.maxHint")}
+                        rules={[{ required: true, message: t("proxies.maxRequired") }]}>
                         <InputNumber min={1} max={1000} precision={0} style={{ width: 120 }} />
                     </Form.Item>
                 </Form>

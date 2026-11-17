@@ -4,6 +4,7 @@ import { App, Button, Col, Grid, Popconfirm, Row, Space, Statistic, Table, Tag, 
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
 import { planRunsMessage, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard, SigilStatus, palette } from "@gge/ui"
@@ -21,6 +22,8 @@ const twinKey = (a: Pick<PublicAccount, "serverId" | "name">) => `${a.serverId}:
 
 export function Dashboard() {
     const { message } = App.useApp()
+    const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const phone = !Grid.useBreakpoint().md
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), refetchInterval: pollInterval(useRealtimeState()) })
     const servers = useQuery(orpc.servers.list.queryOptions())
@@ -62,7 +65,7 @@ export function Dashboard() {
     }))
     const remove = useMutation(orpc.accounts.remove.mutationOptions({
         onSuccess: (_, { ids }) => {
-            message.success(ids.length === 1 ? "Account removed" : `${ids.length} accounts removed`)
+            message.success(t("dashboard.removed", { count: ids.length }))
             setSelected([])
             void queryClient.invalidateQueries({ queryKey: listKey })
         },
@@ -77,8 +80,8 @@ export function Dashboard() {
     const overLimit = list.filter(a => !a.entitled).length
     const planHint = limit === undefined ? undefined : planRunsMessage(limit)
     const limitHint = overLimit
-        ? `${overLimit} account${overLimit === 1 ? " is" : "s are"} over your plan limit and can't start. ${planHint}`
-        : atLimit ? `Your plan allows ${limit} bot${limit === 1 ? "" : "s"}. Remove one to add another. Event twins are free.` : undefined
+        ? t("dashboard.overLimit", { count: overLimit, hint: planHint })
+        : atLimit ? t("dashboard.planAllows", { count: limit }) : undefined
     const twinned = new Set(list.filter(a => a.isTwin).map(twinKey))
     const selectedOverLimit = list.some(a => selected.includes(a.id) && !a.entitled)
     const attention = list.filter(needsAttention).length
@@ -86,39 +89,39 @@ export function Dashboard() {
     return (
         <AppLayout
             activeKey="accounts"
-            title="Your accounts"
+            title={t("dashboard.title")}
             extra={
                 <Space>
                     <Tooltip title={limitHint}>
-                        <Button type="primary" icon={<PlusOutlined />} aria-label="Add account" disabled={atLimit} onClick={() => setDrawer({ open: true })} className="gge-press">{phone ? null : "Add account"}</Button>
+                        <Button type="primary" icon={<PlusOutlined />} aria-label={t("account.add")} disabled={atLimit} onClick={() => setDrawer({ open: true })} className="gge-press">{phone ? null : t("account.add")}</Button>
                     </Tooltip>
                 </Space>
             }>
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                <Col xs={24} sm={8}><ParchmentCard><Statistic title="Accounts" value={counted} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Running now" value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
-                <Col xs={12} sm={8}><ParchmentCard><Statistic title="Need attention" value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
+                <Col xs={24} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.accounts")} value={counted} suffix={limit !== undefined && `/ ${limit}`} /></ParchmentCard></Col>
+                <Col xs={12} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.running")} value={running} styles={{ content: { color: palette.emeraldText } }} /></ParchmentCard></Col>
+                <Col xs={12} sm={8}><ParchmentCard><Statistic title={t("dashboard.stats.attention")} value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
             </Row>
 
             <ParchmentCard
-                title="Roster"
+                title={t("dashboard.roster")}
                 extra={selected.length > 0 && (
                     <Space wrap>
-                        <Typography.Text type="secondary">{selected.length} selected</Typography.Text>
-                        <Tooltip title={selectedOverLimit ? `The selection includes accounts over your plan limit. ${planHint}` : undefined}>
-                            <Button icon={<CaretRightFilled />} disabled={selectedOverLimit} onClick={() => setState.mutate({ ids: selected, state: "running" })}>Start</Button>
+                        <Typography.Text type="secondary">{t("dashboard.selected", { count: selected.length })}</Typography.Text>
+                        <Tooltip title={selectedOverLimit ? t("dashboard.selectionOverLimit", { hint: planHint }) : undefined}>
+                            <Button icon={<CaretRightFilled />} disabled={selectedOverLimit} onClick={() => setState.mutate({ ids: selected, state: "running" })}>{tc("action.start")}</Button>
                         </Tooltip>
-                        <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: selected, state: "stopped" })}>Stop</Button>
-                        <Popconfirm title={`Remove ${selected.length} account${selected.length > 1 ? "s" : ""}?`} description="Their bots stop and their settings are deleted. This can't be undone."
-                            okText="Remove" okButtonProps={{ danger: true }} onConfirm={() => remove.mutate({ ids: selected })}>
-                            <Button danger icon={<DeleteOutlined />} loading={remove.isPending}>Remove</Button>
+                        <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: selected, state: "stopped" })}>{tc("action.stop")}</Button>
+                        <Popconfirm title={t("dashboard.removeConfirm", { count: selected.length })} description={t("dashboard.removeBody")}
+                            okText={tc("action.remove")} okButtonProps={{ danger: true }} onConfirm={() => remove.mutate({ ids: selected })}>
+                            <Button danger icon={<DeleteOutlined />} loading={remove.isPending}>{tc("action.remove")}</Button>
                         </Popconfirm>
                     </Space>
                 )}>
                 {limitHint && <Typography.Paragraph type="secondary" role="status">{limitHint}</Typography.Paragraph>}
                 {!accounts.isPending && list.length === 0 ? (
-                    <CrestEmpty title="No accounts yet" hint="Add a game account to start running bots."
-                        action={<Button type="primary" icon={<PlusOutlined />} disabled={atLimit} onClick={() => setDrawer({ open: true })}>Add your first account</Button>} />
+                    <CrestEmpty title={t("dashboard.emptyTitle")} hint={t("dashboard.emptyHint")}
+                        action={<Button type="primary" icon={<PlusOutlined />} disabled={atLimit} onClick={() => setDrawer({ open: true })}>{t("dashboard.addFirst")}</Button>} />
                 ) : (
                     <Table<PublicAccount>
                         rowKey="id"
@@ -129,25 +132,25 @@ export function Dashboard() {
                         scroll={{ x: 760 }}
                         columns={[
                             {
-                                title: "Account", dataIndex: "name", sorter: (a, b) => a.name.localeCompare(b.name),
+                                title: t("dashboard.col.account"), dataIndex: "name", sorter: (a, b) => a.name.localeCompare(b.name),
                                 render: (name: string, a) => (
                                     <div>
                                         <Typography.Text strong>{name}</Typography.Text>
-                                        <div><Typography.Text type="secondary" style={{ fontSize: 13 }}>{serverLabel.get(a.serverId) ?? `Server ${a.serverId}`}{a.externalEvent ? " · event" : ""}</Typography.Text></div>
+                                        <div><Typography.Text type="secondary" style={{ fontSize: 13 }}>{serverLabel.get(a.serverId) ?? t("dashboard.server", { id: a.serverId })}{a.externalEvent ? ` · ${t("dashboard.event")}` : ""}</Typography.Text></div>
                                     </div>
                                 ),
                             },
                             {
-                                title: "Status",
+                                title: tc("field.status"),
                                 render: (_, a) => a.entitled ? <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> : (
                                     <Tooltip title={planHint}>
-                                        <Tag tabIndex={0} variant="outlined" style={{ color: palette.amber, borderColor: palette.amber, background: "transparent", fontWeight: 500 }}>Over plan limit</Tag>
+                                        <Tag tabIndex={0} variant="outlined" style={{ color: palette.amber, borderColor: palette.amber, background: "transparent", fontWeight: 500 }}>{t("dashboard.overPlan")}</Tag>
                                     </Tooltip>
                                 ),
                             },
-                            { title: "Plugins", render: (_, a) => Object.values(a.plugins).filter(p => p.enabled).length, width: 90 },
+                            { title: t("dashboard.col.plugins"), render: (_, a) => Object.values(a.plugins).filter(p => p.enabled).length, width: 90 },
                             {
-                                title: "Last seen", width: 140,
+                                title: t("dashboard.col.lastSeen"), width: 140,
                                 render: (_, a) => a.status?.heartbeatAt
                                     ? <Tooltip title={dayjs(a.status.heartbeatAt).format("D MMM YYYY HH:mm:ss")}>{dayjs(a.status.heartbeatAt).fromNow()}</Tooltip>
                                     : <Typography.Text type="secondary">—</Typography.Text>,
@@ -157,19 +160,19 @@ export function Dashboard() {
                                 render: (_, a) => (
                                     <Space>
                                         {isRunning(a)
-                                            ? <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: [a.id], state: "stopped" })}>Stop</Button>
+                                            ? <Button icon={<PauseOutlined />} onClick={() => setState.mutate({ ids: [a.id], state: "stopped" })}>{tc("action.stop")}</Button>
                                             : (
-                                                <Tooltip title={a.entitled ? undefined : `Over your plan limit. ${planHint}`}>
-                                                    <Button type="primary" ghost icon={<CaretRightFilled />} disabled={!a.entitled} aria-label={`Start ${a.name}`}
-                                                        onClick={() => setState.mutate({ ids: [a.id], state: "running" })}>Start</Button>
+                                                <Tooltip title={a.entitled ? undefined : t("dashboard.overPlanStart", { hint: planHint })}>
+                                                    <Button type="primary" ghost icon={<CaretRightFilled />} disabled={!a.entitled} aria-label={t("dashboard.startAccount", { name: a.name })}
+                                                        onClick={() => setState.mutate({ ids: [a.id], state: "running" })}>{tc("action.start")}</Button>
                                                 </Tooltip>
                                             )}
                                         {!a.externalEvent && !twinned.has(twinKey(a)) && (
-                                            <Tooltip title="Add event twin: free, plays the temporary event server">
-                                                <Button icon={<ThunderboltOutlined />} aria-label={`Add event twin for ${a.name}`} onClick={() => setDrawer({ open: true, twinOf: a })} />
+                                            <Tooltip title={t("dashboard.twinTip")}>
+                                                <Button icon={<ThunderboltOutlined />} aria-label={t("account.addTwinFor", { name: a.name })} onClick={() => setDrawer({ open: true, twinOf: a })} />
                                             </Tooltip>
                                         )}
-                                        <Button icon={<EditOutlined />} aria-label={`Edit ${a.name}`} onClick={() => setDrawer({ open: true, account: a })} />
+                                        <Button icon={<EditOutlined />} aria-label={t("dashboard.edit", { name: a.name })} onClick={() => setDrawer({ open: true, account: a })} />
                                     </Space>
                                 ),
                             },

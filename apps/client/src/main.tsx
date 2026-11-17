@@ -45,7 +45,7 @@ function Root() {
     )
 }
 
-await initI18n({ detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
+await initI18n({ app: "client", detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
 
 createRoot(document.getElementById("root")!, {
     onUncaughtError: Sentry.reactErrorHandler(),

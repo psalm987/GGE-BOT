@@ -2,6 +2,7 @@ import { ReloadOutlined } from "@ant-design/icons"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { Button, Flex, Table, Typography } from "antd"
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router"
 import { CrestEmpty, LogTerminal, RunsPanel, SigilStatus, useLogText } from "@gge/ui"
 import { client, orpc } from "../api.ts"
@@ -15,6 +16,8 @@ const PAGE = 500
 
 /** One account's latest runs and log, in English, refetched every 10 seconds while this is on screen. */
 function AccountHistory({ account }: { account: Account }) {
+    const { t } = useTranslation("admin")
+    const { t: tc } = useTranslation("common")
     const runs = useQuery(orpc.accounts.runs.queryOptions({ input: { id: account.id, limit: 20 }, refetchInterval: REFRESH_MS }))
     const log = useInfiniteQuery({
         ...orpc.logs.feed.infiniteOptions({
@@ -27,17 +30,17 @@ function AccountHistory({ account }: { account: Account }) {
     const lines = useMemo(() => log.data?.pages.flat() ?? [], [log.data])
     const english = useLogText("en")
     return (
-        <section aria-label={`History of ${account.name}`} style={{ marginTop: 24 }}>
+        <section aria-label={t("userAccounts.historyOf", { name: account.name })} style={{ marginTop: 24 }}>
             <Flex justify="space-between" align="center" wrap gap={8} style={{ marginBottom: 12 }}>
                 <Typography.Title level={4} className="gge-display" style={{ margin: 0 }}>{account.name}</Typography.Title>
-                <Button icon={<ReloadOutlined />} loading={runs.isFetching || log.isRefetching} onClick={() => { void log.refetch(); void runs.refetch() }}>Refresh</Button>
+                <Button icon={<ReloadOutlined />} loading={runs.isFetching || log.isRefetching} onClick={() => { void log.refetch(); void runs.refetch() }}>{tc("action.refresh")}</Button>
             </Flex>
-            <Typography.Title level={5} style={{ marginTop: 0 }}>Runs</Typography.Title>
-            <div role="region" aria-label="Runs">
+            <Typography.Title level={5} style={{ marginTop: 0 }}>{t("userAccounts.runs")}</Typography.Title>
+            <div role="region" aria-label={t("userAccounts.runs")}>
                 <RunsPanel runs={runs.data} loading={runs.isPending} />
             </div>
-            <Typography.Title level={5}>Logs</Typography.Title>
-            <div role="region" aria-label="Logs">
+            <Typography.Title level={5}>{t("userAccounts.logs")}</Typography.Title>
+            <div role="region" aria-label={t("userAccounts.logs")}>
                 <LogTerminal style={{ height: 480 }} lines={lines} renderText={english}
                     loading={log.isPending} error={log.isError ? log.error.message : null} onRetry={() => void log.refetch()}
                     hasOlder={log.hasNextPage} loadingOlder={log.isFetchingNextPage} onLoadOlder={() => void log.fetchNextPage()} />
@@ -48,6 +51,8 @@ function AccountHistory({ account }: { account: Account }) {
 
 /** The user's game accounts. Selecting one, which the `account` query parameter remembers, shows its runs and logs. */
 export function UserAccounts({ userId }: { userId: string }) {
+    const { t } = useTranslation("admin")
+    const { t: tc } = useTranslation("common")
     const [params, setParams] = useSearchParams()
     const selectedId = params.get("account")
     const accounts = useQuery(orpc.accounts.list.queryOptions({ input: { ownerId: userId, limit: 200 } }))
@@ -59,21 +64,21 @@ export function UserAccounts({ userId }: { userId: string }) {
         <>
             {accounts.error && <QueryError error={accounts.error} onRetry={() => void accounts.refetch()} />}
             {!accounts.isPending && !accounts.error && rows.length === 0 ? (
-                <CrestEmpty title="No game accounts" hint="This player hasn't added any yet." />
+                <CrestEmpty title={t("userAccounts.emptyTitle")} hint={t("userAccounts.emptyHint")} />
             ) : (
                 <Table<Account> rowKey="id" loading={accounts.isPending} dataSource={rows} pagination={false} scroll={{ x: 860 }}
                     rowClassName={a => a.id === selected?.id ? "ant-table-row-selected" : ""}
                     columns={[
-                        { title: "Name", dataIndex: "name", render: (n: string) => <Typography.Text strong>{n}</Typography.Text> },
-                        { title: "Server", dataIndex: "serverId", width: 90 },
-                        { title: "Desired", dataIndex: "desiredState", render: (s: Account["desiredState"]) => s === "running" ? "Running" : "Stopped" },
-                        { title: "Status", key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
-                        { title: "Proxy", key: "proxy", width: 210, render: (_, a) => <ProxySelect account={a} /> },
+                        { title: tc("field.name"), dataIndex: "name", render: (n: string) => <Typography.Text strong>{n}</Typography.Text> },
+                        { title: tc("field.server"), dataIndex: "serverId", width: 90 },
+                        { title: t("userAccounts.desired"), dataIndex: "desiredState", render: (s: Account["desiredState"]) => t(`desired.${s}`) },
+                        { title: tc("field.status"), key: "status", render: (_, a) => <SigilStatus state={a.status?.actualState} detail={a.status?.lastError} sleepingUntil={a.sleepingUntil} /> },
+                        { title: t("userAccounts.proxy"), key: "proxy", width: 210, render: (_, a) => <ProxySelect account={a} /> },
                         {
                             title: "", key: "actions", align: "right",
                             render: (_, a) => (
                                 <Flex gap={8} justify="flex-end" wrap>
-                                    <Button aria-pressed={a.id === selected?.id} aria-label={`Show runs and logs of ${a.name}`} onClick={() => select(a.id)}>Runs and logs</Button>
+                                    <Button aria-pressed={a.id === selected?.id} aria-label={t("userAccounts.showHistory", { name: a.name })} onClick={() => select(a.id)}>{t("userAccounts.runsAndLogs")}</Button>
                                     <ForceStopButton account={a} />
                                 </Flex>
                             ),

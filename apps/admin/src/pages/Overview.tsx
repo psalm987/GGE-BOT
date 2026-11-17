@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Alert, Button, Col, Row, Skeleton, Statistic } from "antd"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ParchmentCard, SigilStatus, type BotState, palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { AdminPage, QueryError } from "../components/AdminPage.tsx"
@@ -21,6 +22,8 @@ function useNow() {
 }
 
 export function Overview() {
+    const { t } = useTranslation("admin")
+    const { t: tc } = useTranslation("common")
     const overview = useQuery({ ...orpc.overview.queryOptions(), refetchInterval: 10_000 })
     const now = useNow()
     const data = overview.data
@@ -29,22 +32,22 @@ export function Overview() {
     const stale = !runner || (age ?? 0) > STALE_AFTER_S
 
     return (
-        <AdminPage title="Overview" extra={GRAFANA_URL && (
-            <Button href={GRAFANA_URL} target="_blank" rel="noreferrer" icon={<LineChartOutlined />}>Open Grafana</Button>
+        <AdminPage title={t("nav.overview")} extra={GRAFANA_URL && (
+            <Button href={GRAFANA_URL} target="_blank" rel="noreferrer" icon={<LineChartOutlined />}>{t("overview.openGrafana")}</Button>
         )}>
             {overview.error && <QueryError error={overview.error} onRetry={() => void overview.refetch()} />}
             {data && stale && (
-                <Alert type="warning" showIcon role="alert" style={{ marginBottom: 16 }} title="The runner isn't reporting"
-                    description={runner ? `Its last heartbeat was ${age} seconds ago. Bots may not be running.` : "No heartbeat has been recorded. Bots are not running."} />
+                <Alert type="warning" showIcon role="alert" style={{ marginBottom: 16 }} title={t("overview.stale")}
+                    description={runner ? t("overview.lastBeat", { count: age ?? 0 }) : t("overview.noBeat")} />
             )}
             {overview.isPending ? <ParchmentCard><Skeleton active /></ParchmentCard> : data && (
                 <Row gutter={[16, 16]}>
-                    <Col xs={12} md={6}><ParchmentCard><Statistic title="Users" value={data.users} /></ParchmentCard></Col>
-                    <Col xs={12} md={6}><ParchmentCard><Statistic title="Game accounts" value={data.accounts} /></ParchmentCard></Col>
-                    <Col xs={12} md={6}><ParchmentCard><Statistic title="Runs, last 24 h" value={data.last24h.runs} /></ParchmentCard></Col>
-                    <Col xs={12} md={6}><ParchmentCard><Statistic title="Crashes, last 24 h" value={data.last24h.crashes} styles={{ content: { color: data.last24h.crashes ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
+                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.users")} value={data.users} /></ParchmentCard></Col>
+                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.accounts")} value={data.accounts} /></ParchmentCard></Col>
+                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.runs24h")} value={data.last24h.runs} /></ParchmentCard></Col>
+                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.crashes24h")} value={data.last24h.crashes} styles={{ content: { color: data.last24h.crashes ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
                     <Col xs={24} md={14}>
-                        <ParchmentCard title="Bots by state">
+                        <ParchmentCard title={t("overview.botsByState")}>
                             <Row gutter={[16, 16]}>
                                 {STATES.map(state => (
                                     <Col xs={12} sm={8} key={state}>
@@ -56,15 +59,15 @@ export function Overview() {
                         </ParchmentCard>
                     </Col>
                     <Col xs={24} md={10}>
-                        <ParchmentCard title="Runner">
+                        <ParchmentCard title={t("overview.runner")}>
                             {runner ? (
                                 <Row gutter={[16, 16]}>
-                                    <Col span={12}><Statistic title="Version" value={runner.version} /></Col>
-                                    <Col span={12}><Statistic title="Bots running" value={runner.running} /></Col>
-                                    <Col span={24}><Statistic title="Last heartbeat" value={`${age} seconds ago`} styles={{ content: { fontSize: 18, color: stale ? palette.crimsonText : undefined } }} /></Col>
-                                    <Col span={24}><Statistic title="Started" value={dayjs(runner.startedAt).format("D MMM YYYY HH:mm")} styles={{ content: { fontSize: 18 } }} /></Col>
+                                    <Col span={12}><Statistic title={t("overview.version")} value={runner.version} /></Col>
+                                    <Col span={12}><Statistic title={t("overview.botsRunning")} value={runner.running} /></Col>
+                                    <Col span={24}><Statistic title={t("overview.lastHeartbeat")} value={t("overview.secondsAgo", { count: age ?? 0 })} styles={{ content: { fontSize: 18, color: stale ? palette.crimsonText : undefined } }} /></Col>
+                                    <Col span={24}><Statistic title={t("overview.started")} value={dayjs(runner.startedAt).format("D MMM YYYY HH:mm")} styles={{ content: { fontSize: 18 } }} /></Col>
                                 </Row>
-                            ) : <Statistic title="Status" value="Not reporting" styles={{ content: { fontSize: 18, color: palette.crimsonText } }} />}
+                            ) : <Statistic title={tc("field.status")} value={t("overview.notReporting")} styles={{ content: { fontSize: 18, color: palette.crimsonText } }} />}
                         </ParchmentCard>
                     </Col>
                 </Row>

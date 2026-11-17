@@ -2,11 +2,12 @@ import { LockOutlined, UserOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input, QRCode, Typography } from "antd"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
 import type { PublicUser } from "@gge/contracts"
 import { AuthShell } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
-import { CODE_RULES, CodeInput } from "../components/CodeInput.tsx"
+import { CodeInput, useCodeRules } from "../components/CodeInput.tsx"
 import { RecoveryCodes } from "../components/RecoveryCodes.tsx"
 import { CLIENT_URL } from "../config.ts"
 
@@ -16,15 +17,17 @@ type Step =
     | { name: "enroll"; otpauthUri: string; secret: string }
     | { name: "recoveryCodes"; user: PublicUser; codes: string[] }
 
-const SHELL: Record<Step["name"], { title: string; subtitle: string }> = {
-    credentials: { title: "Admin sign in", subtitle: "Administrators only." },
-    totp: { title: "Two-factor sign-in", subtitle: "Your password is right. One more step." },
-    enroll: { title: "Set up two-factor sign-in", subtitle: "Admins sign in with a password and a code from an authenticator app." },
-    recoveryCodes: { title: "Save your recovery codes", subtitle: "Two-factor sign-in is on." },
+const SHELL: Record<Step["name"], { titleKey: string; subtitleKey: string }> = {
+    credentials: { titleKey: "login.adminTitle", subtitleKey: "login.adminSubtitle" },
+    totp: { titleKey: "login.totpTitle", subtitleKey: "login.totpSubtitle" },
+    enroll: { titleKey: "login.enrollTitle", subtitleKey: "login.enrollSubtitle" },
+    recoveryCodes: { titleKey: "login.recoveryTitle", subtitleKey: "login.recoverySubtitle" },
 }
 
 export function Login() {
     const navigate = useNavigate()
+    const { t } = useTranslation("admin")
+    const codeRules = useCodeRules()
     const from = (useLocation().state as { from?: string } | null)?.from ?? "/"
     const [step, setStep] = useState<Step>({ name: "credentials" })
     const [error, setError] = useState<unknown>()
@@ -55,19 +58,19 @@ export function Login() {
     const startOver = () => { setError(undefined); setStep({ name: "credentials" }) }
 
     return (
-        <AuthShell {...SHELL[step.name]} wide={step.name === "enroll"}>
+        <AuthShell title={t(SHELL[step.name].titleKey)} subtitle={t(SHELL[step.name].subtitleKey)} wide={step.name === "enroll"}>
             {error !== undefined && <Alert type="error" showIcon title={messageOf(error)} style={{ marginBottom: 16 }} role="alert" />}
 
             {step.name === "credentials" && (
                 <Form layout="vertical" requiredMark={false} onFinish={values => login.mutate(values)} disabled={login.isPending || enrollStart.isPending}>
-                    <Form.Item label="Username or email" name="login" rules={[{ required: true, message: "Enter your username or email" }]}>
+                    <Form.Item label={t("login.identifier")} name="login" rules={[{ required: true, message: t("login.identifierRequired") }]}>
                         <Input prefix={<UserOutlined />} autoComplete="username" autoFocus size="large" />
                     </Form.Item>
-                    <Form.Item label="Password" name="password" rules={[{ required: true, message: "Enter your password" }]}>
+                    <Form.Item label={t("field.password", { ns: "common" })} name="password" rules={[{ required: true, message: t("login.passwordRequired") }]}>
                         <Input.Password prefix={<LockOutlined />} autoComplete="current-password" size="large" />
                     </Form.Item>
-                    <div style={{ marginBottom: 16, textAlign: "end" }}><a href={`${CLIENT_URL}/forgot-password`}>Forgot password?</a></div>
-                    <Button type="primary" htmlType="submit" block size="large" loading={login.isPending || enrollStart.isPending} className="gge-press">Sign in</Button>
+                    <div style={{ marginBottom: 16, textAlign: "end" }}><a href={`${CLIENT_URL}/forgot-password`}>{t("login.forgot")}</a></div>
+                    <Button type="primary" htmlType="submit" block size="large" loading={login.isPending || enrollStart.isPending} className="gge-press">{t("action.signIn", { ns: "common" })}</Button>
                 </Form>
             )}
 
@@ -75,49 +78,47 @@ export function Login() {
                 <Form key={String(step.useRecoveryCode)} layout="vertical" requiredMark={false} disabled={verify.isPending}
                     onFinish={(values: { code: string }) => verify.mutate(step.useRecoveryCode ? { recoveryCode: values.code } : { code: values.code })}>
                     {step.useRecoveryCode ? (
-                        <Form.Item label="Recovery code" name="code" extra="One of the codes you saved when you set up two-factor sign-in. Each works once."
-                            rules={[{ required: true, message: "Enter a recovery code" }]}>
+                        <Form.Item label={t("login.recoveryLabel")} name="code" extra={t("login.recoveryHint")}
+                            rules={[{ required: true, message: t("login.recoveryRequired") }]}>
                             <Input autoComplete="off" autoCapitalize="none" spellCheck={false} autoFocus size="large" placeholder="xxxxx-xxxxx" maxLength={64} />
                         </Form.Item>
                     ) : (
-                        <Form.Item label="Authenticator code" name="code" extra="The 6-digit code your authenticator app shows for GGE Bot Admin." rules={CODE_RULES}>
+                        <Form.Item label={t("login.codeLabel")} name="code" extra={t("login.codeHint")} rules={codeRules}>
                             <CodeInput autoFocus />
                         </Form.Item>
                     )}
-                    <Button type="primary" htmlType="submit" block size="large" loading={verify.isPending} className="gge-press">Verify</Button>
+                    <Button type="primary" htmlType="submit" block size="large" loading={verify.isPending} className="gge-press">{t("login.verify")}</Button>
                     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                         <Button type="link" style={{ padding: 0 }} onClick={() => { setError(undefined); setStep({ name: "totp", useRecoveryCode: !step.useRecoveryCode }) }}>
-                            {step.useRecoveryCode ? "Use an authenticator code" : "Use a recovery code"}
+                            {step.useRecoveryCode ? t("login.useCode") : t("login.useRecovery")}
                         </Button>
-                        <Button type="link" style={{ padding: 0 }} onClick={startOver}>Back to sign in</Button>
+                        <Button type="link" style={{ padding: 0 }} onClick={startOver}>{t("login.backToSignIn")}</Button>
                     </div>
                 </Form>
             )}
 
             {step.name === "enroll" && (
                 <Form layout="vertical" requiredMark={false} disabled={confirm.isPending} onFinish={(values: { code: string }) => confirm.mutate(values)}>
-                    <Typography.Paragraph>
-                        1. Scan this QR code with an authenticator app such as Google Authenticator, 1Password or Authy.
-                    </Typography.Paragraph>
+                    <Typography.Paragraph>{t("login.enrollScan")}</Typography.Paragraph>
                     <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-                        <QRCode value={step.otpauthUri} size={200} color="#000000" bgColor="#ffffff" aria-label="QR code for your authenticator app" />
+                        <QRCode value={step.otpauthUri} size={200} color="#000000" bgColor="#ffffff" aria-label={t("login.qrLabel")} />
                     </div>
                     <Typography.Paragraph>
-                        Can't scan it? Enter this key in the app by hand:<br />
-                        <Typography.Text code copyable aria-label="Setup key" style={{ wordBreak: "break-all" }}>{step.secret}</Typography.Text>
+                        {t("login.enrollManual")}<br />
+                        <Typography.Text code copyable aria-label={t("login.setupKey")} style={{ wordBreak: "break-all" }}>{step.secret}</Typography.Text>
                     </Typography.Paragraph>
-                    <Form.Item label="2. Enter the 6-digit code the app shows" name="code" rules={CODE_RULES}>
+                    <Form.Item label={t("login.enrollCodeLabel")} name="code" rules={codeRules}>
                         <CodeInput />
                     </Form.Item>
-                    <Button type="primary" htmlType="submit" block size="large" loading={confirm.isPending} className="gge-press">Turn on two-factor sign-in</Button>
-                    <div style={{ marginTop: 16 }}><Button type="link" style={{ padding: 0 }} onClick={startOver}>Back to sign in</Button></div>
+                    <Button type="primary" htmlType="submit" block size="large" loading={confirm.isPending} className="gge-press">{t("login.turnOn")}</Button>
+                    <div style={{ marginTop: 16 }}><Button type="link" style={{ padding: 0 }} onClick={startOver}>{t("login.backToSignIn")}</Button></div>
                 </Form>
             )}
 
             {step.name === "recoveryCodes" && (
                 <>
                     <RecoveryCodes codes={step.codes} />
-                    <Button type="primary" block size="large" className="gge-press" style={{ marginTop: 24 }} onClick={() => enter(step.user)}>I've saved them, continue</Button>
+                    <Button type="primary" block size="large" className="gge-press" style={{ marginTop: 24 }} onClick={() => enter(step.user)}>{t("login.savedContinue")}</Button>
                 </>
             )}
         </AuthShell>

@@ -1,8 +1,12 @@
 import { Input } from "antd"
 import type { ComponentProps } from "react"
+import { useTranslation } from "react-i18next"
 
-/** The message under a code field that isn't six digits; spaces are fine, the API drops them. */
-export const CODE_RULES = [{ required: true, pattern: /^\s*(\d\s*){6}$/, message: "Enter the 6-digit code" }]
+/** The rules for a code field that isn't six digits; spaces are fine, the API drops them. */
+export function useCodeRules() {
+    const { t } = useTranslation("admin")
+    return [{ required: true, pattern: /^\s*(\d\s*){6}$/, message: t("code.invalid") }]
+}
 
 /** A field for the 6-digit code from an authenticator app; phones offer the numeric keypad and autofill. */
 export function CodeInput(props: ComponentProps<typeof Input>) {

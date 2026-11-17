@@ -20,6 +20,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
 }) {
     const navigate = useNavigate()
     const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const me = useMe()
     const logout = useLogout()
     const saveLocale = useSaveLocale()
@@ -33,9 +34,9 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
         <CampaignLayout
             product="GGE Command"
             nav={[
-                { key: "accounts", label: "Accounts", icon: <TeamOutlined /> },
+                { key: "accounts", label: tc("nav.accounts"), icon: <TeamOutlined /> },
                 { key: "logs", label: t("nav.logs"), icon: <ProfileOutlined /> },
-                { key: "settings", label: "Settings", icon: <SettingOutlined /> },
+                { key: "settings", label: tc("nav.settings"), icon: <SettingOutlined /> },
             ]}
             activeKey={activeKey}
             onNavigate={key => navigate(ROUTES[key as keyof typeof ROUTES])}
@@ -43,14 +44,14 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             username={me.data?.username ?? ""}
             onLogout={signOut}
             onLanguageChange={saveLocale}
-            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
+            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}
                 <span role="status">
                     {reconnecting && (
                         <Tag color="warning" icon={<SyncOutlined spin />} style={{ margin: 0 }}
-                            aria-label="Live updates are reconnecting. Statuses refresh every 15 seconds until then.">
-                            {phone ? null : "Reconnecting…"}
+                            aria-label={t("layout.reconnectingLabel")}>
+                            {phone ? null : t("layout.reconnecting")}
                         </Tag>
                     )}
                 </span>

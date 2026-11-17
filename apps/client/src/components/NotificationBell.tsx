@@ -58,13 +58,13 @@ export function NotificationBell() {
     const panel = (
         <div className="gge-notifications">
             <div className="gge-notifications-head">
-                <Typography.Text strong className="gge-display">Notifications</Typography.Text>
+                <Typography.Text strong className="gge-display">{t("notifications.title")}</Typography.Text>
                 <Button type="link" size="small" disabled={!unread} loading={markRead.isPending && "all" in (markRead.variables ?? {})}
-                    onClick={() => markRead.mutate({ all: true })}>Mark all read</Button>
+                    onClick={() => markRead.mutate({ all: true })}>{t("notifications.markAllRead")}</Button>
             </div>
             {items.length === 0 ? (
                 <Typography.Paragraph type="secondary" style={{ margin: "12px 0" }}>
-                    {list.isPending ? "Loading…" : list.isError ? "Couldn't load your notifications." : "Nothing yet. You'll hear here when a bot stops and needs you."}
+                    {list.isPending ? t("notifications.loading") : list.isError ? t("notifications.loadFailed") : t("notifications.empty")}
                 </Typography.Paragraph>
             ) : (
                 <ul>
@@ -79,11 +79,11 @@ export function NotificationBell() {
                                         if (!gone)
                                             setOpen(false)
                                     }}>
-                                    <strong>{!n.readAt && <span className="gge-sr-only">Unread: </span>}{title}</strong>
+                                    <strong>{!n.readAt && <span className="gge-sr-only">{t("notifications.unread")}</span>}{title}</strong>
                                     <span>{body}</span>
                                     <small>
                                         {n.data.serverLabel} · <time dateTime={n.createdAt.toISOString()}>{dayjs(n.createdAt).fromNow()}</time>
-                                        {gone && " · This account is no longer on your roster"}
+                                        {gone && ` · ${t("notifications.accountGone")}`}
                                     </small>
                                 </button>
                                 {!gone && (
@@ -103,7 +103,7 @@ export function NotificationBell() {
                 </ul>
             )}
             {list.hasNextPage && (
-                <Button block type="text" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>Load more</Button>
+                <Button block type="text" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>{t("notifications.loadMore")}</Button>
             )}
         </div>
     )
@@ -111,7 +111,7 @@ export function NotificationBell() {
         // Centred under the bell, antd slides it back inside the window; the padding keeps it off the window's edge.
         <Popover open={open} onOpenChange={setOpen} trigger="click" placement="bottom" arrow={false} content={panel} styles={{ root: { paddingInline: 12 } }}>
             <Badge count={unread} size="small" offset={[-6, 8]}>
-                <Button type="text" icon={<BellOutlined />} aria-label={`Notifications, ${unread} unread`} aria-expanded={open} style={{ height: 44, width: 44 }} />
+                <Button type="text" icon={<BellOutlined />} aria-label={t("notifications.bell", { count: unread })} aria-expanded={open} style={{ height: 44, width: 44 }} />
             </Badge>
         </Popover>
     )

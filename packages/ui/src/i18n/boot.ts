@@ -42,8 +42,8 @@ function parseJson(raw: string | null): unknown {
     try { return raw === null ? null : JSON.parse(raw) } catch { return null }
 }
 
-/** Resolves before first render, with the page's language, direction and every catalog it needs already in place. */
-export async function initI18n({ detect }: { detect?: () => Promise<Locale | null> } = {}) {
+/** Resolves before first render, with the page's language, direction and every catalog it needs already in place. `app` names the namespace holding that app's own texts. */
+export async function initI18n({ app, detect }: { app: "client" | "admin"; detect?: () => Promise<Locale | null> }) {
     const initial = pickInitialLocale({
         stored: readStorage(PREFERENCE_KEY),
         legacy: readStorage(LEGACY_KEY),
@@ -59,7 +59,7 @@ export async function initI18n({ detect }: { detect?: () => Promise<Locale | nul
         keySeparator: false,
         nsSeparator: false,
         defaultNS: "common",
-        ns: ["common", "ui", "client", "bot"],
+        ns: ["common", "ui", app, "bot"],
         interpolation: { escapeValue: false },
         react: { useSuspense: false },
     })

@@ -1,12 +1,15 @@
 import { LockOutlined, UserOutlined } from "@ant-design/icons"
 import { useMutation } from "@tanstack/react-query"
 import { Alert, Button, Form, Input } from "antd"
+import { Trans, useTranslation } from "react-i18next"
 import { Link, useLocation, useNavigate } from "react-router"
 import { AuthShell } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
 
 export function Login() {
     const navigate = useNavigate()
+    const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const state = useLocation().state as { from?: string; notice?: string } | null
     const from = state?.from ?? "/"
     const login = useMutation(orpc.auth.login.mutationOptions({
@@ -16,19 +19,19 @@ export function Login() {
         },
     }))
     return (
-        <AuthShell title="Sign in" subtitle="Command your game accounts from one war table."
-            footer={<span style={{ color: "#BFAE8A" }}>New here? <Link to="/signup">Create your account</Link></span>}>
+        <AuthShell title={t("login.title")} subtitle={t("login.subtitle")}
+            footer={<span style={{ color: "#BFAE8A" }}><Trans t={t} i18nKey="login.newHere" components={{ signup: <Link to="/signup" /> }} /></span>}>
             {state?.notice && !login.error && <Alert type="success" showIcon title={state.notice} style={{ marginBottom: 16 }} role="status" />}
             {login.error && <Alert type="error" showIcon title={messageOf(login.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form layout="vertical" requiredMark={false} onFinish={values => login.mutate(values)} disabled={login.isPending}>
-                <Form.Item label="Username or email" name="login" rules={[{ required: true, message: "Enter your username or email" }]}>
+                <Form.Item label={t("login.identifier")} name="login" rules={[{ required: true, message: t("login.identifierRequired") }]}>
                     <Input prefix={<UserOutlined />} autoComplete="username" autoFocus size="large" />
                 </Form.Item>
-                <Form.Item label="Password" name="password" rules={[{ required: true, message: "Enter your password" }]}>
+                <Form.Item label={tc("field.password")} name="password" rules={[{ required: true, message: t("validation.enterPassword") }]}>
                     <Input.Password prefix={<LockOutlined />} autoComplete="current-password" size="large" />
                 </Form.Item>
-                <div style={{ marginBottom: 16, textAlign: "end" }}><Link to="/forgot-password">Forgot password?</Link></div>
-                <Button type="primary" htmlType="submit" block size="large" loading={login.isPending} className="gge-press">Sign in</Button>
+                <div style={{ marginBottom: 16, textAlign: "end" }}><Link to="/forgot-password">{t("login.forgot")}</Link></div>
+                <Button type="primary" htmlType="submit" block size="large" loading={login.isPending} className="gge-press">{tc("action.signIn")}</Button>
             </Form>
         </AuthShell>
     )

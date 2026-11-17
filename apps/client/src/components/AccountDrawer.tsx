@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Alert, Button, Drawer, Form, Grid, Input, Select, Space, Switch, Tabs } from "antd"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { PublicAccount, Schedule } from "@gge/contracts"
 import { SigilStatus } from "@gge/ui"
 import { messageOf, orpc, queryClient } from "../api.ts"
@@ -16,6 +17,8 @@ type Values = { name: string; serverId: number; password?: string; externalEvent
  */
 export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; onClose: () => void }) {
     const { message, modal } = App.useApp()
+    const { t } = useTranslation("client")
+    const { t: tc } = useTranslation("common")
     const [form] = Form.useForm<Values>()
     const servers = useQuery(orpc.servers.list.queryOptions())
     const catalog = useQuery(orpc.plugins.catalog.queryOptions())
@@ -47,8 +50,8 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
         message.success(text)
         shut()
     }
-    const create = useMutation(orpc.accounts.create.mutationOptions({ onSuccess: a => done(`${a.name} added`) }))
-    const update = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: a => done(`${a.name} saved`) }))
+    const create = useMutation(orpc.accounts.create.mutationOptions({ onSuccess: a => done(t("drawer.added", { name: a.name })) }))
+    const update = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: a => done(t("drawer.saved", { name: a.name })) }))
     const saving = create.isPending || update.isPending
     const error = create.error ?? update.error
 
@@ -69,41 +72,41 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
         if (!form.isFieldsTouched())
             return shut()
         modal.confirm({
-            title: "Discard your changes?",
-            content: "The changes you made to this account haven't been saved.",
-            okText: "Discard",
+            title: t("drawer.discardTitle"),
+            content: t("drawer.discardBody"),
+            okText: t("drawer.discard"),
             okButtonProps: { danger: true },
-            cancelText: "Keep editing",
+            cancelText: t("drawer.keepEditing"),
             onOk: shut,
         })
     }
 
     // A new account has no tabs, so its schedule is a section under the plugins.
     const schedule = (
-        <Form.Item name="schedule" label={isNew ? "Schedule" : undefined} validateTrigger="onSubmit"
-            rules={[{ validator: (_, value: Schedule | null) => scheduleProblem(value) ? Promise.reject(new Error("Fix the schedule before saving")) : Promise.resolve() }]}>
+        <Form.Item name="schedule" label={isNew ? t("drawer.schedule") : undefined} validateTrigger="onSubmit"
+            rules={[{ validator: (_, value: Schedule | null) => scheduleProblem(value) ? Promise.reject(new Error(t("drawer.scheduleInvalid"))) : Promise.resolve() }]}>
             <ScheduleEditor seed={account?.id} />
         </Form.Item>
     )
     const settings = (
         <>
-            <Form.Item label="Game account name" name="name" rules={[{ required: true, whitespace: true, message: "Enter the in-game name" }]}>
+            <Form.Item label={t("drawer.nameLabel")} name="name" rules={[{ required: true, whitespace: true, message: t("drawer.nameRequired") }]}>
                 <Input autoComplete="off" />
             </Form.Item>
-            <Form.Item label="Server" name="serverId" rules={[{ required: true, message: "Pick the account's server" }]}>
-                <Select showSearch={{ optionFilterProp: "label" }} loading={servers.isPending} placeholder="Choose a server"
+            <Form.Item label={tc("field.server")} name="serverId" rules={[{ required: true, message: t("drawer.serverRequired") }]}>
+                <Select showSearch={{ optionFilterProp: "label" }} loading={servers.isPending} placeholder={t("drawer.serverPlaceholder")}
                     options={servers.data?.map(s => ({ value: s.id, label: s.label }))} />
             </Form.Item>
-            <Form.Item label={isNew ? "Game password" : "New game password"} name="password"
-                extra={isNew ? "Stored encrypted. Nobody can read it back, admins included." : "Leave empty to keep the current password."}
-                rules={isNew ? [{ required: true, message: "Enter the game password" }] : []}>
-                <Input.Password autoComplete="new-password" placeholder={isNew ? undefined : "Unchanged"} />
+            <Form.Item label={isNew ? t("drawer.passwordNew") : t("drawer.passwordEdit")} name="password"
+                extra={isNew ? t("drawer.passwordHintNew") : t("drawer.passwordHintEdit")}
+                rules={isNew ? [{ required: true, message: t("drawer.passwordRequired") }] : []}>
+                <Input.Password autoComplete="new-password" placeholder={isNew ? undefined : t("drawer.passwordUnchanged")} />
             </Form.Item>
-            <Form.Item label="External event account" name="externalEvent" valuePropName="checked"
-                extra="Plays the temporary event server. Pair it with this account's normal twin for the fastest start.">
+            <Form.Item label={t("drawer.eventLabel")} name="externalEvent" valuePropName="checked"
+                extra={t("drawer.eventHint")}>
                 <Switch />
             </Form.Item>
-            <Form.Item label="Plugins">
+            <Form.Item label={t("drawer.plugins")}>
                 <PluginSettingsForm catalog={catalog.data ?? []} />
             </Form.Item>
             {isNew && schedule}
@@ -113,22 +116,22 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     return (
         <Drawer open={open} onClose={close} size={phone ? "100%" : 620} destroyOnHidden
             title={<Space wrap size={[12, 4]}>
-                <span className="gge-display">{isNew ? (twinOf ? `Add event twin for ${twinOf.name}` : "Add game account") : account.name}</span>
+                <span className="gge-display">{isNew ? (twinOf ? t("account.addTwinFor", { name: twinOf.name }) : t("drawer.titleNew")) : account.name}</span>
                 {current?.entitled && <SigilStatus state={current.status?.actualState} detail={current.status?.lastError} sleepingUntil={current.sleepingUntil} />}
             </Space>}
             footer={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                <Button onClick={close}>Cancel</Button>
-                <Button type="primary" loading={saving} onClick={() => form.submit()} className="gge-press">{isNew ? "Add account" : "Save changes"}</Button>
+                <Button onClick={close}>{tc("action.cancel")}</Button>
+                <Button type="primary" loading={saving} onClick={() => form.submit()} className="gge-press">{isNew ? t("account.add") : t("drawer.saveChanges")}</Button>
             </Space>}>
             <Form form={form} layout="vertical" requiredMark={false} onFinish={save} disabled={saving}
                 onFinishFailed={({ errorFields }) => setTab(errorFields[0]?.name[0] === "schedule" ? "schedule" : "settings")}>
                 {error && <Alert type="error" showIcon title={messageOf(error)} style={{ marginBottom: 16 }} role="alert" />}
                 {isNew ? settings : (
                     <Tabs activeKey={tab} onChange={setTab} items={[
-                        { key: "settings", label: "Settings", children: settings },
-                        { key: "schedule", label: "Schedule", children: schedule },
-                        { key: "logs", label: "Logs", children: <AccountLogs key={account.id} accountId={account.id} /> },
-                        { key: "runs", label: "Run history", children: <AccountRuns accountId={account.id} /> },
+                        { key: "settings", label: tc("nav.settings"), children: settings },
+                        { key: "schedule", label: t("drawer.schedule"), children: schedule },
+                        { key: "logs", label: t("nav.logs"), children: <AccountLogs key={account.id} accountId={account.id} /> },
+                        { key: "runs", label: t("drawer.runHistory"), children: <AccountRuns accountId={account.id} /> },
                     ]} />
                 )}
             </Form>

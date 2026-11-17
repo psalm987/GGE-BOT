@@ -1,6 +1,7 @@
 import { LogoutOutlined, UserOutlined } from "@ant-design/icons"
 import { Avatar, Button, Dropdown, Grid, Layout, Menu, Typography, type MenuProps } from "antd"
 import { useState, type ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { Crest } from "./Crest.tsx"
 import { LanguagePicker } from "./LanguagePicker.tsx"
 import type { Preference } from "./i18n/store.ts"
@@ -27,13 +28,14 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
     onLanguageChange?: (preference: Preference) => void
     children: ReactNode
 }) {
+    const { t } = useTranslation("ui")
     const [collapsed, setCollapsed] = useState(false)
     const screens = Grid.useBreakpoint()
     const phone = !screens.md
     const userMenu: MenuProps["items"] = [
         ...accountMenu,
         ...(accountMenu.length ? [{ type: "divider" as const }] : []),
-        { key: "logout", icon: <LogoutOutlined />, label: "Sign out", danger: true, onClick: onLogout },
+        { key: "logout", icon: <LogoutOutlined />, label: t("nav.signOut"), danger: true, onClick: onLogout },
     ]
     return (
         <Layout style={{ minHeight: "100dvh" }}>
@@ -54,7 +56,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                     {extra}
                     <LanguagePicker onChange={onLanguageChange} />
                     <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
-                        <Button type="text" aria-label={`Account menu for ${username}`} style={{ height: 44 }}>
+                        <Button type="text" aria-label={t("nav.accountMenuFor", { username })} style={{ height: 44 }}>
                             <Avatar size="small" icon={<UserOutlined />} style={{ background: "#D7263D" }} />
                             {!phone && <span style={{ marginInlineStart: 8 }}>{username}</span>}
                         </Button>

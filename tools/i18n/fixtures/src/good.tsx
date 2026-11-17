@@ -13,3 +13,7 @@ export function Good() {
         </section>
     )
 }
+
+export function Styled() {
+    return <style>{`@media (max-width: 860px) { .a { display: none } }`}</style>
+}
