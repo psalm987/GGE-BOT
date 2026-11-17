@@ -198,7 +198,7 @@ export function PluginSettingsDialog({ entry, label, initial, pill, allValues, p
                     </Space>
                 </div>
             }>
-            <div style={{ display: "grid", gap: 16, gridTemplateColumns: phone || !checks ? "1fr" : "minmax(0, 1fr) 280px", alignItems: "start" }}>
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: phone || !checks ? "minmax(0, 1fr)" : "minmax(0, 1fr) 280px", alignItems: "start" }}>
                 {phone && checks}
                 <div>
                     {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
