@@ -13,13 +13,15 @@ export type NavItem = { key: string; label: string; icon: ReactNode }
  * bar with the page title and the user's banner. The sider collapses to icons
  * below 992px.
  */
-export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, username, onLogout, accountMenu = [], onLanguageChange, children }: {
+export function CampaignLayout({ product, nav, activeKey, onNavigate, title, extra, banners, username, onLogout, accountMenu = [], onLanguageChange, children }: {
     product: string
     nav: NavItem[]
     activeKey: string
     onNavigate: (key: string) => void
     title: ReactNode
     extra?: ReactNode
+    /** Notices for the whole app, between the header and the page, such as an AlertStack. */
+    banners?: ReactNode
     username: string
     onLogout: () => void
     /** Extra entries above "Sign out" in the account menu. */
@@ -62,6 +64,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                         </Button>
                     </Dropdown>
                 </Layout.Header>
+                {banners}
                 <Layout.Content style={{ padding: phone ? 12 : 24, maxWidth: 1400, width: "100%", margin: "0 auto" }}>{children}</Layout.Content>
             </Layout>
         </Layout>

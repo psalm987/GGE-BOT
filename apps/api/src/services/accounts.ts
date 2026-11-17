@@ -272,7 +272,7 @@ export async function stopUnentitled(tx: Pick<Db, "select" | "transaction">, own
     return stopped.map(r => r.id)
 }
 
-export { ownedBy }
+export { ownedBy, ownerAccounts }
 
 /** An account's latest runs, newest first. */
 export const accountRuns = (db: Pick<Db, "select">, accountId: string, limit: number) =>

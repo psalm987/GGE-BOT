@@ -118,7 +118,8 @@ export function Dashboard() {
                         </Popconfirm>
                     </Space>
                 )}>
-                {limitHint && <Typography.Paragraph type="secondary" role="status">{limitHint}</Typography.Paragraph>}
+                {/* Being over the limit has its own banner above the page. */}
+                {atLimit && !overLimit && <Typography.Paragraph type="secondary" role="status">{limitHint}</Typography.Paragraph>}
                 {!accounts.isPending && list.length === 0 ? (
                     <CrestEmpty title={t("dashboard.emptyTitle")} hint={t("dashboard.emptyHint")}
                         action={<Button type="primary" icon={<PlusOutlined />} disabled={atLimit} onClick={() => setDrawer({ open: true })}>{t("dashboard.addFirst")}</Button>} />

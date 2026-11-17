@@ -1,5 +1,6 @@
 import { oc, type ContractRouterClient } from "@orpc/contract"
 import * as z from "zod"
+import { AdminAnnouncement, Alerts, CreateAnnouncement, POINTS_NUDGE, UpdateAnnouncement } from "./alerts.ts"
 import {
     AdminPurchase, BillingConfig, BillingSettings, BillingStatus, Checkout, LicenseCode, Package, PaymentOutcome, Period, PointsRedemption, PointsSummary, Purchase, PurchaseStatus,
     RecordPurchase, UpdatePackage,
@@ -14,6 +15,7 @@ import {
     Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
+export * from "./alerts.ts"
 export * from "./billing.ts"
 export * from "./codes.ts"
 export * from "./data-export.ts"
@@ -76,6 +78,12 @@ export const clientContract = {
         list: oc.input(z.object({ before: z.number().int().optional(), limit: z.number().int().min(1).max(50).default(20) }))
             .output(z.object({ items: z.array(Notification), unread: z.number().int() })),
         markRead: oc.input(NotificationsRead).output(z.void()),
+    },
+    /** The banners above every page. Refetch on focus, every few minutes, and on the `alerts` live event. */
+    alerts: {
+        list: oc.output(Alerts),
+        /** Closes a dismissible announcement, or the points banner (POINTS_NUDGE), for the caller on every device. Others are refused. */
+        dismiss: oc.input(z.object({ id: z.union([z.uuid(), z.literal(POINTS_NUDGE)]) })).output(z.void()),
     },
     /** Every retained line of the caller's accounts together, newest first. */
     logs: {
@@ -204,6 +212,15 @@ export const adminContract = {
         markRefunded: oc.input(z.object({ purchaseId: z.uuid() })).output(AdminPurchase),
         /** Refused with data.code CODE_USED for a code someone has redeemed. */
         revokeCode: oc.input(z.object({ codeId: z.uuid() })).output(z.void()),
+    },
+    /** Banners shown to every player. Each change is audited. */
+    announcements: {
+        /** Newest start first, ended ones included. */
+        list: oc.output(z.array(AdminAnnouncement)),
+        create: oc.input(CreateAnnouncement).output(AdminAnnouncement),
+        update: oc.input(UpdateAnnouncement).output(AdminAnnouncement),
+        /** Takes it down now. Ending one already ended changes nothing. */
+        end: oc.input(z.object({ id: z.uuid() })).output(AdminAnnouncement),
     },
     /** One player's lines together, as they see them. */
     logs: {

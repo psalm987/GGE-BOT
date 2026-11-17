@@ -27,6 +27,12 @@ export const palette = {
     levelInfo: "#BFAE8A",
     levelWarn: "#F08C2E",
     levelError: "#FF7B8A",
+    /** Banner severities: the accent draws the inline-start rule and the icon on its ground. Each also shows an icon shape and a word. */
+    banner: {
+        info: { accent: "#6FA3F0", ground: "#29282B" },
+        warning: { accent: "#F08C2E", ground: "#362518" },
+        critical: { accent: "#FF7B8A", ground: "#372421" },
+    },
     /** Plugin tags in the log, picked by a hash of the key. No reds or ambers, so a tag never reads as a level. */
     tags: ["#6CB6F5", "#4FD1C5", "#7DD87A", "#C5D86D", "#8FA2FF", "#B794F6", "#E38AE8", "#F49AC1"],
 } as const

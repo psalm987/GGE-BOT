@@ -3,6 +3,7 @@ import { asc } from "drizzle-orm"
 import { gameAccounts, servers } from "@gge/db"
 import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
+import { alertsFor, dismissAlert } from "../services/alerts.ts"
 import { audit } from "../services/audit.ts"
 import { requireBillingLive } from "../services/billing.ts"
 import { myCodes, redeemCode } from "../services/codes.ts"
@@ -70,6 +71,10 @@ export const clientRouter = os.router({
     notifications: {
         list: os.notifications.list.use(authed).handler(({ context, input }) => listNotifications(context.db, context.user.id, input)),
         markRead: os.notifications.markRead.use(authed).handler(({ context, input }) => markNotificationsRead(context.db, context.user.id, input)),
+    },
+    alerts: {
+        list: os.alerts.list.use(verified).handler(({ context: { db, user } }) => alertsFor(db, user.id)),
+        dismiss: os.alerts.dismiss.use(verified).handler(({ context: { db, user }, input }) => dismissAlert(db, user.id, input.id)),
     },
     logs: {
         feed: os.logs.feed.use(verified).handler(({ context: { db, user }, input }) => logFeed(db, user.id, input)),

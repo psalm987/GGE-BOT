@@ -16,12 +16,12 @@ const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e:
 const newAccount = (name: string) => ({ name, serverId: 26, password: "pw", externalEvent: false, plugins: {} })
 const idOf = async (p: Awaited<ReturnType<Api["player"]>>) => (await p.api.auth.me())!.id
 
-/** The account events Centrifugo would deliver on a player's channel, oldest first. */
+/** The account events Centrifugo would deliver on a player's channel, oldest first. Banner refreshes are left out. */
 async function accountEvents(userId: string) {
     const rows = await api.db.select().from(centrifugoOutbox)
         .where(sql`${centrifugoOutbox.method} = 'publish' and ${centrifugoOutbox.payload}->>'channel' = ${userChannel(userId)}`)
         .orderBy(asc(centrifugoOutbox.id))
-    return rows.map(r => UserEvent.parse((r.payload as { data: unknown }).data))
+    return rows.map(r => UserEvent.parse((r.payload as { data: unknown }).data)).filter(e => e.kind !== "alerts")
 }
 const mentions = async (id: string) =>
     (await api.db.select().from(centrifugoOutbox).where(sql`${centrifugoOutbox.payload}::text like ${`%${id}%`}`)).length

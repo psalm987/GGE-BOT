@@ -29,6 +29,8 @@ export const UserEvent = z.union([
         z.object({ v: z.literal(1), kind: z.literal("status"), accountId: z.uuid(), status: WireStatus }),
         z.object({ v: z.literal(1), kind: z.literal("account"), accountId: z.uuid(), desiredState: DesiredState }),
         z.object({ v: z.literal(1), kind: z.literal("notification"), notification: Notification }),
+        /** Something the banners show changed for this player, such as their plan or limit: refetch alerts.list. */
+        z.object({ v: z.literal(1), kind: z.literal("alerts") }),
     ]),
     notificationsRead(READ_IDS),
     notificationsRead(READ_ALL),

@@ -155,6 +155,13 @@
       "when": 1794919727287,
       "tag": "0021_packages_purchases_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794928666371,
+      "tag": "0022_announcements",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { insertNotification, licenseCodes, packages, pointsLedger, purchases, us
 import { audit } from "./audit.ts"
 import { listCodes, mintCodes } from "./codes.ts"
 import { appendPeriod } from "./plans.ts"
+import { alertsChanged } from "./realtime.ts"
 
 type Reader = Pick<Db, "select">
 type Tx = Pick<Db, "select" | "insert" | "update" | "delete">
@@ -123,6 +124,7 @@ export async function recordPurchase(db: Db, actorId: string, input: RecordPurch
             provider: "manual", status: "paid", paidAt: now, recordedBy: actorId, note: input.note || null,
         }).returning({ id: purchases.id })
         await fulfil(tx, purchase!.id, now)
+        await alertsChanged(tx, buyer.id)
         await audit(tx, {
             actorId, action: "admin.billing.record_purchase", targetType: "purchase", targetId: purchase!.id,
             meta: { userId: buyer.id, packageId: pkg.id, amountMinor: input.amountMinor ?? null, currency: input.currency ?? null },
@@ -151,8 +153,10 @@ export async function markRefunded(db: Db, actorId: string, purchaseId: string, 
             .returning({ id: licenseCodes.id })
         const [earned] = await tx.select({ userId: pointsLedger.userId, delta: pointsLedger.delta }).from(pointsLedger)
             .where(and(eq(pointsLedger.purchaseId, purchaseId), eq(pointsLedger.reason, "purchase")))
-        if (earned)
+        if (earned) {
             await tx.insert(pointsLedger).values({ userId: earned.userId, delta: -earned.delta, reason: "refund", purchaseId, createdBy: actorId })
+            await alertsChanged(tx, earned.userId)
+        }
         await audit(tx, {
             actorId, action: "admin.billing.refund", targetType: "purchase", targetId: purchaseId,
             meta: { codesRevoked: revoked.length, pointsTakenBack: earned?.delta ?? 0 },

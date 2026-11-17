@@ -18,7 +18,7 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
-import { CURRENCIES, PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS, PURCHASE_PROVIDERS, PURCHASE_STATUSES } from "@gge/contracts"
+import { ANNOUNCEMENT_SEVERITIES, CURRENCIES, PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS, PURCHASE_PROVIDERS, PURCHASE_STATUSES } from "@gge/contracts"
 import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
@@ -54,6 +54,8 @@ export const users = pgTable("users", {
     maxBots: integer("max_bots").notNull().default(1),
     /** Replaces the plan's max_accounts for this user. Read only while app_settings.billing_live is on. */
     maxBotsOverride: integer("max_bots_override"),
+    /** When the player last closed the "redeem your points" banner. It shows again once they earn more. */
+    pointsNudgeDismissedAt: timestamp("points_nudge_dismissed_at", { withTimezone: true }),
     /** Overrides app_settings.attack_plugin_cap for this user; null uses the default. Admin-adjustable. */
     attackPluginCap: attackPluginCap("attack_plugin_cap"),
     /** Users.uuid in the legacy user.db, so the importer can re-run. */
@@ -400,6 +402,32 @@ export const trialGameAccounts = pgTable("trial_game_accounts", {
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
 })
+
+/** A banner an admin shows every player between `starts_at` and `ends_at` (null: until ended). English only. */
+export const announcements = pgTable("announcements", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    severity: text("severity", { enum: ANNOUNCEMENT_SEVERITIES }).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    linkUrl: text("link_url"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    dismissible: boolean("dismissible").notNull().default(true),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+}, t => [
+    check("announcements_severity_valid", sql`${t.severity} in (${quoted(ANNOUNCEMENT_SEVERITIES)})`),
+    check("announcements_ends_after_start", sql`${t.endsAt} is null or ${t.endsAt} > ${t.startsAt}`),
+    index("announcements_live").on(t.startsAt, t.endsAt),
+])
+
+/** An announcement one player closed. It stays closed for them on every device. */
+export const announcementDismissals = pgTable("announcement_dismissals", {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    announcementId: uuid("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+}, t => [primaryKey({ columns: [t.userId, t.announcementId] })])
 
 /** Deployment-wide settings an admin can change. One row. */
 export const appSettings = pgTable("app_settings", {

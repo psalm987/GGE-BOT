@@ -128,6 +128,12 @@ export function useRealtime(userId: string | undefined, onNotification: (notific
                     void queryClient.invalidateQueries({ queryKey: listKey })
                 return
             }
+            if (event.kind === "alerts") {
+                // An admin changed the plan or limit: the banners, the plan page and which accounts may run all follow from it.
+                for (const queryKey of [orpc.alerts.key(), orpc.billing.key(), listKey, orpc.auth.me.queryKey()])
+                    void queryClient.invalidateQueries({ queryKey })
+                return
+            }
             patchQuery<NotificationPages>(queryClient, notificationsQuery.queryKey, loaded => applyNotificationEvent(loaded, event))
             if (event.kind === "notification")
                 notify.current(event.notification)

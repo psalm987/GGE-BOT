@@ -60,5 +60,12 @@
   "runs.reason.schedule": "Window closed",
   "duration.hoursMinutes": "{{hours}}h {{minutes}}m",
   "duration.minutesSeconds": "{{minutes}}m {{seconds}}s",
-  "duration.seconds": "{{seconds}}s"
+  "duration.seconds": "{{seconds}}s",
+  "alerts.severity.info": "Information",
+  "alerts.severity.warning": "Warning",
+  "alerts.severity.critical": "Critical",
+  "alerts.close": "Close this message",
+  "alerts.showMore_one": "Show {{count, number}} more",
+  "alerts.showMore_other": "Show {{count, number}} more",
+  "alerts.showFewer": "Show fewer"
 }

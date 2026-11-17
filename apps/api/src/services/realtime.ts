@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto"
 import { ORPCError } from "@orpc/server"
-import { botChannel } from "@gge/contracts"
+import { botChannel, userChannel, type UserEvent } from "@gge/contracts"
+import { publish, type Db } from "@gge/db"
 
 /** Short, so a revoked session loses live updates soon; the client asks for a new token before this runs out. */
 export const TOKEN_TTL_SECONDS = 15 * 60
@@ -25,3 +26,7 @@ export const subscriptionToken = (secret: string | undefined, userId: string, ac
 /** `subscriptionToken` for several accounts at once; only for ids the caller has been shown to own. */
 export const subscriptionTokens = (secret: string | undefined, userId: string, accountIds: string[]) =>
     Object.fromEntries(accountIds.map(id => [id, subscriptionToken(secret, userId, id).token]))
+
+/** Tells the user's open tabs to refetch their banners, once the transaction that changed their plan or limit commits. */
+export const alertsChanged = (tx: Pick<Db, "insert">, userId: string) =>
+    publish(tx, userChannel(userId), { v: 1, kind: "alerts" } satisfies UserEvent)

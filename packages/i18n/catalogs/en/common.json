@@ -24,5 +24,7 @@
   "value.none": "None",
   "value.never": "Never",
   "validation.email": "Enter a valid email",
-  "error.generic": "Something went wrong. Try again."
+  "error.generic": "Something went wrong. Try again.",
+  "plan.basic": "Basic",
+  "plan.team": "Team"
 }

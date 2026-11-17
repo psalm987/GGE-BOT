@@ -6,12 +6,14 @@ import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
+import { createAnnouncement, endAnnouncement, listAnnouncements, updateAnnouncement } from "../services/alerts.ts"
 import { audit } from "../services/audit.ts"
 import { backToFree, billingStatus, goLive } from "../services/billing.ts"
 import { revokeCode } from "../services/codes.ts"
 import { listPackages, listPurchases, markRefunded, recordPurchase, updatePackage } from "../services/purchases.ts"
 import { adjustPoints, billingSettings, updateBillingSettings } from "../services/points.ts"
 import { detectLocale } from "../services/i18n.ts"
+import { alertsChanged } from "../services/realtime.ts"
 import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
@@ -130,6 +132,7 @@ export const adminRouter = os.router({
                 const [changed] = await tx.update(users).set({ role: input.role, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
                 if (!changed)
                     throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                await alertsChanged(tx, input.id)
                 return stopUnentitled(tx, input.id)
             })
             await revokeUserSessions(db, input.id)
@@ -140,6 +143,7 @@ export const adminRouter = os.router({
                 const [changed] = await tx.update(users).set({ maxBots: input.maxBots, updatedAt: new Date() }).where(eq(users.id, input.id)).returning({ id: users.id })
                 if (!changed)
                     throw new ORPCError("NOT_FOUND", { message: "No such user" })
+                await alertsChanged(tx, input.id)
                 return stopUnentitled(tx, input.id)
             })
             await audit(db, { actorId: user.id, action: "admin.user.max_bots", targetType: "user", targetId: input.id, meta: { maxBots: input.maxBots, stopped } })
@@ -191,6 +195,12 @@ export const adminRouter = os.router({
         purchases: os.billing.purchases.use(admin).handler(({ context: { db }, input }) => listPurchases(db, input)),
         markRefunded: os.billing.markRefunded.use(admin).handler(({ context: { db, user }, input }) => markRefunded(db, user.id, input.purchaseId)),
         revokeCode: os.billing.revokeCode.use(admin).handler(({ context: { db, user }, input }) => revokeCode(db, user.id, input.codeId)),
+    },
+    announcements: {
+        list: os.announcements.list.use(admin).handler(({ context: { db } }) => listAnnouncements(db)),
+        create: os.announcements.create.use(admin).handler(({ context: { db, user }, input }) => createAnnouncement(db, user.id, input)),
+        update: os.announcements.update.use(admin).handler(({ context: { db, user }, input }) => updateAnnouncement(db, user.id, input)),
+        end: os.announcements.end.use(admin).handler(({ context: { db, user }, input }) => endAnnouncement(db, user.id, input.id)),
     },
     logs: {
         feed: os.logs.feed.use(admin).handler(({ context: { db }, input: { ownerId, ...input } }) => logFeed(db, ownerId, input)),

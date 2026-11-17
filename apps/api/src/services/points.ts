@@ -4,6 +4,7 @@ import { NOT_ENOUGH_POINTS, type BillingSettings, type PointsRedemption, type Po
 import { appSettings, planPeriods, pointsLedger, users, type Db } from "@gge/db"
 import { audit } from "./audit.ts"
 import { appendPeriod, lockUser, periodColumns } from "./plans.ts"
+import { alertsChanged } from "./realtime.ts"
 
 type Reader = Pick<Db, "select">
 
@@ -81,6 +82,7 @@ export async function adjustPoints(db: Db, actorId: string, { userId, delta, not
             throw new ORPCError("NOT_FOUND", { message: "No such user" })
         await tx.insert(pointsLedger).values({ userId, delta, reason: "admin", note, createdBy: actorId })
         const balance = await pointsBalance(tx, userId)
+        await alertsChanged(tx, userId)
         await audit(tx, { actorId, action: "admin.billing.adjust_points", targetType: "user", targetId: userId, meta: { delta, note, balance } })
         return { balance }
     })

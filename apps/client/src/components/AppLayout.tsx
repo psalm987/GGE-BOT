@@ -6,6 +6,7 @@ import { useNavigate } from "react-router"
 import { CampaignLayout } from "@gge/ui"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
 import { useRealtimeState } from "../realtime.ts"
+import { AlertBanners } from "./AlertBanners.tsx"
 import { NotificationBell } from "./NotificationBell.tsx"
 
 const ROUTES = { accounts: "/", logs: "/logs", settings: "/settings" } as const
@@ -41,6 +42,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             activeKey={activeKey}
             onNavigate={key => navigate(ROUTES[key as keyof typeof ROUTES])}
             title={title}
+            banners={<AlertBanners />}
             username={me.data?.username ?? ""}
             onLogout={signOut}
             onLanguageChange={saveLocale}

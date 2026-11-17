@@ -62,3 +62,16 @@ test("the stylesheet's log colours are the palette's", () => {
     expect([cssVar("level-info"), cssVar("level-warn"), cssVar("level-error")]).toEqual([palette.levelInfo, palette.levelWarn, palette.levelError])
     expect(palette.tags.map((_, i) => cssVar(`tag-${i}`))).toEqual([...palette.tags])
 })
+
+test.each(Object.entries(palette.banner))("the %s banner reads clearly on its ground", (_, { accent, ground }) => {
+    expect(contrast(palette.parchment, ground)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(palette.gold, ground), "the action button").toBeGreaterThanOrEqual(4.5)
+    expect(contrast(accent, ground), "the rule and icon").toBeGreaterThanOrEqual(3)
+})
+
+test("the stylesheet's banner colours are the palette's", () => {
+    const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8")
+    const cssVar = (name: string) => css.match(new RegExp(`--gge-${name}:\\s*(#[0-9A-Fa-f]{6});`))?.[1]?.toUpperCase()
+    for (const [severity, { accent, ground }] of Object.entries(palette.banner))
+        expect([cssVar(`banner-${severity}`), cssVar(`banner-${severity}-ground`)]).toEqual([accent, ground])
+})

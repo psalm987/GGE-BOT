@@ -25,6 +25,12 @@
     --gge-tag-5: #B794F6;
     --gge-tag-6: #E38AE8;
     --gge-tag-7: #F49AC1;
+    --gge-banner-info: #6FA3F0;
+    --gge-banner-info-ground: #29282B;
+    --gge-banner-warning: #F08C2E;
+    --gge-banner-warning-ground: #362518;
+    --gge-banner-critical: #FF7B8A;
+    --gge-banner-critical-ground: #372421;
     /* Only the log terminal uses it, so the font files load only where a log is shown. */
     --gge-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     /* Faint noise so large grounds read as cloth, not flat black. */
@@ -324,4 +330,42 @@ body {
 .gge-logs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 @media (max-width: 767.98px) {
     .gge-logs-page { height: calc(100dvh - 88px); min-height: 540px; }
+}
+
+/* Banners under the header: a severity rule on the inline-start edge, the icon, the words, one action and a close button. */
+.gge-alerts { display: grid; gap: 8px; width: 100%; max-width: 1400px; margin: 0 auto; padding: 16px 24px 0; box-sizing: border-box; }
+.gge-alert {
+    --gge-banner: var(--gge-banner-info);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "icon text action close";
+    align-items: center;
+    column-gap: 12px;
+    min-height: 52px;
+    padding: 6px 6px 6px 14px;
+    border: 1px solid var(--gge-rule);
+    border-inline-start: 4px solid var(--gge-banner);
+    border-radius: 6px;
+    background: var(--gge-banner-info-ground);
+    animation: gge-alert-in 0.2s ease-out;
+}
+.gge-alert[data-severity="warning"] { --gge-banner: var(--gge-banner-warning); background: var(--gge-banner-warning-ground); }
+.gge-alert[data-severity="critical"] { --gge-banner: var(--gge-banner-critical); background: var(--gge-banner-critical-ground); }
+.gge-alert-icon { grid-area: icon; display: inline-flex; color: var(--gge-banner); font-size: 18px; }
+.gge-alert-text { grid-area: text; min-width: 0; padding-block: 6px; line-height: 1.4; overflow-wrap: anywhere; }
+.gge-alert-text strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+.gge-alert-title { display: block; font-weight: 700; }
+.gge-alert-action { grid-area: action; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.gge-alert-close { grid-area: close; }
+.gge-alert-close .ant-btn, .gge-alert-action .ant-btn { min-height: 40px; }
+.gge-alerts-more { justify-self: start; min-height: 44px; margin-bottom: -12px; padding-inline: 4px; }
+@keyframes gge-alert-in { from { opacity: 0; transform: translateY(-4px); } }
+@media (max-width: 767.98px) {
+    .gge-alerts { padding: 12px 12px 0; }
+    .gge-alert {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas: "icon text close" ". action action";
+        padding-inline-start: 12px;
+    }
+    .gge-alert-action { justify-content: flex-start; padding-bottom: 6px; }
 }
