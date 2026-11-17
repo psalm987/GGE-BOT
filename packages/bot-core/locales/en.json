@@ -306,5 +306,21 @@
 	"gloryDethroneFailed": "The game refused the dethrone: ",
 	"gloryCoins": " coins",
 	"gloryRubies": " rubies",
-	"dryRunDethrone": "Dry run, dethrone not sent: "
+	"dryRunDethrone": "Dry run, dethrone not sent: ",
+	"stock": "Stock",
+	"targets": "Targets",
+	"castleTargets": "Targets for one castle",
+	"resourceFloor": "Keep at least this much of each resource",
+	"dryRunOrders": "Dry run: log orders instead of sending them",
+	"dryRunBup": "Dry run, not sent: ",
+	"toolsmithRefused": "The workshop refused an order: ",
+	"statusToolsmithStarting": "Starting up.",
+	"statusToolsmithNoTargets": "No tool targets are set. Add a tool and a stock to build.",
+	"statusToolsmithNoWorkshop": "No castle has the workshop that builds {{tool}}.",
+	"statusToolsmithLevelLocked": "The level of {{tool}} you picked is not unlocked yet.",
+	"statusToolsmithNoResources": "Not enough resources to build {{tool}}. This resumes when they are back above your floor.",
+	"statusToolsmithQueueFull": "The workshop queue is full. This resumes when a slot frees up.",
+	"statusToolsmithTargetsMet": "Every target is met. This resumes when stock drops below one.",
+	"statusToolsmithQueued": "Queued {{orders}} orders, {{tools}} tools.",
+	"statusToolsmithNoAnswer": "The game did not answer. Trying again soon."
 }

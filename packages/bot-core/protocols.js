@@ -497,6 +497,9 @@ async function setEvent(obj, result) {
     Object.assign(_activeEventList, { ...obj, result })
 }
 
+/** The running event with this id as the latest `sei` listed it, or undefined. */
+const activeEvent = eventID => _activeEventList.E?.find(e => e.EID == eventID)
+
 xtHandler.on("fjf", (obj, result) => setEvent(obj.sei, result))
 xtHandler.on("sei", setEvent)
 
@@ -1405,6 +1408,7 @@ module.exports = {
     castles,
     resources,
     unlockInfoList,
+    activeEvent,
     ClientCommands: {
         preSpyInfo : clientPreSpyInfo,
         getNextMapObject : clientGetNextMapObject,

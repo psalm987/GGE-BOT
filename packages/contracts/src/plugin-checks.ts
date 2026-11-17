@@ -31,10 +31,12 @@ export type AccountCastle = z.infer<typeof AccountCastle>
  * A Setup check a plugin declares. The settings dialog runs it against the values on screen and what the bot last reported.
  * - `commanders`: the commander list in option `option` picks at least one commander.
  * - `dailyAttacks`: how much of the daily attack limit is left.
+ * - `rows`: the Rows options in `options` hold at least one row between them.
  */
 export const PluginCheckDef = z.discriminatedUnion("type", [
     z.object({ type: z.literal("commanders"), option: z.string().min(1) }),
     z.object({ type: z.literal("dailyAttacks") }),
+    z.object({ type: z.literal("rows"), options: z.array(z.string().min(1)).min(1) }),
 ])
 export type PluginCheckDef = z.infer<typeof PluginCheckDef>
 
@@ -82,6 +84,10 @@ const RUN_CHECK: { [T in PluginCheckDef["type"]]: (def: Extract<PluginCheckDef, 
         return count === 0
             ? result("warn", "commandersNone", { list })
             : result("ok", "commandersSome", { count })
+    },
+    rows(def, { options }) {
+        const count = def.options.reduce((total, key) => total + (Array.isArray(options[key]) ? options[key].length : 0), 0)
+        return count === 0 ? result("warn", "rowsNone") : result("ok", "rowsSome", { count })
     },
     dailyAttacks(_, { plugins, pluginStates }) {
         const reported = pluginStates.attack?.params

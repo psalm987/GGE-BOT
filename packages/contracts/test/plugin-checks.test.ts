@@ -41,3 +41,16 @@ describe("the daily attack check", () => {
         expect(runChecks(check, input({}, reported(3500, 3500)))[0]).toMatchObject({ level: "warn", key: "dailyAttacksReached" })
     })
 })
+
+describe("the rows check", () => {
+    const check = [{ type: "rows" as const, options: ["targets", "castleTargets"] }]
+
+    test("counts the rows in every list it names", () => {
+        expect(runChecks(check, input({ targets: [{ tool: 614, stock: 10 }], castleTargets: [{ tool: 611, stock: 5 }, { tool: 614, stock: 5 }] }))).toEqual([{ level: "ok", key: "rowsSome", params: { count: 3 } }])
+    })
+
+    test("warns when every list is empty or unset", () => {
+        expect(runChecks(check, input({ targets: [], castleTargets: [] }))[0]).toMatchObject({ level: "warn", key: "rowsNone" })
+        expect(runChecks(check, input({}))[0]).toMatchObject({ level: "warn", key: "rowsNone" })
+    })
+})
