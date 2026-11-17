@@ -22,6 +22,7 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
     const packages = useQuery(orpc.billing.packages.queryOptions())
     const [dialog, setDialog] = useState<Dialog>(null)
     const [form] = Form.useForm()
+    const packageName = usePackageName()
     const close = () => { form.resetFields(); setDialog(null) }
     const settle = (done: string) => ({
         onSuccess: () => {
@@ -46,7 +47,6 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
         return <Skeleton active paragraph={{ rows: 6 }} />
     const { current, periods, maxBotsOverride, points, codes } = plan.data
     const planName = (id: PlanId) => tc(`plan.${id}`)
-    const packageName = usePackageName()
 
     const submit = (values: Record<string, unknown>) => {
         if (dialog === "grant")

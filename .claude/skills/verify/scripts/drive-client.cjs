@@ -376,13 +376,13 @@ async function driveBilling(browser) {
     await admin.getByText("Test key", { exact: true }).waitFor()
     assert(await admin.getByText("This is a Paystack test key: it takes no real money.").isVisible(), "the admin's Billing page warns that the Paystack key is a test key")
     await admin.getByRole("tab", { name: "Packages" }).click()
-    const basic = admin.locator(".gge-package-row", { hasText: "basic_28" })
+    const basic = admin.locator(".gge-package-row", { hasText: "Basic" })
     await basic.getByLabel("Price").fill("5")
-    const save = basic.getByRole("button", { name: "Save basic_28" })
+    const save = basic.getByRole("button", { name: "Save Basic" })
     // A run before this one may have set the same price already, which leaves nothing to save.
     if (await save.isEnabled()) {
         await save.click()
-        await admin.getByText("basic_28 saved").waitFor()
+        await admin.getByText("Basic saved").waitFor()
     }
     assert((await adminCall("billing/packages", {})).some(p => p.id === "basic_28" && p.priceMinor === 500 && p.currency === "USD"), "the admin prices Basic at 5.00 USD on the Packages tab")
     await atBothWidths(admin, "billing-02-admin-packages", "admin billing packages")
@@ -408,6 +408,9 @@ async function driveBilling(browser) {
     await player.waitForURL(url => url.pathname === "/plan")
     await player.locator(".gge-package", { hasText: "$5" }).waitFor()
     assert(await player.locator(".gge-plan-name").innerText() === "Basic" && await player.getByText("Free trial").first().isVisible(), "the Plan page shows Basic on a free trial and Basic for sale at $5")
+    const team10 = player.locator(".gge-package", { hasText: "Team 10" })
+    assert(await team10.getByText("Online payment isn't available yet. Contact support to buy.").isVisible() && await team10.getByRole("button", { name: /Pay/ }).count() === 0
+        && /10 single-use codes to share/.test(await team10.innerText()), "a Team package with no price shows as a card that says online payment isn't available, what it includes, and no Pay button")
     await atBothWidths(player, "billing-06-plan", "plan page")
 
     await player.getByRole("button", { name: /^Pay \$5 for Basic/ }).click()
@@ -428,7 +431,7 @@ async function driveBilling(browser) {
     await admin.getByRole("button", { name: "Record purchase" }).click()
     const record = admin.getByRole("dialog", { name: `Record a purchase for ${p1.name}` })
     await record.getByLabel("Package").click()
-    await admin.locator(".ant-select-item-option", { hasText: "team5_28" }).click()
+    await admin.locator(".ant-select-item-option", { hasText: "Team 5:" }).click()
     await record.getByRole("button", { name: "Record purchase" }).click()
     await admin.getByText("Purchase recorded").waitFor()
     await admin.locator(".ant-tag", { hasText: "Unused" }).nth(4).waitFor()
@@ -976,6 +979,11 @@ async function drivePalette(page, browser) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveGlorySettings(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "billing") {
+        await driveBilling(browser)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
