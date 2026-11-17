@@ -12,7 +12,7 @@ import { myPlan } from "../services/plans.ts"
 import { myPurchases } from "../services/purchases.ts"
 import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
-    accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
+    accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, loadGameItems, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { logFacets, logFeed } from "../services/logs.ts"
@@ -161,6 +161,9 @@ export const clientRouter = os.router({
         catalog: os.plugins.catalog.use(verified).handler(async ({ context }) =>
             (await loadCatalog(context.db)).filter(entry => !entry.hidden)),
         attackLimit: os.plugins.attackLimit.use(verified).handler(({ context }) => attackLimitFor(context.db, context.user.id)),
+    },
+    catalog: {
+        gameItems: os.catalog.gameItems.use(verified).handler(({ context, input }) => loadGameItems(context.db, input.kind)),
     },
     servers: {
         list: os.servers.list.use(verified).handler(({ context }) =>

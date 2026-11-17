@@ -333,6 +333,16 @@ let loginWatchdog = setTimeout(loginTimedOut, 90 * 1000 * timeoutMultiplier)
 
 events.on("configModified", () => console.log("botConfigReloaded"))
 
+/** The account's castles as the settings' castle pickers list them. */
+events.once("load", () => {
+    const { castles } = require("./protocols.js")
+    status.castles = castles.filter(castle => castle.areaInfo).map(({ kingdomID, id, areaInfo }) => ({
+        kingdom: kingdomID, id, x: areaInfo.x, y: areaInfo.y, type: areaInfo.type,
+        name: String(areaInfo.extraData[7] || `${areaInfo.x}:${areaInfo.y}`),
+    }))
+    parentPort.postMessage([ActionType.StatusUser, status])
+})
+
 events.once("load", async () => {
     const { KingdomID, castles } = require("./protocols.js")
     const castle = castles.find(e => e.kingdomID == KingdomID.stormIslands)

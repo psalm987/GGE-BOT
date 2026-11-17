@@ -15,7 +15,7 @@ import { adjustPoints, billingSettings, updateBillingSettings } from "../service
 import { detectLocale } from "../services/i18n.ts"
 import { endPeriodNow, grantDays, listPlans, setLimitOverride, updatePlan, userPlan } from "../services/plan-admin.ts"
 import { alertsChanged } from "../services/realtime.ts"
-import { accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
+import { accountRuns, listAccounts, loadGameItems, setDesiredState, stopUnentitled } from "../services/accounts.ts"
 import { createProxy, listProxies, proxiesOfAccounts, removeProxy, setAccountProxy, updateProxy } from "../services/proxies.ts"
 import { adminLogin, enrollConfirm, enrollStart, regenerateRecoveryCodes, verifyTotp } from "./admin-auth.ts"
 import { currentUser, logout } from "./auth.ts"
@@ -288,6 +288,9 @@ export const adminRouter = os.router({
             const removed = await removeProxy(db, input.id)
             await audit(db, { actorId: user.id, action: "admin.proxy.remove", targetType: "proxy", targetId: input.id, meta: removed })
         }),
+    },
+    catalog: {
+        gameItems: os.catalog.gameItems.use(admin).handler(({ context: { db }, input }) => loadGameItems(db, input.kind)),
     },
     audit: {
         list: os.audit.list.use(admin).handler(({ context: { db }, input }) =>

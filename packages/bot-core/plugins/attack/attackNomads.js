@@ -1,5 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
+        checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
         pluginOptions: [
             {
                 type: "Select",
@@ -22,17 +23,20 @@ if (require('node:worker_threads').isMainThread)
             },
             {
                 type: "Checkbox",
-                key: "eventWallToolsFirst"
+                key: "eventWallToolsFirst",
+                advanced: true
             },
             {
                 type: "Checkbox",
                 key: "lowValueChests",
-                default: false
+                default: false,
+                advanced: true
             },
             {
                 type: "Checkbox",
                 key: "noChests",
-                default: false
+                default: false,
+                advanced: true
             },
             {
                 type: "Checkbox",
@@ -47,12 +51,14 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Checkbox",
                 key: "useFood",
-                default: true
+                default: true,
+                advanced: true
             },
             {
                 type: "Checkbox",
                 key: "foodTroopsOnly",
-                default: false
+                default: false,
+                advanced: true
             },
             {
                 type: "Text",
@@ -62,6 +68,12 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Text",
                 key: "scoreShutoff"
+            },
+            {
+                type: "Checkbox",
+                key: "dryRun",
+                default: false,
+                advanced: true
             }
         ]
 
@@ -87,6 +99,8 @@ const type = AreaType.nomadCamp
 const minTroopCount = 100
 const eventID = 72
 let nomadsPoints = 0
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
+reportStatus("waiting", "statusEventClosed")
 
 const skipTarget = async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
@@ -124,6 +138,7 @@ xtHandler.on("pep", obj => {
     nomadsPoints = Number(obj.OP[0])
     if (nomadsPoints >= pluginOptions.scoreShutoff) {
         console.log("shuttingDownEvent", "scoreReached")
+        reportStatus("stopped", "statusScoreReached", { score: nomadsPoints })
         quit = true
     }
 })
@@ -136,6 +151,7 @@ events.on("eventStop", eventInfo => {
         return
 
     console.log("shuttingDownEvent", "eventEnded")
+    reportStatus("waiting", "statusEventClosed")
     quit = true
 })
 events.on("eventStart", async eventInfo => {
@@ -166,6 +182,7 @@ events.on("eventStart", async eventInfo => {
         .sort((a, b) => a.extraData[6] - b.extraData[6])
 
     quit = false
+    reportStatus("running")
 
     while (!quit) {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
@@ -175,7 +192,8 @@ events.on("eventStart", async eventInfo => {
 
                 areas.push(areaInfo)
 
-                await skipTarget(areaInfo)
+                if (!pluginOptions.dryRun)
+                    await skipTarget(areaInfo)
 
                 const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
@@ -370,9 +388,13 @@ events.on("eventStart", async eventInfo => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id })
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun })
             })
             if (!attackInfo) {
+                freeCommander(commander.lordID)
+                continue
+            }
+            if (attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 continue
             }

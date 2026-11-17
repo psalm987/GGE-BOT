@@ -19,6 +19,7 @@ if (require('node:worker_threads').isMainThread) {
             {
                 type: "Text",
                 key: "attackLimit",
+                default: "3500",
                 min: 1
             }
         ]
@@ -240,10 +241,22 @@ let attackThreshold = undefined
 
 if([,""].includes(pluginOptions.attackLimit))
     pluginOptions.attackLimit = 3500
-    
+
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
+/** Attacks used today are reported in steps of this many, so the status isn't rewritten after every attack. */
+const USAGE_STEP = 50
+function reportUsage() {
+    const limit = Number(pluginOptions.attackLimit || attackThreshold)
+    if (attackCount >= limit)
+        return reportStatus("waiting", "statusDailyLimitReached", { limit })
+    reportStatus("running", "statusAttacksToday", { used: Math.floor(attackCount / USAGE_STEP) * USAGE_STEP, limit })
+}
+
 xtHandler.on("gai", obj => {
     attackCount = obj.AC
     attackThreshold = obj.ACTH
+    if (!botConfig.externalEvent)
+        reportUsage()
 })
 let announced = false
 
@@ -344,12 +357,6 @@ async function resyncUnits() {
     await snapshot.catch(() => {})
 }
 
-/**
- * Sends one attack and waits for its reply. After a rejection or a timeout it
- * waits for a fresh castle list before returning, so the next attack in the
- * queue never builds on unit counts the server has already contradicted.
- * Throws the server's error name, as plugins expect.
- */
 const slotTotal = slots => (slots ?? []).reduce((n, slot) => n + (Number(slot?.[1]) || 0), 0)
 const attackShape = attackInfo => ({
     waves: (attackInfo.A ?? []).map(wave => Object.fromEntries(["L", "M", "R"].map(side =>
@@ -371,7 +378,20 @@ async function openAttackDialog({ SX, SY, TX, TY, KID }) {
     await pause(1500, 5000)
 }
 
-async function sendAttack(attackInfo, kingdomID, x, y, context = {}) {
+/**
+ * Sends one attack and waits for its reply. After a rejection or a timeout it
+ * waits for a fresh castle list before returning, so the next attack in the
+ * queue never builds on unit counts the server has already contradicted.
+ * Throws the server's error name, as plugins expect.
+ *
+ * With `context.dryRun` it logs the `cra` instead, sends nothing and returns
+ * `{ dryRun: true }`. No march will free the commander, so the caller must.
+ */
+async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, ...context } = {}) {
+    if (dryRun) {
+        console.log("dryRunAttack", JSON.stringify(attackInfo))
+        return { dryRun: true }
+    }
     if (humanize.attack_dialog)
         await openAttackDialog(attackInfo)
     await sendXT("cra", JSON.stringify(attackInfo))

@@ -1,19 +1,56 @@
 import * as z from "zod"
+import { PluginCheckDef } from "./plugin-checks.ts"
 
 const key = z.string().min(1)
+/** Puts the option in the settings dialog's Advanced view. */
+const advanced = z.literal(true).optional()
 
-/** The option types plugins declare today (bot-core plugins' pluginOptions). */
+/** One of the player's castles, as a bot reports it: the castle's object id within its kingdom. */
+export const CastleRef = z.object({ kingdom: z.number().int().min(0), id: z.number().int() })
+export type CastleRef = z.infer<typeof CastleRef>
+
+/** The game items an OrderedList picks from. */
+export const ItemCatalog = z.enum(["banners", "tools", "troops", "supportTools"])
+export type ItemCatalog = z.infer<typeof ItemCatalog>
+
+/** What a Number option counts, shown after its value. */
+export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins"])
+export type NumberUnit = z.infer<typeof NumberUnit>
+
+/** A column of a Rows option: a castle, a game item, or a bounded number. */
+export const RowColumn = z.discriminatedUnion("type", [
+    z.object({ key, type: z.literal("castle") }),
+    z.object({ key, type: z.literal("tool") }),
+    z.object({ key, type: z.literal("troop") }),
+    z.object({ key, type: z.literal("number"), min: z.number(), max: z.number(), default: z.number().optional() }),
+])
+export type RowColumn = z.infer<typeof RowColumn>
+
+/** One row of a Rows option, by column key: a castle, an item's wodID, or a number. */
+export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
+export type RowValue = z.infer<typeof RowValue>
+
+/** The option types plugins declare (bot-core plugins' pluginOptions). Any option may set `advanced`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
-    z.looseObject({ type: z.literal(""), key: z.undefined().optional() }),
-    z.looseObject({ type: z.literal("Label"), key }),
+    z.looseObject({ type: z.literal(""), key: z.undefined().optional(), advanced }),
+    z.looseObject({ type: z.literal("Label"), key, advanced }),
     /** `min` and `max` make it a number field; an empty value means "use the default". */
-    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional() }),
-    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional() }),
-    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional() }),
-    z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional() }),
+    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), advanced }),
+    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), advanced }),
+    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), advanced }),
+    z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), advanced }),
+    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), default: z.number().optional(), advanced }),
+    /** Items from `catalog` in the order the plugin tries them, as wodIDs. */
+    z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), advanced }),
+    z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), advanced }),
+    /** One of the account's castles; null until the player picks one. */
+    z.looseObject({ type: z.literal("CastlePicker"), key, default: z.null().optional(), advanced }),
 ])
 export type PluginOptionDef = z.infer<typeof PluginOptionDef>
+/** An option that holds a value: every type but the layout gap and the label. */
+export type ValueOptionDef = Exclude<PluginOptionDef, { type: "" | "Label" }>
+export const holdsValue = (def: PluginOptionDef): def is ValueOptionDef => def.type !== "" && def.type !== "Label"
 
 export const PluginCatalogEntry = z.object({
     key,
@@ -22,6 +59,10 @@ export const PluginCatalogEntry = z.object({
     options: z.array(PluginOptionDef),
     /** "attack" plugins count toward the attack plugin cap. */
     category: z.literal("attack").nullish(),
+    /** The settings dialog's Setup checks for this plugin. */
+    checks: z.array(PluginCheckDef).optional(),
+    /** Running it ends the account's beginner or peace protection. */
+    breaksPeace: z.boolean().optional(),
 })
 
 /** How many attack plugins one account may run at once. Set by an admin: a global default and a per-user override. */
@@ -38,7 +79,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean()])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, z.array(z.number().int()), z.array(RowValue)])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -57,6 +98,9 @@ export type PluginSettingsProblem =
     | { code: "PLUGIN_OPTION_RANGE"; params: { where: string; min: number | string; max: number | string } }
     | { code: "PLUGIN_OPTION_NO_VALUE" | "PLUGIN_OPTION_TEXT" | "PLUGIN_OPTION_BOOLEAN"; params: { where: string } }
     | { code: "PLUGIN_OPTION_CHOICE"; params: { where: string; last: number } }
+    | { code: "PLUGIN_OPTION_STEP"; params: { where: string; step: number } }
+    | { code: "PLUGIN_OPTION_LIST" | "PLUGIN_OPTION_ROWS"; params: { where: string; max: number } }
+    | { code: "PLUGIN_OPTION_ROW" | "PLUGIN_OPTION_CASTLE" | "PLUGIN_OPTION_ITEM"; params: { where: string } }
     | { code: "PLUGIN_ATTACK_CAP"; params: { count: number } }
 
 export class PluginSettingsError extends Error {
@@ -90,6 +134,31 @@ function clampToBounds(def: TextDef, value: OptionValue): OptionValue {
     return String(Math.min(Math.max(n, def.min ?? -Infinity), def.max ?? Infinity))
 }
 
+const MAX_LIST = 200
+const MAX_ROWS = 200
+
+const inRange = (n: unknown, min: number, max: number): n is number =>
+    typeof n === "number" && Number.isFinite(n) && n >= min && n <= max
+
+/** Whether `n` sits on the step grid that starts at `min`, allowing for float error. */
+const onStep = (n: number, min: number, step: number | undefined) =>
+    step === undefined || Math.abs((n - min) / step - Math.round((n - min) / step)) < 1e-9
+
+function checkRow(columns: RowColumn[], row: unknown, where: string): RowValue {
+    const parsed = RowValue.safeParse(row)
+    if (!parsed.success || Object.keys(parsed.data).some(k => !columns.some(c => c.key === k)))
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ROW", params: { where } })
+    for (const column of columns) {
+        const cell = parsed.data[column.key]
+        const at = `${where}.${column.key}`
+        if (column.type === "castle" ? !CastleRef.safeParse(cell).success : column.type !== "number" && !Number.isInteger(cell))
+            throw new PluginSettingsError({ code: column.type === "castle" ? "PLUGIN_OPTION_CASTLE" : "PLUGIN_OPTION_ITEM", params: { where: at } })
+        if (column.type === "number" && !inRange(cell, column.min, column.max))
+            throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where: at, min: column.min, max: column.max } })
+    }
+    return parsed.data
+}
+
 function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
     switch (def.type) {
         case "":
@@ -113,7 +182,33 @@ function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string)
                 throw new PluginSettingsError({ code: "PLUGIN_OPTION_CHOICE", params: { where, last: def.selection.length - 1 } })
             return index
         }
+        case "Number":
+            if (!inRange(value, def.min, def.max))
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where, min: def.min, max: def.max } })
+            if (!onStep(value, def.min, def.step))
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_STEP", params: { where, step: def.step! } })
+            return value
+        case "OrderedList":
+            if (!Array.isArray(value) || value.length > MAX_LIST || !(value as unknown[]).every(Number.isInteger) || new Set(value as unknown[]).size !== value.length)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_LIST", params: { where, max: MAX_LIST } })
+            return value
+        case "Rows":
+            if (!Array.isArray(value) || value.length > MAX_ROWS)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_ROWS", params: { where, max: MAX_ROWS } })
+            return value.map((row, i) => checkRow(def.columns, row, `${where}[${i}]`))
+        case "CastlePicker":
+            if (value !== null && !CastleRef.safeParse(value).success)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_CASTLE", params: { where } })
+            return value
     }
+}
+
+/** Brings a saved value from before the bounds existed, or of another type, into range. */
+function clampNumber(def: Extract<PluginOptionDef, { type: "Number" }>, value: OptionValue): OptionValue | undefined {
+    const n = typeof value === "string" && value !== "" ? Number(value) : value
+    if (typeof n !== "number" || !Number.isFinite(n))
+        return def.default
+    return Math.min(Math.max(n, def.min), def.max)
 }
 
 /**
@@ -155,12 +250,22 @@ export function effectivePluginConfig(catalog: PluginCatalogEntry[], settings: P
             continue
         const plugin: Record<string, OptionValue> & { state: true } = { state: true }
         for (const def of entry.options)
-            if (def.type !== "" && def.type !== "Label" && def.default !== undefined)
+            if (holdsValue(def) && def.default !== undefined)
                 plugin[def.key] = def.default
         Object.assign(plugin, saved?.options)
-        for (const def of entry.options)
-            if (def.type === "Text" && plugin[def.key] !== undefined)
+        for (const def of entry.options) {
+            if (!holdsValue(def) || plugin[def.key] === undefined)
+                continue
+            if (def.type === "Text")
                 plugin[def.key] = clampToBounds(def, plugin[def.key]!)
+            else if (def.type === "Number") {
+                const clamped = clampNumber(def, plugin[def.key]!)
+                if (clamped === undefined)
+                    delete plugin[def.key]
+                else
+                    plugin[def.key] = clamped
+            }
+        }
         config[entry.key] = plugin
     }
     return config

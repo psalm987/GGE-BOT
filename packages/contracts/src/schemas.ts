@@ -1,6 +1,7 @@
 import * as z from "zod"
 import { LOCALE_CODES } from "@gge/i18n"
 import { PLAN_IDS } from "./plans.ts"
+import { AccountCastle, PluginStates } from "./plugin-checks.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 import { Schedule } from "./schedule.ts"
 
@@ -36,6 +37,10 @@ export const BotStatus = z.object({
     heartbeatAt: z.date().nullable(),
     lastError: z.string().nullable(),
     bannedUntil: z.date().nullable(),
+    /** What each plugin last said it is doing during the current run. Missing from a runner older than this field. */
+    pluginStates: PluginStates.default({}),
+    /** The castles the bot last found on the account; empty until it has run. */
+    castles: z.array(AccountCastle).default([]),
 })
 
 export const PublicAccount = z.object({

@@ -471,8 +471,136 @@ async function driveBilling(browser) {
     await Promise.all([player.context().close(), admin.context().close(), friend.context().close()])
 }
 
+/** Ironhold's plugin settings dialogs, as the seeded demo: status, Simple and Advanced, Setup checks, every option type, save and reopen. */
+async function drivePluginSettings(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    // Starts from the seeded settings even after a run that failed before putting them back.
+    const seeded = { ...ironhold.plugins, devSettingsPreview: { enabled: true, options: {} } }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: seeded })
+    const banners = await rpc(page, "catalog/gameItems", { kind: "banner" })
+    const bannerName = id => banners.find(b => b.id === id).name
+    const openDrawer = async () => {
+        await page.goto(CLIENT_URL)
+        await page.getByRole("button", { name: "Edit Ironhold" }).click()
+        await page.getByRole("switch", { name: "Enable Attack Nomads" }).waitFor()
+    }
+    const openDialog = async plugin => {
+        await page.getByRole("button", { name: `${plugin} settings` }).click()
+        const dialog = page.getByRole("dialog", { name: `${plugin} settings` })
+        await dialog.getByRole("button", { name: "Save" }).waitFor()
+        return dialog
+    }
+    const view = async (dialog, which) => {
+        await dialog.locator(".ant-segmented-item", { hasText: which }).click()
+        await page.waitForTimeout(150)
+    }
+
+    await openDrawer()
+    const nomadsRow = page.getByRole("switch", { name: "Enable Attack Nomads" }).locator("xpath=ancestor::div[2]")
+    assert(await nomadsRow.getByText("Waiting", { exact: true }).count() === 1, "the Attack Nomads row shows its Waiting pill while Ironhold runs")
+    let dialog = await openDialog("Attack Nomads")
+    assert(await dialog.getByText("Waiting", { exact: true }).count() === 1 && await dialog.getByText("The event isn't running. This resumes when it opens.").count() === 1,
+        "the dialog header shows the plugin's status and the reason in words")
+    await view(dialog, "Simple")
+    assert(!(await dialog.getByText("Dry run: log attacks instead of sending them").isVisible()), "Simple hides the advanced Dry run option")
+    await view(dialog, "Advanced")
+    assert(await dialog.getByText("Dry run: log attacks instead of sending them").isVisible(), "Advanced shows the Dry run option")
+    const checks = dialog.getByRole("complementary", { name: "Setup checks" })
+    assert(await checks.getByText("99 commanders can be sent.").count() === 1, "Setup checks count the commanders the whitelist picks")
+    assert(await checks.getByText("About 1,240 of 3,500 daily attacks used.").count() === 1, "Setup checks show today's attacks from the attack engine's report")
+    await dialog.getByLabel("Commander Whitelist").fill("")
+    await checks.getByText("No commander list, so every commander can be sent", { exact: false }).waitFor()
+    assert(await checks.getByText("Check this").count() === 1, "clearing the whitelist turns that check into a warning, in words as well as colour")
+    await page.screenshot({ path: `${out}/40-plugin-settings-nomads-1440.png` })
+    await axe(page, "plugin settings dialog 1440")
+    await dialog.getByRole("button", { name: "Cancel" }).click()
+    await page.getByRole("button", { name: "Discard" }).click()
+    await dialog.waitFor({ state: "hidden" })
+    assert(true, "Cancel with a change asks before discarding it")
+
+    dialog = await openDialog("Settings preview (dev only)")
+    assert(await dialog.getByText("Running this plugin ends the account’s beginner or peace protection.").count() === 1, "a peace-breaking plugin says so in its dialog")
+    await view(dialog, "Advanced")
+    const list = dialog.locator(".gge-ordered-list ol > li")
+    const order = async () => (await list.allInnerTexts()).map(text => text.split("\n")[1])
+    assert(JSON.stringify(await order()) === JSON.stringify([660, 661, 77].map(bannerName)), "the banner order starts at its default, named from the game's items")
+    await list.first().focus()
+    await page.keyboard.press("Alt+ArrowDown")
+    await page.waitForTimeout(100)
+    assert(JSON.stringify(await order()) === JSON.stringify([661, 660, 77].map(bannerName)), "Alt+Down on a focused banner moves it down one place")
+    assert((await dialog.getByRole("status").innerText()).includes(`${bannerName(660)} moved to position 2 of 3.`), "the move is announced to screen readers")
+    await dialog.getByRole("button", { name: `Move ${bannerName(77)} up` }).focus()
+    await page.keyboard.press("Enter")
+    await page.waitForTimeout(100)
+    assert(JSON.stringify(await order()) === JSON.stringify([661, 77, 660].map(bannerName)), "the Move up button works from the keyboard")
+    await dialog.getByLabel("Stop before the event ends").fill("45")
+    const openOption = text => page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: text })
+    await dialog.getByLabel("Castle to attack from").focus()
+    await page.keyboard.press("ArrowDown")
+    await openOption("Ironhold Watch").waitFor()
+    await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("Enter")
+    await dialog.locator(".ant-select-content", { hasText: "Ironhold Watch" }).waitFor()
+    assert(true, "the castle picker lists the castles the bot reported and picks one from the keyboard")
+    await dialog.getByRole("button", { name: "Add row" }).click()
+    await dialog.getByRole("button", { name: "Save" }).click()
+    await dialog.getByText("Fill in every column, or remove the row.").waitFor()
+    assert(true, "an unfinished row is caught under its field and nothing is saved")
+    await dialog.getByLabel("Castle, row 1").click()
+    await openOption("Frostgate").click()
+    await dialog.getByLabel("Tool, row 1").click()
+    await page.keyboard.type("Battering ram")
+    await openOption("Battering ram").first().click()
+    await dialog.getByLabel("Target, row 1").fill("1500")
+    await dialog.getByText("Fill in every column, or remove the row.").waitFor({ state: "hidden" })
+    assert(true, "the row's error clears once every column is filled")
+    await page.screenshot({ path: `${out}/41-plugin-settings-preview-1440.png` })
+    await axe(page, "plugin settings dialog with every option type 1440")
+    await dialog.getByRole("button", { name: "Save" }).click()
+    await page.getByText("Settings preview (dev only) settings saved.").waitFor()
+    await dialog.waitFor({ state: "hidden" })
+    const saved = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold").plugins.devSettingsPreview.options
+    assert(JSON.stringify(saved.bannerOrder) === "[661,77,660]" && saved.stopMinutesBefore === 45 && saved.sourceCastle?.id === 1002 && saved.toolTargets?.[0]?.castle.id === 2001 && saved.toolTargets[0].target === 1500,
+        `Save stores the order, the number, the castle and the row at once, without the drawer's own save (${JSON.stringify(saved)})`)
+
+    await page.getByRole("dialog").getByRole("button", { name: "Close" }).first().click()
+    await drawerClosed(page)
+    assert(true, "the drawer closes without a discard prompt: the dialog's save left nothing unsaved in it")
+    await openDrawer()
+    dialog = await openDialog("Settings preview (dev only)")
+    await view(dialog, "Advanced")
+    assert(JSON.stringify(await order()) === JSON.stringify([661, 77, 660].map(bannerName)) && await dialog.getByLabel("Stop before the event ends").inputValue() === "45"
+        && await dialog.getByText("Ironhold Watch").count() > 0, "reopened, the dialog shows what was saved")
+    assert((await dialog.locator(".ant-segmented-item-selected").innerText()).includes("changed"), "the Advanced switch counts the advanced settings that differ from their defaults")
+    await dialog.getByRole("button", { name: "Cancel" }).click()
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    dialog = await openDialog("Attack Nomads")
+    await page.waitForTimeout(400)
+    const checksBox = await dialog.getByRole("complementary", { name: "Setup checks" }).boundingBox()
+    const formBox = await dialog.locator("form").boundingBox()
+    assert(checksBox.y + checksBox.height <= formBox.y + 1, "on a phone the Setup checks fold above the form")
+    assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, "no horizontal overflow at 390 with the dialog open")
+    await page.screenshot({ path: `${out}/42-plugin-settings-390.png` })
+    await axe(page, "plugin settings dialog 390")
+    await dialog.getByRole("button", { name: "Cancel" }).click()
+    await page.setViewportSize({ width: 1280, height: 860 })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: seeded })
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "plugin-settings") {
+        const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await drivePluginSettings(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     const page = await browser.newPage({ viewport: { width: 1280, height: 860 } })
     const name = "u" + Date.now().toString(36)
     await page.goto(`${CLIENT_URL}/signup`)
@@ -522,7 +650,7 @@ async function driveBilling(browser) {
     const emailWhen = what => page.getByRole("switch", { name: `Email me when ${what}` })
     const emailsOn = async () => Promise.all(["the game bans an account", "the game rejects an account's password", "a bot is stopped after repeated crashes", "the shutoff timer stops a bot"]
         .map(async what => await emailWhen(what).getAttribute("aria-checked") === "true"))
-    await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
+    await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length >= 4)
     assert((await emailsOn()).join() === "true,true,true,false", "email alerts default to on for bans, rejected passwords and crash loops, off for the shutoff timer")
     let saves = 0
     page.on("response", response => { if (response.url().includes("/rpc/account/notificationPrefs")) saves++ })
@@ -530,7 +658,7 @@ async function driveBilling(browser) {
     await emailWhen("the shutoff timer stops a bot").click()
     for (let waited = 0; saves < 2 && waited < 10_000; waited += 100) await page.waitForTimeout(100)
     await page.reload()
-    await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length === 4)
+    await page.waitForFunction(() => document.querySelectorAll("[role=switch]:not([disabled])").length >= 4)
     assert((await emailsOn()).join() === "false,true,true,true", "the email switches keep their positions across a reload")
     await page.getByLabel("Current password").fill("a-strong-password")
     await page.getByLabel("New password", { exact: true }).fill("another-strong-password")
@@ -836,6 +964,7 @@ async function driveBilling(browser) {
     await seeded.getByRole("button", { name: "Sign in" }).click()
     await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
     await driveLogs(seeded)
+    await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
     await seeded.getByRole("tab", { name: "Run history" }).click()

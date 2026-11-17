@@ -111,6 +111,27 @@ async function notificationEvents() {
     return rows.map(r => UserEvent.parse((r.payload as { data: unknown }).data)).flatMap(e => e.kind === "notification" ? [e.notification] : [])
 }
 
+describe("plugin states", () => {
+    test("a valid plugin report reaches the store, an invalid one is dropped with one warning", async () => {
+        const warnings: unknown[][] = []
+        const reports: unknown[][] = []
+        const record = store.setPluginState.bind(store)
+        supervisor = makeSupervisor({
+            logger: { warn: (...args) => void warnings.push(args), error() {} },
+            store: Object.assign(Object.create(store), { setPluginState: (...args: Parameters<typeof record>) => (reports.push(args), record(...args)) }),
+        })
+        const id = await addAccount("pstatus-a")
+        await reconcile()
+
+        const state = { state: "running", reasonKey: "statusAttacksToday", params: { used: 3, limit: 10 } }
+        await until(() => reports.length)
+        await until(async () => (await status(id))?.actualState === "running")
+        expect(reports).toEqual([[id, "attack", state]])
+        expect((await status(id))!.pluginStates).toEqual({ attack: state })
+        expect(warnings).toHaveLength(1)
+    })
+})
+
 describe("starting and stopping", () => {
     test("starts every wanted account with its decrypted password and plugins, one login at a time", async () => {
         const a = await addAccount("ok-a")

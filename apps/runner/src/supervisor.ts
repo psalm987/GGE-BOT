@@ -1,4 +1,5 @@
 import { createRequire } from "node:module"
+import { PluginState } from "@gge/contracts"
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
@@ -101,6 +102,7 @@ export type SupervisorDeps = {
         openRun(accountId: string): Promise<number | undefined>
         closeRun(id: number | undefined, reason: string, error?: string | null): Promise<void>
         setStatus(accountId: string, patch: StatusPatch): Promise<void>
+        setPluginState(accountId: string, plugin: string, state: PluginState): Promise<void>
         touchHeartbeat(accountId: string): Promise<void>
         endAccount(accountId: string, ending: AccountEnding): Promise<void>
         proxyOk(proxyId: string): Promise<void>
@@ -394,7 +396,7 @@ export class Supervisor {
         if (this.bots.get(id) !== bot || bot.worker)
             return
         // Written before the worker exists, so nothing it reports can be overwritten by it.
-        await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null })
+        await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
         if (this.bots.get(id) !== bot || bot.worker)
             return
 
@@ -437,6 +439,15 @@ export class Supervisor {
             case Action.StatusUser:
                 this.track(store.setStatus(id, { resources: payload, heartbeat: true }))
                 break
+            case Action.PluginStatus: {
+                const { plugin, ...report } = (payload ?? {}) as { plugin?: unknown }
+                const state = PluginState.safeParse(report)
+                if (typeof plugin === "string" && plugin !== "" && plugin.length <= 64 && state.success)
+                    this.track(store.setPluginState(id, plugin, state.data))
+                else
+                    this.log.warn("dropped an invalid plugin status", id)
+                break
+            }
             case Action.Started:
                 this.track(store.setStatus(id, { actualState: "running", heartbeat: true }))
                 if (bot.proxyId)

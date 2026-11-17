@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, type PluginCatalogEntry } from "../src/index.ts"
+import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings } from "../src/index.ts"
 
 const catalog: PluginCatalogEntry[] = [
     {
@@ -122,5 +122,61 @@ describe("attack plugin cap", () => {
         const settings = { ...turnOn(4), attack9: { enabled: false, options: {} } }
         expect(() => normalizePluginSettings(attackers, settings, 4)).not.toThrow()
         expect(() => normalizePluginSettings(attackers, turnOn(13), null)).not.toThrow()
+    })
+})
+
+describe("the richer option types", () => {
+    const richer: PluginCatalogEntry[] = [{
+        key: "attackForeign", force: false, hidden: false, options: [
+            { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
+            { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661], advanced: true },
+            {
+                type: "Rows", key: "reserve", default: [], columns: [
+                    { key: "castle", type: "castle" },
+                    { key: "troop", type: "troop" },
+                    { key: "keep", type: "number", min: 0, max: 100000 },
+                ],
+            },
+            { type: "CastlePicker", key: "source" },
+        ],
+    }]
+    const save = (options: Record<string, unknown>) =>
+        normalizePluginSettings(richer, { attackForeign: { enabled: true, options: options as never } }).attackForeign!.options
+
+    test("each new type is a catalog entry the API accepts, `advanced` included", () => {
+        expect(PluginCatalogEntry.array().parse(richer)).toEqual(richer)
+        expect(PluginCatalogEntry.safeParse({ ...richer[0], options: [{ type: "Number", key: "n", min: 0, max: 1, unit: "parsecs" }] }).success).toBe(false)
+        expect(PluginCatalogEntry.safeParse({ ...richer[0], options: [{ type: "OrderedList", key: "o", catalog: "spells", default: [] }] }).success).toBe(false)
+        expect(PluginCatalogEntry.safeParse({ ...richer[0], options: [{ type: "Rows", key: "r", columns: [], default: [] }] }).success).toBe(false)
+    })
+
+    test("accepts values of the right shape", () => {
+        const row = { castle: { kingdom: 0, id: 1234 }, troop: 602, keep: 500 }
+        expect(save({ stopMinutesBefore: 45, bannerOrder: [661, 24, 660], reserve: [row], source: { kingdom: 2, id: 77 } }))
+            .toEqual({ stopMinutesBefore: 45, bannerOrder: [661, 24, 660], reserve: [row], source: { kingdom: 2, id: 77 } })
+        expect(save({ source: null, bannerOrder: [], reserve: [] })).toEqual({ source: null, bannerOrder: [], reserve: [] })
+    })
+
+    test.each([
+        ["a number out of range", { stopMinutesBefore: 241 }, "PLUGIN_OPTION_RANGE"],
+        ["a number off its step", { stopMinutesBefore: 7 }, "PLUGIN_OPTION_STEP"],
+        ["a number given as text", { stopMinutesBefore: "30" }, "PLUGIN_OPTION_RANGE"],
+        ["an item listed twice", { bannerOrder: [660, 660] }, "PLUGIN_OPTION_LIST"],
+        ["a list of names", { bannerOrder: ["Flag"] }, "PLUGIN_OPTION_LIST"],
+        ["a row missing a cell", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: 602 }] }, "PLUGIN_OPTION_RANGE"],
+        ["a row with an unknown column", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: 602, keep: 1, extra: 2 }] }, "PLUGIN_OPTION_ROW"],
+        ["a row number out of range", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: 602, keep: -1 }] }, "PLUGIN_OPTION_RANGE"],
+        ["a row item that is a castle", { reserve: [{ castle: { kingdom: 0, id: 1 }, troop: { kingdom: 0, id: 2 }, keep: 1 }] }, "PLUGIN_OPTION_ITEM"],
+        ["a castle without its kingdom", { source: { id: 77 } }, "PLUGIN_OPTION_CASTLE"],
+    ])("rejects %s with a code the browser can translate", (_, options, code) => {
+        expect(() => save(options)).toThrow(PluginSettingsError)
+        try { save(options) } catch (error) { expect((error as PluginSettingsError).problem.code).toBe(code) }
+    })
+
+    test("gives workers the defaults, and brings a saved number back into range", () => {
+        expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: {} } }).attackForeign)
+            .toEqual({ state: true, stopMinutesBefore: 30, bannerOrder: [660, 661], reserve: [] })
+        expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: 900 } } }).attackForeign!.stopMinutesBefore).toBe(240)
+        expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: "junk" } } }).attackForeign!.stopMinutesBefore).toBe(30)
     })
 })

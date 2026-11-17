@@ -35,3 +35,11 @@ Preconditions:
 - `plugins/attack/attackStormForts.js` logs an `ENOENT ... ./plugins-extra/upgradeStormCargo.js` stack at startup without `plugins-extra`. It still loads; the trace in `server.log` is expected, not a launch failure.
 - Discord plugins (`plugins/discord/*`) and the channel select only exist when `discordToken` and `discordClientId` are set. The verify instance leaves them blank, so those are unreachable here; report them as not covered, not as passing.
 - Toggling a plugin on a **running** account restarts its worker (state change) or sends `SetPluginOptions` (option-only change). Neither can be seen without `start-bot`.
+
+## New stack: the plugin settings dialog (drive-client.cjs)
+
+The player app lists plugins in the account drawer: a switch, the plugin's status pill while the bot runs, a **Breaks peace** tag where it applies, and a **Settings** button (accessible name `<Plugin> settings`) that opens a dialog. The dialog has the plugin's status and reason in its header, a **Simple** / **Advanced** switch (options with `advanced: true` show only in Advanced, and the switch counts changed advanced settings), **Setup checks** beside the form (above it on a phone), and a Save / Cancel footer. Save in the dialog stores that plugin's options at once for an existing account; for a new account it keeps them in the drawer until **Add account**.
+
+Option types: `Text`, `Checkbox`, `Select`, `Channel`, `Label`, `Number` (bounded, with a unit), `OrderedList` (game items from `catalog.gameItems`, reordered with the arrow buttons or Alt+Up/Down), `Rows` (castle, tool, troop and number columns, add and remove rows), and `CastlePicker` (the castles the bot last reported).
+
+`pnpm dev` seeds the data the dialog needs: Ironhold's `bot_status.plugin_states` (Attack Nomads waiting, the attack engine's day count), three castles in its `resources`, the game items from the cached game data, and a dev-only catalog entry `devSettingsPreview` that uses every option type and is flagged `breaksPeace`. `drive-client.cjs` drives it as `demo` (see SKILL.md). The preview entry exists only in the dev database; `pnpm dev --runner` removes it when the runner publishes the real catalog.

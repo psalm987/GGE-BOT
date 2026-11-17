@@ -1,99 +1,64 @@
-import { DownOutlined, RightOutlined } from "@ant-design/icons"
-import { Button, Checkbox, Col, Form, Input, Row, Select, Switch, Tag, Typography } from "antd"
+import { SettingOutlined } from "@ant-design/icons"
+import { App, Button, Form, Switch, Tag, Typography } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { PluginCatalogEntry, PluginSettings } from "@gge/contracts"
+import type { PluginCatalogEntry, PublicAccount } from "@gge/contracts"
+import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
+import type { OptionValues, PluginFormValues } from "../plugin-values.ts"
+import { BreaksPeaceTag, PluginSettingsDialog, PluginStatusPill, usePluginPill } from "./PluginSettingsDialog.tsx"
 
-type OptionValues = Record<string, string | number | boolean | undefined>
-export type PluginFormValues = Record<string, { enabled: boolean; options: OptionValues }>
+export { pluginFormValues, toPluginSettings, type PluginFormValues } from "../plugin-values.ts"
 
-/** Form values for every visible plugin: saved settings over catalog defaults. */
-export function pluginFormValues(catalog: PluginCatalogEntry[], saved: PluginSettings = {}): PluginFormValues {
-    return Object.fromEntries(catalog.filter(e => !e.hidden).map(entry => {
-        const options: OptionValues = {}
-        for (const def of entry.options) {
-            if (def.type === "" || def.type === "Label")
-                continue
-            const value = saved[entry.key]?.options[def.key] ?? def.default
-            options[def.key] = def.type === "Select" && value !== undefined ? Number(value) : value
-        }
-        return [entry.key, { enabled: entry.force || Boolean(saved[entry.key]?.enabled), options }]
-    }))
-}
+/** Persists one plugin's options for an account that exists. Without it, a new account keeps them in its form until it is added. */
+export type SavePluginOptions = (entry: PluginCatalogEntry, options: OptionValues) => Promise<void>
 
-/** What the API stores: only options that differ from their default, nothing empty. */
-export function toPluginSettings(catalog: PluginCatalogEntry[], values: PluginFormValues): PluginSettings {
-    const out: PluginSettings = {}
-    for (const entry of catalog.filter(e => !e.hidden)) {
-        const value = values[entry.key]
-        if (!value)
-            continue
-        const options: Record<string, string | number | boolean> = {}
-        for (const def of entry.options) {
-            if (def.type === "" || def.type === "Label")
-                continue
-            const v = value.options?.[def.key]
-            const fallback = def.type === "Select" && def.default !== undefined ? Number(def.default) : def.default
-            if (v === undefined || v === "" || v === fallback)
-                continue
-            options[def.key] = v
-        }
-        out[entry.key] = { enabled: entry.force || value.enabled, options }
-    }
-    return out
-}
-
-function OptionField({ pluginKey, def }: { pluginKey: string; def: PluginCatalogEntry["options"][number] }) {
+function PluginRow({ entry, atAttackLimit, account, values, onSave }: {
+    entry: PluginCatalogEntry; atAttackLimit: boolean; account: PublicAccount | undefined; values: PluginFormValues | undefined; onSave?: SavePluginOptions
+}) {
     const { t } = useTranslation("bot")
     const { t: tc } = useTranslation("client")
-    if (def.type === "")
-        return null
-    if (def.type === "Label")
-        return <Col span={24}><Typography.Text strong className="gge-display" style={{ color: "#E0A526", fontSize: 13 }}>{t(def.key, { defaultValue: def.key })}</Typography.Text></Col>
-    const name = ["plugins", pluginKey, "options", def.key]
-    if (def.type === "Checkbox")
-        return <Col xs={24} sm={12}><Form.Item name={name} valuePropName="checked" style={{ marginBottom: 4 }}><Checkbox>{t(def.key, { defaultValue: def.key })}</Checkbox></Form.Item></Col>
-    if (def.type === "Select")
-        return <Col xs={24} sm={12}><Form.Item name={name} label={t(def.key, { defaultValue: def.key })}><Select options={def.selection.map((label, value) => ({ label, value }))} /></Form.Item></Col>
-    const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
-    const extra = def.type === "Channel" ? tc("plugins.channelId")
-        : bounds ? tc("plugins.between", { min: def.min ?? tc("plugins.any"), max: def.max ?? tc("plugins.any") }) : undefined
-    return (
-        <Col xs={24} sm={12}>
-            <Form.Item name={name} label={t(def.key, { defaultValue: def.key })} extra={extra}>
-                <Input inputMode={bounds ? "decimal" : undefined} placeholder={def.default ? tc("plugins.default", { value: def.default }) : undefined} />
-            </Form.Item>
-        </Col>
-    )
-}
-
-function PluginRow({ entry, atAttackLimit }: { entry: PluginCatalogEntry; atAttackLimit: boolean }) {
-    const { t } = useTranslation("bot")
-    const { t: tc } = useTranslation("client")
+    const { message } = App.useApp()
+    const form = Form.useFormInstance()
     const [open, setOpen] = useState(false)
-    const panelId = `plugin-${entry.key}-settings`
     const label = t(entry.key, { defaultValue: entry.key })
+    const enabled = entry.force || Boolean(values?.[entry.key]?.enabled)
+    const botRunning = account?.status?.actualState === "running"
+    const pluginStates = botRunning ? account?.status?.pluginStates ?? {} : {}
+    const pill = usePluginPill(enabled, botRunning, pluginStates[entry.key])
+
+    async function save(options: OptionValues) {
+        await onSave?.(entry, options)
+        // Saved already, so it mustn't count as an unsaved change in the drawer.
+        form.setFields([{ name: ["plugins", entry.key, "options"], value: options, touched: Boolean(!onSave) }])
+        message.success(tc(onSave ? "plugins.dialog.saved" : "plugins.dialog.staged", { plugin: label }))
+    }
+
     return (
-        <div style={{ borderBottom: "1px solid #3A2E1F" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 48 }}>
+        <div style={{ borderBottom: `1px solid ${palette.rule}` }}>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px 12px", minHeight: 48, padding: "4px 0" }}>
                 {entry.force
                     ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>{tc("plugins.alwaysOn")}</Tag>
                     : <Form.Item name={["plugins", entry.key, "enabled"]} valuePropName="checked" noStyle>
                         <AttackAwareSwitch label={label} blockTurningOn={entry.category === "attack" && atAttackLimit} />
                     </Form.Item>}
-                <span style={{ flex: 1, fontWeight: 600 }}>{label}</span>
+                <span style={{ flex: 1, minWidth: 140, fontWeight: 600 }}>{label}</span>
+                {entry.breaksPeace && <BreaksPeaceTag />}
+                {enabled && botRunning && pill && <PluginStatusPill state={pill.state} />}
                 {entry.options.length > 0 &&
-                    <Button type="text" size="small" aria-expanded={open} aria-controls={panelId}
-                        icon={open ? <DownOutlined /> : <RightOutlined />} iconPlacement="end" onClick={() => setOpen(o => !o)}>
+                    <Button type="text" icon={<SettingOutlined />} onClick={() => setOpen(true)} aria-haspopup="dialog"
+                        aria-label={tc("plugins.settingsFor", { plugin: label })} style={{ minHeight: 44 }}>
                         {tc("plugins.settings")}
                     </Button>}
             </div>
-            {/* Kept mounted so hidden options still submit their values. */}
-            <div id={panelId} hidden={!open} style={{ padding: "4px 0 12px" }}>
-                <Row gutter={16}>{entry.options.map((def, i) => <OptionField key={def.key ?? `gap-${i}`} pluginKey={entry.key} def={def} />)}</Row>
-            </div>
+            {/* Registers the options as one field, so the drawer's own save sends them. */}
+            <Form.Item name={["plugins", entry.key, "options"]} hidden noStyle />
+            {open && (
+                <PluginSettingsDialog entry={entry} label={label} pill={pill} allValues={values}
+                    initial={values?.[entry.key]?.options ?? {}} pluginStates={pluginStates} castles={account?.status?.castles ?? []}
+                    onSave={save} onClose={() => setOpen(false)} />
+            )}
         </div>
     )
 }
@@ -105,8 +70,11 @@ function AttackAwareSwitch({ label, blockTurningOn, checked, onChange }: { label
         disabled={blockTurningOn && !checked} title={blockTurningOn && !checked ? t("plugins.attackLimitReached") : undefined} />
 }
 
-/** One row per plugin, built from the catalog: an enable switch and its settings. Lives inside a Form whose `plugins` field holds PluginFormValues. */
-export function PluginSettingsForm({ catalog }: { catalog: PluginCatalogEntry[] }) {
+/**
+ * One row per plugin, built from the catalog: an enable switch, its status while the bot runs, and a button that opens
+ * its settings dialog. Lives inside a Form whose `plugins` field holds PluginFormValues.
+ */
+export function PluginSettingsForm({ catalog, account, onSavePlugin }: { catalog: PluginCatalogEntry[]; account?: PublicAccount; onSavePlugin?: SavePluginOptions }) {
     const { t } = useTranslation("client")
     const limit = useQuery(orpc.plugins.attackLimit.queryOptions()).data
     const values = Form.useWatch("plugins") as PluginFormValues | undefined
@@ -120,7 +88,8 @@ export function PluginSettingsForm({ catalog }: { catalog: PluginCatalogEntry[] 
                     {limit !== null && limit !== undefined ? t("plugins.attackCountLimited", { count: enabled, limit }) : t("plugins.attackCount", { count: enabled })}
                 </Typography.Paragraph>
             )}
-            {catalog.filter(e => !e.hidden).map(entry => <PluginRow key={entry.key} entry={entry} atAttackLimit={atLimit} />)}
+            {catalog.filter(e => !e.hidden).map(entry =>
+                <PluginRow key={entry.key} entry={entry} atAttackLimit={atLimit} account={account} values={values} onSave={onSavePlugin} />)}
         </div>
     )
 }

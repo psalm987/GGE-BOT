@@ -1,13 +1,13 @@
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import {
-    appSettings, botRuns, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publishMany, servers, users,
+    appSettings, botRuns, botStatus, gameAccounts, gameItems, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publicStatus, publishMany, servers, users,
     type Db, type OwnerPlan,
 } from "@gge/db"
 import { sealFor } from "@gge/crypto"
 import {
     NO_PLAN, PLAN_LIMIT, PluginSettingsError, TRIAL_GAME_ACCOUNT_USED, attackPluginLimit, countedAccounts, entitledAccountIds, normalizePluginSettings, planRunsMessage, scheduleState,
     storedSchedule, twinMainIds, userChannel,
-    type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
+    type GameItem, type GameItemKind, type PluginCatalogEntry, type PluginSettings, type PublicAccount, type Schedule, type UserEvent,
 } from "@gge/contracts"
 import { isUniqueViolation } from "../context.ts"
 import { claimTrialAccounts } from "./trial-guard.ts"
@@ -18,7 +18,16 @@ export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
     return rows.map(r => ({
         key: r.key, force: r.force, hidden: r.hidden, options: r.options as PluginCatalogEntry["options"],
         category: r.category === "attack" ? "attack" as const : null,
+        ...(r.checks as PluginCatalogEntry["checks"])?.length && { checks: r.checks as PluginCatalogEntry["checks"] },
+        ...r.breaksPeace && { breaksPeace: true },
     }))
+}
+
+/** The game's items of one kind for the settings pickers: banners strongest first, everything else by name. */
+export function loadGameItems(db: Db, kind: GameItemKind) {
+    return db.select({ id: gameItems.id, kind: gameItems.kind, nameKey: gameItems.nameKey, name: gameItems.name, level: gameItems.level, fameBonus: gameItems.fameBonus, image: gameItems.image })
+        .from(gameItems).where(eq(gameItems.kind, kind))
+        .orderBy(...kind === "banner" ? [desc(gameItems.fameBonus), asc(gameItems.name), asc(gameItems.id)] : [asc(gameItems.name), asc(gameItems.id)]) as Promise<GameItem[]>
 }
 
 /** The user's attack plugin cap as a number, or null for no limit: their override, else the global default. */
@@ -154,12 +163,7 @@ export async function listAccounts(db: Db, where: SQL | undefined, page?: { limi
         plugins: Object.fromEntries(settings
             .filter(s => s.accountId === account.id)
             .map(s => [s.pluginKey, { enabled: s.enabled, options: s.options as PluginSettings[string]["options"] }])),
-        status: status && {
-            actualState: status.actualState,
-            heartbeatAt: status.heartbeatAt,
-            lastError: status.lastError,
-            bannedUntil: status.bannedUntil,
-        },
+        status: status && publicStatus(status),
     }))
 }
 

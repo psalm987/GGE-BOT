@@ -11,14 +11,16 @@ export type PluginRegistry = { catalog: PluginCatalogEntry[]; filenames: Map<str
 /** Loads bot-core's plugins in this (main) thread for their declarations only. */
 export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRegistry {
     Object.assign(require("@gge/bot-core/config.js"), ggeConfig)
-    const plugins = require("@gge/bot-core/plugins") as [string, { force?: boolean; hidden?: boolean; pluginOptions?: unknown[] }][]
+    const plugins = require("@gge/bot-core/plugins") as [string, { force?: boolean; hidden?: boolean; pluginOptions?: unknown[]; checks?: unknown[]; breaksPeace?: boolean }][]
     const catalog: PluginCatalogEntry[] = []
     const filenames = new Map<string, string>()
     for (const [filename, mod] of plugins) {
         const key = path.basename(filename)
         const force = Boolean(mod.force), hidden = Boolean(mod.hidden)
         const category = !force && !hidden && filename.startsWith("plugins/attack/") ? "attack" : null
-        catalog.push(PluginCatalogEntry.parse({ key, force, hidden, options: mod.pluginOptions ?? [], category }))
+        catalog.push(PluginCatalogEntry.parse({ key, force, hidden, options: mod.pluginOptions ?? [], category,
+            ...(mod.checks && { checks: mod.checks }), ...(mod.breaksPeace && { breaksPeace: true }),
+        }))
         filenames.set(key, filename)
     }
     return { catalog, filenames }
@@ -27,8 +29,8 @@ export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRe
 export async function publishCatalog(db: Db, catalog: PluginCatalogEntry[]) {
     await db.transaction(async tx => {
         for (const entry of catalog)
-            await tx.insert(pluginCatalog).values({ ...entry, category: entry.category ?? null, updatedAt: new Date() })
-                .onConflictDoUpdate({ target: pluginCatalog.key, set: { force: entry.force, hidden: entry.hidden, options: entry.options, category: entry.category ?? null, updatedAt: sql`now()` } })
+            await tx.insert(pluginCatalog).values({ ...entry, category: entry.category ?? null, checks: entry.checks ?? [], breaksPeace: entry.breaksPeace ?? false, updatedAt: new Date() })
+                .onConflictDoUpdate({ target: pluginCatalog.key, set: { force: entry.force, hidden: entry.hidden, options: entry.options, category: entry.category ?? null, checks: entry.checks ?? [], breaksPeace: entry.breaksPeace ?? false, updatedAt: sql`now()` } })
         await tx.delete(pluginCatalog).where(notInArray(pluginCatalog.key, catalog.map(e => e.key)))
     })
 }

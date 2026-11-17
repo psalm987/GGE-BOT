@@ -18,6 +18,7 @@ import { storeConfirmedSecret } from "@gge/api/src/auth/second-factor.ts"
 import { base32Decode } from "@gge/api/src/auth/totp.ts"
 import { publishCatalog, readPluginRegistry } from "@gge/runner/src/catalog.ts"
 import { readServers } from "@gge/runner/src/game-data.ts"
+import { publishGameItems, readGameItems } from "@gge/runner/src/game-items.ts"
 import { demoLogLines } from "./seed-logs.ts"
 
 const root = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..")
@@ -46,6 +47,33 @@ const totpKey = process.env.TOTP_ENCRYPTION_KEY ?? generateEncryptionKey()
 const dataDir = [process.env.GGE_DATA_DIR, path.join(root, "data"), path.join(homedir(), ".cache/gge-bot-verify/seed")]
     .find(d => d && existsSync(path.join(d, "1.xml")))
 
+/** Exercises every settings control. Only the dev database has it; a runner started with --runner drops it again. */
+const DEV_SETTINGS_PREVIEW: Parameters<typeof publishCatalog>[1][number] = {
+    key: "devSettingsPreview", force: false, hidden: false, category: null, breaksPeace: true,
+    checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
+    options: [
+        { type: "Text", key: "commanderWhiteList", default: "1-99" },
+        { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
+        { type: "CastlePicker", key: "sourceCastle" },
+        { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661, 77], advanced: true },
+        {
+            type: "Rows", key: "toolTargets", advanced: true, default: [],
+            columns: [{ key: "castle", type: "castle" }, { key: "tool", type: "tool" }, { key: "target", type: "number", min: 0, max: 100000 }],
+        },
+        { type: "Checkbox", key: "dryRun", default: false, advanced: true },
+    ],
+}
+
+const IRONHOLD_CASTLES = [
+    { kingdom: 0, id: 1001, name: "Ironhold", x: 412, y: 288, type: 1 },
+    { kingdom: 0, id: 1002, name: "Ironhold Watch", x: 430, y: 301, type: 4 },
+    { kingdom: 2, id: 2001, name: "Frostgate", x: 120, y: 77, type: 12 },
+]
+const IRONHOLD_PLUGIN_STATES = {
+    attackNomads: { state: "waiting", reasonKey: "statusEventClosed", params: {} },
+    attack: { state: "running", reasonKey: "statusAttacksToday", params: { used: 1240, limit: 3500 } },
+}
+
 async function seed() {
     const [{ n }] = (await db.execute<{ n: number }>(sql`select count(*)::int as n from ${users}`)).rows as [{ n: number }]
     if (n > 0)
@@ -55,7 +83,9 @@ async function seed() {
         { id: 26, label: "India 1", wsHost: "ep-live-in1-game.goodgamestudios.com", zone: "EmpireEx_26" },
     ]
     await db.insert(servers).values(serverRows)
-    await publishCatalog(db, readPluginRegistry({}).catalog)
+    await publishCatalog(db, [...readPluginRegistry({}).catalog, DEV_SETTINGS_PREVIEW])
+    if (dataDir)
+        await publishGameItems(db, await readGameItems(dataDir))
 
     const passwordHash = await hashPassword("demo-password")
     const verified = new Date()
@@ -80,11 +110,13 @@ async function seed() {
         await db.insert(pluginSettings).values([
             { accountId: account!.id, pluginKey: "feast", enabled: true, options: {} },
             { accountId: account!.id, pluginKey: "attackNomads", enabled: name !== "Newkeep", options: { eventDifficulty: 6 } },
+            ...name === "Ironhold" ? [{ accountId: account!.id, pluginKey: "devSettingsPreview", enabled: true, options: {} }] : [],
         ])
         if (!state)
             continue
         await db.insert(botStatus).values({
             accountId: account!.id, actualState: state, lastError,
+            ...name === "Ironhold" && { pluginStates: IRONHOLD_PLUGIN_STATES, resources: { castles: IRONHOLD_CASTLES } },
             heartbeatAt: state === "running" ? new Date(Date.now() - 40_000) : new Date(Date.now() - 6 * 3600_000),
             bannedUntil: state === "banned" ? new Date(Date.now() + 3 * 86400_000) : null,
         })

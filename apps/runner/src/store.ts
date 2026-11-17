@@ -1,7 +1,7 @@
 import { eq, inArray, isNull, sql } from "drizzle-orm"
-import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type NotificationContent, type UserEvent } from "@gge/contracts"
+import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publish, publishMany, runnerHeartbeat, servers, type Db,
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 import { logTag } from "./log-render.ts"
 
@@ -11,6 +11,8 @@ export type StatusPatch = {
     lastError?: string | null
     bannedUntil?: Date | null
     resources?: unknown
+    /** Only ever `{}`: a new run starts with no plugin states. */
+    pluginStates?: Record<string, never>
     heartbeat?: boolean
 }
 
@@ -76,13 +78,14 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             ...(patch.lastError !== undefined && { lastError: patch.lastError }),
             ...(patch.bannedUntil !== undefined && { bannedUntil: patch.bannedUntil }),
             ...(patch.resources !== undefined && { resources: patch.resources }),
+            ...(patch.pluginStates && { pluginStates: patch.pluginStates }),
             ...(patch.heartbeat && { heartbeatAt: new Date() }),
         }
         return tx.insert(botStatus).values({ accountId, ...set }).onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
     }
     const statusEvent = (status: typeof botStatus.$inferSelect): UserEvent => ({
         v: 1, kind: "status", accountId: status.accountId,
-        status: { actualState: status.actualState, heartbeatAt: status.heartbeatAt, lastError: status.lastError, bannedUntil: status.bannedUntil },
+        status: publicStatus(status),
     })
 
     return {
@@ -103,6 +106,25 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             try {
                 await db.transaction(async tx => {
                     const [status] = await upsertStatus(tx, accountId, patch)
+                    const [account] = await tx.select({ ownerId: gameAccounts.ownerId }).from(gameAccounts).where(eq(gameAccounts.id, accountId))
+                    await publish(tx, userChannel(account!.ownerId), statusEvent(status!))
+                })
+            } catch (error) {
+                if (!isMissingAccount(error)) throw error
+            }
+        },
+
+        /** Merges one plugin's report into the account's states and tells the owner, in one statement and one transaction. */
+        async setPluginState(accountId: string, plugin: string, state: PluginState) {
+            try {
+                await db.transaction(async tx => {
+                    const [status] = await tx.insert(botStatus)
+                        .values({ accountId, pluginStates: { [plugin]: state } })
+                        .onConflictDoUpdate({
+                            target: botStatus.accountId,
+                            set: { pluginStates: sql`${botStatus.pluginStates} || jsonb_build_object(${plugin}::text, ${JSON.stringify(state)}::jsonb)` },
+                        })
+                        .returning()
                     const [account] = await tx.select({ ownerId: gameAccounts.ownerId }).from(gameAccounts).where(eq(gameAccounts.id, accountId))
                     await publish(tx, userChannel(account!.ownerId), statusEvent(status!))
                 })
@@ -185,7 +207,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         /** Runs and statuses a crashed runner left open; nothing is running at boot. */
         async recoverFromLastRun() {
             await db.update(botRuns).set({ endedAt: new Date(), endReason: "runner_lost" }).where(isNull(botRuns.endedAt))
-            await db.update(botStatus).set({ actualState: "stopped" }).where(inArray(botStatus.actualState, ["starting", "running"]))
+            await db.update(botStatus).set({ actualState: "stopped", pluginStates: {} }).where(inArray(botStatus.actualState, ["starting", "running"]))
         },
     }
 }

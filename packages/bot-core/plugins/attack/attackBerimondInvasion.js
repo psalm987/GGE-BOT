@@ -1,5 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
+        checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
         pluginOptions: [
             {
                 type: "Checkbox",

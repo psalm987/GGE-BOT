@@ -1,6 +1,7 @@
 const fs = require("fs")
 if (require('node:worker_threads').isMainThread) {
     module.exports = {
+        checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
         pluginOptions: [
             { type: "Label", key: "easyForts", md: 2 },
             { type: "Checkbox", key: "allowLvl60Easy", default: true },

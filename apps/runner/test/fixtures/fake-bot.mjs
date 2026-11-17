@@ -54,6 +54,12 @@ switch (mode) {
                 post([5, 0, [`discord reply ${payload.ok} `, payload.result?.content ?? payload.error?.message]])
         })
     // falls through
+    case "pstatus":
+        if (mode === "pstatus") {
+            post([24, { plugin: "attack", state: "running", reasonKey: "statusAttacksToday", params: { used: 3, limit: 10 } }])
+            post([24, { plugin: "", state: "bogus", reasonKey: 5, params: null }])
+        }
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))

@@ -205,6 +205,25 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     options: jsonb("options").notNull().default([]),
     /** "attack" for plugins under plugins/attack/, which count toward the attack plugin cap. */
     category: text("category"),
+    /** The plugin's Setup checks, as `PluginCheckDef`s. */
+    checks: jsonb("checks").notNull().default([]),
+    /** Running it ends the account's beginner or peace protection. */
+    breaksPeace: boolean("breaks_peace").notNull().default(false),
+    updatedAt: updatedAt(),
+})
+
+/** Published by the runner at boot from the game's items file; `kind` is a `GameItemKind`. */
+export const gameItems = pgTable("game_items", {
+    /** The item's wodID. */
+    id: integer("id").primaryKey(),
+    kind: text("kind").notNull(),
+    nameKey: text("name_key").notNull(),
+    name: text("name").notNull(),
+    level: integer("level"),
+    /** The glory bonus in whole percent. */
+    fameBonus: integer("fame_bonus"),
+    /** The game CDN asset path, without the extension. */
+    image: text("image"),
     updatedAt: updatedAt(),
 })
 
@@ -214,6 +233,8 @@ export const botStatus = pgTable("bot_status", {
     bannedUntil: timestamp("banned_until", { withTimezone: true }),
     lastError: text("last_error"),
     resources: jsonb("resources"),
+    /** What each plugin last reported during the current run, by plugin key. */
+    pluginStates: jsonb("plugin_states").notNull().default({}),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
 })
 

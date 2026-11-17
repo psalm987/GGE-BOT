@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm"
 import { notificationPrefs, type DataExport } from "@gge/contracts"
 import {
-    auditLog, botLogs, botRuns, botStatus, gameAccounts, licenseCodes, notifications, packages, planPeriods, pluginSettings, pointsLedger, purchases, servers,
+    auditLog, botLogs, botRuns, botStatus, gameAccounts, licenseCodes, notifications, packages, planPeriods, pluginSettings, pointsLedger, publicStatus, purchases, servers,
     toNotification, users,
 } from "@gge/db"
 import type { Ctx } from "../context.ts"
@@ -26,7 +26,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
     const accounts = await db.select({
         id: gameAccounts.id, name: gameAccounts.name, server: servers.label, externalEvent: gameAccounts.externalEvent,
         desiredState: gameAccounts.desiredState, schedule: gameAccounts.schedule, createdAt: gameAccounts.createdAt,
-        status: { actualState: botStatus.actualState, heartbeatAt: botStatus.heartbeatAt, lastError: botStatus.lastError, bannedUntil: botStatus.bannedUntil },
+        status: botStatus,
     }).from(gameAccounts)
         .innerJoin(servers, eq(servers.id, gameAccounts.serverId))
         .leftJoin(botStatus, eq(botStatus.accountId, gameAccounts.id))
@@ -55,7 +55,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
     return {
         exportedAt: new Date(),
         profile: { ...profile, emailVerified: profile.emailVerifiedAt !== null, notificationPrefs: notificationPrefs(profile.notificationPrefs) },
-        accounts,
+        accounts: accounts.map(({ status, ...account }) => ({ ...account, status: status ? publicStatus(status) : null })),
         pluginSettings: settings,
         runs,
         logs,

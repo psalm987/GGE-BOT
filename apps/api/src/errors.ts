@@ -76,6 +76,12 @@ export const ERRORS = {
     PLUGIN_OPTION_TEXT: ["where"],
     PLUGIN_OPTION_BOOLEAN: ["where"],
     PLUGIN_OPTION_CHOICE: ["where", "last"],
+    PLUGIN_OPTION_STEP: ["where", "step"],
+    PLUGIN_OPTION_LIST: ["where", "max"],
+    PLUGIN_OPTION_ROWS: ["where", "max"],
+    PLUGIN_OPTION_ROW: ["where"],
+    PLUGIN_OPTION_CASTLE: ["where"],
+    PLUGIN_OPTION_ITEM: ["where"],
     PLUGIN_ATTACK_CAP: ["count"],
 } as const satisfies Record<string, readonly string[]>
 

@@ -247,5 +247,19 @@
 	"taxesCollected": "Collected taxes and sent the tax collector out again",
 	"taxCollectorRefused": "The tax collector could not be used now: ",
 	"upgradeStormForts": "Upgrade Storm Forts",
-	"gettingSpeedGlobalEffect": "Got effect"
+	"gettingSpeedGlobalEffect": "Got effect",
+	"statusEventClosed": "The event isn't running. This resumes when it opens.",
+	"statusScoreReached": "Stopped at the event score you set ({{score}} points).",
+	"statusAttacksToday": "About {{used}} of {{limit}} attacks used today.",
+	"statusDailyLimitReached": "The daily limit of {{limit}} attacks is reached. This resumes tomorrow.",
+	"dryRun": "Dry run: log attacks instead of sending them",
+	"dryRunAttack": "Dry run, not sent: ",
+	"devSettingsPreview": "Settings preview (dev only)",
+	"stopMinutesBefore": "Stop before the event ends",
+	"sourceCastle": "Castle to attack from",
+	"bannerOrder": "Banner order",
+	"toolTargets": "Tool stock targets",
+	"castle": "Castle",
+	"tool": "Tool",
+	"target": "Target"
 }

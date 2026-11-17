@@ -6,6 +6,7 @@ import {
     PointsSummary, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage, UserPlan,
 } from "./billing.ts"
 import { DataExport } from "./data-export.ts"
+import { GameItem, GameItemKind } from "./game-items.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
@@ -20,8 +21,10 @@ export * from "./billing.ts"
 export * from "./codes.ts"
 export * from "./data-export.ts"
 export * from "./entitlement.ts"
+export * from "./game-items.ts"
 export * from "./notifications.ts"
 export * from "./plans.ts"
+export * from "./plugin-checks.ts"
 export * from "./plugins.ts"
 export * from "./proxies.ts"
 export * from "./realtime.ts"
@@ -34,6 +37,9 @@ const detectLocale = oc.output(z.object({
     country: z.string().nullable(),
     source: z.enum(["ip", "header", "default"]),
 }))
+
+/** The game's items, read from its items file when the runner starts. */
+const gameItems = oc.input(z.object({ kind: GameItemKind })).output(z.array(GameItem))
 
 const session = {
     logout: oc.output(z.void()),
@@ -148,6 +154,7 @@ export const clientContract = {
         attackLimit: oc.output(z.number().int().nullable()),
     },
     servers: { list: oc.output(z.array(Server)) },
+    catalog: { gameItems },
 }
 
 /** What the admin app (admin.<domain>) calls, mounted at /admin/rpc. */
@@ -261,6 +268,7 @@ export const adminContract = {
         /** Its accounts are left without a proxy, and the runner assigns them another when they next start. */
         remove: oc.input(Id).output(z.void()),
     },
+    catalog: { gameItems },
     audit: {
         /** `actorId` and `targetId` together match entries by or about that user. */
         list: oc.input(z.object({ limit: z.number().int().min(1).max(500).default(100), before: z.number().int().optional(), actorId: z.uuid().optional(), targetId: z.uuid().optional() }))

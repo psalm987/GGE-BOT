@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [] },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [] } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -151,4 +151,45 @@ test("each new message wakes Centrifugo's consumer on its partition", async () =
     } finally {
         listener.release(true)
     }
+})
+
+const attackState = { state: "running", reasonKey: "statusAttacksToday", params: { used: 1, limit: 10 } } as const
+const nomadState = { state: "waiting", reasonKey: "statusEventClosed", params: {} } as const
+
+test("plugin reports merge by plugin and each one is published with the status", async () => {
+    await store.setPluginState(accountId, "attack", attackState)
+    await store.setPluginState(accountId, "attackNomads", nomadState)
+    const next = { ...attackState, params: { used: 2, limit: 10 } }
+    await store.setPluginState(accountId, "attack", next)
+
+    const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
+    expect(saved!.pluginStates).toEqual({ attack: next, attackNomads: nomadState })
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events).toHaveLength(3)
+    expect(events[1]).toMatchObject({ kind: "status", accountId, status: { pluginStates: { attack: attackState, attackNomads: nomadState } } })
+    expect(events[2]).toMatchObject({ status: { pluginStates: { attack: next, attackNomads: nomadState } } })
+})
+
+test("a status carries the castles of the worker's last report", async () => {
+    const castle = { kingdom: 0, id: 1001, name: "Ironhold", x: 4, y: 5, type: 1 }
+    await store.setStatus(accountId, { resources: { castles: [castle] } })
+    const [event] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(event).toMatchObject({ status: { castles: [castle] } })
+})
+
+test("starting a worker clears the plugin states, and so does recovering from a crash", async () => {
+    await store.setPluginState(accountId, "attack", attackState)
+    await store.setStatus(accountId, { actualState: "starting", pluginStates: {} })
+    let [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
+    expect(saved!.pluginStates).toEqual({})
+
+    await store.setPluginState(accountId, "attack", attackState)
+    await store.recoverFromLastRun()
+    ;[saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
+    expect(saved).toMatchObject({ actualState: "stopped", pluginStates: {} })
+})
+
+test("a report for an account that was deleted is dropped", async () => {
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
+    await expect(store.setPluginState(accountId, "attack", attackState)).resolves.toBeUndefined()
 })

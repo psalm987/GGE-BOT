@@ -7,6 +7,7 @@ import { publishCatalog, readPluginRegistry } from "./catalog.ts"
 import { createDiscordClient, DiscordHub } from "./discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
 import { readServers, refreshGameData } from "./game-data.ts"
+import { publishGameItems, readGameItems } from "./game-items.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
 import { prunes, runPrunes } from "./maintenance.ts"
@@ -66,6 +67,7 @@ if (env.REFRESH_GAME_DATA)
     await refreshGameData(paths.data)
 for (const server of await readServers(paths.data))
     await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
+await publishGameItems(db, await readGameItems(paths.data))
 
 const registry = readPluginRegistry(ggeConfig)
 await publishCatalog(db, registry.catalog)

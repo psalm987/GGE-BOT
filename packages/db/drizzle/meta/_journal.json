@@ -162,6 +162,13 @@
       "when": 1794928666371,
       "tag": "0022_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794935077831,
+      "tag": "0023_plugin_states_game_items",
+      "breakpoints": true
     }
   ]
 }

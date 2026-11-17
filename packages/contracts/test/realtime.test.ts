@@ -16,7 +16,7 @@ describe("realtime channels", () => {
 describe("realtime events", () => {
     test("a status event read off the wire has real dates again", () => {
         const heartbeatAt = new Date("2031-02-03T04:05:06.789Z")
-        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null } }
+        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [] } }
         expect(UserEvent.parse(overTheWire(event))).toEqual(event)
     })
 

@@ -6,7 +6,8 @@ import type { PublicAccount, Schedule } from "@gge/contracts"
 import { messageOf, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { AccountLogs, AccountRuns } from "./AccountHistory.tsx"
-import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues } from "./PluginSettingsForm.tsx"
+import { withPluginOptions } from "../plugin-values.ts"
+import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues, type SavePluginOptions } from "./PluginSettingsForm.tsx"
 import { ScheduleEditor, scheduleProblem } from "./ScheduleEditor.tsx"
 
 type Values = { name: string; serverId: number; password?: string; externalEvent: boolean; plugins: PluginFormValues; schedule: Schedule | null }
@@ -52,6 +53,11 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     }
     const create = useMutation(orpc.accounts.create.mutationOptions({ onSuccess: a => done(t("drawer.added", { name: a.name })) }))
     const update = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: a => done(t("drawer.saved", { name: a.name })) }))
+    // One plugin's dialog saves at once, without the rest of the drawer and without closing it.
+    const savePlugin = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() }) }))
+    const savePluginOptions: SavePluginOptions | undefined = account && (async (entry, options) => {
+        await savePlugin.mutateAsync({ id: account.id, plugins: withPluginOptions(current?.plugins ?? account.plugins, entry, options) })
+    })
     const saving = create.isPending || update.isPending
     const error = create.error ?? update.error
 
@@ -107,7 +113,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
                 <Switch />
             </Form.Item>
             <Form.Item label={t("drawer.plugins")}>
-                <PluginSettingsForm catalog={catalog.data ?? []} />
+                <PluginSettingsForm catalog={catalog.data ?? []} account={current} onSavePlugin={savePluginOptions} />
             </Form.Item>
             {isNew && schedule}
         </>
