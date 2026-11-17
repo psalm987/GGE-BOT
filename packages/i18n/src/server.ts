@@ -18,7 +18,7 @@ export function createServerI18n(catalogs: Catalogs) {
         interpolation: { escapeValue: false },
         initAsync: false,
     })
-    registerFormats(instance)
+    registerFormats(instance, "UTC")
     return instance
 }
 
