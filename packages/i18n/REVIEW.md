@@ -23,7 +23,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | lv | Latvian | pending | pending | | No game file served. Terms chosen by translator. |
 | mt | Maltese | pending | pending | | PRIORITY. No official game terms. Translator chooses, reviewer confirms. Five plural forms. |
 | nl | Dutch | pending | pending | |  |
-| pl | Polish | pending | pending | |  |
+| pl | Polish | 2026-11-18 | pending | |  |
 | pt | Portuguese | pending | pending | | Game file is pt. Check the variant with a native reviewer. |
 | ro | Romanian | pending | pending | |  |
 | sk | Slovak | pending | pending | |  |
