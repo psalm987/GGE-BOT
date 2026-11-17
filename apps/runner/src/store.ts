@@ -3,6 +3,7 @@ import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type
 import {
     botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
+import { logTag } from "./log-render.ts"
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
@@ -37,7 +38,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
     async function insertLogs(batch: typeof pending) {
         const ids = new Set((await db.select({ id: gameAccounts.id }).from(gameAccounts)
             .where(inArray(gameAccounts.id, [...new Set(batch.map(l => l.accountId))]))).map(r => r.id))
-        const rows = batch.filter(l => ids.has(l.accountId))
+        const rows = batch.filter(l => ids.has(l.accountId)).map(l => ({ ...l, plugin: logTag(l.parts) }))
         if (!rows.length)
             return
         await db.transaction(async tx => {
@@ -46,7 +47,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 channel: botChannel(row.accountId),
                 data: {
                     v: 1, kind: "log", accountId: row.accountId,
-                    line: { id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message, parts: logParts(rows[i]!.parts) },
+                    line: { id: row.id, ts: row.ts, level: rows[i]!.level, message: rows[i]!.message, parts: logParts(rows[i]!.parts), plugin: rows[i]!.plugin },
                 } satisfies BotChannelEvent,
             })))
         })

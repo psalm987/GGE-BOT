@@ -60,16 +60,17 @@ test("a later partial change still publishes every status field", async () => {
 })
 
 test("flushed log lines are published to the account's channel with their parts", async () => {
-    store.log(accountId, 0, ["attackNomads", " started ", 3], "Attack Nomads started 3")
+    store.log(accountId, 0, ["[12:00] ", "[", "attackNomads", "] ", "started ", 3], "[12:00] [attackNomads] started 3")
     store.log(accountId, 2, "not a list", "plain")
     await store.flushLogs()
 
     const saved = await db.select().from(botLogs).where(eq(botLogs.accountId, accountId)).orderBy(asc(botLogs.id))
     const events = (await published(botChannel(accountId))).map(data => BotChannelEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "log", accountId, line: { id: saved[0]!.id, ts: saved[0]!.ts, level: 0, message: "Attack Nomads started 3", parts: ["attackNomads", " started ", 3] } },
-        { v: 1, kind: "log", accountId, line: { id: saved[1]!.id, ts: saved[1]!.ts, level: 2, message: "plain", parts: null } },
+        { v: 1, kind: "log", accountId, line: { id: saved[0]!.id, ts: saved[0]!.ts, level: 0, message: "[12:00] [attackNomads] started 3", parts: ["[12:00] ", "[", "attackNomads", "] ", "started ", 3], plugin: "attackNomads" } },
+        { v: 1, kind: "log", accountId, line: { id: saved[1]!.id, ts: saved[1]!.ts, level: 2, message: "plain", parts: null, plugin: null } },
     ])
+    expect(saved.map(row => row.plugin)).toEqual(["attackNomads", null])
     expect(await published(userChannel(ownerId))).toEqual([])
 })
 

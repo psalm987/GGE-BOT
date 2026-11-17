@@ -21,8 +21,17 @@ describe("realtime events", () => {
     })
 
     test("a log event keeps its parts", () => {
-        const event = { v: 1, kind: "log", accountId, line: { id: 7, ts: new Date("2031-02-03T04:05:06.000Z"), level: 1, message: "a 3", parts: ["a", " ", 3] } }
+        const event = { v: 1, kind: "log", accountId, line: { id: 7, ts: new Date("2031-02-03T04:05:06.000Z"), level: 1, message: "a 3", parts: ["a", " ", 3], plugin: null } }
         expect(BotChannelEvent.parse(overTheWire(event))).toEqual(event)
+    })
+
+    test("a log event keeps the plugin that wrote it", () => {
+        const event = { v: 1, kind: "log", accountId, line: { id: 8, ts: new Date("2031-02-03T04:05:06.000Z"), level: 0, message: "[t] [attack] hi", parts: ["[t] ", "[", "attack", "] ", "hi"], plugin: "attack" } }
+        expect(BotChannelEvent.parse(overTheWire(event))).toEqual(event)
+    })
+    test("a log event from a runner that predates the plugin field still parses, with no plugin", () => {
+        const line = { id: 9, ts: new Date("2031-02-03T04:05:06.000Z"), level: 0, message: "hi", parts: ["hi"] }
+        expect(BotChannelEvent.parse(overTheWire({ v: 1, kind: "log", accountId, line }))).toEqual({ v: 1, kind: "log", accountId, line: { ...line, plugin: null } })
     })
 
     test("an event from a newer version or of an unknown kind is refused, not misread", () => {

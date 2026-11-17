@@ -1,6 +1,6 @@
 import { implement, ORPCError } from "@orpc/server"
 import { asc } from "drizzle-orm"
-import { servers } from "@gge/db"
+import { gameAccounts, servers } from "@gge/db"
 import { clientContract } from "@gge/contracts"
 import type { Ctx } from "../context.ts"
 import { audit } from "../services/audit.ts"
@@ -8,7 +8,8 @@ import {
     accountLogs, accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
-import { connectionToken, subscriptionToken } from "../services/realtime.ts"
+import { logFacets, logFeed } from "../services/logs.ts"
+import { connectionToken, subscriptionToken, subscriptionTokens } from "../services/realtime.ts"
 import { exportData } from "../services/data-export.ts"
 import { detectLocale, setLocale } from "../services/i18n.ts"
 import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
@@ -60,6 +61,10 @@ export const clientRouter = os.router({
         list: os.notifications.list.use(authed).handler(({ context, input }) => listNotifications(context.db, context.user.id, input)),
         markRead: os.notifications.markRead.use(authed).handler(({ context, input }) => markNotificationsRead(context.db, context.user.id, input)),
     },
+    logs: {
+        feed: os.logs.feed.use(verified).handler(({ context: { db, user }, input }) => logFeed(db, user.id, input)),
+        facets: os.logs.facets.use(verified).handler(({ context: { db, user } }) => logFacets(db, user.id)),
+    },
     accounts: {
         list: os.accounts.list.use(verified).handler(({ context }) => listOwnedAccounts(context.db, context.user.id)),
         create: os.accounts.create.use(verified).handler(async ({ context, input }) => {
@@ -102,6 +107,13 @@ export const clientRouter = os.router({
         subscriptionToken: os.realtime.subscriptionToken.use(verified).handler(async ({ context: { db, env, user }, input }) => {
             await getOwnedAccount(db, user.id, input.accountId)
             return subscriptionToken(env.CENTRIFUGO_TOKEN_SECRET, user.id, input.accountId)
+        }),
+        subscriptionTokens: os.realtime.subscriptionTokens.use(verified).handler(async ({ context: { db, env, user }, input }) => {
+            const ids = [...new Set(input.accountIds)]
+            const owned = await db.select({ id: gameAccounts.id }).from(gameAccounts).where(ownedBy(user.id, ids))
+            if (owned.length !== ids.length)
+                throw new ORPCError("NOT_FOUND", { message: "No such account" })
+            return subscriptionTokens(env.CENTRIFUGO_TOKEN_SECRET, user.id, ids)
         }),
     },
     plugins: {

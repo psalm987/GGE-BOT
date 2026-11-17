@@ -5,6 +5,7 @@ import { adminContract } from "@gge/contracts"
 import { resetSecondFactor } from "../auth/second-factor.ts"
 import { revokeUserSessions } from "../auth/sessions.ts"
 import type { Ctx } from "../context.ts"
+import { logFacets, logFeed } from "../services/logs.ts"
 import { audit } from "../services/audit.ts"
 import { detectLocale } from "../services/i18n.ts"
 import { accountLogs, accountRuns, listAccounts, setDesiredState, stopUnentitled } from "../services/accounts.ts"
@@ -170,6 +171,10 @@ export const adminRouter = os.router({
                 .onConflictDoUpdate({ target: appSettings.id, set: { attackPluginCap: input.cap, updatedAt: new Date() } })
             await audit(db, { actorId: user.id, action: "admin.settings.attack_plugin_cap", meta: { from: before?.cap ?? "4", to: input.cap } })
         }),
+    },
+    logs: {
+        feed: os.logs.feed.use(admin).handler(({ context: { db }, input: { ownerId, ...input } }) => logFeed(db, ownerId, input)),
+        facets: os.logs.facets.use(admin).handler(({ context: { db }, input }) => logFacets(db, input.ownerId)),
     },
     accounts: {
         list: os.accounts.list.use(admin).handler(async ({ context: { db }, input }) => {

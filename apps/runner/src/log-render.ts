@@ -11,3 +11,11 @@ export function createLogRenderer() {
         ? parts.map(part => typeof part === "string" ? i18n.__(part) : String(part)).join("")
         : String(parts)
 }
+
+/** The plugin key or core script name a worker's log line came from: ggeBot.js sends `[time] [name] ...`. */
+export function logTag(parts: unknown): string | null {
+    if (!Array.isArray(parts) || parts[1] !== "[")
+        return null
+    const tag = parts[2]
+    return typeof tag === "string" && tag ? tag : null
+}

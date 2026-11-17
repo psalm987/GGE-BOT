@@ -6,7 +6,7 @@ import { Notification, NotificationPrefs } from "./notifications.ts"
 import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
-    ActualState, AdminAccount, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword, LogLine,
+    ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword, LogLine,
     LogsInput, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
@@ -70,6 +70,11 @@ export const clientContract = {
             .output(z.object({ items: z.array(Notification), unread: z.number().int() })),
         markRead: oc.input(NotificationsRead).output(z.void()),
     },
+    /** Every retained line of the caller's accounts together, newest first. */
+    logs: {
+        feed: oc.input(FeedInput).output(z.array(FeedLine)),
+        facets: oc.output(FeedFacets),
+    },
     accounts: {
         list: oc.output(z.array(PublicAccount)),
         create: oc.input(CreateAccount).output(PublicAccount),
@@ -85,6 +90,8 @@ export const clientContract = {
         connectionToken: oc.output(RealtimeToken),
         /** Lets the caller's socket subscribe to one of their accounts' botChannel. */
         subscriptionToken: oc.input(z.object({ accountId: z.uuid() })).output(RealtimeToken),
+        /** One token per account, all or nothing: any id that isn't the caller's refuses the whole call. */
+        subscriptionTokens: oc.input(z.object({ accountIds: z.array(z.uuid()).min(1).max(50) })).output(z.record(z.uuid(), z.string())),
     },
     plugins: {
         catalog: oc.output(z.array(PluginCatalogEntry)),
@@ -129,6 +136,11 @@ export const adminContract = {
     settings: {
         get: oc.output(z.object({ attackPluginCap: AttackPluginCap })),
         setAttackPluginCap: oc.input(z.object({ cap: AttackPluginCap })).output(z.void()),
+    },
+    /** One player's lines together, as they see them. */
+    logs: {
+        feed: oc.input(FeedInput.extend({ ownerId: z.uuid() })).output(z.array(FeedLine)),
+        facets: oc.input(z.object({ ownerId: z.uuid() })).output(FeedFacets),
     },
     accounts: {
         /** `search` matches an account name or its owner's username. `state` is the actual state. Newest first. */

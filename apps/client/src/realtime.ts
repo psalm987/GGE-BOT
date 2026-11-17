@@ -1,7 +1,8 @@
 import { Centrifuge, UnauthorizedError, connectingCodes, disconnectedCodes, type SubscribedContext } from "centrifuge"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
-import { BotChannelEvent, UserEvent, botChannel, userChannel, type Notification, type PublicAccount } from "@gge/contracts"
+import { BotChannelEvent, UserEvent, botChannel, userChannel, type FeedLine, type Notification, type PublicAccount } from "@gge/contracts"
 import { applyUserEvent } from "./account-events.ts"
+import { mergeFeed } from "./log-merge.ts"
 import { client, notificationsQuery, orpc, queryClient } from "./api.ts"
 import { patchQuery } from "./live-cache.ts"
 import { applyNotificationEvent, type NotificationPages } from "./notification-events.ts"
@@ -37,15 +38,43 @@ export const useRealtimeState = () => useSyncExternalStore(watch, () => state)
 /** Answers that won't change by asking again: signed out, email not confirmed, no Centrifugo, not the caller's account. */
 const REFUSALS = new Set(["UNAUTHORIZED", "FORBIDDEN", "NOT_IMPLEMENTED", "NOT_FOUND"])
 
-/** A token for the SDK. A refusal becomes UnauthorizedError, which stops its retries; any other failure is retried. */
-async function tokenFrom(request: () => Promise<{ token: string }>) {
+/** Runs a token request. A refusal becomes UnauthorizedError, which stops the SDK's retries; any other failure is retried. */
+async function guarded<T>(request: () => Promise<T>) {
     try {
-        return (await request()).token
+        return await request()
     } catch (error) {
         const code = (error as { code?: string }).code
         if (code === "UNAUTHORIZED")
             void queryClient.invalidateQueries({ queryKey: orpc.auth.me.queryKey() })
         throw code && REFUSALS.has(code) ? new UnauthorizedError(code) : error
+    }
+}
+const tokenFrom = async (request: () => Promise<{ token: string }>) => (await guarded(request)).token
+
+type TokenWaiter = { accountId: string; resolve: (token: string) => void; reject: (error: unknown) => void }
+let tokenQueue: TokenWaiter[] = []
+
+/** A bot channel's token. Requests made in the same microtask share one call, so mounting a feed of many accounts is one round trip. */
+function botToken(accountId: string) {
+    return new Promise<string>((resolve, reject) => {
+        if (!tokenQueue.length)
+            queueMicrotask(flushTokens)
+        tokenQueue.push({ accountId, resolve, reject })
+    })
+}
+
+async function flushTokens() {
+    const waiting = tokenQueue
+    tokenQueue = []
+    try {
+        const tokens = await guarded(() => client.realtime.subscriptionTokens({ accountIds: [...new Set(waiting.map(w => w.accountId))] }))
+        for (const w of waiting) {
+            const token = tokens[w.accountId]
+            if (token) w.resolve(token)
+            else w.reject(new Error("The server sent no token for this account"))
+        }
+    } catch (error) {
+        waiting.forEach(w => w.reject(error))
     }
 }
 
@@ -128,7 +157,7 @@ export function useBotLog(accountId: string) {
     const [log, setLog] = useState<{ accountId: string; lines: LiveLine[]; gaps: number }>({ accountId, lines: [], gaps: 0 })
     useEffect(() => {
         const subscription = centrifuge.newSubscription(botChannel(accountId), {
-            getToken: () => tokenFrom(() => client.realtime.subscriptionToken({ accountId })),
+            getToken: () => botToken(accountId),
         })
         subscription.on("publication", ({ data }) => {
             const line = parse(BotChannelEvent, data)?.line
@@ -145,4 +174,36 @@ export function useBotLog(accountId: string) {
         return () => centrifuge.removeSubscription(subscription)
     }, [accountId])
     return { lines: log.accountId === accountId ? log.lines : [], gaps: log.accountId === accountId ? log.gaps : 0 }
+}
+
+/**
+ * The log lines of several accounts as they happen, merged newest first, since this was mounted.
+ * `onGap` is called with an account whose subscription could not recover the lines it missed on reconnecting,
+ * so the caller can fetch that stretch again.
+ */
+export function useBotLogs(accountIds: string[], { onGap }: { onGap?: (accountId: string) => void } = {}) {
+    const [lines, setLines] = useState<FeedLine[]>([])
+    const gap = useRef(onGap)
+    useEffect(() => { gap.current = onGap })
+    const key = [...new Set(accountIds)].sort().join(",")
+    useEffect(() => {
+        const ids = key ? key.split(",") : []
+        setLines(lines => lines.filter(line => ids.includes(line.accountId)))
+        const subscriptions = ids.map(accountId => {
+            const subscription = centrifuge.newSubscription(botChannel(accountId), { getToken: () => botToken(accountId) })
+            subscription.on("publication", ({ data }) => {
+                const event = parse(BotChannelEvent, data)
+                if (event)
+                    setLines(lines => mergeFeed(lines, [{ ...event.line, accountId: event.accountId }]))
+            })
+            subscription.on("subscribed", ctx => {
+                if (ctx.wasRecovering && !ctx.recovered)
+                    gap.current?.(accountId)
+            })
+            subscription.subscribe()
+            return subscription
+        })
+        return () => subscriptions.forEach(s => centrifuge.removeSubscription(s))
+    }, [key])
+    return lines
 }

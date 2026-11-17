@@ -21,3 +21,7 @@ export const connectionToken = (secret: string | undefined, userId: string) => s
 /** Only for an account the caller has been shown to own: the token is the whole permission check. */
 export const subscriptionToken = (secret: string | undefined, userId: string, accountId: string) =>
     sign(secret, { sub: userId, channel: botChannel(accountId) })
+
+/** `subscriptionToken` for several accounts at once; only for ids the caller has been shown to own. */
+export const subscriptionTokens = (secret: string | undefined, userId: string, accountIds: string[]) =>
+    Object.fromEntries(accountIds.map(id => [id, subscriptionToken(secret, userId, id).token]))

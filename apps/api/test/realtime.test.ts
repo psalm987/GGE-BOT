@@ -1,6 +1,8 @@
 import { createHmac } from "node:crypto"
+import { sql } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { botChannel } from "@gge/contracts"
+import { users } from "@gge/db"
 import { startApi, type Api } from "./harness.ts"
 
 const SECRET = "test-centrifugo-secret-0123456789abcdef"
@@ -51,6 +53,29 @@ describe("with Centrifugo set up", () => {
 
         expect(await codeOf(alice.api.realtime.subscriptionToken({ accountId: theirs.id }))).toBe("NOT_FOUND")
         expect(await codeOf(alice.api.realtime.subscriptionToken({ accountId: crypto.randomUUID() }))).toBe("NOT_FOUND")
+    })
+
+    test("a batch gives one token per account, each for its own channel", async () => {
+        const alice = await api.player()
+        await api.db.update(users).set({ maxBots: 2 }).where(sql`lower(${users.email}) = ${alice.email.toLowerCase()}`)
+        const me = await alice.api.auth.me()
+        const [one, two] = [await alice.api.accounts.create(newAccount("rt-batch-1")), await alice.api.accounts.create(newAccount("rt-batch-2"))]
+
+        const tokens = await alice.api.realtime.subscriptionTokens({ accountIds: [one.id, two.id, one.id] })
+
+        expect(Object.keys(tokens).sort()).toEqual([one.id, two.id].sort())
+        expect(verify(tokens[one.id]!)).toMatchObject({ sub: me!.id, channel: botChannel(one.id) })
+        expect(verify(tokens[two.id]!)).toMatchObject({ sub: me!.id, channel: botChannel(two.id) })
+    })
+
+    test("one account that isn't the caller's refuses the whole batch", async () => {
+        const alice = await api.player()
+        const bob = await api.player()
+        const mine = await alice.api.accounts.create(newAccount("rt-batch-mine"))
+        const theirs = await bob.api.accounts.create(newAccount("rt-batch-theirs"))
+
+        expect(await codeOf(alice.api.realtime.subscriptionTokens({ accountIds: [mine.id, theirs.id] }))).toBe("NOT_FOUND")
+        expect(await codeOf(alice.api.realtime.subscriptionTokens({ accountIds: [mine.id, crypto.randomUUID()] }))).toBe("NOT_FOUND")
     })
 
     test("a player who hasn't confirmed their email gets no tokens", async () => {

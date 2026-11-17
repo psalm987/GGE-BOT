@@ -131,6 +131,30 @@ export const LogLine = z.object({
     message: z.string(),
     /** Raw translation keys and values, for rendering in the viewer's language. */
     parts: z.array(z.union([z.string(), z.number()])).nullable(),
+    /** The plugin key or core script name that wrote the line, when its parts say. Defaults to null so lines from a runner older than this field still parse. */
+    plugin: z.string().nullable().default(null),
+})
+
+/** A line in the global feed, which mixes accounts. */
+export const FeedLine = LogLine.extend({ accountId: z.uuid() })
+export type FeedLine = z.infer<typeof FeedLine>
+
+export const LogLevel = z.union([z.literal(0), z.literal(1), z.literal(2)])
+
+export const FeedInput = z.object({
+    accountIds: z.array(z.uuid()).max(50).optional(),
+    levels: z.array(LogLevel).optional(),
+    plugins: z.array(z.string()).max(64).optional(),
+    before: z.number().int().optional(),
+    limit: z.number().int().min(1).max(500).default(200),
+})
+
+/** What the owner's retained lines hold, so a filter bar offers only choices that match something. */
+export const FeedFacets = z.object({
+    total: z.number().int(),
+    accounts: z.array(z.object({ id: z.uuid(), name: z.string(), serverLabel: z.string(), count: z.number().int() })),
+    plugins: z.array(z.object({ key: z.string(), count: z.number().int() })),
+    levels: z.array(z.object({ level: z.number().int(), count: z.number().int() })),
 })
 
 export const Run = z.object({

@@ -219,7 +219,9 @@ export const botLogs = pgTable("bot_logs", {
     message: text("message").notNull(),
     /** The worker's raw parts (translation keys and values), so the UI can render it in the viewer's language. */
     parts: jsonb("parts"),
-}, t => [index("bot_logs_account").on(t.accountId, t.id)])
+    /** Who wrote the line: a plugin key or a core script name, taken from the raw parts, so a feed can filter by it. */
+    plugin: text("plugin"),
+}, t => [index("bot_logs_account").on(t.accountId, t.id), index("bot_logs_account_plugin").on(t.accountId, t.plugin, t.id)])
 
 export const botRuns = pgTable("bot_runs", {
     id: bigserial("id", { mode: "number" }).primaryKey(),
