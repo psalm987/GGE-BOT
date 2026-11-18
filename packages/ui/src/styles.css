@@ -477,3 +477,112 @@ body {
 .gge-cmdk-empty { padding: 24px 12px; color: var(--gge-muted); text-align: center; }
 .gge-cmdk-foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 16px; border-top: 1px solid var(--gge-rule); color: var(--gge-muted); font-size: 12px; }
 @media (max-width: 575.98px) { .gge-cmdk .ant-modal { top: 8px; max-width: calc(100vw - 16px); margin-inline: auto; } .gge-cmdk-foot { display: none; } }
+
+/* The sidebar with groups: real links in a column that scrolls by itself under the crest and the filter box. */
+.gge-sider-grouped { position: sticky; top: 0; height: 100dvh; overflow: hidden; }
+.gge-sider-grouped > .ant-layout-sider-children, .gge-nav-drawer .ant-drawer-body { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.gge-nav-filter { flex: none; padding: 10px 12px 4px; }
+.gge-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 8px 16px; scrollbar-color: var(--gge-rule) transparent; position: relative; }
+.gge-nav ul { list-style: none; margin: 0; padding: 0; }
+.gge-nav-group-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 6px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--gge-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: start;
+    cursor: pointer;
+}
+.gge-nav-group-button:hover { color: var(--gge-parchment); }
+.gge-nav-chevron { font-size: 10px; transition: transform 0.15s; }
+.gge-nav-group-button[aria-expanded="false"] .gge-nav-chevron { transform: rotate(-90deg); }
+[dir="rtl"] .gge-nav-group-button[aria-expanded="false"] .gge-nav-chevron { transform: rotate(90deg); }
+.gge-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: var(--gge-muted);
+    text-decoration: none;
+}
+.gge-nav-link:hover { color: var(--gge-parchment); background: rgba(243, 231, 201, 0.05); }
+.gge-nav-link[aria-current="page"] { color: var(--gge-gold); background: rgba(224, 165, 38, 0.14); font-weight: 600; }
+.gge-nav-link:focus-visible { outline-offset: -2px; }
+.gge-nav-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; font-size: 18px; }
+.gge-nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gge-nav-tag { flex: none; padding: 0 6px; border: 1px solid var(--gge-rule); border-radius: 4px; font-size: 11px; line-height: 16px; color: var(--gge-muted); }
+.gge-nav-divider { height: 1px; margin: 8px 6px; border: 0; background: var(--gge-rule); }
+.gge-nav-empty { margin: 12px; color: var(--gge-muted); }
+.gge-art { display: block; object-fit: contain; }
+@media (prefers-reduced-motion: reduce) { .gge-nav-chevron { transition: none; } }
+
+/*
+ * The player app's chunky game buttons. Only a page whose <html> has the gge-game class gets them, so admin keeps flat buttons.
+ * Each variant is a light inset top edge, a top-to-bottom gradient and a darker bottom edge that the press takes away.
+ */
+html.gge-game {
+    --gge-btn-primary-top: #E0A526;
+    --gge-btn-primary-bottom: #B9821A;
+    --gge-btn-primary-edge: #6E4A0E;
+    --gge-btn-primary-text: #1A130D;
+    --gge-btn-default-top: #3A2E22;
+    --gge-btn-default-bottom: #2B221B;
+    --gge-btn-default-edge: #0F0B08;
+    --gge-btn-default-text: #F3E7C9;
+    --gge-btn-danger-top: #FF7B8A;
+    --gge-btn-danger-bottom: #DC5A6E;
+    --gge-btn-danger-edge: #7E2432;
+    --gge-btn-danger-text: #1A130D;
+}
+html.gge-game .ant-btn {
+    --btn-top: var(--gge-btn-default-top);
+    --btn-bottom: var(--gge-btn-default-bottom);
+    --btn-edge: var(--gge-btn-default-edge);
+    --btn-text: var(--gge-btn-default-text);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled) {
+    position: relative;
+    border: 1px solid var(--btn-edge);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--btn-top), var(--btn-bottom)) !important;
+    color: var(--btn-text) !important;
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 0 var(--btn-edge), 0 6px 10px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.06s, box-shadow 0.06s, filter 0.12s;
+}
+html.gge-game .ant-btn.ant-btn-primary {
+    --btn-top: var(--gge-btn-primary-top);
+    --btn-bottom: var(--gge-btn-primary-bottom);
+    --btn-edge: var(--gge-btn-primary-edge);
+    --btn-text: var(--gge-btn-primary-text);
+}
+html.gge-game .ant-btn.ant-btn-dangerous {
+    --btn-top: var(--gge-btn-danger-top);
+    --btn-bottom: var(--gge-btn-danger-bottom);
+    --btn-edge: var(--gge-btn-danger-edge);
+    --btn-text: var(--gge-btn-danger-text);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled):hover {
+    filter: brightness(1.08);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled):active {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 0 var(--btn-edge), 0 3px 6px rgba(0, 0, 0, 0.35) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(:disabled):active { transform: none; }
+}

@@ -35,6 +35,9 @@
   "PROXY_TWIN_PIN": "An event twin uses its main account's proxy. Pin the main account instead.",
   "SERVER_UNKNOWN": "Unknown server",
   "ACCOUNT_DUPLICATE": "This game account is already added",
+  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
+  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
+  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
   "PLAN_NOT_FOUND": "No such plan",
   "PACKAGE_NOT_FOUND": "No such package",
   "PURCHASE_NOT_FOUND": "No such purchase",
@@ -82,6 +85,7 @@
   "PLUGIN_OPTION_ROW": "{{where}} has a column this setting doesn't have",
   "PLUGIN_OPTION_CASTLE": "{{where}} must be one of the account's castles",
   "PLUGIN_OPTION_ITEM": "{{where}} must be a game item",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
   "PLUGIN_ATTACK_CAP_one": "Your plan allows {{count}} attack plugin at once. Turn some off to save.",
   "PLUGIN_ATTACK_CAP_other": "Your plan allows {{count}} attack plugins at once. Turn some off to save.",
   "zod.invalid_type": "This field has the wrong type.",
@@ -94,5 +98,6 @@
   "zod.invalid_union": "This doesn't match any allowed form.",
   "zod.invalid_key": "This contains an invalid key.",
   "zod.invalid_element": "This contains an invalid item.",
-  "zod.custom": "This is not valid."
+  "zod.custom": "This is not valid.",
+  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
 }

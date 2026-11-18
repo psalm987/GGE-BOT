@@ -42,6 +42,10 @@ export const ERRORS = {
     PROXY_TWIN_PIN: [],
     SERVER_UNKNOWN: [],
     ACCOUNT_DUPLICATE: [],
+    VIRTUAL_PRESET_NOT_FOUND: [],
+    VIRTUAL_PRESET_DUPLICATE: [],
+    VIRTUAL_PRESET_IN_USE: [],
+    VIRTUAL_PRESET_LIMIT: ["max"],
     PLAN_NOT_FOUND: [],
     PACKAGE_NOT_FOUND: [],
     PURCHASE_NOT_FOUND: [],
@@ -82,6 +86,7 @@ export const ERRORS = {
     PLUGIN_OPTION_ROW: ["where"],
     PLUGIN_OPTION_CASTLE: ["where"],
     PLUGIN_OPTION_ITEM: ["where"],
+    PLUGIN_OPTION_ARMY: ["where"],
     PLUGIN_ATTACK_CAP: ["count"],
 } as const satisfies Record<string, readonly string[]>
 

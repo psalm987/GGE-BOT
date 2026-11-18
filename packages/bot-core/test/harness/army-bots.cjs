@@ -67,9 +67,9 @@ async function firstCra(relPath, start, { kingdomID = 0, inventory, area, effect
 }
 
 const barons = (options, game) => firstCra("plugins/attack/sharedBarronAttackLogic.js",
-    hit => hit(BARON, game.kingdomID ?? 0, options, 81), { area: { type: BARON, x: 110, y: 105, extraData: [0, 400, 0], timeSinceRequest: 0 }, ...game })
+    hit => hit(BARON, game.kingdomID ?? 0, options, 81, "/plugins/attackBarronsGreatEmpire.js"), { area: { type: BARON, x: 110, y: 105, extraData: [0, 400, 0], timeSinceRequest: 0 }, ...game })
 
 const fortress = (options, game) => firstCra("plugins/attack/sharedFortressAttackLogic.js",
-    hit => hit(game.kingdomID ?? 1, game.level ?? 60, options), { kingdomID: 1, area: { type: FORTRESS, x: 120, y: 90, extraData: [0, 0, 0], timeSinceRequest: 0 }, ...game })
+    hit => hit(game.kingdomID ?? 1, game.level ?? 60, options, "/plugins/attackFortressesBurningSands.js"), { kingdomID: 1, area: { type: FORTRESS, x: 120, y: 90, extraData: [0, 0, 0], timeSinceRequest: 0 }, ...game })
 
 module.exports = { firstCra, barons, fortress, unit, melee, ranged, tool, BARON, FORTRESS }

@@ -1,31 +1,42 @@
-import { CrownOutlined, ProfileOutlined, SettingOutlined, SyncOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
-import { Grid, Tag, type MenuProps } from "antd"
+import { InfoCircleOutlined, SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
+import { moduleOfPlugin } from "@gge/contracts"
+import { App, Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
 import { CampaignLayout, type CommandItem } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
+import { buildNav, pathOf } from "../nav.ts"
 import { pendingCode } from "../plan-model.ts"
 import { useRealtimeState } from "../realtime.ts"
+import { hasUnsaved, setUnsaved } from "../unsaved.ts"
 import { usePlanVisible } from "../use-billing.ts"
 import { AlertBanners } from "./AlertBanners.tsx"
 import { NotificationBell } from "./NotificationBell.tsx"
 
-const ROUTES = { accounts: "/", logs: "/logs", plan: "/plan", settings: "/settings" } as const
-
 /** The signed-in shell shared by every player page. */
 export function AppLayout({ activeKey, title, extra, accountMenu = [], children }: {
-    activeKey: keyof typeof ROUTES
+    /** A page key ("accounts", "logs", "plan", "settings") or a module's, "m:<id>". */
+    activeKey: string
     title: ReactNode
     extra?: ReactNode
     accountMenu?: NonNullable<MenuProps["items"]>
     children: ReactNode
 }) {
-    const navigate = useNavigate()
+    const routerNavigate = useNavigate()
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
+    const { modal } = App.useApp()
+    // A module page with unsaved edits asks before the shell takes the player anywhere else.
+    const navigate = useCallback((to: string, options?: { replace?: boolean }) => {
+        if (!hasUnsaved()) return routerNavigate(to, options)
+        modal.confirm({
+            title: t("drawer.discardTitle"), content: t("drawer.discardBody"), okText: t("drawer.discard"), okButtonProps: { danger: true }, cancelText: t("drawer.keepEditing"),
+            onOk: () => { setUnsaved(false); routerNavigate(to, options) },
+        })
+    }, [routerNavigate, modal, t])
     const me = useMe()
     const logout = useLogout()
     const saveLocale = useSaveLocale()
@@ -38,10 +49,10 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), enabled: verifiedUser })
     const servers = useQuery({ ...orpc.servers.list.queryOptions(), enabled: verifiedUser })
     const catalog = useQuery({ ...orpc.plugins.catalog.queryOptions(), enabled: verifiedUser })
-    // Accounts open their drawer through the Dashboard's ?account= link, and a plugin's settings through ?plugin=.
+    // Accounts open their drawer through the Overview's ?account= link, and a plugin's settings are on its module's page.
     const commands = useMemo<CommandItem[]>(() => {
         const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
-        const configurable = catalog.data?.filter(entry => entry.options.length > 0) ?? []
+        const configurable = catalog.data?.filter(entry => entry.options.length > 0 && moduleOfPlugin(entry.key)) ?? []
         return (accounts.data ?? []).flatMap(account => [
             {
                 id: `account:${account.id}`, group: "accounts" as const, label: account.name, hint: serverLabel.get(account.serverId), icon: <UserOutlined />,
@@ -51,7 +62,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
                 const label = tb(entry.key, { defaultValue: entry.key })
                 return {
                     id: `plugin:${account.id}:${entry.key}`, group: "plugins" as const, label, hint: account.name, icon: <SettingOutlined />,
-                    keywords: [entry.key, t("palette.pluginKeyword")], run: () => navigate(`/?account=${account.id}&plugin=${entry.key}`),
+                    keywords: [entry.key, t("palette.pluginKeyword")], run: () => navigate(`/m/${moduleOfPlugin(entry.key)!.id}?account=${account.id}`),
                 }
             }),
         ])
@@ -64,26 +75,24 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     }, [verified, pathname, navigate])
     async function signOut() {
         await logout.mutateAsync({})
-        navigate("/login", { replace: true })
+        routerNavigate("/login", { replace: true })
     }
+    const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible, new Set(catalog.data?.map(e => e.key))), [t, tc, planVisible, catalog.data])
     return (
         <CampaignLayout
             product="GGE Command"
-            nav={[
-                { key: "accounts", label: tc("nav.accounts"), icon: <TeamOutlined /> },
-                { key: "logs", label: t("nav.logs"), icon: <ProfileOutlined /> },
-                ...planVisible ? [{ key: "plan", label: t("nav.plan"), icon: <CrownOutlined /> }] : [],
-                { key: "settings", label: tc("nav.settings"), icon: <SettingOutlined /> },
-            ]}
+            nav={nav}
             activeKey={activeKey}
-            onNavigate={key => navigate(ROUTES[key as keyof typeof ROUTES])}
+            onNavigate={key => navigate(pathOf(key))}
             title={title}
             banners={<AlertBanners />}
             username={me.data?.username ?? ""}
             onLogout={signOut}
             onLanguageChange={saveLocale}
             commands={commands}
-            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
+            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(pathOf("settings")) },
+                ...accountMenu,
+                { key: "credits", icon: <InfoCircleOutlined />, label: t("credits.link"), onClick: () => navigate("/credits") }]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}
                 <span role="status">

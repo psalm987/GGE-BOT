@@ -553,3 +553,59 @@ describe("logging", () => {
         }
     })
 })
+
+describe("unit order", () => {
+    const mixed = () => [melee(1, 5000), melee(3, 5000, { meleeAttack: "50" }), ranged(2, 5000), ranged(4, 5000, { rangeAttack: "50" }), ...siegeTools()]
+    const firstPicks = cra => ({ melee: cra.A[0].L.U[0][0], ranged: cra.A[0].M.U[0][0] })
+
+    test("without one the troops go in the castle's order, as before", async () => {
+        const { sent } = await glory("attackForeign", { inventory: mixed() })
+        expect(firstPicks(sent("cra")[0])).toEqual({ melee: 1, ranged: 2 })
+    })
+
+    test("strongest first sends the strongest melee and ranged troops first", async () => {
+        const { sent } = await glory("attackForeign", { options: { unitOrder: 2 }, inventory: mixed() })
+        expect(firstPicks(sent("cra")[0])).toEqual({ melee: 3, ranged: 4 })
+    })
+})
+
+describe("a wave plan", () => {
+    const side = (tools, units) => ({ tools: Array(tools).fill(null), units: Array(units).fill(null) })
+    const custom = () => ({ kind: "custom", left: side(2, 2), front: side(3, 6), right: side(2, 2) })
+    const empty = { kind: "preset", preset: 0 }
+    const plan = () => {
+        const first = custom()
+        first.left = { tools: [{ item: LADDER, amount: 10 }, null], units: [{ item: 2, amount: 40 }, null] }
+        first.front.units[0] = { item: 1, amount: 9999 }
+        return { kind: "manual", waves: [first, empty, empty, empty], ast: [null, null, null], rw: [{ item: 1, amount: 60 }, null, null, null, null, null, null, null] }
+    }
+    const banners = () => [...army(), banner(700, 500, 25)]
+
+    test("is sent as written, with no banners or siege tools added", async () => {
+        const { sent } = await glory("attackForeign", { options: { armyMode: "waves", waves: plan() }, inventory: banners() })
+        const cra = sent("cra")[0]
+        expect(cra.A[0].L).toEqual({ T: [[LADDER, 10], [-1, 0]], U: [[2, 40], [-1, 0]] })
+        expect(cra.A[0].M.U[0]).toEqual([1, 154])
+        expect(cra.A[0].R.T).toEqual([[-1, 0], [-1, 0]])
+        expect(cra.A.slice(1).flatMap(wave => [wave.L, wave.M, wave.R]).flatMap(part => [...part.T, ...part.U]).every(([wodID]) => wodID == -1)).toBe(true)
+        expect(cra.RW[0]).toEqual([1, 60])
+    })
+
+    test("with dry run it is logged and nothing is sent or taken", async () => {
+        const log = vi.spyOn(console, "log").mockImplementation(() => {})
+        const inventory = banners()
+        const { sent } = await glory("attackForeign", { options: { armyMode: "waves", waves: plan(), dryRun: true }, inventory })
+        expect(sent("cra")).toEqual([])
+        const logged = log.mock.calls.find(([key]) => key == "dryRunAttack")
+        expect(JSON.parse(logged[1]).A[0].L.U[0]).toEqual([2, 40])
+        expect(inventory.find(unit => unit.unitInfo.wodID == 2).amount).toBe(5000)
+    })
+
+    test("that names an in-game preset stops the plugin with the reason", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const waves = { ...plan(), waves: [{ kind: "preset", preset: 4 }, empty, empty, empty] }
+        const { sent, statuses } = await glory("attackForeign", { options: { armyMode: "waves", waves } })
+        expect(sent("cra")).toEqual([])
+        expect(statuses).toEqual([{ plugin: "attackForeign", state: "error", reasonKey: "statusArmyServerPreset", params: { preset: 4 } }])
+    })
+})

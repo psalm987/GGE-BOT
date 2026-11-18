@@ -1,0 +1,282 @@
+{
+  "set": "Game Icons",
+  "setUrl": "https://game-icons.net",
+  "setAuthors": "GameIcons",
+  "licence": "CC BY 3.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+  "icons": [
+    {
+      "id": "all-seeing-eye",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/all-seeing-eye.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "castle",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/castle.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "shopping-cart",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/shopping-cart.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "tarot-10-wheel-of-fortune",
+      "author": "Caro Asercion",
+      "source": "https://game-icons.net/1x1/caro-asercion/tarot-10-wheel-of-fortune.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "overlord-helm",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/overlord-helm.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "bread",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/bread.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "envelope",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/envelope.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "magic-portal",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/magic-portal.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "crossed-axes",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/crossed-axes.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "stone-tower",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/stone-tower.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "rank-3",
+      "author": "Skoll",
+      "source": "https://game-icons.net/1x1/skoll/rank-3.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "anvil",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/anvil.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "sword-smithing",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/sword-smithing.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "cloaked-figure-on-horseback",
+      "author": "Caro Asercion",
+      "source": "https://game-icons.net/1x1/caro-asercion/cloaked-figure-on-horseback.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "sinking-ship",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/sinking-ship.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "locked-fortress",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/locked-fortress.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "wolf-head",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/wolf-head.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "viking-helmet",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/viking-helmet.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "raven",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/raven.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "battle-gear",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/battle-gear.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "coins-pile",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/coins-pile.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "gear-hammer",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/gear-hammer.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "imperial-crown",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/imperial-crown.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "swordman",
+      "author": "Cathelineau",
+      "source": "https://game-icons.net/1x1/cathelineau/swordman.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "stone-wall",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/stone-wall.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "mail-shirt",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/mail-shirt.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "tornado",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/tornado.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "tower-bridge",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/tower-bridge.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "healing-shield",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/healing-shield.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "stone-crafting",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/stone-crafting.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "steak",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/steak.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "banknote",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/banknote.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "calendar",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/calendar.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "siren",
+      "author": "Skoll",
+      "source": "https://game-icons.net/1x1/skoll/siren.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "open-treasure-chest",
+      "author": "Skoll",
+      "source": "https://game-icons.net/1x1/skoll/open-treasure-chest.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "sword-clash",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/sword-clash.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "trumpet-flag",
+      "author": "Delapouite",
+      "source": "https://game-icons.net/1x1/delapouite/trumpet-flag.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "cog",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/cog.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    },
+    {
+      "id": "erlenmeyer",
+      "author": "Lorc",
+      "source": "https://game-icons.net/1x1/lorc/erlenmeyer.html",
+      "licence": "CC BY 3.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/3.0/"
+    }
+  ]
+}

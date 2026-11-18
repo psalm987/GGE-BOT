@@ -27,3 +27,14 @@ export function topAccounts(accounts: readonly PublicAccount[], activity: LogAct
         .sort((a, b) => b.attacks - a.attacks || a.errors - b.errors || a.account.name.localeCompare(b.account.name))
         .slice(0, limit)
 }
+
+export type ResourceTotals = { coins: number | null; rubies: number | null }
+
+/** Coins and rubies across the accounts' latest reports, or null for a figure no account has reported. Event twins are other servers' money, so they count too. */
+export function resourceTotals(accounts: readonly PublicAccount[]): ResourceTotals {
+    const sum = (pick: (r: NonNullable<NonNullable<PublicAccount["status"]>["resources"]>) => number | null) => {
+        const figures = accounts.flatMap(a => { const r = a.status?.resources; const v = r ? pick(r) : null; return v === null || v === undefined ? [] : [v] })
+        return figures.length ? figures.reduce((total, v) => total + v, 0) : null
+    }
+    return { coins: sum(r => r.cash), rubies: sum(r => r.gold) }
+}

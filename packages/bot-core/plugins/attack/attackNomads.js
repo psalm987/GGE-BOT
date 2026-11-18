@@ -65,6 +65,7 @@ if (require('node:worker_threads').isMainThread)
                 key: "commanderWhiteList",
                 default: "1-99"
             },
+            { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
             {
                 type: "Text",
                 key: "scoreShutoff"
@@ -104,7 +105,7 @@ reportStatus("waiting", "statusEventClosed")
 
 const skipTarget = async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
-        let skip = spendSkip(areaInfo.extraData[2])
+        let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
 
         if (skip == undefined)
             throw new Error("couldntFindSkip")

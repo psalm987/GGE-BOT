@@ -48,10 +48,6 @@ export function toPluginSettings(catalog: PluginCatalogEntry[], values: PluginFo
     return out
 }
 
-/** Saved settings with one plugin's options replaced; its enabled state stays as saved. */
-export const withPluginOptions = (saved: PluginSettings, entry: PluginCatalogEntry, values: OptionValues): PluginSettings =>
-    ({ ...saved, [entry.key]: { enabled: entry.force || Boolean(saved[entry.key]?.enabled), options: optionsToSave(entry, values) } })
-
 /** How many advanced options hold something other than their default. */
 export const changedAdvanced = (entry: PluginCatalogEntry, values: OptionValues) =>
     Object.keys(optionsToSave({ ...entry, options: entry.options.filter(def => def.advanced) }, values)).length

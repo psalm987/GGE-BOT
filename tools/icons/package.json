@@ -1,0 +1,17 @@
+{
+  "name": "@gge/icons",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gge/contracts": "workspace:*",
+    "@gge/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@iconify-json/game-icons": "1.2.4",
+    "@types/node": "^26.6.6"
+  }
+}

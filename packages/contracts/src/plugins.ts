@@ -1,9 +1,12 @@
 import * as z from "zod"
+import { ArmyMode, AutofillSource, SkipTypes, WavePlan } from "./army.ts"
 import { PluginCheckDef } from "./plugin-checks.ts"
 
 const key = z.string().min(1)
 /** Puts the option in the settings dialog's Advanced view. */
 const advanced = z.literal(true).optional()
+/** Shows the option only while the plugin's ArmyMode option is in this mode. */
+const army = ArmyMode.optional()
 
 /** One of the player's castles, as a bot reports it: the castle's object id within its kingdom. */
 export const CastleRef = z.object({ kingdom: z.number().int().min(0), id: z.number().int() })
@@ -38,18 +41,24 @@ export type RowValue = z.infer<typeof RowValue>
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
     z.looseObject({ type: z.literal(""), key: z.undefined().optional(), advanced }),
-    z.looseObject({ type: z.literal("Label"), key, advanced }),
+    z.looseObject({ type: z.literal("Label"), key, advanced, army }),
     /** `min` and `max` make it a number field; an empty value means "use the default". */
-    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), advanced }),
-    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), advanced }),
-    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), advanced }),
+    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), advanced, army }),
+    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), advanced, army }),
+    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), advanced, army }),
     z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), advanced }),
-    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), default: z.number().optional(), advanced }),
+    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), default: z.number().optional(), advanced, army }),
     /** Items from `catalog` in the order the plugin tries them, as wodIDs. */
-    z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), advanced }),
-    z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), advanced }),
+    z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), advanced, army }),
+    z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), advanced, army }),
     /** One of the account's castles; null until the player picks one. */
     z.looseObject({ type: z.literal("CastlePicker"), key, default: z.null().optional(), advanced }),
+    /** The time skips this plugin may spend; null follows the account's Skips settings. */
+    z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), advanced }),
+    /** Autofill or Waves. `autofill` says which options make up the autofill, for its one-line summary. */
+    z.looseObject({ type: z.literal("ArmyMode"), key, default: ArmyMode.optional(), autofill: AutofillSource, advanced }),
+    /** A wave plan; unset until the player writes one. */
+    z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), advanced, army }),
 ])
 export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 /** An option that holds a value: every type but the layout gap and the label. */
@@ -83,7 +92,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, z.array(z.number().int()), z.array(RowValue)])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue)])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -104,7 +113,7 @@ export type PluginSettingsProblem =
     | { code: "PLUGIN_OPTION_CHOICE"; params: { where: string; last: number } }
     | { code: "PLUGIN_OPTION_STEP"; params: { where: string; step: number } }
     | { code: "PLUGIN_OPTION_LIST" | "PLUGIN_OPTION_ROWS"; params: { where: string; max: number } }
-    | { code: "PLUGIN_OPTION_ROW" | "PLUGIN_OPTION_CASTLE" | "PLUGIN_OPTION_ITEM"; params: { where: string } }
+    | { code: "PLUGIN_OPTION_ROW" | "PLUGIN_OPTION_CASTLE" | "PLUGIN_OPTION_ITEM" | "PLUGIN_OPTION_ARMY"; params: { where: string } }
     | { code: "PLUGIN_ATTACK_CAP"; params: { count: number } }
 
 export class PluginSettingsError extends Error {
@@ -166,6 +175,13 @@ function checkRow(columns: RowColumn[], row: unknown, where: string): RowValue {
     return parsed.data
 }
 
+function parsedArmy<T extends OptionValue>(schema: z.ZodType<T>, value: OptionValue, where: string): T {
+    const parsed = schema.safeParse(value)
+    if (!parsed.success)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ARMY", params: { where } })
+    return parsed.data
+}
+
 function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
     switch (def.type) {
         case "":
@@ -207,6 +223,12 @@ function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string)
             if (value !== null && !CastleRef.safeParse(value).success)
                 throw new PluginSettingsError({ code: "PLUGIN_OPTION_CASTLE", params: { where } })
             return value
+        case "SkipTypes":
+            return parsedArmy(SkipTypes, value, where)
+        case "ArmyMode":
+            return parsedArmy(ArmyMode, value, where)
+        case "Waves":
+            return parsedArmy(WavePlan, value, where)
     }
 }
 

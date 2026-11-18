@@ -20,7 +20,10 @@ export function Login() {
     }))
     return (
         <AuthShell title={t("login.title")} subtitle={t("login.subtitle")}
-            footer={<span style={{ color: "#BFAE8A" }}><Trans t={t} i18nKey="login.newHere" components={{ signup: <Link to="/signup" /> }} /></span>}>
+            footer={<div style={{ color: "#BFAE8A", display: "flex", flexDirection: "column", gap: 8 }}>
+                <span><Trans t={t} i18nKey="login.newHere" components={{ signup: <Link to="/signup" /> }} /></span>
+                <Link to="/credits">{t("credits.link")}</Link>
+            </div>}>
             {state?.notice && !login.error && <Alert type="success" showIcon title={state.notice} style={{ marginBottom: 16 }} role="status" />}
             {login.error && <Alert type="error" showIcon title={messageOf(login.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form layout="vertical" requiredMark={false} onFinish={values => login.mutate(values)} disabled={login.isPending}>

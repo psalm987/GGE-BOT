@@ -99,5 +99,10 @@
   "zod.invalid_union": "Cela ne correspond à aucune forme autorisée.",
   "zod.invalid_key": "Cela contient une clé invalide.",
   "zod.invalid_element": "Cela contient un élément invalide.",
-  "zod.custom": "Ce n'est pas valide."
+  "zod.custom": "Ce n'est pas valide.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
+  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
+  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
+  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
+  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
 }

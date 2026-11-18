@@ -17,6 +17,7 @@ import {
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { logActivity, logFacets, logFeed } from "../services/logs.ts"
 import { connectionToken, subscriptionToken, subscriptionTokens } from "../services/realtime.ts"
+import { createVirtualPreset, listVirtualPresets, removeVirtualPreset, updateVirtualPreset } from "../services/virtual-presets.ts"
 import { exportData } from "../services/data-export.ts"
 import { detectLocale, setLocale } from "../services/i18n.ts"
 import { addEmail, changeEmail, changePassword, confirmEmailChange, deleteMe, resendVerification } from "./account.ts"
@@ -114,6 +115,12 @@ export const clientRouter = os.router({
             await getOwnedAccount(db, user.id, input.id)
             return accountRuns(db, input.id, input.limit)
         }),
+    },
+    virtualPresets: {
+        list: os.virtualPresets.list.use(verified).handler(({ context: { db, user }, input }) => listVirtualPresets(db, user.id, input.accountId)),
+        create: os.virtualPresets.create.use(verified).handler(({ context: { db, user }, input }) => createVirtualPreset(db, user.id, input)),
+        update: os.virtualPresets.update.use(verified).handler(({ context: { db, user }, input }) => updateVirtualPreset(db, user.id, input)),
+        remove: os.virtualPresets.remove.use(verified).handler(({ context: { db, user }, input }) => removeVirtualPreset(db, user.id, input.id)),
     },
     realtime: {
         connectionToken: os.realtime.connectionToken.use(verified).handler(({ context: { env, user } }) =>

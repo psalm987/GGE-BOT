@@ -169,6 +169,13 @@
       "when": 1794935077831,
       "tag": "0023_plugin_states_game_items",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795020715627,
+      "tag": "0024_virtual_presets",
+      "breakpoints": true
     }
   ]
 }

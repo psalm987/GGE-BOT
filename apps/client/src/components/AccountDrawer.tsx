@@ -1,14 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { App, Alert, Button, Drawer, Form, Grid, Input, Select, Space, Switch, Tabs } from "antd"
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import type { PublicAccount, Schedule } from "@gge/contracts"
 import { messageOf, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { AccountLogs, AccountRuns } from "./AccountHistory.tsx"
 import { AccountOverview } from "./AccountOverview.tsx"
-import { withPluginOptions } from "../plugin-values.ts"
-import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues, type SavePluginOptions } from "./PluginSettingsForm.tsx"
+import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues } from "./PluginSettingsForm.tsx"
 import { ScheduleEditor, scheduleProblem } from "./ScheduleEditor.tsx"
 
 type Values = { name: string; serverId: number; password?: string; externalEvent: boolean; plugins: PluginFormValues; schedule: Schedule | null }
@@ -17,8 +17,9 @@ type Values = { name: string; serverId: number; password?: string; externalEvent
  * Add or edit one game account: settings, plugins and schedule, and for existing accounts its logs and runs.
  * With twinOf, it adds that account's event twin, prefilled with its name and server.
  */
-export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; openPlugin?: string; onClose: () => void }) {
+export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; onClose: () => void }) {
     const { message, modal } = App.useApp()
+    const navigate = useNavigate()
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
     const [form] = Form.useForm<Values>()
@@ -29,12 +30,6 @@ export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { 
     const [tab, setTab] = useState("overview")
     // `account` is as it was when the drawer opened, so the form isn't reset under the player. The status shown is the current one.
     const current = useQuery({ ...orpc.accounts.list.queryOptions(), select: list => list.find(a => a.id === account?.id), enabled: Boolean(account) }).data ?? account
-
-    // The command palette opens a plugin's settings, which live on the Settings tab.
-    useEffect(() => {
-        if (open && openPlugin)
-            setTab("settings")
-    }, [open, openPlugin])
 
     useEffect(() => {
         if (!open || !catalog.data)
@@ -60,11 +55,6 @@ export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { 
     }
     const create = useMutation(orpc.accounts.create.mutationOptions({ onSuccess: a => done(t("drawer.added", { name: a.name })) }))
     const update = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: a => done(t("drawer.saved", { name: a.name })) }))
-    // One plugin's dialog saves at once, without the rest of the drawer and without closing it.
-    const savePlugin = useMutation(orpc.accounts.update.mutationOptions({ onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() }) }))
-    const savePluginOptions: SavePluginOptions | undefined = account && (async (entry, options) => {
-        await savePlugin.mutateAsync({ id: account.id, plugins: withPluginOptions(current?.plugins ?? account.plugins, entry, options) })
-    })
     const saving = create.isPending || update.isPending
     const error = create.error ?? update.error
 
@@ -79,6 +69,15 @@ export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { 
                 id: account.id, name: values.name, serverId: values.serverId, externalEvent: values.externalEvent, plugins, schedule,
                 ...(values.password ? { password: values.password } : {}),
             })
+    }
+
+    /** A module's page holds that module's options, so the drawer hands over to it after asking about unsaved edits. */
+    function openModule(moduleId: string) {
+        const go = () => { shut(); navigate(`/m/${moduleId}?account=${account!.id}`) }
+        if (!form.isFieldsTouched()) return go()
+        modal.confirm({
+            title: t("drawer.discardTitle"), content: t("drawer.discardBody"), okText: t("drawer.discard"), okButtonProps: { danger: true }, cancelText: t("drawer.keepEditing"), onOk: go,
+        })
     }
 
     function close() {
@@ -120,7 +119,7 @@ export function AccountDrawer({ open, account, twinOf, openPlugin, onClose }: { 
                 <Switch />
             </Form.Item>
             <Form.Item label={t("drawer.plugins")}>
-                <PluginSettingsForm catalog={catalog.data ?? []} account={current} onSavePlugin={savePluginOptions} openPlugin={open ? openPlugin : undefined} />
+                <PluginSettingsForm catalog={catalog.data ?? []} account={current} onOpenModule={openModule} />
             </Form.Item>
             {isNew && schedule}
         </>

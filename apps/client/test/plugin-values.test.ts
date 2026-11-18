@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { PluginCatalogEntry } from "@gge/contracts"
-import { changedAdvanced, optionValues, optionsToSave, withPluginOptions } from "../src/plugin-values.ts"
+import { changedAdvanced, optionValues, optionsToSave } from "../src/plugin-values.ts"
 
 const entry: PluginCatalogEntry = {
     key: "attackForeign", force: false, hidden: false, options: [
@@ -24,10 +24,3 @@ test("only values that differ from their default are saved, a reordered list inc
     expect(changedAdvanced(entry, values)).toBe(2)
 })
 
-test("saving one plugin keeps the others and its own enabled state", () => {
-    const saved = { feast: { enabled: true, options: {} }, attackForeign: { enabled: true, options: { dryRun: true } } }
-    expect(withPluginOptions(saved, entry, { stopMinutesBefore: 45, source: { kingdom: 0, id: 7 } })).toEqual({
-        feast: { enabled: true, options: {} },
-        attackForeign: { enabled: true, options: { stopMinutesBefore: 45, source: { kingdom: 0, id: 7 } } },
-    })
-})

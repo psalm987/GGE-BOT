@@ -9,21 +9,28 @@ const DIFFICULTIES = [
     "Master (rented with rubies)", "Master+ (rented with rubies)", "Archmaster (rented with rubies)",
 ]
 
+const { armyOptions, unitOrderOption, parseAutofill, readArmy, fillFromPlan, orderUnits, HORSES } = require("../../army.js")
+
 const gloryOptions = [
     { type: "Select", key: "gloryDifficulty", selection: DIFFICULTIES, default: 0 },
     { type: "Number", key: "scoreShutoff", min: 0, max: 100_000_000, step: 1, default: 0 },
     { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
     { type: "Text", key: "commanderWhiteList", default: "1-99" },
     { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather"], default: 0 },
-    { type: "Number", key: "minTroopsHome", min: 0, max: 1_000_000, step: 1, unit: "troops", default: 0, advanced: true },
-    { type: "Number", key: "toolWaves", min: 1, max: 4, step: 1, default: 2, advanced: true },
-    { type: "Select", key: "waveTemplate", selection: ["Wall, gate and moat", "Wall, gate and mantlet"], default: 0, advanced: true },
-    { type: "Select", key: "soldiers", selection: ["All", "Food only", "Mead only"], default: 0, advanced: true },
-    { type: "Number", key: "bannersPerAttack", min: 0, max: 1000, step: 1, default: 0, advanced: true },
-    { type: "Select", key: "bannerOrder", selection: ["In the order of the list below", "Highest bonus first", "Lowest bonus first"], default: 2, advanced: true },
-    { type: "OrderedList", key: "bannerList", catalog: "banners", default: [], advanced: true },
-    { type: "OrderedList", key: "supportTools", catalog: "supportTools", default: [], advanced: true },
-    { type: "Checkbox", key: "courtyardWave", default: true, advanced: true },
+    ...armyOptions({
+        sides: { left: true, front: true, right: true, courtyard: "courtyardWave" }, waves: "all", tools: ["waveTemplate"],
+        unitOrder: "unitOrder", supply: "soldiers", minTroops: "minTroopsHome",
+    }),
+    { type: "Number", key: "minTroopsHome", min: 0, max: 1_000_000, step: 1, unit: "troops", default: 0, advanced: true, army: "autofill" },
+    { type: "Number", key: "toolWaves", min: 1, max: 4, step: 1, default: 2, advanced: true, army: "autofill" },
+    { type: "Select", key: "waveTemplate", selection: ["Wall, gate and moat", "Wall, gate and mantlet"], default: 0, advanced: true, army: "autofill" },
+    { type: "Select", key: "soldiers", selection: ["All", "Food only", "Mead only"], default: 0, advanced: true, army: "autofill" },
+    unitOrderOption(),
+    { type: "Number", key: "bannersPerAttack", min: 0, max: 1000, step: 1, default: 0, advanced: true, army: "autofill" },
+    { type: "Select", key: "bannerOrder", selection: ["In the order of the list below", "Highest bonus first", "Lowest bonus first"], default: 2, advanced: true, army: "autofill" },
+    { type: "OrderedList", key: "bannerList", catalog: "banners", default: [], advanced: true, army: "autofill" },
+    { type: "OrderedList", key: "supportTools", catalog: "supportTools", default: [], advanced: true, army: "autofill" },
+    { type: "Checkbox", key: "courtyardWave", default: true, advanced: true, army: "autofill" },
     { type: "Select", key: "dethrone", selection: ["Off", "Exile, paid in coins", "Fortify, paid in rubies"], default: 0, advanced: true },
     { type: "Number", key: "dethroneMaxEach", min: 0, max: 1_000_000_000, step: 1, default: 0, advanced: true },
     { type: "Number", key: "dethroneMaxTotal", min: 0, max: 2_000_000_000, step: 1, default: 0, advanced: true },
@@ -63,7 +70,6 @@ const ATTACK_LIMIT_RETRY_MS = 30 * 60 * 1000
 const PEACE_PROTECTS = [0, 1]
 
 const DEFAULTS = Object.fromEntries(gloryOptions.map(def => [def.key, def.default]))
-const HORSES = [{}, { useCoin: true }, { useFeather: true }]
 const SOLDIERS = [() => true, info => info.foodSupply, info => info.meadSupply]
 const BANNER_ORDERS = ["listed", "highest", "lowest"]
 const SIEGE_BONUS = { wall: "wallBonus", gate: "gateBonus", moat: "moatBonus", mantlet: "defRangeBonus" }
@@ -95,7 +101,11 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
     const plugin = path.basename(filename, ".js")
     const pluginOptions = botConfig.plugins[plugin] ?? {}
     const setting = key => pluginOptions[key] ?? DEFAULTS[key]
+    const autofill = parseAutofill(pluginOptions)
     const reportStatus = statusReporter(filename)
+    const army = readArmy(pluginOptions, reportStatus)
+    if (!army)
+        return
     const usableHere = info =>
         (!info.usageEventID || String(info.usageEventID).split(",").includes(String(eventID))) &&
         (!info.allowedToAttack || String(info.allowedToAttack).split("#").includes(`${kingdomID}+${areaType}`))
@@ -272,11 +282,24 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
     function buildAttack(castle, camp, commander, inventory) {
         const level = Number(camp.extraData[0])
         const effects = commander.getEffects()
+        const horse = HORSES[Number(setting("horse"))] ?? {}
+        const maxTools = { flank: getTotalAmountToolsFlank(level, 0), front: getTotalAmountToolsFront(level) }
+        if (army.mode == "waves") {
+            const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse, effects.additionalWaves)
+            fillFromPlan(attackInfo, army.waves, inventory, {
+                flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+                flankTools: maxTools.flank, frontTools: maxTools.front,
+                courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+            })
+            return { attackInfo, level }
+        }
         const units = inventory.filter(unit => unit.amount > 0 && usableHere(unit.unitInfo))
         const soldierWanted = SOLDIERS[Number(setting("soldiers"))]
         const isSoldier = info => ["melee", "ranged"].includes(info.role) && info.fightType == 0 && !info.beefSupply && info.wodID != 277 && soldierWanted(info)
         const meleeTroops = units.filter(unit => isSoldier(unit.unitInfo) && unit.unitInfo.role == "melee")
         const rangedTroops = units.filter(unit => isSoldier(unit.unitInfo) && unit.unitInfo.role == "ranged")
+        orderUnits(meleeTroops, autofill.unitOrder)
+        orderUnits(rangedTroops, autofill.unitOrder)
 
         let budget = totalOf(meleeTroops) + totalOf(rangedTroops) - Number(setting("minTroopsHome"))
         if (budget < MIN_TROOPS)
@@ -292,9 +315,8 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             .filter(Boolean).slice(0, 3)
         supportTools.forEach(unit => unit.amount--)
 
-        const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, HORSES[Number(setting("horse"))] ?? {},
+        const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse,
             effects.additionalWaves, { supportTools: supportTools.map(unit => unit.unitInfo.wodID) })
-        const maxTools = { flank: getTotalAmountToolsFlank(level, 0), front: getTotalAmountToolsFront(level) }
         const template = TEMPLATES[Number(setting("waveTemplate"))] ?? TEMPLATES[0]
         const toolWaves = Number(setting("toolWaves"))
 

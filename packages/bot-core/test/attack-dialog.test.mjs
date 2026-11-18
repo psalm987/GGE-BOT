@@ -15,7 +15,7 @@ const DIALOG = ["adi", "gas", "gdi", "cra"]
  * fortress ready to hit and one commander, which is out until something frees it. `failing` is a command whose first
  * send is refused.
  */
-function fortressBot({ attackDialog, failing } = {}) {
+function fortressBot({ attackDialog, failing, options = {} } = {}) {
     vi.useFakeTimers()
     const bot = fakeBot()
     bot.botConfig.ggeConfig = { humanize: { attack_dialog: attackDialog } }
@@ -73,7 +73,7 @@ function fortressBot({ attackDialog, failing } = {}) {
             },
         },
     })
-    fortressHit(KINGDOM, 60, {}).catch(error => log.push(`plugin stopped: ${error}`))
+    fortressHit(KINGDOM, 60, options).catch(error => log.push(`plugin stopped: ${error}`))
     const dialogFrames = () => bot.sent.filter(([cmd]) => DIALOG.includes(cmd))
     return { bot, log, pool, dialogFrames }
 }
@@ -100,6 +100,20 @@ test("with attack_dialog an attack opens the dialog the way the client does, the
     expect(cra[2] - adi[2]).toBeLessThanOrEqual(2500 + 9000 + 5000)
     expect(pool.held).toBe(true)
     expect(log.filter(line => line.startsWith("plugin stopped"))).toEqual([])
+})
+
+test("an attack built from a wave plan opens the dialog and waits its turn like any other", async () => {
+    const custom = { kind: "custom", left: { tools: [null, null], units: [{ item: 9, amount: 30 }, null] }, front: { tools: [null, null, null], units: [null, null, null, null, null, null] }, right: { tools: [null, null], units: [null, null] } }
+    const empty = { kind: "preset", preset: 0 }
+    const waves = { kind: "manual", waves: [custom, empty, empty, empty], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] }
+    const { dialogFrames, pool } = fortressBot({ attackDialog: true, options: { armyMode: "waves", waves } })
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    const frames = dialogFrames()
+    expect(frames.map(([cmd]) => cmd)).toEqual(DIALOG)
+    expect(frames[3][1].A[0].L.U[0]).toEqual([9, 30])
+    expect(frames[3][2] - frames[0][2]).toBeGreaterThanOrEqual(800 + 3000 + 1500)
+    expect(pool.held).toBe(true)
 })
 
 test("with attack_dialog off an attack is the cra alone", async () => {

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { LogActivity, PublicAccount } from "@gge/contracts"
-import { topAccounts, totalsOf } from "../src/dashboard-model.ts"
+import { resourceTotals, topAccounts, totalsOf } from "../src/dashboard-model.ts"
 
 const account = (id: string, name: string) => ({ id, name }) as PublicAccount
 const row = (accountId: string, attacks: number, errors: number, complete = true) => ({ accountId, attacks, errors, attacksComplete: complete, errorsComplete: complete })
@@ -19,4 +19,11 @@ test("the top accounts are those that attacked, most first, fewer errors breakin
     expect(topAccounts(accounts, activity, 2).map(t => t.account.name)).toEqual(["Birch", "Dune"])
     expect(topAccounts(accounts, activity, 5)[1]).toMatchObject({ attacks: 5, errors: 0, complete: false })
     expect(topAccounts(accounts, undefined, 5)).toEqual([])
+})
+
+test("coins and rubies add the accounts' last reports, and a figure nobody reported stays empty", () => {
+    const reported = (cash: number | null, gold: number | null) => ({ status: { resources: { cash, gold } } }) as PublicAccount
+    expect(resourceTotals([reported(100, 5), reported(50, null), { status: null } as PublicAccount])).toEqual({ coins: 150, rubies: 5 })
+    expect(resourceTotals([{ status: null } as PublicAccount])).toEqual({ coins: null, rubies: null })
+    expect(resourceTotals([reported(0, 0)])).toEqual({ coins: 0, rubies: 0 })
 })

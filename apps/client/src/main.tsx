@@ -10,11 +10,13 @@ import { client, queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
 import { LiveUpdates } from "./components/LiveUpdates.tsx"
+import { Credits } from "./pages/Credits.tsx"
 import { ConfirmEmailChange } from "./pages/ConfirmEmailChange.tsx"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
 import { Login } from "./pages/Login.tsx"
 import { Logs } from "./pages/Logs.tsx"
+import { Module } from "./pages/Module.tsx"
 import { Plan } from "./pages/Plan.tsx"
 import { PlanReturn } from "./pages/PlanReturn.tsx"
 import { Redeem } from "./pages/Redeem.tsx"
@@ -40,8 +42,10 @@ function Root() {
                         <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                         <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
                         <Route path="/logs" element={<RequireAuth><RequireVerified><Logs /></RequireVerified></RequireAuth>} />
+                        <Route path="/m/:id" element={<RequireAuth><RequireVerified><Module /></RequireVerified></RequireAuth>} />
                         <Route path="/plan" element={<RequireAuth><RequireVerified><Plan /></RequireVerified></RequireAuth>} />
                         <Route path="/plan/return" element={<RequireAuth><RequireVerified><PlanReturn /></RequireVerified></RequireAuth>} />
+                        <Route path="/credits" element={<Credits />} />
                         <Route path="/redeem" element={<Redeem />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
@@ -50,6 +54,9 @@ function Root() {
         </CampaignProvider>
     )
 }
+
+// The chunky game buttons are the player app's alone; admin never sets this class.
+document.documentElement.classList.add("gge-game")
 
 await initI18n({ app: "client", detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
 

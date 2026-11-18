@@ -2,10 +2,11 @@ import { asc, eq, inArray } from "drizzle-orm"
 import { notificationPrefs, type DataExport } from "@gge/contracts"
 import {
     auditLog, botLogs, botRuns, botStatus, gameAccounts, licenseCodes, notifications, packages, planPeriods, pluginSettings, pointsLedger, publicStatus, purchases, servers,
-    toNotification, users,
+    toNotification, users, virtualPresets,
 } from "@gge/db"
 import type { Ctx } from "../context.ts"
 import { myCodes } from "./codes.ts"
+import { toVirtualPreset } from "./virtual-presets.ts"
 import { periodColumns } from "./plans.ts"
 import { purchaseColumns } from "./purchases.ts"
 import { fail } from "../errors.ts"
@@ -34,8 +35,9 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
     const ids = accounts.map(account => account.id)
     const ofAccounts = <T>(query: () => Promise<T[]>) => ids.length ? query() : Promise.resolve([])
 
-    const [settings, runs, logs, notified, audit, periods, bought, codesBought, codesRedeemed, points] = await Promise.all([
+    const [settings, presets, runs, logs, notified, audit, periods, bought, codesBought, codesRedeemed, points] = await Promise.all([
         ofAccounts(() => db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)).orderBy(asc(pluginSettings.accountId), asc(pluginSettings.pluginKey))),
+        ofAccounts(() => db.select().from(virtualPresets).where(inArray(virtualPresets.accountId, ids)).orderBy(asc(virtualPresets.accountId), asc(virtualPresets.createdAt), asc(virtualPresets.id))),
         ofAccounts(() => db.select({ id: botRuns.id, accountId: botRuns.accountId, startedAt: botRuns.startedAt, endedAt: botRuns.endedAt, endReason: botRuns.endReason, error: botRuns.error })
             .from(botRuns).where(inArray(botRuns.accountId, ids)).orderBy(asc(botRuns.id))),
         ofAccounts(() => db.select({ accountId: botLogs.accountId, ts: botLogs.ts, level: botLogs.level, message: botLogs.message })
@@ -57,6 +59,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
         profile: { ...profile, emailVerified: profile.emailVerifiedAt !== null, notificationPrefs: notificationPrefs(profile.notificationPrefs) },
         accounts: accounts.map(({ status, ...account }) => ({ ...account, status: status ? publicStatus(status) : null })),
         pluginSettings: settings,
+        virtualPresets: presets.map(toVirtualPreset),
         runs,
         logs,
         notifications: notified.map(toNotification),
