@@ -710,6 +710,10 @@ site-search button {
     vertical-align: top;
 }
 
+.gge-settings td:nth-child(2) {
+    white-space: nowrap;
+}
+
 .gge-settings thead th {
     color: var(--gge-muted);
     font-size: 0.8125rem;

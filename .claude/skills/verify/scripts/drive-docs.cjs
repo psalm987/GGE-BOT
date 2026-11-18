@@ -262,7 +262,8 @@ const violets = page => page.evaluate(() => {
             const page = await open(browser, base, url, { viewport })
             const buttons = page.locator(".gge-term__btn")
             const count = await buttons.count()
-            assert(count >= 5, `${name}: the page has ${count} term buttons`)
+            const listed = await page.locator(".gge-terms-card__item").count()
+            assert(count > 0 && count === listed, `${name}: the page has ${count} term buttons, one per term in its Terms on this page card (${listed})`)
             const wiring = await page.evaluate(() => [...document.querySelectorAll(".gge-term__btn")].every(b => {
                 const pop = document.getElementById(b.getAttribute("aria-controls"))
                 return b.getAttribute("aria-expanded") === "false" && pop && pop.hasAttribute("popover") && pop.hasAttribute("data-pagefind-ignore") && pop.getAttribute("role") === "group" && document.getElementById(pop.getAttribute("aria-labelledby")) !== null
@@ -281,11 +282,12 @@ const violets = page => page.evaluate(() => {
         await termPage.waitForFunction(el => el.getAttribute("aria-expanded") === "true", await first.elementHandle())
         assert(await first.getAttribute("aria-expanded") === "true" && await firstPop.evaluate(el => el.matches(":popover-open")), "Enter opens the term popover and sets aria-expanded=true")
         const snapshot = await firstPop.ariaSnapshot()
-        assert(/group "Two-factor sign-in"/.test(snapshot) && /link "Read more"/.test(snapshot), `the open popover is a named group with a Read more link for a screen reader (${snapshot.replace(/\n/g, " ").slice(0, 120)})`)
-        assert(await firstPop.locator("a.gge-term__more").getAttribute("href") === "/glossary/#two-factor", "Read more links to the glossary anchor")
+        assert(/group "Game account"/.test(snapshot) && /link "Read more"/.test(snapshot), `the open popover is a named group with a Read more link for a screen reader (${snapshot.replace(/\n/g, " ").slice(0, 120)})`)
+        assert(await firstPop.locator("a.gge-term__more").getAttribute("href") === "/glossary/#game-account", "Read more links to the glossary anchor")
         const box = await firstPop.boundingBox()
         const trigger = await first.boundingBox()
-        assert(box.y >= trigger.y + trigger.height - 1 && box.x >= 0 && box.x + box.width <= WIDE.width, "the popover opens under its term inside the viewport")
+        const below = box.y >= trigger.y + trigger.height - 1, above = box.y + box.height <= trigger.y + 1
+        assert((below || above) && box.y >= 0 && box.y + box.height <= WIDE.height && box.x >= 0 && box.x + box.width <= WIDE.width, `the popover opens beside its term, flipping above when there's no room below, inside the viewport (pop ${JSON.stringify(box)}, term ${JSON.stringify(trigger)})`)
         await termPage.screenshot({ path: `${out}/term-popover-1440.png` })
         await termPage.keyboard.press("Tab")
         assert(await termPage.evaluate(() => document.activeElement.matches(".gge-term__more")), "Tab from the open term reaches Read more in the popover")
@@ -359,7 +361,7 @@ const violets = page => page.evaluate(() => {
         assert(await gloss.locator(".gge-filter[aria-pressed=true]").textContent() === "All" && await gloss.evaluate(() => document.activeElement.id === "two-factor"), "a link to a hidden term resets the filter and focuses the entry")
         assert((await gloss.locator('[data-id="two-factor"] .gge-gloss__aliases').textContent()).includes("TOTP"), "the 2FA entry lists TOTP among its aliases")
         assert((await gloss.locator('[data-id="plugin"] .gge-gloss__used a').allTextContents()).includes("Quick start"), "Used on lists the Quick start for Plugin")
-        assert(await gloss.locator('[data-id="two-factor"] .gge-gloss__used').count() === 1 && await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').first().getAttribute("href") === "/plugins/attack-khan/", "Used on links are computed from the term tags on each page")
+        assert(await gloss.locator('[data-id="game-account"] .gge-gloss__used').count() === 1 && await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').first().getAttribute("href") === "/plugins/attack-khan/", "Used on links are computed from the term tags on each page")
         await gloss.context().close()
 
         const search = async (browser, query, locale = "") => {

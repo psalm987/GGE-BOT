@@ -32,7 +32,7 @@ const categories = TERM_CATEGORIES.filter(category => terms.some(term => term.ca
 ---
 
 <div class="gge-glossary" data-total={terms.length}>
-    <div class="gge-filters" role="group" aria-label={t("gge.glossary.filter")}>
+    <div class="gge-filters not-content" role="group" aria-label={t("gge.glossary.filter")}>
         <button type="button" class="gge-filter" data-category="all" aria-pressed="true">{t("gge.glossary.all")}</button>
         {categories.map(category => <button type="button" class="gge-filter" data-category={category} aria-pressed="false">{t(`gge.term.cat.${category}`)}</button>)}
     </div>
