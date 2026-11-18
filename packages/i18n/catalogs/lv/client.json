@@ -624,5 +624,7 @@
   "drawer.openModuleSettings": "Open settings for {{module}}",
   "moved.title": "Settings moved to the sidebar",
   "moved.body": "Each module now has its own page. Pick it in the sidebar, choose an account at the top, and edit everything on one page.",
-  "moved.dismiss": "Got it"
+  "moved.dismiss": "Got it",
+  "module.soon.tag": "Coming soon",
+  "module.soon.discord": "Ask for it on Discord"
 }

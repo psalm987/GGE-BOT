@@ -6,6 +6,7 @@ import { Link, Navigate, useParams, useSearchParams } from "react-router"
 import { MODULES, type AccountCastle, type ModuleDef, type PluginCatalogEntry, type PluginStates, type PublicAccount } from "@gge/contracts"
 import { GameArt, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
+import { ComingSoon } from "./ComingSoon.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
@@ -29,14 +30,7 @@ export function Module() {
     const title = <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><GameArt icon={module.icon} size={28} />{t(`modules.${module.id}.name`)}</span>
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
-            {module.status === "live" ? <LiveModule key={module.id} module={module} /> : (
-                <ParchmentCard>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <GameArt icon={module.icon} size={48} />
-                        <p style={{ margin: 0 }}>{t(`modules.${module.id}.description`)}</p>
-                    </div>
-                </ParchmentCard>
-            )}
+            {module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}
         </AppLayout>
     )
 }
