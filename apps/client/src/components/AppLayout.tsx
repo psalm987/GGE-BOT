@@ -1,7 +1,7 @@
 import { SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
-import { Grid, Tag, type MenuProps } from "antd"
+import { App, Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
 import { CampaignLayout, type CommandItem } from "@gge/ui"
@@ -10,6 +10,7 @@ import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
 import { buildNav, pathOf } from "../nav.ts"
 import { pendingCode } from "../plan-model.ts"
 import { useRealtimeState } from "../realtime.ts"
+import { hasUnsaved, setUnsaved } from "../unsaved.ts"
 import { usePlanVisible } from "../use-billing.ts"
 import { AlertBanners } from "./AlertBanners.tsx"
 import { NotificationBell } from "./NotificationBell.tsx"
@@ -23,9 +24,18 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     accountMenu?: NonNullable<MenuProps["items"]>
     children: ReactNode
 }) {
-    const navigate = useNavigate()
+    const routerNavigate = useNavigate()
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
+    const { modal } = App.useApp()
+    // A module page with unsaved edits asks before the shell takes the player anywhere else.
+    const navigate = useCallback((to: string, options?: { replace?: boolean }) => {
+        if (!hasUnsaved()) return routerNavigate(to, options)
+        modal.confirm({
+            title: t("drawer.discardTitle"), content: t("drawer.discardBody"), okText: t("drawer.discard"), okButtonProps: { danger: true }, cancelText: t("drawer.keepEditing"),
+            onOk: () => { setUnsaved(false); routerNavigate(to, options) },
+        })
+    }, [routerNavigate, modal, t])
     const me = useMe()
     const logout = useLogout()
     const saveLocale = useSaveLocale()
@@ -64,7 +74,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     }, [verified, pathname, navigate])
     async function signOut() {
         await logout.mutateAsync({})
-        navigate("/login", { replace: true })
+        routerNavigate("/login", { replace: true })
     }
     const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible), [t, tc, planVisible])
     return (

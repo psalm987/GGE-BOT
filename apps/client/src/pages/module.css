@@ -1,0 +1,30 @@
+.gge-module { display: grid; gap: 16px; }
+.gge-module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+.gge-module-intro { margin: 0; flex: 1 1 320px; min-width: 0; color: var(--gge-muted); }
+.gge-module-picker { display: flex; align-items: center; gap: 8px; }
+.gge-module-picker label { color: var(--gge-muted); font-size: 13px; font-weight: 500; }
+.gge-module-picker .ant-select { min-width: 240px; max-width: 100%; }
+.gge-module-plugin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 48px; padding: 4px 0; border-bottom: 1px solid var(--gge-rule); }
+.gge-module-plugin-row:last-child { border-bottom: 0; }
+.gge-module-plugin-name { flex: 1; min-width: 140px; font-weight: 600; }
+.gge-module-cap { display: grid; gap: 4px; margin-bottom: 8px; }
+.gge-module-section { display: grid; gap: 16px; align-items: start; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 992px) { .gge-module-section[data-checks] { grid-template-columns: minmax(0, 1fr) 280px; } }
+.gge-module-tools { display: flex; justify-content: flex-end; }
+.gge-savebar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-top: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--gge-gold);
+    border-radius: 8px;
+    background: #211A15;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+}
+.gge-savebar-actions { display: flex; gap: 8px; margin-inline-start: auto; }

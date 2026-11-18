@@ -1,5 +1,5 @@
 import { SettingOutlined } from "@ant-design/icons"
-import { App, Button, Form, Switch, Tag, Typography } from "antd"
+import { App, Button, Form, Tag, Typography } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,7 +7,8 @@ import type { PluginCatalogEntry, PublicAccount } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import type { OptionValues, PluginFormValues } from "../plugin-values.ts"
-import { BreaksPeaceTag, PluginSettingsDialog, PluginStatusPill, usePluginPill } from "./PluginSettingsDialog.tsx"
+import { PluginSettingsDialog } from "./PluginSettingsDialog.tsx"
+import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "./PluginPanels.tsx"
 
 export { pluginFormValues, toPluginSettings, type PluginFormValues } from "../plugin-values.ts"
 
@@ -64,13 +65,6 @@ function PluginRow({ entry, atAttackLimit, account, values, onSave, autoOpen }: 
             )}
         </div>
     )
-}
-
-/** An enable switch that can't be turned on while the account is at its attack plugin limit; it can always be turned off. */
-function AttackAwareSwitch({ label, blockTurningOn, checked, onChange }: { label: string; blockTurningOn: boolean; checked?: boolean; onChange?: (v: boolean) => void }) {
-    const { t } = useTranslation("client")
-    return <Switch size="small" aria-label={t("plugins.enable", { label })} checked={checked} onChange={onChange}
-        disabled={blockTurningOn && !checked} title={blockTurningOn && !checked ? t("plugins.attackLimitReached") : undefined} />
 }
 
 /**
