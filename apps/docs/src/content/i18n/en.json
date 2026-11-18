@@ -58,5 +58,8 @@
   "gge.settings.catalog.banners": "banners",
   "gge.settings.catalog.tools": "tools",
   "gge.settings.catalog.troops": "troops",
-  "gge.settings.catalog.supportTools": "support tools"
+  "gge.settings.catalog.supportTools": "support tools",
+  "gge.notFound.home": "Back to the docs home",
+  "gge.langbar.prompt": "Read this page in {language}?",
+  "gge.langbar.close": "Dismiss"
 }

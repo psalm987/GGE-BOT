@@ -58,5 +58,8 @@
   "gge.settings.catalog.banners": "الرايات",
   "gge.settings.catalog.tools": "الأدوات",
   "gge.settings.catalog.troops": "الجنود",
-  "gge.settings.catalog.supportTools": "أدوات الدعم"
+  "gge.settings.catalog.supportTools": "أدوات الدعم",
+  "gge.notFound.home": "العودة إلى الصفحة الرئيسية للدليل",
+  "gge.langbar.prompt": "هل تريد قراءة هذه الصفحة بلغة {language}؟",
+  "gge.langbar.close": "إغلاق"
 }

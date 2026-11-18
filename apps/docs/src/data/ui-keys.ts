@@ -16,5 +16,7 @@ export const GGE_KEYS = [
     "gge.settings.catalog.banners", "gge.settings.catalog.tools", "gge.settings.catalog.troops", "gge.settings.catalog.supportTools",
     "gge.status.label", "gge.status.beta", "gge.status.planned",
     "gge.planGate.off",
+    "gge.notFound.home",
+    "gge.langbar.prompt", "gge.langbar.close",
 ] as const
 export type GgeKey = (typeof GGE_KEYS)[number]

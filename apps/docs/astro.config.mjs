@@ -8,12 +8,15 @@ import { sidebar } from "./src/theme/sidebar.ts"
 
 export default defineConfig({
     site: "https://docs.neisesolutions.com",
+    // Moved pages go here as "/old/": "/new/". Phase 8 turns each entry into a Caddy 301.
+    redirects: {},
     vite: { ssr: { external: ["canvaskit-wasm"] } },
     integrations: [
         starlight({
             title: "GGE Command",
             logo: { src: "./src/assets/crest.svg", alt: "" },
             favicon: "/crest.svg",
+            disable404Route: true,
             defaultLocale: "root",
             locales: starlightLocales,
             head: [

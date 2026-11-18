@@ -58,5 +58,8 @@
   "gge.settings.catalog.banners": "Bannern",
   "gge.settings.catalog.tools": "Werkzeugen",
   "gge.settings.catalog.troops": "Truppen",
-  "gge.settings.catalog.supportTools": "Unterstützungswerkzeugen"
+  "gge.settings.catalog.supportTools": "Unterstützungswerkzeugen",
+  "gge.notFound.home": "Zurück zur Startseite der Doku",
+  "gge.langbar.prompt": "Diese Seite auf {language} lesen?",
+  "gge.langbar.close": "Schließen"
 }

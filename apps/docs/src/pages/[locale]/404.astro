@@ -1,0 +1,10 @@
+---
+import NotFound from "../../components/NotFound.astro"
+import { starlightLocales } from "../../theme/locales.ts"
+
+export const getStaticPaths = () => Object.keys(starlightLocales).filter(locale => locale !== "root").map(locale => ({ params: { locale } }))
+
+const { locale } = Astro.params
+---
+
+<NotFound locale={locale!} />
