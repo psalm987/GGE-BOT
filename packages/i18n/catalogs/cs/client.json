@@ -661,5 +661,12 @@
   "module.soon.tag": "Coming soon",
   "module.soon.discord": "Ask for it on Discord",
   "modules.dev-preview.name": "Settings preview (dev only)",
-  "modules.dev-preview.description": "Every option type in one place, for trying the settings forms on a development stack."
+  "modules.dev-preview.description": "Every option type in one place, for trying the settings forms on a development stack.",
+  "credits.title": "Credits",
+  "credits.link": "Credits",
+  "credits.affiliationTitle": "Not affiliated",
+  "credits.affiliation": "GGE Command is an independent tool. It isn't affiliated with, endorsed by or sponsored by Goodgame Studios. Goodgame Empire and the names of its features belong to their owners.",
+  "credits.iconsTitle": "Icons",
+  "credits.icons": "Icons from <site>game-icons.net</site> by {{authors}}, <licence>{{licence}}</licence>. Each glyph sits in a badge drawn for GGE Command.",
+  "credits.by": "by {{author}}"
 }

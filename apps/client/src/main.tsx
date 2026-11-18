@@ -10,6 +10,7 @@ import { client, queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
 import { LiveUpdates } from "./components/LiveUpdates.tsx"
+import { Credits } from "./pages/Credits.tsx"
 import { ConfirmEmailChange } from "./pages/ConfirmEmailChange.tsx"
 import { Dashboard } from "./pages/Dashboard.tsx"
 import { ForgotPassword } from "./pages/ForgotPassword.tsx"
@@ -44,6 +45,7 @@ function Root() {
                         <Route path="/m/:id" element={<RequireAuth><RequireVerified><Module /></RequireVerified></RequireAuth>} />
                         <Route path="/plan" element={<RequireAuth><RequireVerified><Plan /></RequireVerified></RequireAuth>} />
                         <Route path="/plan/return" element={<RequireAuth><RequireVerified><PlanReturn /></RequireVerified></RequireAuth>} />
+                        <Route path="/credits" element={<Credits />} />
                         <Route path="/redeem" element={<Redeem />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

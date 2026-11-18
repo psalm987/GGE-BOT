@@ -1,4 +1,4 @@
-import { SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
+import { InfoCircleOutlined, SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
 import { moduleOfPlugin } from "@gge/contracts"
 import { App, Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
@@ -90,7 +90,9 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
             onLogout={signOut}
             onLanguageChange={saveLocale}
             commands={commands}
-            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(pathOf("settings")) }, ...accountMenu]}
+            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(pathOf("settings")) },
+                ...accountMenu,
+                { key: "credits", icon: <InfoCircleOutlined />, label: t("credits.link"), onClick: () => navigate("/credits") }]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}
                 <span role="status">
