@@ -4,7 +4,7 @@ import { autofillOf, filledSlots, planCounts, pluginsSending, withCourtyard, wit
 
 const barons: AutofillSource = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
-    whenNoSides: ["left", "courtyard"], waves: "attackWaves", tools: ["useWallTools", "useShields"], unitOrder: "unitOrder", supply: "supply",
+    whenNoSides: ["left", "front", "right", "courtyard"], waves: "attackWaves", tools: ["useWallTools", "useShields"], unitOrder: "unitOrder", supply: "supply",
 }
 const baronDefs: PluginOptionDef[] = [
     { type: "Checkbox", key: "useWallTools", default: true },
@@ -24,7 +24,7 @@ test("autofill reads the sides, waves and tools from the plugin's own options", 
 })
 
 test("with no flank picked it is what the plugin fills by itself, and an empty wave count is every wave", () => {
-    expect(autofillOf(barons, baronDefs, { attackCourtyard: true, attackWaves: "" })).toMatchObject({ sides: ["left", "courtyard"], waves: "all", tools: [], unitOrder: "castle", supply: "all" })
+    expect(autofillOf(barons, baronDefs, { attackCourtyard: true, attackWaves: "" })).toMatchObject({ sides: ["left", "front", "right", "courtyard"], waves: "all", tools: [], unitOrder: "castle", supply: "all" })
 })
 
 test("a side the plugin always fills needs no option, and a Select names its tools by its choice", () => {

@@ -40,6 +40,12 @@ describe("robber barons, as stored configs run today", () => {
         const { cra } = await barons({ ...baronDefaults }, { inventory: inventory(), effects: { AttackSupportUnits: 1, attackUnitAmountFlank: 20 } })
         expect(cra).toMatchSnapshot()
     })
+
+    test("every side off attacks left, middle and right, as the help text promises", async () => {
+        const off = await barons({ ...baronDefaults }, { inventory: inventory() })
+        const allOn = await barons({ ...baronDefaults, attackLeft: true, attackMiddle: true, attackRight: true, attackCourtyard: true }, { inventory: inventory() })
+        expect(off.cra).toEqual(allOn.cra)
+    })
 })
 
 describe("fortresses, as stored configs run today", () => {
