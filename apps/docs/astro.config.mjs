@@ -3,6 +3,7 @@ import starlight from "@astrojs/starlight"
 import markdoc from "@astrojs/markdoc"
 import { starlightLocales } from "./src/theme/locales.ts"
 import { themeCss } from "./src/theme/css.ts"
+import { trimSitemapIntegration } from "./src/seo/sitemap.ts"
 import { sidebar } from "./src/theme/sidebar.ts"
 
 export default defineConfig({
@@ -35,5 +36,6 @@ export default defineConfig({
             routeMiddleware: "./src/seo/middleware.ts",
         }),
         markdoc(),
+        trimSitemapIntegration(),
     ],
 })

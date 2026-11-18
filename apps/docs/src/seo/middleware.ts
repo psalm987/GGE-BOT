@@ -3,7 +3,8 @@ import type { StarlightRouteData } from "@astrojs/starlight/route-data"
 import { sectionOf } from "../theme/sidebar.ts"
 import { termsFor } from "../data/runtime.ts"
 import { pageJsonLd, serialize, SITE_URL, APP_NAME, type Crumb, type PageKind } from "./jsonld.ts"
-import { docPages, pageUrl, slugOf } from "./site.ts"
+import { addNoindex, keepAlternates, setCanonical } from "./head.ts"
+import { docPages, pageUrl, slugOf, translatedLocales } from "./site.ts"
 
 type Head = StarlightRouteData["head"]
 
@@ -22,14 +23,20 @@ function crumbsFor(slug: string, lang: string, title: string): Crumb[] {
 
 export const onRequest = defineRouteMiddleware(async context => {
     const route = context.locals.starlightRoute
-    const pages = await docPages()
-    if (!pages.some(page => page.id === route.id)) return
-
-    const slug = slugOf(route.id)
+    if (process.env.DOCS_NOINDEX === "1") addNoindex(route.head)
+    const slug = slugOf(route.entry.id)
+    if (!(await docPages()).some(page => page.slug === slug)) return
     const kind = kindOf(slug)
     const { title, description, updated } = route.entry.data
     const lang = route.isFallback ? "en" : route.lang
     const url = pageUrl(lang, slug)
+
+    const translated = await translatedLocales(slug)
+    route.head = keepAlternates(route.head, translated)
+    if (route.isFallback) {
+        addNoindex(route.head)
+        setCanonical(route.head, pageUrl("en", slug))
+    }
 
     const documents = pageJsonLd({
         kind,

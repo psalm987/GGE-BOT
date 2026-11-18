@@ -3,9 +3,10 @@ import { SITE_URL } from "./jsonld.ts"
 
 export type DocPage = { id: string; slug: string; locale: string; title: string; description: string; updated?: Date }
 
-const LOCALE_PREFIX = /^([a-z]{2})\//
+const LOCALE_PREFIX = /^([a-z]{2})(?:\/|$)/
 
-export const slugOf = (id: string) => id.replace(LOCALE_PREFIX, "")
+/** Starlight's route ids leave the home page empty, so an empty slug is `index`. */
+export const slugOf = (id: string) => id.replace(LOCALE_PREFIX, "") || "index"
 
 /** The path of a docs page in a locale: English at the root, the rest under their code. */
 export const pagePath = (locale: string, slug: string) => `${locale === "en" ? "" : `/${locale}`}/${slug === "index" ? "" : `${slug}/`}`
