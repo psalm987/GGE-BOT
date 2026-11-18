@@ -5,7 +5,18 @@
 	auto_https off
 	admin off
 	servers {
+		# Traefik is the private-address peer. Cloudflare sits in front of it and puts the
+		# visitor's address in CF-Connecting-IP; Traefik replaces X-Forwarded-For with the
+		# Cloudflare edge's address, so that header alone names Cloudflare, not the visitor.
 		trusted_proxies static private_ranges
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
+}
+
+# The API reads req.ip from X-Forwarded-For; hand it the one resolved address.
+(api) {
+	reverse_proxy api:3000 {
+		header_up X-Forwarded-For {client_ip}
 	}
 }
 
@@ -31,13 +42,13 @@
 http://app.{$DOMAIN} {
 	import security
 	handle /rpc/* {
-		reverse_proxy api:3000
+		import api
 	}
 	handle /webhooks/* {
-		reverse_proxy api:3000
+		import api
 	}
 	handle /healthz {
-		reverse_proxy api:3000
+		import api
 	}
 	handle /connection/websocket {
 		reverse_proxy centrifugo:8000
@@ -51,7 +62,7 @@ http://app.{$DOMAIN} {
 http://admin.{$DOMAIN} {
 	import security
 	handle /admin/rpc/* {
-		reverse_proxy api:3000
+		import api
 	}
 	handle /connection/websocket {
 		reverse_proxy centrifugo:8000
