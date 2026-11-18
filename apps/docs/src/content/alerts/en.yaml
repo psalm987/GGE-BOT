@@ -1,0 +1,24 @@
+banned:
+  fix: "Check the game. The ban is the game's decision and we cannot lift it. Start the bot again once the ban ends."
+auth_failed:
+  fix: "Open the account card, type the game password again and save it. Then press Start. If you changed the password in the game recently, this is why."
+crash_loop:
+  fix: "Read the last error in the alert, then open the Logs page for details. Fix the cause, such as a wrong setting, and press Start. The bot does not restart by itself."
+shutoff:
+  fix: "Nothing is wrong. Your shutoff timer stopped the bot on schedule. Press Start when you want it back."
+trial_started:
+  fix: "Nothing to do. Use the days to see if the bot fits your play. Pick a plan before the trial ends."
+plan_expiring:
+  fix: "Renew before the date in the alert, or redeem a code. Your bots keep running until then."
+plan_expired:
+  fix: "Renew or redeem a code on the Plan page. Your bots start again by themselves once the plan is active."
+purchase_completed:
+  fix: "Nothing to do. Find your plan time, points and codes on the Plan page. Share a single-use code only with someone you trust."
+incoming_attack:
+  fix: "Nothing to do if Auto Station is on. It moves your troops out before the attack lands. Check the next alert to see how it went."
+station_result.stationed:
+  fix: "Nothing to do. Your troops return on their own after the attack."
+station_result.gates_opened:
+  fix: "Check your rubies. Join an alliance castle that can take troops to avoid the cost next time."
+station_result.unprotected:
+  fix: "Open the Logs page to see why. Free space in an alliance castle, or move your troops by hand next time."

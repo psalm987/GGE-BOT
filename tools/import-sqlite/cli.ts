@@ -4,7 +4,7 @@
 import { parseArgs } from "node:util"
 import { count } from "drizzle-orm"
 import { createDb, servers } from "@gge/db"
-import { readPluginRegistry } from "@gge/runner/src/catalog.ts"
+import { readPluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { readServers } from "@gge/runner/src/game-data.ts"
 import { importLegacy } from "./import.ts"
 

@@ -1,0 +1,27 @@
+---
+import { pageHref, routeLocale, termsFor } from "../data/runtime.ts"
+
+interface Props {
+    ids?: string[]
+}
+
+const { ids = [] } = Astro.props
+const t = Astro.locals.t
+const locale = routeLocale(Astro)
+const all = await termsFor(locale)
+const terms = ids.flatMap(id => all.find(term => term.id === id) ?? [])
+---
+
+{terms.length > 0 && (
+    <details class="gge-terms-card" data-pagefind-ignore>
+        <summary><span class="gge-terms-card__title">{t("gge.termsOnPage.title")}</span> <span class="gge-terms-card__count">({terms.length})</span></summary>
+        <dl class="gge-terms-card__list">
+            {terms.map(term => (
+                <div class="gge-terms-card__item">
+                    <dt><a href={pageHref(locale, "glossary", term.id)}>{term.term}</a></dt>
+                    <dd>{term.short}</dd>
+                </div>
+            ))}
+        </dl>
+    </details>
+)}

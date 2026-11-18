@@ -1,0 +1,60 @@
+terms:
+  - id: plugin
+    term: Plugin
+    category: bot
+    short: Eine Aufgabe deines Bots, zum Beispiel Steuern einsammeln oder Angriffe senden. Du schaltest jedes Plugin einzeln ein oder aus.
+    long: >-
+      Ein Plugin ist eine Aufgabe, die der Bot beherrscht. Jedes Plugin hat einen eigenen Schalter und eigene Einstellungen. Du kannst mehrere gleichzeitig laufen lassen, und Angriffs-Plugins zählen zu deiner Angriffsgrenze.
+      Stell es dir vor wie Apps auf einem Handy. Das Handy tut nichts Besonderes, bis du eine öffnest, und jede App macht nur eine Sache.
+    seeAlso: [attack-cap]
+  - id: log
+    term: Log
+    aliases: [Logs]
+    category: bot
+    short: Eine laufende Liste, was dein Bot wann getan hat. Hier schaust du zuerst nach, wenn etwas komisch wirkt.
+    long: >-
+      Jede Aktion deines Bots bekommt eine Zeile im Log, mit Uhrzeit und dem zugehörigen Spielkonto. Auf der Seite Logs liest du sie live, filterst nach Konto oder lädst sie als Text herunter.
+      Stell es dir vor wie ein Schiffslogbuch. Wenn du wissen willst, was in deiner Abwesenheit passiert ist, liest du es.
+    seeAlso: [run]
+  - id: game-account
+    term: Spielkonto
+    category: account
+    short: Dein Spieler in Goodgame Empire. Du fügst es zu GGE Command hinzu, damit der Bot sich anmelden und für dich spielen kann.
+    long: >-
+      Dein Spielkonto ist das Konto, mit dem du im Spiel spielst. Es ist getrennt von deinem GGE-Command-Konto, das E-Mail-Adresse und Tarif enthält. Du fügst es mit Namen, Server und Spielpasswort hinzu.
+      Stell es dir vor wie Schlüssel und Schloss. Dein GGE-Command-Konto hält den Schlüssel, das Spielkonto ist das Schloss.
+    seeAlso: [server]
+  - id: server
+    term: Server
+    aliases: [Welt]
+    category: game
+    short: Die Spielwelt, auf der dein Spielkonto liegt. Wähle denselben Server, auf dem du spielst, sonst kann sich der Bot nicht anmelden.
+    long: >-
+      Goodgame Empire betreibt viele getrennte Welten, genannt Server. Dein Spielkonto existiert auf genau einem davon. Beim Hinzufügen muss der Server zu dem passen, auf dem du spielst.
+      Stell es dir vor wie eine Stadt, die in vielen Ländern denselben Namen trägt. Du musst sagen, welches Land du meinst.
+    seeAlso: [game-account]
+  - id: attack-cap
+    term: Angriffsgrenze
+    category: bot
+    short: Die größte Zahl an Angriffs-Plugins, die ein Konto gleichzeitig laufen lassen darf. Sie kann je Konto verschieden sein.
+    long: >-
+      Angriffs-Plugins schicken Armeen, deshalb begrenzt GGE Command, wie viele zugleich laufen. Die Grenze ist 4, 6 oder keine, und sie gilt je Konto. Schaltest du mehr ein, als erlaubt ist, lassen sich die Einstellungen nicht speichern.
+      Stell es dir vor wie Plätze an einem Tisch. Alle sind willkommen, aber nur so viele können gleichzeitig sitzen.
+    seeAlso: [plugin]
+  - id: run
+    term: Bot-Lauf
+    category: bot
+    short: Eine Arbeitsphase deines Bots, vom Druck auf Start bis er stoppt.
+    long: >-
+      Ein Lauf beginnt, wenn du auf Start drückst. Der Bot meldet sich an, erledigt die Aufgaben seiner Plugins und macht weiter, bis du ihn stoppst, ein Timer ihn stoppt oder etwas schiefgeht.
+      Stell es dir vor wie eine Schicht bei der Arbeit. Sie beginnt beim Einstempeln und endet beim Ausstempeln.
+    seeAlso: [log, crash-loop]
+  - id: two-factor
+    term: Zwei-Faktor-Anmeldung
+    aliases: [2FA, TOTP, Authenticator-Code, Zwei-Faktor]
+    category: tech
+    short: Ein Anmeldeschritt, der zusätzlich zum Passwort einen sechsstelligen Code aus einer Authenticator-App verlangt.
+    long: >-
+      Die Zwei-Faktor-Anmeldung, kurz 2FA, ergänzt nach dem Passwort eine zweite Prüfung. Eine Authenticator-App erzeugt alle 30 Sekunden einen neuen sechsstelligen Code. Spielerkonten bei GGE Command nutzen sie nicht, nur das Team meldet sich so an.
+      Stell es dir vor wie eine Tür mit zwei Schlössern. Ein Dieb braucht beide Schlüssel.
+    seeAlso: []

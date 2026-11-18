@@ -1,0 +1,110 @@
+SIGN_IN_REQUIRED:
+  fix: "Sign in, then try again. If you were already signed in, your session ended, so a fresh sign-in sorts it out."
+EMAIL_VERIFY_REQUIRED:
+  fix: "Open the verification email we sent you and click its link. Cannot find it? Check your spam folder, then ask for a new one in Settings."
+EMAIL_REQUIRED:
+  fix: "Add an email address in Settings first. The action needs an address we can reach you on."
+EMAIL_DISPOSABLE:
+  fix: "Use an address you keep, such as your main inbox. Throwaway addresses from temporary-mail sites are not accepted."
+EMAIL_IN_USE:
+  fix: "Another GGE Command account already uses that address. Use a different one, or sign in to the account that owns it."
+EMAIL_ALREADY_CONFIRMED:
+  fix: "Nothing to do. Your address is already confirmed. To use a different one, change it in Settings."
+EMAIL_UNVERIFIED_CHANGE:
+  fix: "Confirm your current address first with the link in your verification email. Then change it in Settings."
+EMAIL_UNCHANGED:
+  fix: "Type a new address. The one you entered is already the one on your account."
+LINK_INVALID:
+  fix: "Links expire and work only once. Ask for a fresh one, for example with Forgot password? or Resend the link, and use the newest email."
+PASSWORD_WRONG:
+  fix: "Type your current password again, slowly. If you forgot it, sign out and use Forgot password."
+USERNAME_CONFIRM:
+  fix: "Type your username exactly as it appears at the top of the page. This step stops you deleting an account by accident."
+USERNAME_TAKEN:
+  fix: "Someone already has that username. Pick another one."
+CAPTCHA_FAILED:
+  fix: "Complete the check again. If it keeps failing, reload the page or turn off any extension that blocks scripts on this site."
+WRONG_CREDENTIALS:
+  fix: "Check your username and password. This is your GGE Command login, not your game login. Use Forgot password if you are not sure."
+ACCOUNT_DISABLED:
+  fix: "An admin turned this account off. Contact support and tell us your username."
+TOO_MANY_ATTEMPTS:
+  fix: "Wait a few minutes before you try again. Repeated tries only make the wait longer."
+RATE_LIMITED:
+  fix: "You sent requests too quickly. Wait a minute, then try again."
+ACCOUNT_NOT_FOUND:
+  fix: "The game account is gone. Reload the Dashboard. If you removed it on another device, add it again."
+SERVER_UNKNOWN:
+  fix: "Pick the server from the list. If yours is missing, the game may have renamed or retired it, so check the game and tell support."
+ACCOUNT_DUPLICATE:
+  fix: "This game account is already on GGE Command. Look for it on your Dashboard. If someone else added it, contact support."
+PACKAGE_NOT_SOLD:
+  fix: "This package cannot be bought online. Choose another one, or contact support to buy it."
+PAYMENT_NOT_FOUND:
+  fix: "We cannot find that payment. Wait a minute and reload. If the money left your account, contact support with your payment reference."
+PAYMENT_PROVIDER_DOWN:
+  fix: "The payment provider did not answer. Wait a minute and try again. You are not charged for a payment that fails."
+PAYMENTS_DISABLED:
+  fix: "You cannot pay online yet. Contact support to buy a plan."
+BILLING_NOT_LIVE:
+  fix: "Nothing to do. Plans are off for now, and every account gets 1 bot."
+NO_PLAN:
+  fix: "Get a plan or redeem a code on the Plan page. Your bots start again once the plan is active."
+PLAN_LIMIT:
+  fix: "Your plan covers a set number of bots. Remove a game account you do not need, or move to a bigger plan."
+TRIAL_GAME_ACCOUNT_USED:
+  fix: "A game account gets one free trial. Choose a plan to run this account, or add a game account that has not had a trial."
+NOT_ENOUGH_POINTS:
+  fix: "Earn the missing points first. Check how many you have on the Plan page, then redeem again."
+REDEMPTION_REPEATED:
+  fix: "Nothing to do. You already redeemed this. Check the Plan page to see the result."
+CODE_INVALID:
+  fix: "Type the code again. Letters and numbers that look alike, such as O and 0 or I and 1, are fine to swap. Still stuck? Ask whoever gave you the code."
+CODE_USED:
+  fix: "Someone already redeemed this code, and a code works once. Ask whoever gave it to you for a new one."
+CODE_REVOKED:
+  fix: "Whoever issued this code cancelled it. Ask them for a new one, or contact support."
+MESSAGE_NOT_FOUND:
+  fix: "The message is already gone. Reload the page to see the current list."
+MESSAGE_NOT_DISMISSIBLE:
+  fix: "This message stays until the problem it describes is fixed. Follow the steps in it and it disappears."
+EXPORT_RATE_LIMITED:
+  fix: "You can download your data once every 10 minutes. Wait, then try again."
+LIVE_UPDATES_OFF:
+  fix: "Live updates are not available right now. The page still refreshes on its own every 15 seconds, or you can reload it."
+PLUGIN_UNKNOWN:
+  fix: "Reload the page and save again. If it keeps happening, the plugin may have been removed in an update, so tell support which one."
+PLUGIN_OPTION_UNKNOWN:
+  fix: "Reload the page so your settings match the current version, then save again."
+PLUGIN_OPTION_RANGE:
+  fix: "Type a number inside the range in the message. The setting shows the same limits as you type."
+PLUGIN_OPTION_NO_VALUE:
+  fix: "Reload the page and save again. This setting is a heading, so it does not hold a value."
+PLUGIN_OPTION_TEXT:
+  fix: "Type plain text in this field, then save again."
+PLUGIN_OPTION_BOOLEAN:
+  fix: "Use the on and off switch for this setting, then save again."
+PLUGIN_OPTION_CHOICE:
+  fix: "Pick one of the choices from the list, then save again."
+PLUGIN_OPTION_STEP:
+  fix: "Use a value that fits the step in the message, such as 5, 10, 15, then save again."
+PLUGIN_OPTION_LIST:
+  fix: "List each item only once and keep the list within the limit in the message."
+PLUGIN_OPTION_ROWS:
+  fix: "Remove some rows so the table stays within the limit in the message."
+PLUGIN_OPTION_ROW:
+  fix: "Reload the page so the table matches the current version, then fill it in again."
+PLUGIN_OPTION_CASTLE:
+  fix: "Pick a castle from the list. It must belong to the game account you are editing."
+PLUGIN_OPTION_ITEM:
+  fix: "Pick the item from the list in the setting instead of typing it."
+PLUGIN_ATTACK_CAP:
+  fix: "Turn some attack plugins off, then save. The Plugins list shows your limit. It is set per account, so yours may differ from a friend's."
+TOO_MANY_ATTACK_PLUGINS:
+  fix: "Open the account's plugins and turn some attack plugins off, then start the bot again. Your limit is shown in the settings."
+CASTLE_LOCKED:
+  fix: "Wait. Auto Station is moving the castle's troops out of the way of an incoming attack, and attacks resume by themselves when it finishes."
+IS_BANNED:
+  fix: "Check the game. The ban is the game's decision and we cannot lift it. The bot stays stopped until you start it again after the ban ends."
+FAILED_TO_SET_CASTLE:
+  fix: "Check the castle still exists in the game, then start the bot again. If it keeps happening, contact support with the account name."

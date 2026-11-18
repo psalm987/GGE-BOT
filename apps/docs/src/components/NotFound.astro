@@ -1,0 +1,24 @@
+---
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro"
+import { pagePath } from "../seo/site.ts"
+
+interface Props {
+    locale: string
+}
+
+const { locale } = Astro.props
+const t = Astro.locals.t
+const home = pagePath(locale, "index")
+---
+
+<StarlightPage frontmatter={{ title: "404", description: t("404.text"), template: "splash", pagefind: false, head: [{ tag: "meta", attrs: { name: "robots", content: "noindex" } }] }}>
+    <div class="gge-notfound">
+        <p class="gge-notfound__text">{t("404.text")}</p>
+        <form class="gge-notfound__search" role="search" action={home} method="get" data-gge-search-form>
+            <label for="gge-notfound-q">{t("search.label")}</label>
+            <input id="gge-notfound-q" name="q" type="search" autocomplete="off" />
+            <button type="submit">{t("search.label")}</button>
+        </form>
+        <p><a href={home}>{t("gge.notFound.home")}</a></p>
+    </div>
+</StarlightPage>

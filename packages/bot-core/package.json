@@ -6,6 +6,7 @@
     "test:formal": "verification/commander-pool/check.sh"
   },
   "dependencies": {
+    "@gge/contracts": "workspace:*",
     "bufferutil": "^4.2.0",
     "discord.js": "^14.28.1",
     "emoji-dictionary": "^1.0.12",
@@ -21,7 +22,6 @@
     "ws": "^8.23.0"
   },
   "devDependencies": {
-    "@gge/contracts": "workspace:*",
     "acorn": "8.19.0",
     "vitest": "^5.1.0"
   }

@@ -1,0 +1,26 @@
+---
+import errors from "../generated/errors.json"
+import { anchorOf, plainPlaceholders, type ErrorEntry } from "../data/generated-types.ts"
+import { INTERNAL_CODES } from "../data/internal-codes.ts"
+import { fixesFor, routeLocale } from "../data/runtime.ts"
+
+interface Props {
+    source?: "app" | "bot"
+}
+
+const { source } = Astro.props
+const t = Astro.locals.t
+const fixes = await fixesFor("errors", routeLocale(Astro))
+const entries = (errors as ErrorEntry[]).filter(e => !INTERNAL_CODES.has(e.code) && (!source || e.source === source))
+for (const entry of entries) if (!fixes[entry.code]) throw new Error(`${entry.code} has no fix text in src/content/errors/en.yaml`)
+---
+
+<div class="gge-refs">
+    {entries.map(entry => (
+        <article class="gge-ref" data-id={anchorOf(entry.code)}>
+            <div class="gge-ref__top"><h3 class="gge-ref__head" id={anchorOf(entry.code)} tabindex="-1"><code class="gge-ref__code">{entry.code}</code></h3><a class="gge-ref__link" data-pagefind-ignore href={`#${anchorOf(entry.code)}`} aria-label={`${t("gge.ref.link")}: ${entry.code}`}><span aria-hidden="true">#</span></a></div>
+            {entry.messages.map(message => <p class="gge-ref__says"><span class="gge-ref__label" data-pagefind-ignore>{t("gge.ref.says")}</span> {plainPlaceholders(message)}</p>)}
+            <p class="gge-ref__fix"><span class="gge-ref__label" data-pagefind-ignore>{t("gge.ref.fix")}</span> {fixes[entry.code]!.fix}</p>
+        </article>
+    ))}
+</div>

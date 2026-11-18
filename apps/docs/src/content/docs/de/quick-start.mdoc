@@ -5,9 +5,11 @@ description: Registrieren, Spielkonto hinzufügen, Plugins wählen und den Bot i
 
 Bereit? Diese Seite führt dich vom neuen Konto zum laufenden Bot.
 
+{% terms_on_page /%}
+
 ## Konto erstellen {% #sign-up %}
 
-Öffne die App und wähle **Registrieren**. Gib deine E-Mail-Adresse und ein Passwort ein. Wir senden dir einen Link, also nutze eine Adresse, die du gleich öffnen kannst.
+Öffne die App und wähle {% ui key="client:signup.submit" /%}. Gib einen Benutzernamen, deine E-Mail-Adresse und ein Passwort ein. Wir senden dir einen Link, also nutze eine Adresse, die du gleich öffnen kannst. Du meldest dich mit Benutzername und Passwort an.
 
 {% aside type="note" id="why-email" %}
 Deine E-Mail-Adresse gehört nur zu deinem GGE-Command-Konto. Sie ist nicht dein Spiel-Login.
@@ -15,15 +17,19 @@ Deine E-Mail-Adresse gehört nur zu deinem GGE-Command-Konto. Sie ist nicht dein
 
 ## Spielkonto hinzufügen {% #add-account %}
 
-Wähle **Konto hinzufügen**. Gib den Namen deines Spielkontos ein, wähle den Server und gib dein Spielpasswort ein. Wähle denselben Server, auf dem du spielst, denn ein Bot, der sich auf einer falschen Welt anmeldet, kann nur scheitern.{% sidenote id="server-match" %}Du weißt nicht, auf welchem Server du bist? Öffne das Spiel und sieh dir den Servernamen auf dem Anmeldebildschirm an.{% /sidenote %} Wenn die App einen Anmeldefehler zeigt, prüfe zuerst Namen und Server.
+Wähle {% ui key="client:account.add" /%}. Gib den Namen deines {% term id="game-account" %}Spielkontos{% /term %} ein, wähle den {% term id="server" %}Server{% /term %} und gib dein Spielpasswort ein. Wähle denselben Server, auf dem du spielst, denn ein Bot, der sich auf einer falschen Welt anmeldet, kann nur scheitern.{% sidenote id="server-match" %}Du weißt nicht, auf welchem Server du bist? Öffne das Spiel und sieh dir den Servernamen auf dem Anmeldebildschirm an.{% /sidenote %} Wenn die App einen Anmeldefehler zeigt, prüfe zuerst Namen und Server. Das Ergebnis siehst du in deinen {% term id="log" %}Logs{% /term %}.
 
 {% aside type="caution" id="one-bot-each" %}
-Jedes Konto startet einen Bot. Solange die Abrechnung aus ist, bekommt jedes Konto einen Bot.
+Jedes Spielkonto startet einen Bot.
+
+{% plan_gate %}
+Dein Tarif legt fest, wie viele Bots du starten kannst.
+{% /plan_gate %}
 {% /aside %}
 
 ## Bot starten {% #start %}
 
-Wähle die Plugins aus und tippe auf der Kontokarte auf **Start**. Dein Bot meldet sich an und legt los.{% sidenote id="plugin-def" %}Ein Plugin ist eine Aufgabe des Bots, zum Beispiel Steuern einsammeln oder Angriffe senden.{% /sidenote %}
+Wähle die {% term id="plugin" %}Plugins{% /term %} aus und tippe auf der Kontokarte auf {% ui key="common:action.start" /%}. Dein Bot meldet sich an und legt los.{% sidenote id="plugin-def" %}Ein Plugin ist eine Aufgabe des Bots, zum Beispiel Steuern einsammeln oder Angriffe senden.{% /sidenote %}
 
 {% aside type="tip" id="start-small" %}
 Starte mit ein oder zwei Plugins. Füge mehr hinzu, wenn du die Logs einen Tag lang beobachtet hast.
@@ -31,7 +37,7 @@ Starte mit ein oder zwei Plugins. Füge mehr hinzu, wenn du die Logs einen Tag l
 
 ## Logs ansehen {% #watch-logs %}
 
-Öffne die Seite **Logs**. Jede Aktion deines Bots erscheint dort live.
+Öffne die Seite {% ui key="client:nav.logs" /%}. Jede Aktion deines Bots erscheint dort live.
 
 {% aside type="danger" id="account-risk" %}
 Spielkonten können gesperrt werden. Ein Bot verstößt gegen die Spielregeln, und das Risiko trägst du.

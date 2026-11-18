@@ -1,0 +1,21 @@
+---
+import notifications from "../generated/notifications.json"
+import { anchorOf, type AlertEntry } from "../data/generated-types.ts"
+import { fixesFor, routeLocale } from "../data/runtime.ts"
+
+const t = Astro.locals.t
+const fixes = await fixesFor("alerts", routeLocale(Astro))
+const entries = notifications as AlertEntry[]
+for (const entry of entries) if (!fixes[entry.id]) throw new Error(`${entry.id} has no fix text in src/content/alerts/en.yaml`)
+---
+
+<div class="gge-refs">
+    {entries.map(entry => (
+        <article class="gge-ref" data-id={anchorOf(entry.id)}>
+            <div class="gge-ref__top"><h3 class="gge-ref__head" id={anchorOf(entry.id)} tabindex="-1"><span class="gge-ref__title">{entry.title}</span></h3><a class="gge-ref__link" data-pagefind-ignore href={`#${anchorOf(entry.id)}`} aria-label={`${t("gge.ref.link")}: ${entry.title}`}><span aria-hidden="true">#</span></a></div>
+            <p class="gge-ref__says"><span class="gge-ref__label" data-pagefind-ignore>{t("gge.ref.code")}</span> <code>{entry.id}</code></p>
+            {entry.body.map(line => <p class="gge-ref__says"><span class="gge-ref__label" data-pagefind-ignore>{t("gge.ref.says")}</span> {line}</p>)}
+            <p class="gge-ref__fix"><span class="gge-ref__label" data-pagefind-ignore>{t("gge.ref.fix")}</span> {fixes[entry.id]!.fix}</p>
+        </article>
+    ))}
+</div>

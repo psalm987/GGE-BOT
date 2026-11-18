@@ -1,9 +1,18 @@
 ---
 import Default from "@astrojs/starlight/components/Footer.astro"
+import { langOptions } from "../seo/langbar.ts"
+
+const route = Astro.locals.starlightRoute
+const options = await langOptions(route)
 ---
 
 <Default><slot /></Default>
 <div class="sr-only" role="status" aria-live="polite" data-gge-live></div>
+{Object.keys(options).length > 0 && <div class="gge-langbar not-content" role="status" aria-live="polite" data-gge-langbar data-current={route.lang} data-options={JSON.stringify(options)}></div>}
 <script>
     import "../scripts/enhance.ts"
+    import "../scripts/terms.ts"
+    import "../scripts/glossary.ts"
+    import "../scripts/search-query.ts"
+    import "../scripts/langbar.ts"
 </script>

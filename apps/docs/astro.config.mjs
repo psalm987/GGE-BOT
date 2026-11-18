@@ -3,14 +3,20 @@ import starlight from "@astrojs/starlight"
 import markdoc from "@astrojs/markdoc"
 import { starlightLocales } from "./src/theme/locales.ts"
 import { themeCss } from "./src/theme/css.ts"
+import { trimSitemapIntegration } from "./src/seo/sitemap.ts"
+import { sidebar } from "./src/theme/sidebar.ts"
 
 export default defineConfig({
     site: "https://docs.neisesolutions.com",
+    // Moved pages go here as "/old/": "/new/". Phase 8 turns each entry into a Caddy 301.
+    redirects: {},
+    vite: { ssr: { external: ["canvaskit-wasm"] } },
     integrations: [
         starlight({
             title: "GGE Command",
             logo: { src: "./src/assets/crest.svg", alt: "" },
             favicon: "/crest.svg",
+            disable404Route: true,
             defaultLocale: "root",
             locales: starlightLocales,
             head: [
@@ -30,8 +36,10 @@ export default defineConfig({
                 "./src/styles/docs.css",
             ],
             components: { Footer: "./src/components/Footer.astro" },
-            sidebar: [{ label: "Start here", translations: { de: "Hier starten", ar: "ابدأ من هنا" }, items: [{ slug: "quick-start" }] }],
+            sidebar,
+            routeMiddleware: "./src/seo/middleware.ts",
         }),
         markdoc(),
+        trimSitemapIntegration(),
     ],
 })

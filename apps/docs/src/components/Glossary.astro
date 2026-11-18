@@ -1,0 +1,66 @@
+---
+import { getCollection } from "astro:content"
+import { pageHref, routeLocale, termsFor } from "../data/runtime.ts"
+import { termTags } from "../data/term-usage.ts"
+import { TERM_CATEGORIES, type TermEntry } from "../data/terms.ts"
+
+const t = Astro.locals.t
+const locale = routeLocale(Astro)
+const terms = [...(await termsFor(locale))]
+const collator = new Intl.Collator(locale)
+terms.sort((a, b) => collator.compare(a.term, b.term))
+const byId = new Map(terms.map(term => [term.id, term]))
+
+const pages = await getCollection("docs")
+const slugOf = (id: string) => id.replace(/^[a-z]{2}\//, "")
+const english = pages.filter(page => !/^[a-z]{2}\//.test(page.id))
+const usedOn = new Map<string, { title: string; href: string }[]>()
+for (const base of english) {
+    if (base.id === "glossary") continue
+    const page = locale === "en" ? base : pages.find(p => p.id === `${locale}/${slugOf(base.id)}`) ?? base
+    for (const id of new Set(termTags(page.body ?? ""))) {
+        const list = usedOn.get(id) ?? []
+        list.push({ title: page.data.title, href: pageHref(locale, base.id === "index" ? "" : base.id).replace("//", "/") })
+        usedOn.set(id, list)
+    }
+}
+
+const letterOf = (term: TermEntry) => term.term.charAt(0).toLocaleUpperCase(locale)
+const letters = [...new Set(terms.map(letterOf))]
+const groups = letters.map(letter => ({ letter, terms: terms.filter(term => letterOf(term) === letter) }))
+const categories = TERM_CATEGORIES.filter(category => terms.some(term => term.category === category))
+---
+
+<div class="gge-glossary" data-total={terms.length}>
+    <div class="gge-filters not-content" role="group" aria-label={t("gge.glossary.filter")}>
+        <button type="button" class="gge-filter" data-category="all" aria-pressed="true">{t("gge.glossary.all")}</button>
+        {categories.map(category => <button type="button" class="gge-filter" data-category={category} aria-pressed="false">{t(`gge.term.cat.${category}`)}</button>)}
+    </div>
+    <p class="gge-glossary__count" role="status" aria-live="polite" data-pagefind-ignore>{t("gge.glossary.shown", { n: terms.length })}</p>
+    <nav class="gge-letters" aria-label={t("gge.glossary.letters")} data-pagefind-ignore>
+        {letters.map(letter => <a href={`#letter-${letter}`} data-letter={letter}>{letter}</a>)}
+    </nav>
+    {groups.map(group => (
+        <section class="gge-letter" id={`letter-${group.letter}`} data-letter={group.letter} aria-labelledby={`letter-${group.letter}-h`}>
+            <h2 id={`letter-${group.letter}-h`} class="gge-letter__head" data-pagefind-ignore>{group.letter}</h2>
+            {group.terms.map(term => (
+                <article class="gge-gloss" data-id={term.id} data-category={term.category}>
+                    <div class="gge-ref__top"><h3 class="gge-gloss__term" id={term.id} tabindex="-1" data-pagefind-weight="10">{term.term}</h3><a class="gge-ref__link" data-pagefind-ignore href={`#${term.id}`} aria-label={`${t("gge.ref.link")}: ${term.term}`}><span aria-hidden="true">#</span></a></div>
+                    <p class="gge-gloss__meta">
+                        <span class="gge-gloss__cat" data-pagefind-ignore>{t(`gge.term.cat.${term.category}`)}</span>
+                        {term.aliases.length > 0 && <span class="gge-gloss__aliases"> · {t("gge.glossary.alsoCalled")}: <span data-pagefind-weight="8">{term.aliases.join(", ")}</span></span>}
+                    </p>
+                    <p class="gge-gloss__short" data-pagefind-weight="5">{term.short}</p>
+                    {term.image && <img class="gge-gloss__image" src={term.image} alt="" loading="lazy" />}
+                    <p>{term.long}</p>
+                    {term.seeAlso.some(id => byId.has(id)) && (
+                        <p class="gge-gloss__see">{t("gge.glossary.seeAlso")}: {term.seeAlso.flatMap(id => byId.get(id) ?? []).map((other, i) => <>{i > 0 && ", "}<a href={`#${other.id}`}>{other.term}</a></>)}</p>
+                    )}
+                    {usedOn.has(term.id) && (
+                        <p class="gge-gloss__used" data-pagefind-ignore>{t("gge.glossary.usedOn")}: {usedOn.get(term.id)!.map((page, i) => <>{i > 0 && ", "}<a href={page.href}>{page.title}</a></>)}</p>
+                    )}
+                </article>
+            ))}
+        </section>
+    ))}
+</div>
