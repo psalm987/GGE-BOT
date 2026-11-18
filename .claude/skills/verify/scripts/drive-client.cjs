@@ -935,10 +935,13 @@ async function driveArmies(page) {
     }
     assert(true, "each wave opens on its in-game preset choice")
 
-    await pick(form, "In-game preset for wave 4", "Preset 3")
-    assert(await form.getByText("A wave uses an in-game preset. The bot can't read those yet", { exact: false }).isVisible(), "picking an in-game preset warns that the bot can't read it yet")
-    assert(await headers.nth(3).locator(".ant-tag").innerText() === "Preset 3", "the wave's tag names the preset")
-    await pick(form, "In-game preset for wave 4", "Empty (no troops)")
+    const presetBox = form.getByRole("combobox", { name: "In-game preset for wave 4", exact: true })
+    await presetBox.scrollIntoViewIfNeeded()
+    await presetBox.click()
+    await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first().waitFor()
+    const presetChoices = await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").allInnerTexts()
+    assert(presetChoices.length === 1 && presetChoices[0] === "Empty (no troops)", `in-game presets 1 to 30 stay hidden until the bot can read them (${JSON.stringify(presetChoices)})`)
+    await page.keyboard.press("Escape")
 
     await segment(form, "Wave 1 comes from", "Custom slots").click()
     const ranged = await pick(form, "Wave 1, Left flank, troop 1")

@@ -1,7 +1,7 @@
 import { Alert, Collapse, InputNumber, Segmented, Select, Tag } from "antd"
 import { useTranslation } from "react-i18next"
 import {
-    MAX_SLOT_AMOUNT, SERVER_PRESETS, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
+    MAX_SLOT_AMOUNT, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
     type ArmySlot, type GameItem, type ManualPlan, type Wave,
 } from "@gge/contracts"
 import { filledSlots, withCourtyard, withSlot, withSupportTool, withWave } from "../army-values.ts"
@@ -58,7 +58,7 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
     const tools = itemOptions(unknown, useGameItems("tool"), useGameItems("banner"))
     const troops = itemOptions(unknown, useGameItems("troop"))
     const supportTools = itemOptions(unknown, useGameItems("supportTool"))
-    const presets = [{ value: 0, label: t("waves.preset.empty") }, ...Array.from({ length: SERVER_PRESETS }, (_, i) => ({ value: i + 1, label: t("waves.preset.option", { n: i + 1 }) }))]
+    const presetOptions = (current: number) => [{ value: 0, label: t("waves.preset.empty") }, ...(current > 0 ? [{ value: current, label: t("waves.preset.option", { n: current }) }] : [])]
 
     const panel = (wave: Wave, index: number) => {
         const n = index + 1
@@ -70,7 +70,7 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
                     options={[{ value: "preset", label: t("waves.kind.preset") }, { value: "custom", label: t("waves.kind.custom") }]} />
                 {wave.kind === "preset"
                     ? <>
-                        <Select aria-label={t("waves.preset.label", { n })} value={wave.preset} options={presets} disabled={disabled}
+                        <Select aria-label={t("waves.preset.label", { n })} value={wave.preset} options={presetOptions(wave.preset)} disabled={disabled}
                             onChange={(preset: number) => set({ kind: "preset", preset })} style={{ width: "100%", maxWidth: 360 }} />
                         <p className="gge-army-note">{t("waves.preset.note")}</p>
                     </>

@@ -638,7 +638,7 @@
   "waves.preset.label": "In-game preset for wave {{n}}",
   "waves.preset.empty": "Empty (no troops)",
   "waves.preset.option": "Preset {{n}}",
-  "waves.preset.note": "The bot can't read your in-game presets yet, so they are listed by number. Use Empty or custom slots for now.",
+  "waves.preset.note": "In-game presets 1 to 30 come later, once the bot can read them. Leave the wave empty or use custom slots.",
   "waves.preset.warning": "A wave uses an in-game preset. The bot can't read those yet, so the module won't start until that wave is empty or custom.",
   "waves.row.tools": "Tools",
   "waves.row.units": "Troops",

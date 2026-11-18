@@ -82,9 +82,11 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
             <ModuleHead module={module} accounts={accounts.data ?? []} account={account} onPick={id => id !== account?.id && guarded(() => choose(id))} />
             {!account && <Alert type="info" showIcon title={t("presets.noAccount")} action={<Link to="/?add=1"><Button size="small">{t("module.addAccount")}</Button></Link>} />}
             {account && (
-                <ParchmentCard title={t("presets.title", { name: account.name })}
-                    extra={<Button type="primary" icon={<PlusOutlined />} disabled={full} className="gge-press"
-                        onClick={() => guarded(() => setDraft({ name: "", plan: emptyPlan() }))}>{t("presets.new")}</Button>}>
+                <ParchmentCard title={t("presets.title", { name: account.name })}>
+                    <div className="gge-preset-actions">
+                        <Button type="primary" icon={<PlusOutlined />} disabled={full} className="gge-press"
+                            onClick={() => guarded(() => setDraft({ name: "", plan: emptyPlan() }))}>{t("presets.new")}</Button>
+                    </div>
                     {presets.isPending ? <Skeleton active paragraph={{ rows: 2 }} />
                         : list.length === 0 ? <Typography.Paragraph type="secondary" style={{ margin: 0 }}>{t("presets.empty")}</Typography.Paragraph>
                         : <ul className="gge-preset-list">
