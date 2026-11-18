@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { beforeAll, expect, test, vi } from "vitest"
 import { MODULE_GROUPS, MODULES } from "@gge/contracts"
 import assets from "@gge/bot-core/assets.json" with { type: "json" }
@@ -38,6 +38,16 @@ test("ids and orders are unique, orders ascend and groups follow the sidebar's o
 
 test("every icon is a game art key", () => {
     for (const module of MODULES) expect(module.icon in assets, `${module.id}: ${module.icon}`).toBe(true)
+})
+
+test("every icon's art is committed at both sizes and credited", () => {
+    const dir = new URL("../../../packages/ui/src/game-art/", import.meta.url)
+    const manifest = JSON.parse(readFileSync(new URL("manifest.json", dir), "utf8")) as { credit: string; icons: { key: string }[] }
+    expect(manifest.credit).toBe("© Goodgame Studios")
+    for (const module of MODULES) {
+        expect(manifest.icons.some(icon => icon.key === module.icon), `${module.id} in manifest`).toBe(true)
+        for (const size of [48, 96]) expect(existsSync(new URL(`${module.icon}-${size}.webp`, dir)), `${module.icon}-${size}.webp`).toBe(true)
+    }
 })
 
 test("every module and group has its English name, and every module its description", () => {
