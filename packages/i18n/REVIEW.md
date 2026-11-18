@@ -11,7 +11,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | da | Danish | 2026-11-18 | pending | |  |
 | de | German | 2026-11-18 | pending | |  |
 | el | Greek | 2026-11-18 | pending | |  |
-| es | Spanish | pending | pending | |  |
+| es | Spanish | 2026-11-18 | pending | |  |
 | et | Estonian | pending | pending | | No game file served. Terms chosen by translator. |
 | fi | Finnish | pending | pending | |  |
 | fr | French | 2026-11-18 | pending | |  |
