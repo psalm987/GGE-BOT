@@ -6,7 +6,7 @@ import { openSealed } from "@gge/crypto"
 import { publishCatalog, readPluginRegistry } from "./catalog.ts"
 import { createDiscordClient, DiscordHub } from "./discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
-import { readServers, refreshGameData } from "./game-data.ts"
+import { fetchClientBuild, readServers, refreshGameData } from "./game-data.ts"
 import { publishGameItems, readGameItems } from "./game-items.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
@@ -65,6 +65,17 @@ await store.recoverFromLastRun()
 
 if (env.REFRESH_GAME_DATA)
     await refreshGameData(paths.data)
+/** Follows the game's client releases, unless GAME_CLIENT_BUILD pins a build. Each bot reads it when it starts. */
+async function followClientBuild() {
+    if (env.GAME_CLIENT_BUILD)
+        return
+    const build = await fetchClientBuild()
+    if (build && build !== ggeConfig.gameClientBuild) {
+        console.log(`game client build ${build}`)
+        ggeConfig.gameClientBuild = build
+    }
+}
+await followClientBuild()
 for (const server of await readServers(paths.data))
     await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
 await publishGameItems(db, await readGameItems(paths.data))
@@ -111,6 +122,7 @@ const timers = [
     }, LIVENESS.intervalMs),
     setInterval(() => void store.beat(startedAt, VERSION, supervisor.running).catch(e => console.error("heartbeat failed", e)), 10_000),
     setInterval(() => void runPrunes(prunes(db, { auditDays: env.AUDIT_RETENTION_DAYS })), 3600_000),
+    setInterval(() => void followClientBuild(), 600_000),
 ]
 await store.beat(startedAt, VERSION, 0)
 await reconcile()

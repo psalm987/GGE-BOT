@@ -21,10 +21,10 @@ const { pause } = require("./pacing.js")
 const timeoutMultiplier = ggeConfig.timeoutMultiplier ?? 1
 const humanize = ggeConfig.humanize ?? {}
 /**
- * The HTML5 client's build number, which it sends at login and in `vck` (1172014 in the 2026-11-13 capture).
- * Sending `undefined` there marked every bot.
+ * The HTML5 client's build number, which it sends at login and in `vck`. The runner reads the live one
+ * from the game's CDN; this fallback is client 1.173.9. Sending `undefined` there marked every bot.
  */
-const clientBuild = ggeConfig.gameClientBuild ?? 1172014
+const clientBuild = ggeConfig.gameClientBuild ?? 1173009
 /** The real client sends one random `vck` number per session, in JavaScript's own exponent form, and reuses it. */
 const versionCheckNonce = String(Math.random() * Number.MAX_VALUE)
 /** A pause a person would leave, scaled like every other wait so that it stays inside the login deadline. */
@@ -274,6 +274,7 @@ webSocket.onopen = () => {
         startPinging()
 }
 let errorCount = 0
+let versionRejected = false
 
 webSocket.onmessage = ({data : message}) => {
     message = message.toString()
@@ -295,6 +296,7 @@ webSocket.onmessage = ({data : message}) => {
                     xtHandler.emit(key, value, 0)
                 break
             case "vck":
+                versionRejected = result != 0
                 xtHandler.emit(cmd, obj, result)
                 break
             case "gfl":
@@ -331,7 +333,8 @@ webSocket.onmessage = ({data : message}) => {
     }
 }
 webSocket.onerror = event => exitWorker(proxy?.failureOf(event.error) ?? `SOCKET_ERROR:${event.error?.code ?? event.message}`)
-webSocket.onclose = event => exitWorker(`SOCKET_ERROR:${event.code}`)
+// An out-of-date build gets a refused `vck` and then the socket drops without a close frame (1006).
+webSocket.onclose = event => exitWorker(versionRejected && liveness.phase == "login" ? "CLIENT_VERSION_REJECTED" : `SOCKET_ERROR:${event.code}`)
 
 const loginTimedOut = () => {
     // A ban or rejected login already reported why, and exits on its own schedule.
