@@ -16,7 +16,8 @@ export type LocaleState = {
 
 export const PREFERENCE_KEY = "gge.locale"
 export const LEGACY_KEY = "gge.lang"
-export const DETECTED_KEY = "gge.locale.detected"
+// v2: detections cached before the API saw the visitor's own IP (it saw a Cloudflare edge, so everyone got Dutch) are ignored.
+export const DETECTED_KEY = "gge.locale.detected.v2"
 
 export const isPreference = (value: unknown): value is Preference => value === "auto" || isLocale(value)
 
