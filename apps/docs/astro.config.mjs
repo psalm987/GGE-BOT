@@ -3,6 +3,7 @@ import starlight from "@astrojs/starlight"
 import markdoc from "@astrojs/markdoc"
 import { starlightLocales } from "./src/theme/locales.ts"
 import { themeCss } from "./src/theme/css.ts"
+import { sidebar } from "./src/theme/sidebar.ts"
 
 export default defineConfig({
     site: "https://docs.neisesolutions.com",
@@ -30,11 +31,8 @@ export default defineConfig({
                 "./src/styles/docs.css",
             ],
             components: { Footer: "./src/components/Footer.astro" },
-            sidebar: [
-                { label: "Start here", translations: { de: "Hier starten", ar: "ابدأ من هنا" }, items: [{ slug: "quick-start" }, { slug: "glossary" }] },
-                { label: "Plugins", translations: { de: "Plugins", ar: "الإضافات" }, items: [{ slug: "plugins/attack-khan" }] },
-                { label: "Help", translations: { de: "Hilfe", ar: "مساعدة" }, items: [{ slug: "errors" }, { slug: "alerts" }] },
-            ],
+            sidebar,
+            routeMiddleware: "./src/seo/middleware.ts",
         }),
         markdoc(),
     ],
