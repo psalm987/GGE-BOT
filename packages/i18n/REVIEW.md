@@ -27,7 +27,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | pt | Portuguese | pending | pending | | Game file is pt. Check the variant with a native reviewer. |
 | ro | Romanian | pending | pending | |  |
 | sk | Slovak | 2026-11-18 | pending | |  |
-| sl | Slovenian | pending | pending | | No game file served. Terms chosen by translator. |
+| sl | Slovenian | 2026-11-18 | pending | | No game file served. Terms chosen by translator. |
 | sv | Swedish | pending | pending | |  |
 | nb | Norwegian Bokmål | pending | pending | | Game code is no. |
 | tr | Turkish | pending | pending | |  |
