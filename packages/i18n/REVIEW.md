@@ -29,7 +29,7 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | sk | Slovak | 2026-11-18 | pending | |  |
 | sl | Slovenian | 2026-11-18 | pending | | No game file served. Terms chosen by translator. |
 | sv | Swedish | 2026-11-18 | pending | |  |
-| nb | Norwegian Bokmål | pending | pending | | Game code is no. |
+| nb | Norwegian Bokmål | 2026-11-18 | pending | | Game code is no. |
 | tr | Turkish | pending | pending | |  |
 | uk | Ukrainian | 2026-11-18 | pending | | No game file served. Terms chosen by translator. |
 | ar | Arabic | pending | pending | | PRIORITY. Six plural forms. Right-to-left layout. |
