@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { beforeAll, expect, test, vi } from "vitest"
 import { MODULE_GROUPS, MODULES } from "@gge/contracts"
-import assets from "@gge/bot-core/assets.json" with { type: "json" }
 import { readPluginRegistry } from "../src/catalog.ts"
 
 const en = JSON.parse(readFileSync(new URL("../../../packages/i18n/catalogs/en/client.json", import.meta.url), "utf8")) as Record<string, string>
@@ -37,17 +36,18 @@ test("ids and orders are unique, orders ascend and groups follow the sidebar's o
     })
 })
 
-test("every icon is a game art key", () => {
-    for (const module of MODULES) expect(module.icon in assets, `${module.id}: ${module.icon}`).toBe(true)
-})
-
-test("every icon's art is committed at both sizes and credited", () => {
-    const dir = new URL("../../../packages/ui/src/game-art/", import.meta.url)
-    const manifest = JSON.parse(readFileSync(new URL("manifest.json", dir), "utf8")) as { credit: string; icons: { key: string }[] }
-    expect(manifest.credit).toBe("© Goodgame Studios")
+test("every module icon is in the game-icons set and has its badge and credit committed", () => {
+    const set = JSON.parse(readFileSync(new URL("../../../tools/icons/node_modules/@iconify-json/game-icons/icons.json", import.meta.url), "utf8")) as { icons: Record<string, unknown> }
+    const dir = new URL("../../../packages/ui/src/icons/", import.meta.url)
+    const credits = JSON.parse(readFileSync(new URL("credits.json", dir), "utf8")) as { icons: { id: string; author: string; source: string; licence: string }[] }
     for (const module of MODULES) {
-        expect(manifest.icons.some(icon => icon.key === module.icon), `${module.id} in manifest`).toBe(true)
-        for (const size of [48, 96]) expect(existsSync(new URL(`${module.icon}-${size}.webp`, dir)), `${module.icon}-${size}.webp`).toBe(true)
+        expect(module.icon in set.icons, `${module.id}: ${module.icon} is in the set`).toBe(true)
+        expect(existsSync(new URL(`${module.icon}.svg`, dir)), `${module.icon}.svg`).toBe(true)
+        const credit = credits.icons.find(icon => icon.id === module.icon)
+        expect(credit, `${module.icon} in credits.json`).toBeDefined()
+        expect(credit!.author, `${module.icon} author`).toBeTruthy()
+        expect(credit!.source, `${module.icon} source`).toMatch(/^https:\/\/game-icons\.net\//)
+        expect(credit!.licence).toBe("CC BY 3.0")
     }
 })
 

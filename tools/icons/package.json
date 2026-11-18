@@ -1,15 +1,17 @@
 {
-  "name": "@gge/game-art-tools",
+  "name": "@gge/icons",
   "private": true,
   "type": "module",
   "scripts": {
-    "fetch": "node fetch.ts",
+    "build": "node build.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "sharp": "^0.35.5"
+    "@gge/contracts": "workspace:*",
+    "@gge/ui": "workspace:*"
   },
   "devDependencies": {
+    "@iconify-json/game-icons": "1.2.4",
     "@types/node": "^26.6.6"
   }
 }

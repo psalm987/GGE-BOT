@@ -4,7 +4,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
 import { MODULES, type AccountCastle, type ModuleDef, type PluginCatalogEntry, type PluginStates, type PublicAccount } from "@gge/contracts"
-import { GameArt, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
+import { Icon, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
@@ -28,7 +28,7 @@ export function Module() {
     const { t } = useTranslation("client")
     const module = MODULES.find(m => m.id === id)
     if (!module) return <Navigate to="/" replace />
-    const title = <span className="gge-module-title"><GameArt icon={module.icon} size={28} /><span>{t(`modules.${module.id}.name`)}</span></span>
+    const title = <span className="gge-module-title"><Icon icon={module.icon} size={28} /><span>{t(`modules.${module.id}.name`)}</span></span>
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
             {module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}

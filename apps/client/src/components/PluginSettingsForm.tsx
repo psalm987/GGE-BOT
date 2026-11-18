@@ -3,7 +3,7 @@ import { Button, Form, Tag, Typography } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { MODULES, type PluginCatalogEntry, type PublicAccount } from "@gge/contracts"
-import { GameArt } from "@gge/ui"
+import { Icon } from "@gge/ui"
 import { orpc } from "../api.ts"
 import type { PluginFormValues } from "../plugin-values.ts"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "./PluginPanels.tsx"
@@ -58,7 +58,7 @@ export function PluginSettingsForm({ catalog, account, onOpenModule }: { catalog
                 return (
                     <section key={module.id} aria-label={name} style={{ borderBottom: "1px solid var(--gge-rule)", padding: "8px 0" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                            <GameArt icon={module.icon} size={24} />
+                            <Icon icon={module.icon} size={24} />
                             <strong className="gge-display" style={{ flex: 1 }}>{name}</strong>
                             {account && onOpenModule && entries.some(e => e.options.length > 0) && (
                                 <Button type="text" icon={<SettingOutlined />} onClick={() => onOpenModule(module.id)} aria-label={t("drawer.openModuleSettings", { module: name })} style={{ minHeight: 44 }}>

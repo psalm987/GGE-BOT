@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs>
+<linearGradient id="rim" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#E0A526"/><stop offset="1" stop-color="#B9821A"/></linearGradient>
+<linearGradient id="bevel" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#F3E7C9" stop-opacity="0.85"/><stop offset="0.45" stop-color="#F3E7C9" stop-opacity="0"/></linearGradient>
+<radialGradient id="ground" cx="0.5" cy="0.38" r="0.7"><stop offset="0" stop-color="#2B221B"/><stop offset="1" stop-color="#15110E"/></radialGradient>
+<g id="glyph" transform="translate(12 12.5) scale(0.07813)"><path fill="inherit" d="m25.45 63.043l-4.364 17.463l8.73 2.18l60.624 15.16l29.402 44.1l62.44 187.32l-36.845 73.693h17.827a31.6 31.6 0 0 0-3.264 14c0 17.567 14.433 32 32 32s32-14.433 32-32c0-5.01-1.178-9.762-3.264-14h102.528a31.6 31.6 0 0 0-3.264 14c0 17.567 14.433 32 32 32s32-14.433 32-32c0-5.01-1.178-9.762-3.264-14H393v-18H174.562l23-46h192.924l70-210h-327.67L101.56 82.07L34.183 65.227zm115.038 83.914H231v46h-75.178zm108.512 0h78v46h-78zm96 0h90.512l-15.334 46H345zm-183.18 64H231v46h-53.846zm87.18 0h78v46h-78zm96 0h69.18l-15.334 46H345zm-161.846 64H231v46h-32.514zm65.846 0h78v46h-78zm96 0h47.846l-15.332 46H345zm-153 128c7.84 0 14 6.16 14 14s-6.16 14-14 14s-14-6.16-14-14s6.16-14 14-14m160 0c7.84 0 14 6.16 14 14s-6.16 14-14 14s-14-6.16-14-14s6.16-14 14-14"/></g>
+</defs>
+<circle cx="32" cy="33" r="30.5" fill="#15110E" opacity="0.55"/>
+<circle cx="32" cy="32" r="30.5" fill="url(#rim)"/>
+<circle cx="32" cy="32" r="29.5" fill="none" stroke="url(#bevel)" stroke-width="2"/>
+<circle cx="32" cy="32" r="26.5" fill="#B9821A"/>
+<circle cx="32" cy="32" r="25.2" fill="url(#ground)"/>
+<circle cx="32" cy="32" r="23.8" fill="none" stroke="#E0A526" stroke-opacity="0.3" stroke-width="0.75"/>
+<path transform="rotate(0 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(90 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(180 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(270 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/>
+<use href="#glyph" transform="translate(0 1)" fill="#15110E" opacity="0.8"/>
+<use href="#glyph" fill="#F3E7C9"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs>
+<linearGradient id="rim" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#E0A526"/><stop offset="1" stop-color="#B9821A"/></linearGradient>
+<linearGradient id="bevel" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#F3E7C9" stop-opacity="0.85"/><stop offset="0.45" stop-color="#F3E7C9" stop-opacity="0"/></linearGradient>
+<radialGradient id="ground" cx="0.5" cy="0.38" r="0.7"><stop offset="0" stop-color="#2B221B"/><stop offset="1" stop-color="#15110E"/></radialGradient>
+<g id="glyph" transform="translate(12 12.5) scale(0.07813)"><path fill="inherit" d="M71 22.406v102.53h202.25v18.69h-73.22v36.968h-18.686v-36.97H79.156l43.375 53.782h180.44v18.688H180.905v36.97H162.22v-36.97h-39.407v163.562h58.53v-44.75H157.47V316.22h74.155v-33.66H193.72v-18.687h97.218v18.688h-40.625v33.656h73.28v18.686h-32.437v44.75h26.313v18.688h-63.69l-2.686 74.03l-18.688-.687l2.656-73.343H93.032V398h-.22l-28.687 92.844h79.844l9.81-70.688l18.5 2.563l-9.468 68.124H453.25L424.562 398h-30.03V197.78l51.812-64.25V22.407h-64.406v52.438h-39.22V22.406h-65.124v52.438h-38.53V22.406h-65.126v52.438h-38.5V22.406zm129.03 312.5v44.75h72.44v-44.75z"/></g>
+</defs>
+<circle cx="32" cy="33" r="30.5" fill="#15110E" opacity="0.55"/>
+<circle cx="32" cy="32" r="30.5" fill="url(#rim)"/>
+<circle cx="32" cy="32" r="29.5" fill="none" stroke="url(#bevel)" stroke-width="2"/>
+<circle cx="32" cy="32" r="26.5" fill="#B9821A"/>
+<circle cx="32" cy="32" r="25.2" fill="url(#ground)"/>
+<circle cx="32" cy="32" r="23.8" fill="none" stroke="#E0A526" stroke-opacity="0.3" stroke-width="0.75"/>
+<path transform="rotate(0 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(90 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(180 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(270 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/>
+<use href="#glyph" transform="translate(0 1)" fill="#15110E" opacity="0.8"/>
+<use href="#glyph" fill="#F3E7C9"/>
+</svg>

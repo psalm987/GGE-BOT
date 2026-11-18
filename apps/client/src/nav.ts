@@ -1,7 +1,7 @@
 import { createElement } from "react"
 import { CrownOutlined, ProfileOutlined, SettingOutlined, TeamOutlined } from "@ant-design/icons"
 import { MODULES, MODULE_GROUPS, type ModuleGroup } from "@gge/contracts"
-import { GameArt, type NavItem } from "@gge/ui"
+import { Icon, type NavItem } from "@gge/ui"
 
 export const PAGES = { accounts: "/", logs: "/logs", plan: "/plan", settings: "/settings" } as const
 export type PageKey = keyof typeof PAGES
@@ -32,7 +32,7 @@ export function buildNav({ client, common }: Labels, planVisible: boolean, catal
             ...extras[group]?.first ?? [],
             ...MODULES.filter(module => module.group === group && (!module.devOnly || module.plugins.some(key => catalogKeys.has(key)))).map((module): NavItem => ({
                 key: moduleKey(module.id), label: client(`modules.${module.id}.name`), href: `/m/${module.id}`,
-                icon: createElement(GameArt, { icon: module.icon }), ...module.status === "soon" && { tag: client("modules.soonTag") },
+                icon: createElement(Icon, { icon: module.icon }), ...module.status === "soon" && { tag: client("modules.soonTag") },
             })),
             ...extras[group]?.last ?? [],
         ],

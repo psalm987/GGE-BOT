@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<defs>
+<linearGradient id="rim" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#E0A526"/><stop offset="1" stop-color="#B9821A"/></linearGradient>
+<linearGradient id="bevel" x1="0" y1="0" x2="0.6" y2="1"><stop offset="0" stop-color="#F3E7C9" stop-opacity="0.85"/><stop offset="0.45" stop-color="#F3E7C9" stop-opacity="0"/></linearGradient>
+<radialGradient id="ground" cx="0.5" cy="0.38" r="0.7"><stop offset="0" stop-color="#2B221B"/><stop offset="1" stop-color="#15110E"/></radialGradient>
+<g id="glyph" transform="translate(12 12.5) scale(0.07813)"><path fill="inherit" d="M128.688 115.594v147.75h285v-147.75zm-111.844 20.47c17.374 47.14 54.372 80.413 94.906 93.81v-93.81zm414.375 12.31v88.657c21.457-9.083 42.92-25.257 64.374-47.374c-21.52-22.562-42.633-35.173-64.375-41.28zm-226.25 132.47c-12.15 38.536-33.897 71.5-60.595 100.47l257.844-.002c-28.705-29.016-49.952-62.054-61.5-100.468H204.97zM101.843 400v43.78h337.562V400z"/></g>
+</defs>
+<circle cx="32" cy="33" r="30.5" fill="#15110E" opacity="0.55"/>
+<circle cx="32" cy="32" r="30.5" fill="url(#rim)"/>
+<circle cx="32" cy="32" r="29.5" fill="none" stroke="url(#bevel)" stroke-width="2"/>
+<circle cx="32" cy="32" r="26.5" fill="#B9821A"/>
+<circle cx="32" cy="32" r="25.2" fill="url(#ground)"/>
+<circle cx="32" cy="32" r="23.8" fill="none" stroke="#E0A526" stroke-opacity="0.3" stroke-width="0.75"/>
+<path transform="rotate(0 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(90 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(180 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/><path transform="rotate(270 32 32)" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="#B9821A"/>
+<use href="#glyph" transform="translate(0 1)" fill="#15110E" opacity="0.8"/>
+<use href="#glyph" fill="#F3E7C9"/>
+</svg>
