@@ -16,6 +16,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/runner/package.json apps/runner/
 COPY apps/client/package.json apps/client/
 COPY apps/admin/package.json apps/admin/
+COPY apps/docs/package.json apps/docs/
 COPY tools/dev/package.json tools/dev/
 COPY tools/i18n/package.json tools/i18n/
 COPY tools/import-sqlite/package.json tools/import-sqlite/
