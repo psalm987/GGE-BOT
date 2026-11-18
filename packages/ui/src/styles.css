@@ -357,6 +357,16 @@ body {
     .gge-account-tabs .ant-tabs-tab { padding-inline: 0; }
     .gge-account-tabs .ant-tabs-tab-btn { white-space: nowrap; }
 }
+/* Translations with longer words overflow even that. The tab bar then scrolls by swipe, and the "more" menu stays out of the tablist. */
+@media (max-width: 767.98px) {
+    .ant-tabs-top > .ant-tabs-nav .ant-tabs-nav-operations { display: none; }
+}
+/* A card title wraps onto its own line beside a long "extra" instead of being cut to an ellipsis. */
+@media (max-width: 575.98px) {
+    .gge-gilded .ant-card-head-wrapper { flex-wrap: wrap; gap: 0 12px; }
+    .gge-gilded .ant-card-head-title { flex: 1 1 auto; overflow: visible; white-space: normal; text-overflow: clip; }
+    .gge-gilded .ant-card-extra { margin-inline-start: 0; padding-block: 0 12px; }
+}
 .gge-overview { display: grid; gap: 12px; }
 .gge-overview-note { margin: 0; font-size: 13px; }
 .gge-overview-note a { text-decoration: underline; text-underline-offset: 3px; }

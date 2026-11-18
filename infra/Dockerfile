@@ -10,12 +10,14 @@ COPY packages/bot-core/package.json packages/bot-core/
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/crypto/package.json packages/crypto/
 COPY packages/db/package.json packages/db/
+COPY packages/i18n/package.json packages/i18n/
 COPY packages/ui/package.json packages/ui/
 COPY apps/api/package.json apps/api/
 COPY apps/runner/package.json apps/runner/
 COPY apps/client/package.json apps/client/
 COPY apps/admin/package.json apps/admin/
 COPY tools/dev/package.json tools/dev/
+COPY tools/i18n/package.json tools/i18n/
 COPY tools/import-sqlite/package.json tools/import-sqlite/
 RUN pnpm install --frozen-lockfile
 
