@@ -8,6 +8,7 @@ import { sidebar } from "./src/theme/sidebar.ts"
 
 export default defineConfig({
     site: "https://docs.neisesolutions.com",
+    vite: { ssr: { external: ["canvaskit-wasm"] } },
     integrations: [
         starlight({
             title: "GGE Command",

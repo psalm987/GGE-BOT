@@ -3,7 +3,8 @@ import type { StarlightRouteData } from "@astrojs/starlight/route-data"
 import { sectionOf } from "../theme/sidebar.ts"
 import { termsFor } from "../data/runtime.ts"
 import { pageJsonLd, serialize, SITE_URL, APP_NAME, type Crumb, type PageKind } from "./jsonld.ts"
-import { addNoindex, keepAlternates, setCanonical } from "./head.ts"
+import { addImage, addNoindex, keepAlternates, setCanonical } from "./head.ts"
+import { OG_HEIGHT, OG_WIDTH, ogPath } from "./og-path.ts"
 import { docPages, pageUrl, slugOf, translatedLocales } from "./site.ts"
 
 type Head = StarlightRouteData["head"]
@@ -38,12 +39,17 @@ export const onRequest = defineRouteMiddleware(async context => {
         setCanonical(route.head, pageUrl("en", slug))
     }
 
+    const imageLang = !route.isFallback && translated.has(lang) ? lang : "en"
+    const image = new URL(ogPath(imageLang, slug), SITE_URL).href
+    addImage(route.head, { url: image, alt: title, width: OG_WIDTH, height: OG_HEIGHT })
+
     const documents = pageJsonLd({
         kind,
         title,
         description,
         lang,
         url,
+        image,
         updated,
         crumbs: crumbsFor(slug, lang, title),
         terms: kind === "glossary" ? await termsFor(lang) : undefined,
