@@ -28,7 +28,7 @@ export function Module() {
     const { t } = useTranslation("client")
     const module = MODULES.find(m => m.id === id)
     if (!module) return <Navigate to="/" replace />
-    const title = <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><GameArt icon={module.icon} size={28} />{t(`modules.${module.id}.name`)}</span>
+    const title = <span className="gge-module-title"><GameArt icon={module.icon} size={28} /><span>{t(`modules.${module.id}.name`)}</span></span>
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
             {module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}

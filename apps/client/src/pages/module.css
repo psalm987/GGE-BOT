@@ -1,4 +1,7 @@
 .gge-module { display: grid; gap: 16px; }
+.gge-module-title { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-width: 0; vertical-align: middle; }
+.gge-module-title > :first-child { flex: none; }
+.gge-module-title > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gge-module-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
 .gge-module-intro { margin: 0; flex: 1 1 320px; min-width: 0; color: var(--gge-muted); }
 .gge-module-picker { display: flex; align-items: center; gap: 8px; }
