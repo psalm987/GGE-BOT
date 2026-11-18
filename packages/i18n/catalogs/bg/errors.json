@@ -94,5 +94,6 @@
   "zod.invalid_union": "Не съвпада с нито една позволена форма.",
   "zod.invalid_key": "Съдържа невалиден ключ.",
   "zod.invalid_element": "Съдържа невалиден елемент.",
-  "zod.custom": "Това не е валидно."
+  "zod.custom": "Това не е валидно.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

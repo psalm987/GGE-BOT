@@ -94,5 +94,6 @@
   "zod.invalid_union": "Det här matchar ingen tillåten form.",
   "zod.invalid_key": "Det här innehåller en ogiltig nyckel.",
   "zod.invalid_element": "Det här innehåller ett ogiltigt objekt.",
-  "zod.custom": "Det här är inte giltigt."
+  "zod.custom": "Det här är inte giltigt.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

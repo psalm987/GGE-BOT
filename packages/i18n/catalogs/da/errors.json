@@ -94,5 +94,6 @@
   "zod.invalid_union": "Dette passer ikke til nogen tilladt form.",
   "zod.invalid_key": "Dette indeholder en ugyldig nøgle.",
   "zod.invalid_element": "Dette indeholder et ugyldigt punkt.",
-  "zod.custom": "Dette er ikke gyldigt."
+  "zod.custom": "Dette er ikke gyldigt.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

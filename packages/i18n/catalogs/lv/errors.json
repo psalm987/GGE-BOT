@@ -99,5 +99,6 @@
   "zod.invalid_union": "Tas neatbilst nevienai atļautajai formai.",
   "zod.invalid_key": "Tajā ir nederīga atslēga.",
   "zod.invalid_element": "Tajā ir nederīgs vienums.",
-  "zod.custom": "Tas nav derīgs."
+  "zod.custom": "Tas nav derīgs.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

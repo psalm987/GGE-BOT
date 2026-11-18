@@ -94,5 +94,6 @@
   "zod.invalid_union": "Dit komt met geen enkele toegestane vorm overeen.",
   "zod.invalid_key": "Dit bevat een ongeldige sleutel.",
   "zod.invalid_element": "Dit bevat een ongeldig item.",
-  "zod.custom": "Dit is niet geldig."
+  "zod.custom": "Dit is niet geldig.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

@@ -94,5 +94,6 @@
   "zod.invalid_union": "Bu, izin verilen hiçbir biçime uymuyor.",
   "zod.invalid_key": "Bunda geçersiz bir anahtar var.",
   "zod.invalid_element": "Bunda geçersiz bir öğe var.",
-  "zod.custom": "Bu geçerli değil."
+  "zod.custom": "Bu geçerli değil.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

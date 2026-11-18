@@ -109,5 +109,6 @@
   "zod.invalid_union": "Dan ma jaqbel ma' ebda forma permessa.",
   "zod.invalid_key": "Dan fih ċavetta invalida.",
   "zod.invalid_element": "Dan fih element invalidu.",
-  "zod.custom": "Dan mhuwiex validu."
+  "zod.custom": "Dan mhuwiex validu.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

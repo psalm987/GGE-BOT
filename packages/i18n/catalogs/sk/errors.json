@@ -104,5 +104,6 @@
   "zod.invalid_union": "Toto nezodpovedá žiadnej povolenej podobe.",
   "zod.invalid_key": "Toto obsahuje neplatný kľúč.",
   "zod.invalid_element": "Toto obsahuje neplatnú položku.",
-  "zod.custom": "Toto nie je platné."
+  "zod.custom": "Toto nie je platné.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

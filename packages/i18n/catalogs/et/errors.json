@@ -94,5 +94,6 @@
   "zod.invalid_union": "See ei vasta ühelegi lubatud kujule.",
   "zod.invalid_key": "See sisaldab kehtetut võtit.",
   "zod.invalid_element": "See sisaldab kehtetut üksust.",
-  "zod.custom": "See ei kehti."
+  "zod.custom": "See ei kehti.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

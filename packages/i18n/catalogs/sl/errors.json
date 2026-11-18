@@ -104,5 +104,6 @@
   "zod.invalid_union": "To ne ustreza nobeni dovoljeni obliki.",
   "zod.invalid_key": "To vsebuje neveljaven ključ.",
   "zod.invalid_element": "To vsebuje neveljaven element.",
-  "zod.custom": "To ni veljavno."
+  "zod.custom": "To ni veljavno.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

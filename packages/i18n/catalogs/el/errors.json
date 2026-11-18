@@ -94,5 +94,6 @@
   "zod.invalid_union": "Αυτό δεν ταιριάζει με καμία επιτρεπόμενη μορφή.",
   "zod.invalid_key": "Αυτό περιέχει μη έγκυρο κλειδί.",
   "zod.invalid_element": "Αυτό περιέχει μη έγκυρο στοιχείο.",
-  "zod.custom": "Αυτό δεν είναι έγκυρο."
+  "zod.custom": "Αυτό δεν είναι έγκυρο.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

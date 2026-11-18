@@ -94,5 +94,6 @@
   "zod.invalid_union": "Tämä ei vastaa mitään sallittua muotoa.",
   "zod.invalid_key": "Tämä sisältää virheellisen avaimen.",
   "zod.invalid_element": "Tämä sisältää virheellisen kohteen.",
-  "zod.custom": "Tämä ei kelpaa."
+  "zod.custom": "Tämä ei kelpaa.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

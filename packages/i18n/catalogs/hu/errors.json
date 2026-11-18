@@ -94,5 +94,6 @@
   "zod.invalid_union": "Ez egyetlen engedélyezett alakhoz sem illik.",
   "zod.invalid_key": "Ez érvénytelen kulcsot tartalmaz.",
   "zod.invalid_element": "Ez érvénytelen elemet tartalmaz.",
-  "zod.custom": "Ez érvénytelen."
+  "zod.custom": "Ez érvénytelen.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

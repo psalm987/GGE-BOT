@@ -99,5 +99,6 @@
   "zod.invalid_union": "Isto não corresponde a nenhuma forma permitida.",
   "zod.invalid_key": "Isto contém uma chave inválida.",
   "zod.invalid_element": "Isto contém um item inválido.",
-  "zod.custom": "Isto não é válido."
+  "zod.custom": "Isto não é válido.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

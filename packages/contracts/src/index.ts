@@ -17,6 +17,7 @@ import {
 } from "./schemas.ts"
 
 export * from "./alerts.ts"
+export * from "./army.ts"
 export * from "./billing.ts"
 export * from "./codes.ts"
 export * from "./data-export.ts"

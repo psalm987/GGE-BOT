@@ -94,5 +94,6 @@
   "zod.invalid_union": "Das passt zu keiner erlaubten Form.",
   "zod.invalid_key": "Das enthält einen ungültigen Schlüssel.",
   "zod.invalid_element": "Das enthält einen ungültigen Eintrag.",
-  "zod.custom": "Das ist ungültig."
+  "zod.custom": "Das ist ungültig.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

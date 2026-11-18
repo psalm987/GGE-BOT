@@ -99,5 +99,6 @@
   "zod.invalid_union": "Aceasta nu se potrivește cu nicio formă permisă.",
   "zod.invalid_key": "Aceasta conține o cheie nevalidă.",
   "zod.invalid_element": "Aceasta conține un element nevalid.",
-  "zod.custom": "Aceasta nu este valid."
+  "zod.custom": "Aceasta nu este valid.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

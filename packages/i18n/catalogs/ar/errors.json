@@ -114,5 +114,6 @@
   "zod.invalid_union": "هذا لا يطابق أي شكل مسموح به.",
   "zod.invalid_key": "يحتوي هذا على مفتاح غير صالح.",
   "zod.invalid_element": "يحتوي هذا على عنصر غير صالح.",
-  "zod.custom": "هذا غير صالح."
+  "zod.custom": "هذا غير صالح.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

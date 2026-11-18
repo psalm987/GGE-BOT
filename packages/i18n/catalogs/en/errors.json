@@ -82,6 +82,7 @@
   "PLUGIN_OPTION_ROW": "{{where}} has a column this setting doesn't have",
   "PLUGIN_OPTION_CASTLE": "{{where}} must be one of the account's castles",
   "PLUGIN_OPTION_ITEM": "{{where}} must be a game item",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
   "PLUGIN_ATTACK_CAP_one": "Your plan allows {{count}} attack plugin at once. Turn some off to save.",
   "PLUGIN_ATTACK_CAP_other": "Your plan allows {{count}} attack plugins at once. Turn some off to save.",
   "zod.invalid_type": "This field has the wrong type.",

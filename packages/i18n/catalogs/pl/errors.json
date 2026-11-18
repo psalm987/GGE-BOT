@@ -104,5 +104,6 @@
   "zod.invalid_union": "To nie pasuje do żadnej dozwolonej postaci.",
   "zod.invalid_key": "To zawiera nieprawidłowy klucz.",
   "zod.invalid_element": "To zawiera nieprawidłowy element.",
-  "zod.custom": "To jest nieprawidłowe."
+  "zod.custom": "To jest nieprawidłowe.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }

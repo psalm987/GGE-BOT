@@ -104,5 +104,6 @@
   "zod.invalid_union": "Не відповідає жодній дозволеній формі.",
   "zod.invalid_key": "Містить недійсний ключ.",
   "zod.invalid_element": "Містить недійсний елемент.",
-  "zod.custom": "Недійсне значення."
+  "zod.custom": "Недійсне значення.",
+  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting"
 }
