@@ -183,6 +183,8 @@ const violets = page => page.evaluate(() => {
         const g = await geometry(wide)
         assert(g.visible && g.note.left >= g.longP.right && g.note.right <= g.toc.left, "at 1440 the note sits in a margin column between the text and the TOC")
         assert(g.over <= 0, "no horizontal scroll at 1440")
+        const numbers = await wide.evaluate(() => [...document.querySelectorAll(".gge-sidenote")].map(w => [w.querySelector(".gge-sidenote__mark").textContent, getComputedStyle(document.querySelector(`#${w.querySelector(".gge-sidenote__mark").getAttribute("aria-controls")} .gge-sidenote__num`), "::before").content]))
+        assert(numbers.length > 0 && numbers.every(([mark, note]) => note === `"${mark}"`), `each margin note shows its marker's number (${JSON.stringify(numbers)})`)
         await wide.hover("#server-match")
         await wide.waitForTimeout(250)
         assert(Number(await wide.evaluate(() => getComputedStyle(document.querySelector(".gge-sidenote__mark"), "::before").opacity)) > 0.1, "hovering a note tints its marker")

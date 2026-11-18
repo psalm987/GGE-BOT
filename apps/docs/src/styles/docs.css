@@ -368,3 +368,9 @@ site-search button {
         transition: none;
     }
 }
+
+.sidebar .sl-menu-button {
+    background-color: var(--gge-surface);
+    color: var(--gge-accent);
+    border: 1px solid var(--gge-rule);
+}

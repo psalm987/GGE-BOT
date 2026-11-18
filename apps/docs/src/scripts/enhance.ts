@@ -6,8 +6,9 @@ type Note = { wrap: HTMLElement; mark: HTMLButtonElement; body: HTMLElement; ope
 const notes: Note[] = [...document.querySelectorAll<HTMLElement>(".gge-sidenote")].flatMap((wrap, index) => {
     const mark = wrap.querySelector<HTMLButtonElement>(".gge-sidenote__mark")
     const body = wrap.querySelector<HTMLElement>(".gge-sidenote__body")
-    if (!mark || !body) return []
-    mark.dataset.n = body.dataset.n = String(index + 1)
+    const num = body?.querySelector<HTMLElement>(".gge-sidenote__num")
+    if (!mark || !body || !num) return []
+    mark.dataset.n = num.dataset.n = String(index + 1)
     mark.textContent = String(index + 1)
     mark.setAttribute("aria-label", `${mark.getAttribute("aria-label")} ${index + 1}`)
     mark.hidden = false
