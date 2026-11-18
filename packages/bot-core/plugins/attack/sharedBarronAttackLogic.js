@@ -171,6 +171,9 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                     Number(a.unitInfo.defRangeBonus) - Number(b.unitInfo.defRangeBonus))
 
                 const autoConfigure = !(options.attackLeft || options.attackRight || options.attackMiddle)
+                const attackLeft = autoConfigure || options.attackLeft
+                const attackRight = autoConfigure || options.attackRight
+                const attackMiddle = autoConfigure || options.attackMiddle
                 const commanderStats = commander.getEffects()
                 const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, parseInt(options.attackWaves), options, commanderStats.additionalWaves)
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
@@ -183,7 +186,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                     if (index == 0 && options.useWallTools) {
                         const desiredToolCount = 10
                         let maxTools = maxToolsFlank
-                        if (autoConfigure ? true : options.attackLeft) {
+                        if (attackLeft) {
                             wave.L.T.forEach((unitSlot, i) =>
                                 maxTools -= assignUnit(unitSlot, i == 0 ?
                                     attackerWallTools : attackerShieldTools, Math.min(maxTools, desiredToolCount)))
@@ -193,7 +196,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                                     attackerMeleeTroops : attackerRangeTroops, maxTroops))
                         }
                         maxTools = maxToolsFlank
-                        if (options.attackRight) {
+                        if (attackRight) {
                             wave.R.T.forEach((unitSlot, i) =>
                                 maxTools -= assignUnit(unitSlot, i == 0 ?
                                     attackerWallTools : attackerShieldTools, Math.min(maxTools, desiredToolCount)))
@@ -204,7 +207,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                                     attackerMeleeTroops : attackerRangeTroops, maxTroops))
                         }
                         maxTools = maxToolsFlank
-                        if (options.attackMiddle) {
+                        if (attackMiddle) {
                             wave.M.T.forEach((unitSlot, i) =>
                                 maxTools -= assignUnit(unitSlot, i == 0 ?
                                     attackerWallTools : attackerShieldTools, Math.min(maxTools, desiredToolCount)))
@@ -217,18 +220,18 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                         return
                     }
 
-                    if (autoConfigure ? true : options.attackLeft) {
+                    if (attackLeft) {
                         wave.L.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
                                 attackerRangeTroops : attackerMeleeTroops, maxTroops))
                     }
-                    if (options.attackRight) {
+                    if (attackRight) {
                         maxTroops = maxTroopFlank
                         wave.R.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
                                 attackerRangeTroops : attackerMeleeTroops, maxTroops))
                     }
-                    if (options.attackMiddle) {
+                    if (attackMiddle) {
                         maxTroops = maxTroopFront
                         wave.M.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
