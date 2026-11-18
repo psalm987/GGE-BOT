@@ -33,6 +33,7 @@ Each feature file has an H1, one paragraph of user-visible behavior, then four H
 - [Game accounts](./game-accounts.md): `add-account` and `remove-account` steps; edit, keep-password, select-all and per-login isolation are manual.
 - [Plugin settings](./plugin-settings.md): `edit-plugins` step; option values and widget kinds are manual; Discord plugins unreachable without a token.
 - [Run a bot](./run-bot.md): `start-bot` step, gated behind `--live` because it logs into the real game.
+- [Player docs site](./docs-site.md): `drive-docs.cjs` serves `apps/docs/dist` itself; run after `pnpm --filter @gge/docs build`.
 
 ## Not mapped yet
 

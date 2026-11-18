@@ -1,0 +1,31 @@
+---
+type Kind = "tip" | "caution" | "danger" | "note"
+interface Props {
+    type: Kind
+    id: string
+}
+
+const { type, id } = Astro.props
+const t = Astro.locals.t
+const label = t(`gge.aside.${type}`)
+const labelId = `${id}-label`
+
+const ICONS: Record<Kind, string> = {
+    tip: "M12 3l2.2 6.3L21 12l-6.8 2.7L12 21l-2.2-6.3L3 12l6.8-2.7z",
+    caution: "M12 3L22 20H2zM12 10v5M12 17.5v.5",
+    danger: "M8 3h8l5 5v8l-5 5H8l-5-5V8zM9 9l6 6M15 9l-6 6",
+    note: "M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z",
+}
+---
+
+<aside id={id} class={`gge-aside gge-aside--${type}`} role="note" aria-labelledby={labelId} tabindex="-1">
+    <p class="gge-aside__head">
+        <svg class="gge-aside__icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d={ICONS[type]}></path></svg>
+        <span class="gge-aside__label" id={labelId}>{label}</span>
+        <button type="button" class="gge-aside__copy" data-copy-id={id} data-copied={t("gge.aside.linkCopied")} aria-label={`${t("gge.aside.copyLink")}: ${label}`}>
+            <svg class="gge-aside__copy-icon gge-aside__copy-link" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
+            <svg class="gge-aside__copy-icon gge-aside__copy-check" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </button>
+    </p>
+    <div class="gge-aside__body"><slot /></div>
+</aside>

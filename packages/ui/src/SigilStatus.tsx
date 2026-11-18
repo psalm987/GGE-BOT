@@ -3,7 +3,7 @@ import { Tag, Tooltip } from "antd"
 import dayjs from "dayjs"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { palette } from "./theme.ts"
+import { palette } from "./palette.ts"
 
 export type BotState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 

@@ -1,0 +1,10 @@
+---
+interface Props {
+    id: string
+}
+
+const { id } = Astro.props
+const label = Astro.locals.t("gge.sidenote.label")
+---
+
+<span class="gge-sidenote">&#8288;<button type="button" class="gge-sidenote__mark" aria-controls={id} aria-label={label} hidden></button><span class="gge-sidenote__body" id={id} role="note" tabindex="-1"><span class="gge-sidenote__tint" aria-hidden="true"></span><span class="gge-sidenote__num" aria-hidden="true"></span><slot /></span></span>
