@@ -1,12 +1,12 @@
 import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Button, Grid, Popconfirm, Space, Table, Tag, Tooltip, Typography } from "antd"
+import { Alert, App, Button, Grid, Popconfirm, Space, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useSearchParams } from "react-router"
-import { planRunsMessage, type PublicAccount } from "@gge/contracts"
+import { useNavigate, useSearchParams } from "react-router"
+import { moduleOfPlugin, planRunsMessage, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, messageOf, palette, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
@@ -17,6 +17,10 @@ import { needsAttention } from "../attention.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 dayjs.extend(relativeTime)
+
+const MOVED_KEY = "gge.movedNoticeSeen"
+const movedNoticeSeen = () => { try { return localStorage.getItem(MOVED_KEY) === "1" } catch { return false } }
+const rememberMovedNotice = () => { try { localStorage.setItem(MOVED_KEY, "1") } catch { /* it will show again next time */ } }
 
 const isRunning = (a: PublicAccount) => a.desiredState === "running"
 const twinKey = (a: Pick<PublicAccount, "serverId" | "name">) => `${a.serverId}:${a.name.toLowerCase()}`
@@ -30,25 +34,37 @@ export function Dashboard() {
     const servers = useQuery(orpc.servers.list.queryOptions())
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
-    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount; plugin?: string }>({ open: false })
+    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
+    const navigate = useNavigate()
+    const [movedSeen, setMovedSeen] = useState(movedNoticeSeen)
 
-    // A notification links here as /?account=<id>, and the command palette adds &plugin=<key> to open that plugin's settings.
-    // Both are taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
+    // A notification links here as /?account=<id>. Old links with &plugin=<key> opened that plugin's dialog, which is now the module's page.
+    // "?add" opens the add-account drawer. Each is taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
     const [params, setParams] = useSearchParams()
     const wanted = params.get("account")
-    const wantedPlugin = params.get("plugin") ?? undefined
+    const wantedPlugin = params.get("plugin")
+    const wantsAdd = params.has("add")
     useEffect(() => {
+        if (wanted && wantedPlugin) {
+            const module = moduleOfPlugin(wantedPlugin)
+            if (module) return void navigate(`/m/${module.id}?account=${wanted}`, { replace: true })
+        }
+        if (wantsAdd) {
+            setDrawer({ open: true })
+            setParams(current => { current.delete("add"); return current }, { replace: true })
+            return
+        }
         if (!wanted || !accounts.data)
             return
         const account = accounts.data.find(a => a.id === wanted)
         if (account)
-            setDrawer({ open: true, account, plugin: wantedPlugin })
+            setDrawer({ open: true, account })
         setParams(current => {
             current.delete("account")
             current.delete("plugin")
             return current
         }, { replace: true })
-    }, [wanted, wantedPlugin, accounts.data, setParams])
+    }, [wanted, wantedPlugin, wantsAdd, accounts.data, setParams, navigate])
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()
@@ -77,6 +93,8 @@ export function Dashboard() {
     }))
 
     const list = accounts.data ?? []
+    // antd copies the header's select-all checkbox into the hidden row it measures columns with, which leaves a focusable box under aria-hidden.
+    useEffect(() => { document.querySelectorAll(".ant-table-measure-row input").forEach(input => input.setAttribute("tabindex", "-1")) })
     const running = list.filter(a => a.status?.actualState === "running").length
     const counted = list.filter(a => !a.isTwin).length
     const limit = me?.role === "admin" ? undefined : me?.accountLimit
@@ -102,6 +120,10 @@ export function Dashboard() {
                     </Tooltip>
                 </Space>
             }>
+            {!movedSeen && (
+                <Alert type="info" showIcon title={t("moved.title")} description={t("moved.body")} style={{ marginBottom: 16 }}
+                    action={<Button size="small" onClick={() => { rememberMovedNotice(); setMovedSeen(true) }}>{t("moved.dismiss")}</Button>} />
+            )}
             {list.length > 0 && (
                 <DashboardOverview accounts={list} counted={counted} limit={limit} online={running} attention={attention} onOpen={account => setDrawer({ open: true, account })} />
             )}
@@ -185,7 +207,7 @@ export function Dashboard() {
                 )}
             </ParchmentCard>
 
-            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} openPlugin={drawer.plugin} onClose={() => setDrawer({ open: false })} />
+            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} onClose={() => setDrawer({ open: false })} />
         </AppLayout>
     )
 }

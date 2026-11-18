@@ -22,7 +22,7 @@ type Labels = { client: Translate; common: Translate }
 export function buildNav({ client, common }: Labels, planVisible: boolean): NavItem[] {
     const page = (key: PageKey, label: string, icon: typeof TeamOutlined): NavItem => ({ key, label, icon: createElement(icon), href: PAGES[key] })
     const extras: Partial<Record<ModuleGroup, { first?: NavItem[]; last?: NavItem[] }>> = {
-        overview: { first: [page("accounts", common("nav.accounts"), TeamOutlined)], last: [page("logs", client("nav.logs"), ProfileOutlined)] },
+        overview: { first: [page("accounts", client("nav.overview"), TeamOutlined)], last: [page("logs", client("nav.logs"), ProfileOutlined)] },
         settings: { last: [...planVisible ? [page("plan", client("nav.plan"), CrownOutlined)] : [], page("settings", common("nav.settings"), SettingOutlined)] },
     }
     return MODULE_GROUPS.map(group => ({

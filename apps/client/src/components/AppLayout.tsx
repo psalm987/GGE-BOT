@@ -1,4 +1,5 @@
 import { SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
+import { moduleOfPlugin } from "@gge/contracts"
 import { App, Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo, type ReactNode } from "react"
@@ -48,10 +49,10 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), enabled: verifiedUser })
     const servers = useQuery({ ...orpc.servers.list.queryOptions(), enabled: verifiedUser })
     const catalog = useQuery({ ...orpc.plugins.catalog.queryOptions(), enabled: verifiedUser })
-    // Accounts open their drawer through the Dashboard's ?account= link, and a plugin's settings through ?plugin=.
+    // Accounts open their drawer through the Overview's ?account= link, and a plugin's settings are on its module's page.
     const commands = useMemo<CommandItem[]>(() => {
         const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
-        const configurable = catalog.data?.filter(entry => entry.options.length > 0) ?? []
+        const configurable = catalog.data?.filter(entry => entry.options.length > 0 && moduleOfPlugin(entry.key)) ?? []
         return (accounts.data ?? []).flatMap(account => [
             {
                 id: `account:${account.id}`, group: "accounts" as const, label: account.name, hint: serverLabel.get(account.serverId), icon: <UserOutlined />,
@@ -61,7 +62,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
                 const label = tb(entry.key, { defaultValue: entry.key })
                 return {
                     id: `plugin:${account.id}:${entry.key}`, group: "plugins" as const, label, hint: account.name, icon: <SettingOutlined />,
-                    keywords: [entry.key, t("palette.pluginKeyword")], run: () => navigate(`/?account=${account.id}&plugin=${entry.key}`),
+                    keywords: [entry.key, t("palette.pluginKeyword")], run: () => navigate(`/m/${moduleOfPlugin(entry.key)!.id}?account=${account.id}`),
                 }
             }),
         ])

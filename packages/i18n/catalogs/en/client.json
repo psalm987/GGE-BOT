@@ -119,7 +119,7 @@
   "delete.notice": "Your account was deleted",
   "account.add": "Add account",
   "account.addTwinFor": "Add event twin for {{name}}",
-  "dashboard.title": "Your accounts",
+  "dashboard.title": "Overview",
   "dashboard.stats.accounts": "Accounts",
   "dashboard.stats.attention": "Need attention",
   "dashboard.roster": "Roster",
@@ -582,5 +582,14 @@
   "module.fixErrors": "Fix the highlighted fields first.",
   "module.changed": "Changed",
   "module.unsaved": "You have unsaved changes",
-  "module.discard": "Discard changes"
+  "module.discard": "Discard changes",
+  "nav.overview": "Overview",
+  "dashboard.kpi.coins": "Coins",
+  "dashboard.kpi.rubies": "Rubies",
+  "dashboard.kpi.reported": "Total of each account's last report",
+  "drawer.openSettings": "Open settings",
+  "drawer.openModuleSettings": "Open settings for {{module}}",
+  "moved.title": "Settings moved to the sidebar",
+  "moved.body": "Each module now has its own page. Pick it in the sidebar, choose an account at the top, and edit everything on one page.",
+  "moved.dismiss": "Got it"
 }

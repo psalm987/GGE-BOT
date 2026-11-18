@@ -582,5 +582,14 @@
   "module.fixErrors": "Fix the highlighted fields first.",
   "module.changed": "Changed",
   "module.unsaved": "You have unsaved changes",
-  "module.discard": "Discard changes"
+  "module.discard": "Discard changes",
+  "nav.overview": "Overview",
+  "dashboard.kpi.coins": "Coins",
+  "dashboard.kpi.rubies": "Rubies",
+  "dashboard.kpi.reported": "Total of each account's last report",
+  "drawer.openSettings": "Open settings",
+  "drawer.openModuleSettings": "Open settings for {{module}}",
+  "moved.title": "Settings moved to the sidebar",
+  "moved.body": "Each module now has its own page. Pick it in the sidebar, choose an account at the top, and edit everything on one page.",
+  "moved.dismiss": "Got it"
 }

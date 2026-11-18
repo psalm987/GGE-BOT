@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { MODULES } from "@gge/contracts"
+import { MODULES, moduleOfPlugin } from "@gge/contracts"
 import { buildNav, moduleIdOf, moduleKey, pathOf } from "../src/nav.ts"
 
 const labels = { client: (key: string) => key, common: (key: string) => key }
@@ -24,4 +24,10 @@ test("a key leads to its path", () => {
     expect(pathOf("logs")).toBe("/logs")
     expect(moduleIdOf("m:khan")).toBe("khan")
     expect(moduleIdOf("logs")).toBeNull()
+})
+
+test("an old plugin link finds the module that edits the plugin", () => {
+    expect(moduleOfPlugin("attackKhan")?.id).toBe("khan")
+    expect(moduleOfPlugin("attackBarronsFirePeaks")?.id).toBe("towers")
+    expect(moduleOfPlugin("noSuchPlugin")).toBeUndefined()
 })

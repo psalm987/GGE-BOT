@@ -1,4 +1,4 @@
-import { CheckCircleOutlined, CloseCircleOutlined, TeamOutlined, ThunderboltOutlined, WarningOutlined } from "@ant-design/icons"
+import { CheckCircleOutlined, CloseCircleOutlined, DollarOutlined, GoldOutlined, TeamOutlined, ThunderboltOutlined, WarningOutlined } from "@ant-design/icons"
 import { useQuery } from "@tanstack/react-query"
 import { Button, Skeleton, Statistic, Typography } from "antd"
 import { useMemo, type ReactNode } from "react"
@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { ACTIVITY_WINDOW, LOG_RETENTION, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, palette, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc } from "../api.ts"
-import { topAccounts, totalsOf, type Counted } from "../dashboard-model.ts"
+import { resourceTotals, topAccounts, totalsOf, type Counted } from "../dashboard-model.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 
 const ACTIVITY_MS = 60_000
@@ -53,6 +53,7 @@ export function DashboardOverview({ accounts, counted, limit, online, attention,
     const poll = pollInterval(useRealtimeState())
     const activity = useQuery({ ...orpc.logs.activity.queryOptions(), refetchInterval: poll || ACTIVITY_MS })
     const totals = totalsOf(activity.data)
+    const resources = useMemo(() => resourceTotals(accounts), [accounts])
     const top = useMemo(() => topAccounts(accounts, activity.data, TOP), [accounts, activity.data])
     const counting = activity.isPending
     const failed = activity.isError
@@ -77,6 +78,11 @@ export function DashboardOverview({ accounts, counted, limit, online, attention,
                             formatter={() => <CountedValue counted={totals.errors} format={number} />} />
                     )}
                 </Kpi>
+                {([["coins", <DollarOutlined aria-hidden key="c" />], ["rubies", <GoldOutlined aria-hidden key="r" />]] as const).map(([figure, icon]) => (
+                    <Kpi key={figure} icon={icon} title={t(`dashboard.kpi.${figure}`)} note={t("dashboard.kpi.reported")}>
+                        {resources[figure] === null ? <span className="gge-kpi-value" data-missing>{"—"}</span> : <Statistic value={resources[figure]} formatter={() => number(resources[figure]!)} />}
+                    </Kpi>
+                ))}
                 <Kpi icon={<WarningOutlined aria-hidden />} title={t("dashboard.stats.attention")}>
                     <Statistic value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} />
                 </Kpi>

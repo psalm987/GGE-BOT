@@ -72,3 +72,6 @@ export const MODULES: readonly ModuleDef[] = [
     live("discord-events", "discord", "Collectable_Currency_RoyalCapitalCoin", ["fortress", "aquaIsland", "aquaTower"], "per-plugin"),
     live("account-settings", "settings", "Collectable_Currency_SilverToken", ["attack", "skips", "shutoffTimer"], "sections"),
 ].map((module, index) => ({ ...module, order: (index + 1) * 10 }))
+
+/** The module whose page edits a plugin, if any. */
+export const moduleOfPlugin = (key: PluginKey): ModuleDef | undefined => MODULES.find(module => module.plugins.includes(key))
