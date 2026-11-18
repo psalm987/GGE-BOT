@@ -1,0 +1,10 @@
+---
+interface Props {
+    kind: "beta" | "planned"
+}
+
+const { kind } = Astro.props
+const t = Astro.locals.t
+---
+
+<span class={`gge-status gge-status--${kind}`}><svg class="gge-status__icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">{kind === "beta" ? <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" /> : <path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" />}</svg><span class="sr-only">{t("gge.status.label")}: </span>{t(`gge.status.${kind}`)}</span>

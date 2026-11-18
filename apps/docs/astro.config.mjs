@@ -30,7 +30,11 @@ export default defineConfig({
                 "./src/styles/docs.css",
             ],
             components: { Footer: "./src/components/Footer.astro" },
-            sidebar: [{ label: "Start here", translations: { de: "Hier starten", ar: "ابدأ من هنا" }, items: [{ slug: "quick-start" }] }],
+            sidebar: [
+                { label: "Start here", translations: { de: "Hier starten", ar: "ابدأ من هنا" }, items: [{ slug: "quick-start" }, { slug: "glossary" }] },
+                { label: "Plugins", translations: { de: "Plugins", ar: "الإضافات" }, items: [{ slug: "plugins/attack-khan" }] },
+                { label: "Help", translations: { de: "Hilfe", ar: "مساعدة" }, items: [{ slug: "errors" }, { slug: "alerts" }] },
+            ],
         }),
         markdoc(),
     ],

@@ -1,0 +1,6 @@
+---
+const live = process.env.BILLING_LIVE === "1"
+const t = Astro.locals.t
+---
+
+{live ? <slot /> : <p class="gge-plan-gate">{t("gge.planGate.off")}</p>}

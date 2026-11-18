@@ -1,0 +1,111 @@
+terms:
+  - id: plugin
+    term: Plugin
+    category: bot
+    short: One job your bot does, such as collecting taxes or sending attacks. You switch each plugin on or off.
+    long: >-
+      A plugin is one task the bot knows how to do. Each plugin has its own switch and its own settings. You can run several at once, and attack plugins count toward your attack cap.
+      Think of it like apps on a phone. The phone does nothing special until you open one, and each app does a single thing.
+    seeAlso: [attack-cap]
+  - id: log
+    term: Log
+    category: bot
+    short: A running list of what your bot did and when. It is the first place to look when something seems off.
+    long: >-
+      Each move your bot makes gets a line in the log, with the time and the game account it belongs to. Open the Logs page to read them live, filter by account, or download them as text.
+      Think of it like a ship's log. If you want to know what happened while you were away, you read it.
+    seeAlso: [run]
+  - id: game-account
+    term: Game account
+    aliases: [Goodgame Empire account]
+    category: account
+    short: Your player in Goodgame Empire. You add it to GGE Command so the bot can sign in and play it for you.
+    long: >-
+      Your game account is the one you play in the game. It is separate from your GGE Command account, which holds your email and plan. You can add a game account to GGE Command by giving its name, server and game password.
+      Think of it like a key and a lock. Your GGE Command account holds the key, and the game account is the lock it opens.
+    seeAlso: [server]
+  - id: server
+    term: Server
+    aliases: [world]
+    category: game
+    short: The game world your game account lives on. Pick the same one you play on, or the bot cannot sign in.
+    long: >-
+      Goodgame Empire runs many separate worlds, called servers. Your game account exists on exactly one of them. When you add an account, the server you pick must match the one you play on.
+      Think of it like a city with the same name in many countries. You need to say which country.
+    seeAlso: [game-account]
+  - id: attack-cap
+    term: Attack cap
+    aliases: [attack plugin limit]
+    category: bot
+    short: The most attack plugins one account may run at once. The Plugins list shows yours, and it can differ per account.
+    long: >-
+      Attack plugins send armies, so GGE Command limits how many can be on together. The limit is 4, 6 or none, and it is set per account. If you turn on more than your cap allows, the settings will not save, and the bot will not start.
+      Think of it like seats at a table. Everyone is welcome, but only so many can sit down at once.
+    seeAlso: [plugin]
+  - id: proxy
+    term: Proxy
+    aliases: [proxies]
+    category: tech
+    short: A middle server your bot connects through, so the game sees its traffic coming from another address.
+    long: >-
+      A proxy sits between the bot and the game. Your bot talks to the proxy, and the proxy talks to the game. Some accounts need one, and GGE Command assigns it for you. You do not set one up yourself.
+      Think of it like a post office box. Letters go through it and the sender's address is the box.
+    seeAlso: [run]
+  - id: run
+    term: Bot run
+    category: bot
+    short: One stretch of your bot working, from the moment you press Start until it stops.
+    long: >-
+      A run begins when you press Start. The bot signs in, does the jobs its plugins ask for, and carries on until you stop it, a timer stops it, or something goes wrong. Pressing Start again begins a new run.
+      Think of it like a shift at work. It starts when you clock in, and it ends when you clock out or the day is done.
+    seeAlso: [log, crash-loop]
+  - id: crash-loop
+    term: Crash loop
+    category: bot
+    short: When your bot fails again and again in a row, so it stops trying and waits for you.
+    long: >-
+      If a run fails many times in a row, GGE Command stops restarting it and sends you an alert with the last error. This protects your game account from endless failed sign-ins. Fix the cause, then press Start.
+      Think of it like a car that will not start. After a few tries you stop and look under the hood.
+    seeAlso: [run, log]
+  - id: two-factor
+    term: Two-factor sign-in
+    aliases: [2FA, TOTP, authenticator code, two-factor]
+    category: tech
+    short: A sign-in step that asks for a six-digit code from an authenticator app, as well as your password.
+    long: >-
+      Two-factor sign-in, also called 2FA, adds a second check after your password. An authenticator app on your phone makes a new six-digit code every 30 seconds, called a TOTP code or authenticator code. Player accounts on GGE Command do not use it. Staff sign in this way.
+      Think of it like a door with two locks. A thief needs both keys.
+    seeAlso: []
+  - id: trial
+    term: Free trial
+    aliases: [trial]
+    category: account
+    short: A short time to run your bots for free before you pick a plan. Each game account gets one.
+    long: >-
+      The free trial lets you try the bot on a real game account. It starts once, per game account, and ends on its own. You get an alert when it starts, and another before it ends.
+      Think of it like a test drive. You get the keys for a short while, and then you decide.
+    seeAlso: [game-account]
+  - id: khan-camp
+    term: Khan camp
+    category: game
+    short: An event camp of Khan's army on the map. Your bot can attack it for event points and loot.
+    long: >-
+      In the Khan event, camps of Khan's army appear on the map and defend themselves in waves. The Attack Khan plugin sends your armies against them. Higher difficulty camps are harder and pay better.
+      Think of it like a boss room in a dungeon. You bring your best troops, and the reward is worth the trip.
+    seeAlso: [commander-game, attack-cap]
+  - id: commander-game
+    term: Commander
+    category: game
+    short: A named hero in the game who leads your army in attacks. This is not the Commander plugin.
+    long: >-
+      In the game, a commander is a hero you assign to lead an attack. Each commander has its own skills and number. The Commander plugin is a different thing. It is a GGE Command job that manages which commanders go on which attacks.
+      Think of it like a team captain. The captain leads the team on the field.
+    seeAlso: [commander-plugin, khan-camp]
+  - id: commander-plugin
+    term: Commander plugin
+    category: bot
+    short: The GGE Command job that decides which commanders lead your bot's attacks. It is not a hero in the game.
+    long: >-
+      The Commander plugin is a GGE Command setting, not a game feature. It picks which of your commanders go on each attack and keeps them from clashing. The word commander in the game means the hero itself.
+      Think of it like a coach who writes the line-up. The coach does not play.
+    seeAlso: [commander-game, plugin]

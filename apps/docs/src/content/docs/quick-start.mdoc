@@ -5,9 +5,11 @@ description: Sign up, add your game account, pick your plugins and start your bo
 
 Ready to roll? This page takes you from a new account to a running bot.
 
+{% terms_on_page /%}
+
 ## Create your account {% #sign-up %}
 
-Open the app and choose **Sign up**. Enter your email address and a password. We send you a message with a link, so use an address you can open right now.
+Open the app and choose {% ui key="client:signup.submit" /%}. Enter a username, your email address and a password. We send you a message with a link, so use an address you can open right now. You sign in with your username and password. There is no {% term id="two-factor" %}two-factor{% /term %} step to set up.
 
 {% aside type="note" id="why-email" %}
 Your email address is only for your GGE Command account. It is not your game login.
@@ -15,15 +17,19 @@ Your email address is only for your GGE Command account. It is not your game log
 
 ## Add your game account {% #add-account %}
 
-Choose **Add account**. Fill in your game account name, pick the server, and enter your game password. The app stores the password encrypted, and it only uses it to sign in to the game for you. Pick the same server you play on, because a bot that signs in to the wrong world can only fail, and that failure shows up in your logs as a login error that looks scary but only means the world does not match.{% sidenote id="server-match" %}Not sure which server you are on? Open the game and check the server name on the login screen.{% /sidenote %} If the app shows a login error, check the name and the server first.
+Choose {% ui key="client:account.add" /%}. Fill in your {% term id="game-account" %}game account{% /term %} name, pick the {% term id="server" %}server{% /term %}, and enter your game password. The app stores the password encrypted, and it only uses it to sign in to the game for you. Pick the same server you play on, because a bot that signs in to the wrong world can only fail, and that failure shows up in your {% term id="log" %}logs{% /term %} as a login error that looks scary but only means the world does not match.{% sidenote id="server-match" %}Not sure which server you are on? Open the game and check the server name on the login screen.{% /sidenote %} If the app shows a login error, check the name and the server first.
 
 {% aside type="caution" id="one-bot-each" %}
-Each account runs one bot. While billing is off, every GGE Command account gets one bot.
+Each game account runs one bot.
+
+{% plan_gate %}
+Your plan decides how many bots you can run.
+{% /plan_gate %}
 {% /aside %}
 
 ## Start your bot {% #start %}
 
-Pick the plugins you want, then hit **Start** on the account card. Your bot signs in and gets going.{% sidenote id="plugin-def" %}A plugin is one job the bot does, such as collecting taxes or sending attacks.{% /sidenote %}
+Pick the {% term id="plugin" %}plugins{% /term %} you want, then hit {% ui key="common:action.start" /%} on the account card. Your bot signs in and gets going.{% sidenote id="plugin-def" %}A plugin is one job the bot does, such as collecting taxes or sending attacks.{% /sidenote %}
 
 {% aside type="tip" id="start-small" %}
 Start with one or two plugins. Add more once you have watched the logs for a day.
@@ -31,7 +37,7 @@ Start with one or two plugins. Add more once you have watched the logs for a day
 
 ## Watch the logs {% #watch-logs %}
 
-Open the **Logs** page. Each move your bot makes shows up there live.
+Open the {% ui key="client:nav.logs" /%} page. Each move your bot makes shows up there live.
 
 {% aside type="danger" id="account-risk" %}
 Game accounts can be banned. Using a bot is against the game's rules, and you take that risk.

@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "generate": "node scripts/generate.ts",
+    "dev": "node scripts/generate.ts && astro dev",
+    "build": "node scripts/generate.ts && astro build",
     "preview": "astro preview",
-    "test": "vitest run",
-    "typecheck": "astro sync && tsc -p tsconfig.json"
+    "test": "node scripts/generate.ts && vitest run",
+    "typecheck": "node scripts/generate.ts && astro sync && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@astrojs/markdoc": "^2.1.0",

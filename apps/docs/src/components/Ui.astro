@@ -1,0 +1,15 @@
+---
+import { routeLocale } from "../data/runtime.ts"
+import { plainPlaceholders } from "../data/generated-types.ts"
+import { uiLabel } from "../data/ui-labels.ts"
+
+interface Props {
+    key: string
+}
+
+const { key } = Astro.props
+const text = uiLabel(routeLocale(Astro), key)
+if (text === undefined) throw new Error(`The app has no label "${key}"`)
+---
+
+<strong class="gge-ui">{plainPlaceholders(text)}</strong>

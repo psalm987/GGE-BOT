@@ -87,7 +87,7 @@ let highlighted: HTMLElement | null = null
 function arriveAt(target: HTMLElement) {
     const note = notes.find(n => n.body === target)
     if (note && !WIDE.matches) setOpen(note, true)
-    const frame = target.closest<HTMLElement>(".sl-heading-wrapper") ?? target
+    const frame = target.closest<HTMLElement>(".sl-heading-wrapper, .gge-gloss, .gge-ref") ?? target
     highlighted?.classList.remove("gge-arrival")
     void frame.offsetWidth
     frame.classList.add("gge-arrival")

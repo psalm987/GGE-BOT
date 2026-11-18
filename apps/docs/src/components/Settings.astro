@@ -1,0 +1,54 @@
+---
+import plugins from "../generated/plugins.json"
+import labels from "../generated/locales.json"
+import type { OptionDoc, OptionLabels, PluginDoc } from "../data/generated-types.ts"
+import { routeLocale } from "../data/runtime.ts"
+
+interface Props {
+    plugin: string
+}
+
+const { plugin } = Astro.props
+const t = Astro.locals.t
+const locale = routeLocale(Astro)
+const doc = (plugins as PluginDoc[]).find(p => p.key === plugin)
+if (!doc) throw new Error(`The plugin "${plugin}" is not in the plugin registry`)
+const names = labels as OptionLabels
+const label = (key: string) => names[locale]?.[key] ?? names.en?.[key]
+const unit = (value: string) => t(`gge.settings.unit.${value}`)
+
+function defaultOf(option: OptionDoc) {
+    if (option.default === undefined || option.default === "") return ""
+    if (typeof option.default === "boolean") return t(option.default ? "gge.settings.on" : "gge.settings.off")
+    return option.unit ? `${option.default} ${unit(option.unit)}` : String(option.default)
+}
+
+function valuesOf(option: OptionDoc) {
+    if (option.choices) return option.choices.join(", ")
+    const parts: string[] = []
+    if (option.min !== undefined && option.max !== undefined) parts.push(t("gge.settings.range", { min: option.min, max: option.max }))
+    if (option.step) parts.push(t("gge.settings.step", { step: option.step }))
+    if (option.catalog) parts.push(t("gge.settings.picksFrom", { catalog: t(`gge.settings.catalog.${option.catalog}`) }))
+    return parts.join(" ")
+}
+---
+
+{doc.options.length === 0 ? <p>{t("gge.settings.empty")}</p> : (
+    <div class="gge-table" role="region" aria-label={doc.key} tabindex="0">
+        <table class="gge-settings" data-plugin={doc.key}>
+            <thead>
+                <tr><th scope="col">{t("gge.settings.label")}</th><th scope="col">{t("gge.settings.type")}</th><th scope="col">{t("gge.settings.default")}</th><th scope="col">{t("gge.settings.values")}</th></tr>
+            </thead>
+            <tbody>
+                {doc.options.map(option => (
+                    <tr data-option={option.key}>
+                        <th scope="row">{label(option.key) ?? <code>{option.key}</code>}</th>
+                        <td>{t(`gge.settings.kind.${option.kind}`)}</td>
+                        <td>{defaultOf(option)}</td>
+                        <td>{valuesOf(option)}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+)}

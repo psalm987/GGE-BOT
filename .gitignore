@@ -22,6 +22,7 @@ screenshots/
 .verify-evidence/
 data/
 !docs/protocol/data/
+!apps/docs/src/data/
 .turbo/
 dist/
 infra/.env
