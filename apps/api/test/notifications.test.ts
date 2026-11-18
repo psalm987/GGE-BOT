@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { UserEvent, userChannel, type NotificationContent } from "@gge/contracts"
 import { centrifugoOutbox, notifications, users } from "@gge/db"
 import { CLIENT_ORIGIN, startApi, type Api } from "./harness.ts"
+import { serverT } from "@gge/i18n/server"
 
 let api: Api
 beforeAll(async () => { api = await startApi() })
@@ -228,7 +229,7 @@ describe("emailing notifications", () => {
         expect(digest!.text).not.toContain("undefined")
     })
 
-    test("a digest reads in the player's language: dates in its format, English where the text isn't translated yet", async () => {
+    test("a digest reads in the player's language, dates in its format", async () => {
         const hans = await player()
         await api.db.update(users).set({ locale: "de" }).where(eq(users.id, hans.id))
         await notify(hans.id, { kind: "plan_expiring", data: { endsAt: "2031-02-10T09:30:00.000Z", daysLeft: 7 } })
@@ -236,8 +237,10 @@ describe("emailing notifications", () => {
         await api.mailTick()
 
         const [digest] = digestsTo(hans.email)
-        expect(digest!.text).toContain("It ends at 10. Feb. 2031, 09:30 UTC.")
-        expect(digest!.text).toContain("Your plan ends in 7 days")
+        const de = serverT("de")
+        expect(digest!.text).toContain(de("plan_expiring.body", { ns: "notifications", endsAt: "2031-02-10T09:30:00.000Z" }))
+        expect(digest!.text).toContain("10. Feb. 2031, 09:30 UTC")
+        expect(digest!.text).toContain(de("plan_expiring.title", { ns: "notifications", count: 7 }))
         expect(digest!.html).toContain('lang="de" dir="ltr"')
     })
 
@@ -246,7 +249,7 @@ describe("emailing notifications", () => {
         await api.db.update(users).set({ detectedLocale: "de" }).where(eq(users.id, hans.id))
         await notify(hans.id, { kind: "plan_expired", data: { endedAt: "2031-02-10T09:30:00.000Z" } })
         await api.mailTick()
-        expect(digestsTo(hans.email)[0]!.text).toContain("It ended at 10. Feb. 2031, 09:30 UTC")
+        expect(digestsTo(hans.email)[0]!.text).toContain(serverT("de")("plan_expired.body", { ns: "notifications", endedAt: "2031-02-10T09:30:00.000Z" }))
 
         const chosen = await player()
         await api.db.update(users).set({ locale: "en", detectedLocale: "de" }).where(eq(users.id, chosen.id))

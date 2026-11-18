@@ -116,9 +116,18 @@ describe("every other locale is a subset of en.json", () => {
     const placeholders = text => [...text.matchAll(/\{\{\s*([\w.]+)/g)].map(m => m[1]).sort().join(",")
     test.each(localeCodes().filter(code => code !== "en"))("%s keeps only en's keys, with en's placeholders", code => {
         const catalog = readCatalog(code)
-        expect(Object.keys(catalog).filter(key => !(key in en))).toEqual([])
+        // A plural English has as `x_one`/`x_other` takes the locale's own forms (French adds `x_many`, Arabic six forms), each read against `x_other`.
+        const forms = new Intl.PluralRules(code).resolvedOptions().pluralCategories
+        const english = key => {
+            const plural = /^(.+)_(zero|one|two|few|many|other)$/.exec(key)
+            return key in en ? en[key] : plural && forms.includes(plural[2]) ? en[`${plural[1]}_other`] : undefined
+        }
+        expect(Object.keys(catalog).filter(key => english(key) === undefined)).toEqual([])
         expect(Object.entries(catalog).filter(([key, text]) => typeof text !== "string" || text.trim() === "")).toEqual([])
-        expect(Object.entries(catalog).filter(([key, text]) => placeholders(text) !== placeholders(en[key])).map(([key]) => key)).toEqual([])
+        // As in the app catalogs, a plural form other than `_other` may leave `{{count}}` out ("two castles"), but keeps every other placeholder.
+        const dropsCountOnly = (key, text) => /_(zero|one|two|few|many)$/.test(key)
+            && placeholders(english(key).replace(/\{\{\s*count\b[^}]*\}\}/g, "")) === placeholders(text.replace(/\{\{\s*count\b[^}]*\}\}/g, ""))
+        expect(Object.entries(catalog).filter(([key, text]) => placeholders(text) !== placeholders(english(key)) && !dropsCountOnly(key, text)).map(([key]) => key)).toEqual([])
     })
     test("the locale list is read from the files", () => {
         expect(localeCodes().sort()).toEqual(fs.readdirSync(localesDir).filter(f => f.endsWith(".json")).map(f => f.slice(0, -5)).sort())

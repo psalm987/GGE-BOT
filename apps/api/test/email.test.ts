@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest"
 import { auditLog, emailTokens, users } from "@gge/db"
 import { hashPassword } from "../src/auth/passwords.ts"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
+import { serverT } from "@gge/i18n/server"
 
 let api: Api
 beforeAll(async () => {
@@ -254,14 +255,16 @@ describe("adding an email", () => {
 })
 
 describe("the language an email is written in", () => {
-    test("a player's chosen language sets the page language and direction, with English text until it is translated", async () => {
+    test("a player's chosen language sets the page language, its direction and its words", async () => {
         const player = await api.signup("hana")
         await api.db.update(users).set({ locale: "ar" }).where(eq(users.username, "hana"))
         await player.api.account.resendVerification()
         const [mail] = mailsTo("hana@example.test").slice(-1)
         expect(mail!.html).toContain('lang="ar" dir="rtl"')
-        expect(mail!.subject).toBe("Verify your email")
-        expect(mail!.text).toContain("Verify email:")
+        const ar = serverT("ar")
+        expect(mail!.subject).toBe(ar("verify_email.subject", { ns: "emails" }))
+        expect(mail!.subject).not.toBe("Verify your email")
+        expect(mail!.text).toContain(ar("verify_email.action", { ns: "emails" }))
     })
 
     test("the language detected at signup is used until the player chooses one", async () => {
@@ -279,6 +282,6 @@ describe("the language an email is written in", () => {
         const mail = mailsTo("jana@example.test").at(-1)!
         expect(mail.tag).toBe("account_deleted")
         expect(mail.html).toContain('lang="ar" dir="rtl"')
-        expect(mail.text).toContain("Your GGE Bot account jana was deleted")
+        expect(mail.text).toContain(serverT("ar")("account_deleted.body", { ns: "emails", username: "jana" }))
     })
 })
