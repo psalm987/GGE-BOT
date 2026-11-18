@@ -133,10 +133,10 @@ export function Dashboard() {
                         dataSource={list}
                         pagination={list.length > 20 ? { pageSize: 20 } : false}
                         rowSelection={{ selectedRowKeys: selected, onChange: keys => setSelected(keys as string[]) }}
-                        scroll={{ x: 760 }}
+                        scroll={{ x: 900 }}
                         columns={[
                             {
-                                title: t("dashboard.col.account"), dataIndex: "name", sorter: (a, b) => a.name.localeCompare(b.name),
+                                title: t("dashboard.col.account"), dataIndex: "name", width: 150, sorter: (a, b) => a.name.localeCompare(b.name),
                                 render: (name: string, a) => (
                                     <div>
                                         <Typography.Text strong>{name}</Typography.Text>
