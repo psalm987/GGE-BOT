@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, t
 import { NO_PROXY_FREE, PROXY_MAX_FAILURES, type PluginCatalogEntry } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { botRuns, botStatus, createDb, gameAccounts, proxies, servers, users, type Db } from "@gge/db"
-import type { PluginRegistry } from "../src/catalog.ts"
+import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { assignProxies } from "../src/proxies.ts"
 import { loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"

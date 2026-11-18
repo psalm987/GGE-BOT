@@ -5,7 +5,7 @@ import {
     type OptionValue, type PluginSettings,
 } from "@gge/contracts"
 import { appSettings, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginSettings, servers, users, type Db } from "@gge/db"
-import type { PluginRegistry } from "./catalog.ts"
+import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { planStanding } from "./plan.ts"
 import { enabledProxiesOf, type SpecProxy } from "./proxies.ts"
 

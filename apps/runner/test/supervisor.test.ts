@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, t
 import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { appSettings, botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, planPeriods, pluginSettings, servers, users, type Db } from "@gge/db"
-import type { PluginRegistry } from "../src/catalog.ts"
+import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { DiscordHub } from "../src/discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
 import { edgeDelayMs, loadSpecs } from "../src/specs.ts"

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@gge/contracts": "workspace:*",
+    "@gge/bot-core": "workspace:*",
     "@gge/crypto": "workspace:*",
     "@gge/db": "workspace:*",
     "@gge/runner": "workspace:*",

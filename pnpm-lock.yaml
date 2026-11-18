@@ -279,15 +279,27 @@ importers:
       '@fontsource/ibm-plex-sans-arabic':
         specifier: ^5.3.0
         version: 5.3.0
+      '@gge/bot-core':
+        specifier: workspace:*
+        version: link:../../packages/bot-core
+      '@gge/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@gge/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
       '@gge/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@markdoc/markdoc':
+        specifier: ^0.5.0
+        version: 0.5.13(@types/react@19.3.0)(react@19.3.1)
       astro:
         specifier: ^7.4.0
         version: 7.4.12(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       vitest:
         specifier: ^5.1.0
@@ -347,6 +359,9 @@ importers:
 
   packages/bot-core:
     dependencies:
+      '@gge/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       bufferutil:
         specifier: ^4.2.0
         version: 4.2.0
@@ -387,9 +402,6 @@ importers:
         specifier: ^8.23.0
         version: 8.23.0(bufferutil@4.2.0)
     devDependencies:
-      '@gge/contracts':
-        specifier: workspace:*
-        version: link:../contracts
       acorn:
         specifier: 8.19.0
         version: 8.19.0
@@ -514,6 +526,9 @@ importers:
       '@gge/api':
         specifier: workspace:*
         version: link:../../apps/api
+      '@gge/bot-core':
+        specifier: workspace:*
+        version: link:../../packages/bot-core
       '@gge/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
@@ -534,6 +549,9 @@ importers:
 
   tools/import-sqlite:
     dependencies:
+      '@gge/bot-core':
+        specifier: workspace:*
+        version: link:../../packages/bot-core
       '@gge/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
