@@ -17,7 +17,8 @@ test("every plugin a player can see belongs to exactly one live module", () => {
     for (const module of MODULES) for (const key of module.plugins) owners.set(key, [...(owners.get(key) ?? []), module.id])
     expect(shown.filter(key => !owners.has(key)), "plugins in no module").toEqual([])
     expect([...owners].filter(([, ids]) => ids.length > 1), "plugins in two modules").toEqual([])
-    expect([...owners.keys()].filter(key => !shown.includes(key)), "module plugins the catalog does not show").toEqual([])
+    const devOnly = new Set(MODULES.filter(m => m.devOnly).flatMap(m => m.plugins))
+    expect([...owners.keys()].filter(key => !shown.includes(key) && !devOnly.has(key)), "module plugins the catalog does not show").toEqual([])
 })
 
 test("a live module has plugins, a soon module has none, and several plugins say how to lay out", () => {

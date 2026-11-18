@@ -20,10 +20,13 @@ export type ModuleDef = {
     plugins: readonly PluginKey[]
     /** How a page with several plugins lays them out: a tab for each, or all of them one below another. */
     tabs?: "per-plugin" | "sections"
+    /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
+    devOnly?: true
 }
 
 const live = (id: string, group: ModuleGroup, icon: GameArtKey, plugins: readonly PluginKey[], tabs?: ModuleDef["tabs"]) =>
     ({ id, group, icon, status: "live" as const, plugins, ...(tabs && { tabs }) })
+const dev = (id: string, group: ModuleGroup, icon: GameArtKey, plugins: readonly PluginKey[]) => ({ ...live(id, group, icon, plugins), devOnly: true as const })
 const soon = (id: string, group: ModuleGroup, icon: GameArtKey) => ({ id, group, icon, status: "soon" as const, plugins: [] })
 
 /**
@@ -71,6 +74,7 @@ export const MODULES: readonly ModuleDef[] = [
     live("discord-attacks", "discord", "Collectable_Currency_GoldToken", ["incomingAttacks", "outgoingAttacks"], "per-plugin"),
     live("discord-events", "discord", "Collectable_Currency_RoyalCapitalCoin", ["fortress", "aquaIsland", "aquaTower"], "per-plugin"),
     live("account-settings", "settings", "Collectable_Currency_SilverToken", ["attack", "skips", "shutoffTimer"], "sections"),
+    dev("dev-preview", "settings", "Collectable_Currency_DecoCatalyst", ["devSettingsPreview"]),
 ].map((module, index) => ({ ...module, order: (index + 1) * 10 }))
 
 /** The module whose page edits a plugin, if any. */
