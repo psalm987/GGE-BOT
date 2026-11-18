@@ -9,6 +9,7 @@ const { mapGrid, scanGrid, wholeMapRects } = require('../../mapScan.js')
 const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
+const { parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 
 const err = require('../../err.json')
 
@@ -17,8 +18,8 @@ const minTroopCountCY = 500
 const type = AreaType.fortress
 
 async function fortressHit(kingdomID, level, options) {
-    options.useCoin = true
-    options.useFeather = true
+    const horse = choice(HORSES, options.horse, HORSES[2])
+    const autofill = parseAutofill(options, { unitOrder: "fastest" })
 
     const areas = []
 
@@ -57,7 +58,7 @@ async function fortressHit(kingdomID, level, options) {
 
                 let AI = areas[index]
 
-                const attackInfo = getAttackInfo(kingdomID, castle, AI, commander, level, undefined, options)
+                const attackInfo = getAttackInfo(kingdomID, castle, AI, commander, level, undefined, horse)
 
                 const attackerTroops = []
 
@@ -68,7 +69,8 @@ async function fortressHit(kingdomID, level, options) {
 
                     if (unit.unitInfo.fightType == 0 &&
                         unit.unitInfo.beefSupply == undefined &&
-                        unit.unitInfo.role
+                        unit.unitInfo.role &&
+                        eats(autofill.supply, unit.unitInfo)
                     ) {
                         if (kingdomID == KingdomID.firePeaks &&
                             unit.unitInfo.wodID == 277 && !hasShieldMadiens)
@@ -78,7 +80,7 @@ async function fortressHit(kingdomID, level, options) {
                     }
                 }
 
-                attackerTroops.sort((a, b) => Number(b.unitInfo.speed) - Number(a.unitInfo.speed))
+                orderUnits(attackerTroops, autofill.unitOrder)
 
                 let allTroopCount = 0
 

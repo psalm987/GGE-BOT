@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Typography } from "antd"
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { KINGDOM_IDS, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginOptionDef, type RowColumn, type RowValue } from "@gge/contracts"
+import { KINGDOM_IDS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 
@@ -177,6 +177,20 @@ function Rows({ columns, castles, value = [], onChange, id }: { columns: RowColu
     )
 }
 
+/** The time skips one plugin may spend: the ones the account's Skips settings allow, or its own pick. */
+function SkipTypesField({ value = null, onChange, id, label }: { value?: SkipTypes; onChange?: (v: SkipTypes) => void; id?: string; label: string }) {
+    const { t } = useTranslation("client")
+    return (
+        <div id={id} style={{ display: "grid", gap: 8 }}>
+            <Checkbox checked={value === null} onChange={event => onChange?.(event.target.checked ? null : [...SKIP_MINUTES])}>{t("plugins.skips.follow")}</Checkbox>
+            {value !== null && (
+                <Checkbox.Group aria-label={label} value={value} onChange={picked => onChange?.(SKIP_MINUTES.filter(minutes => picked.includes(minutes)))}
+                    options={SKIP_MINUTES.map(minutes => ({ value: minutes, label: t(`plugins.skips.minutes.${minutes}`) }))} />
+            )}
+        </div>
+    )
+}
+
 /** The lines under a field: what the field itself says (a range, a hint) and the plugin's own help for it. */
 const extraOf = (...lines: (ReactNode | undefined)[]) => {
     const shown = lines.filter(Boolean)
@@ -231,6 +245,11 @@ export function PluginOptionField({ plugin, def, castles, hidden }: { plugin: st
                     </Form.Item>
                 </Col>
             )
+        case "SkipTypes":
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><SkipTypesField label={label} /></Form.Item></Col>
+        case "ArmyMode":
+        case "Waves":
+            return null
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)

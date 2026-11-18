@@ -4,6 +4,7 @@ if (require("node:worker_threads").isMainThread)
 const pretty = require("pretty-time")
 
 const { spendSkip, haveEnoughSkips } = require("../skips.js")
+const { parseAutofill, orderUnits, eats } = require("../../army.js")
 const { castles, ClientCommands, AreaType, KingdomID, movements, movementEvents, resources } = require("../../protocols")
 const {
     waitToAttack,
@@ -28,6 +29,7 @@ catch (e) {
 }
 
 async function barronHit(type, kingdomID, options, maxLevel) {
+    const autofill = parseAutofill(options)
     const getLevel = victorys =>
         Math.floor(1.9 * Math.pow(victorys, .555)) + ([1, 35, 20, 45][kingdomID] ?? 0)
 
@@ -47,7 +49,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
 
     async function skipTarget(areaInfo) {
         while (areaInfo.extraData[2] > 0) {
-            let skip = spendSkip(areaInfo.extraData[2])
+            let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
 
             if (skip == undefined)
                 throw new Error("couldntFindSkip")
@@ -94,7 +96,7 @@ async function barronHit(type, kingdomID, options, maxLevel) {
 
                     const coinSkips = recruitTroops ? Math.floor(resources.coins / (1000 / (20 * 5))) : 0
                     const enoughSkips = haveEnoughSkips(skipsPerTower * movements.reduce((count, movement) =>
-                        (movement.targetAttack.type == type ? count++ : count, count), 0) - coinSkips) || (recruitTroops && resources.coins > 25000)
+                        (movement.targetAttack.type == type ? count++ : count, count), 0) - coinSkips, options.skipTypes) || (recruitTroops && resources.coins > 25000)
 
                     if (enoughSkips && (options.useTimeSkips || shouldUpgradeTower)) {
                         try {
@@ -143,7 +145,8 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                     }
                     else if (unit.unitInfo.fightType == 0 &&
                         unit.unitInfo.beefSupply == undefined) {
-                        if(options.foodTroopsOnly && unit.unitInfo.meadSupply)
+                        // The older switch keeps its meaning while the troop supply is All.
+                        if (autofill.supply == "all" ? options.foodTroopsOnly && unit.unitInfo.meadSupply : !eats(autofill.supply, unit.unitInfo))
                             continue
                         if (!options.useDogs && unit.unitInfo.wodID == 277)
                             continue
@@ -155,6 +158,9 @@ async function barronHit(type, kingdomID, options, maxLevel) {
                             attackerRangeTroops.push(unit)
                     }
                 }
+
+                orderUnits(attackerMeleeTroops, autofill.unitOrder)
+                orderUnits(attackerRangeTroops, autofill.unitOrder)
 
                 let allTroopCount = 0
 

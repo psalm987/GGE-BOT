@@ -635,5 +635,13 @@
   "credits.affiliation": "GGE Command is an independent tool. It isn't affiliated with, endorsed by or sponsored by Goodgame Studios. Goodgame Empire and the names of its features belong to their owners.",
   "credits.iconsTitle": "Icons",
   "credits.icons": "Icons from <site>game-icons.net</site> by {{authors}}, <licence>{{licence}}</licence>. Each glyph sits in a badge drawn for GGE Command.",
-  "credits.by": "by {{author}}"
+  "credits.by": "by {{author}}",
+  "plugins.skips.follow": "Use the skips my Skips settings allow",
+  "plugins.skips.minutes.1": "1 minute",
+  "plugins.skips.minutes.5": "5 minutes",
+  "plugins.skips.minutes.10": "10 minutes",
+  "plugins.skips.minutes.30": "30 minutes",
+  "plugins.skips.minutes.60": "1 hour",
+  "plugins.skips.minutes.300": "5 hours",
+  "plugins.skips.minutes.1440": "24 hours"
 }

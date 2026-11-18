@@ -72,7 +72,9 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Text",
                 key: "attackWaves"
-            }
+            },
+            ...require("../../army.js").baronAutofillOptions(),
+            { type: "SkipTypes", key: "skipTypes", default: null, advanced: true }
         ]
     }
 

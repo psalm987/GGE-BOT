@@ -553,3 +553,18 @@ describe("logging", () => {
         }
     })
 })
+
+describe("unit order", () => {
+    const mixed = () => [melee(1, 5000), melee(3, 5000, { meleeAttack: "50" }), ranged(2, 5000), ranged(4, 5000, { rangeAttack: "50" }), ...siegeTools()]
+    const firstPicks = cra => ({ melee: cra.A[0].L.U[0][0], ranged: cra.A[0].M.U[0][0] })
+
+    test("without one the troops go in the castle's order, as before", async () => {
+        const { sent } = await glory("attackForeign", { inventory: mixed() })
+        expect(firstPicks(sent("cra")[0])).toEqual({ melee: 1, ranged: 2 })
+    })
+
+    test("strongest first sends the strongest melee and ranged troops first", async () => {
+        const { sent } = await glory("attackForeign", { options: { unitOrder: 2 }, inventory: mixed() })
+        expect(firstPicks(sent("cra")[0])).toEqual({ melee: 3, ranged: 4 })
+    })
+})

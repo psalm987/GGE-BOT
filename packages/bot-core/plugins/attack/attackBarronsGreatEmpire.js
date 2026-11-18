@@ -73,7 +73,9 @@ if (require('node:worker_threads').isMainThread)
                 type: "Text",
                 key: "attackWaves",
                 default: "2"
-            }
+            },
+            ...require("../../army.js").baronAutofillOptions(),
+            { type: "SkipTypes", key: "skipTypes", default: null, advanced: true }
         ]
     }
 const { KingdomID, AreaType } = require("../../protocols.js")
