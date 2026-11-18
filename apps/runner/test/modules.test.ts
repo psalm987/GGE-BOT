@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { beforeAll, expect, test, vi } from "vitest"
 import { MODULE_GROUPS, MODULES } from "@gge/contracts"
 import assets from "@gge/bot-core/assets.json" with { type: "json" }
-import { readPluginRegistry } from "../../runner/src/catalog.ts"
+import { readPluginRegistry } from "../src/catalog.ts"
 
 const en = JSON.parse(readFileSync(new URL("../../../packages/i18n/catalogs/en/client.json", import.meta.url), "utf8")) as Record<string, string>
 

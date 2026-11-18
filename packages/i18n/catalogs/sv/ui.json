@@ -88,5 +88,9 @@
   "palette.hintClose": "för att stänga",
   "palette.keyApple": "⌘K",
   "palette.keyOther": "Ctrl K",
-  "palette.keyEsc": "Esc"
+  "palette.keyEsc": "Esc",
+  "nav.openMenu": "Open menu",
+  "nav.modules": "Modules",
+  "nav.filter": "Find a module",
+  "nav.noMatches": "No module matches"
 }

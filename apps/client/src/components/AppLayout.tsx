@@ -1,4 +1,4 @@
-import { CrownOutlined, ProfileOutlined, SettingOutlined, SyncOutlined, TeamOutlined, UserOutlined } from "@ant-design/icons"
+import { SettingOutlined, SyncOutlined, UserOutlined } from "@ant-design/icons"
 import { Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo, type ReactNode } from "react"
@@ -7,17 +7,17 @@ import { useLocation, useNavigate } from "react-router"
 import { CampaignLayout, type CommandItem } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
+import { buildNav, pathOf } from "../nav.ts"
 import { pendingCode } from "../plan-model.ts"
 import { useRealtimeState } from "../realtime.ts"
 import { usePlanVisible } from "../use-billing.ts"
 import { AlertBanners } from "./AlertBanners.tsx"
 import { NotificationBell } from "./NotificationBell.tsx"
 
-const ROUTES = { accounts: "/", logs: "/logs", plan: "/plan", settings: "/settings" } as const
-
 /** The signed-in shell shared by every player page. */
 export function AppLayout({ activeKey, title, extra, accountMenu = [], children }: {
-    activeKey: keyof typeof ROUTES
+    /** A page key ("accounts", "logs", "plan", "settings") or a module's, "m:<id>". */
+    activeKey: string
     title: ReactNode
     extra?: ReactNode
     accountMenu?: NonNullable<MenuProps["items"]>
@@ -66,24 +66,20 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
         await logout.mutateAsync({})
         navigate("/login", { replace: true })
     }
+    const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible), [t, tc, planVisible])
     return (
         <CampaignLayout
             product="GGE Command"
-            nav={[
-                { key: "accounts", label: tc("nav.accounts"), icon: <TeamOutlined /> },
-                { key: "logs", label: t("nav.logs"), icon: <ProfileOutlined /> },
-                ...planVisible ? [{ key: "plan", label: t("nav.plan"), icon: <CrownOutlined /> }] : [],
-                { key: "settings", label: tc("nav.settings"), icon: <SettingOutlined /> },
-            ]}
+            nav={nav}
             activeKey={activeKey}
-            onNavigate={key => navigate(ROUTES[key as keyof typeof ROUTES])}
+            onNavigate={key => navigate(pathOf(key))}
             title={title}
             banners={<AlertBanners />}
             username={me.data?.username ?? ""}
             onLogout={signOut}
             onLanguageChange={saveLocale}
             commands={commands}
-            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(ROUTES.settings) }, ...accountMenu]}
+            accountMenu={[{ key: "settings", icon: <SettingOutlined />, label: tc("nav.settings"), onClick: () => navigate(pathOf("settings")) }, ...accountMenu]}
             extra={<>
                 {/* Always in the page, so a screen reader announces the text when it appears. */}
                 <span role="status">

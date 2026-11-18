@@ -586,7 +586,7 @@
   "dashboard.top.emptyHint": "Ixgħel plugin tal-attakk fuq kont u ibdih. Il-kontijiet li jattakkaw l-aktar jidhru hawn.",
   "palette.accountKeyword": "kont",
   "palette.pluginKeyword": "issettjar tal-plugin",
-  "modules.group.overview": "Overview",
+  "modules.group.overview": "Home",
   "modules.group.account": "Account manager",
   "modules.group.attacks": "Attacks and gear",
   "modules.group.bth": "Outers and BTH",
@@ -669,5 +669,6 @@
   "modules.discord-events.name": "Discord event alerts",
   "modules.discord-events.description": "Keeps one Discord message up to date each for the fortresses, the Aquamarine Islands and the Aquamarine Towers.",
   "modules.account-settings.name": "Account settings",
-  "modules.account-settings.description": "The pause between attacks, the most attacks a day, which time skips may be spent, and when to stop the bot."
+  "modules.account-settings.description": "The pause between attacks, the most attacks a day, which time skips may be spent, and when to stop the bot.",
+  "modules.soonTag": "Soon"
 }
