@@ -528,3 +528,61 @@ body {
 .gge-nav-empty { margin: 12px; color: var(--gge-muted); }
 .gge-art { display: block; object-fit: contain; }
 @media (prefers-reduced-motion: reduce) { .gge-nav-chevron { transition: none; } }
+
+/*
+ * The player app's chunky game buttons. Only a page whose <html> has the gge-game class gets them, so admin keeps flat buttons.
+ * Each variant is a light inset top edge, a top-to-bottom gradient and a darker bottom edge that the press takes away.
+ */
+html.gge-game {
+    --gge-btn-primary-top: #E0A526;
+    --gge-btn-primary-bottom: #B9821A;
+    --gge-btn-primary-edge: #6E4A0E;
+    --gge-btn-primary-text: #1A130D;
+    --gge-btn-default-top: #3A2E22;
+    --gge-btn-default-bottom: #2B221B;
+    --gge-btn-default-edge: #0F0B08;
+    --gge-btn-default-text: #F3E7C9;
+    --gge-btn-danger-top: #FF7B8A;
+    --gge-btn-danger-bottom: #DC5A6E;
+    --gge-btn-danger-edge: #7E2432;
+    --gge-btn-danger-text: #1A130D;
+}
+html.gge-game .ant-btn {
+    --btn-top: var(--gge-btn-default-top);
+    --btn-bottom: var(--gge-btn-default-bottom);
+    --btn-edge: var(--gge-btn-default-edge);
+    --btn-text: var(--gge-btn-default-text);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled) {
+    position: relative;
+    border: 1px solid var(--btn-edge);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--btn-top), var(--btn-bottom)) !important;
+    color: var(--btn-text) !important;
+    font-weight: 700;
+    text-shadow: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 4px 0 var(--btn-edge), 0 6px 10px rgba(0, 0, 0, 0.35) !important;
+    transition: transform 0.06s, box-shadow 0.06s, filter 0.12s;
+}
+html.gge-game .ant-btn.ant-btn-primary {
+    --btn-top: var(--gge-btn-primary-top);
+    --btn-bottom: var(--gge-btn-primary-bottom);
+    --btn-edge: var(--gge-btn-primary-edge);
+    --btn-text: var(--gge-btn-primary-text);
+}
+html.gge-game .ant-btn.ant-btn-dangerous {
+    --btn-top: var(--gge-btn-danger-top);
+    --btn-bottom: var(--gge-btn-danger-bottom);
+    --btn-edge: var(--gge-btn-danger-edge);
+    --btn-text: var(--gge-btn-danger-text);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled):hover {
+    filter: brightness(1.08);
+}
+html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(.ant-btn-background-ghost):not(.ant-btn-variant-text):not(.ant-btn-variant-link):not(.ant-btn-icon-only):not(:disabled):active {
+    transform: translateY(2px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 0 var(--btn-edge), 0 3px 6px rgba(0, 0, 0, 0.35) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    html.gge-game .ant-btn:is(.ant-btn-primary, .ant-btn-default, .ant-btn-dangerous):not(:disabled):active { transform: none; }
+}

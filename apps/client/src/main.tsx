@@ -53,6 +53,9 @@ function Root() {
     )
 }
 
+// The chunky game buttons are the player app's alone; admin never sets this class.
+document.documentElement.classList.add("gge-game")
+
 await initI18n({ app: "client", detect: () => client.i18n.detect().then(result => result.locale).catch(() => null) })
 
 createRoot(document.getElementById("root")!, {
