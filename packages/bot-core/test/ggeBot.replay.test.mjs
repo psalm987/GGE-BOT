@@ -355,10 +355,10 @@ describe("humanization flags", () => {
 
         expect(bot.sent.slice(0, 3)).toEqual([
             '<msg t="sys"><body action="verChk" r="0"><ver v="166"/></body></msg>',
-            '<msg t="sys"><body action="login" r="0"><login z="EmpireEx_1"><nick><![CDATA[]]></nick><pword><![CDATA[1172014%en%0]]></pword></login></body></msg>',
+            '<msg t="sys"><body action="login" r="0"><login z="EmpireEx_1"><nick><![CDATA[]]></nick><pword><![CDATA[1173009%en%0]]></pword></login></body></msg>',
             '<msg t="sys"><body action="roundTrip" r="1"></body></msg>',
         ])
-        expect(bot.sent[3]).toMatch(/^%xt%EmpireEx_1%vck%1%1172014%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
+        expect(bot.sent[3]).toMatch(/^%xt%EmpireEx_1%vck%1%1173009%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
         expect(bot.sent[4]).toBe('%xt%EmpireEx_1%lli%1%{"CONM":212,"RTM":25,"ID":0,"PL":1,"NOM":"tester","PW":"pw","LT":null,"LANG":"en","DID":"0","AID":"1745592024940879420","KID":"","REF":"https://empire.goodgamestudios.com","GCI":"","SID":9,"PLFID":1}%')
         expect(bot.sent.slice(5).every(frame => frame === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")).toBe(true)
         expect(pinTimes().length).toBeGreaterThanOrEqual(5)
@@ -491,7 +491,7 @@ describe("humanization flags", () => {
     /** The 2026-11-13 capture's login, with its zone and player name replaced by the harness's. */
     const CAPTURED_LOGIN = [
         "<msg t='sys'><body action='verChk' r='0'><ver v='166' /></body></msg>",
-        "<msg t='sys'><body action='login' r='0'><login z='EmpireEx_1'><nick><![CDATA[]]></nick><pword><![CDATA[1172014%en%0]]></pword></login></body></msg>",
+        "<msg t='sys'><body action='login' r='0'><login z='EmpireEx_1'><nick><![CDATA[]]></nick><pword><![CDATA[1173009%en%0]]></pword></login></body></msg>",
         "<msg t='sys'><body action='autoJoin' r='-1'></body></msg>",
         "<msg t='sys'><body action='roundTrip' r='1'></body></msg>",
         "vck",
@@ -532,7 +532,7 @@ describe("humanization flags", () => {
 
         const sent = withoutPins()
         expect(sent.slice(0, 4)).toEqual(CAPTURED_LOGIN.slice(0, 4))
-        expect(sent[4]).toMatch(/^%xt%EmpireEx_1%vck%1%1172014%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
+        expect(sent[4]).toMatch(/^%xt%EmpireEx_1%vck%1%1173009%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
         expect(sent[5]).toBe(CAPTURED_LOGIN[5])
         expect(sent[6]).toBe('%xt%EmpireEx_1%lli%1%{"CONM":212,"RTM":25,"ID":0,"PL":1,"NOM":"tester","PW":"pw","LT":null,"LANG":"en","DID":"0","AID":"1745592024940879420","KID":"","REF":"https://empire.goodgamestudios.com","GCI":"","SID":9,"PLFID":1}%')
         expect(sent.slice(7)).toEqual([NCH, ...CAPTURED_BURST])

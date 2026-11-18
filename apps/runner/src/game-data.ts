@@ -42,6 +42,29 @@ export async function refreshGameData(dataDir: string, { fetch = globalThis.fetc
     }
 }
 
+/**
+ * The build number the live HTML5 client sends in `login` and `vck`, read from
+ * its CacheBreaker bundle. The server drops the socket after `vck` when the
+ * build is out of date, so this has to follow the game's releases. The client
+ * pads minor and patch to three digits: "1.173.9" is 1173009. Undefined when
+ * the page or the bundle can't be read.
+ */
+export async function fetchClientBuild({ fetch = globalThis.fetch } = {}) {
+    try {
+        const page = await (await fetch(`${BASE}/default/index.html`)).text()
+        const bundle = page.match(/CacheBreaker\.bundle\.\w+\.js/)?.[0]
+        if (!bundle)
+            return undefined
+        const source = await (await fetch(`${BASE}/default/${bundle}`)).text()
+        const [, major, minor, patch] = source.match(/name:"TranspilationEmpire",version:"(\d+)\.(\d+)\.(\d+)/) ?? []
+        if (!major || !minor || !patch)
+            return undefined
+        return Number(major + minor.padStart(3, "0") + patch.padStart(3, "0"))
+    } catch {
+        return undefined
+    }
+}
+
 export type ServerRow = { id: number; label: string; wsHost: string; zone: string }
 
 /** Servers players can pick, labelled the way the game names them ("Germany 1"). */

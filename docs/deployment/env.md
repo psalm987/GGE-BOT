@@ -18,7 +18,7 @@
 | `MAX_ACCOUNTS` | runner | no | Most bots the runner will run at once. Default 50. Accounts past it show "The runner is at capacity". |
 | `START_GAP_MS` | runner | no | Milliseconds between two bot logins. Default 2000. |
 | `GAME_CLIENT_VERSION` | runner | no | The client version the bot announces. Set it when the game updates and logins start failing; default 166. |
-| `GAME_CLIENT_BUILD` | runner | no | The HTML5 client build number the bot sends at login, as the real client does. Default 1172014, from a November 2026 capture. Update it with `GAME_CLIENT_VERSION`: the number is the first field of the client's `login` password and `vck` frames in the browser's websocket traffic. |
+| `GAME_CLIENT_BUILD` | runner | no | Pins the HTML5 client build number the bot sends at login and in `vck`. Leave it empty: the runner reads the live build from the game's CDN at start and every 10 minutes, because the server drops the connection after `vck` when the build is out of date (the bot reports `CLIENT_VERSION_REJECTED`). The number is the client version with minor and patch padded to three digits: 1.173.9 is 1173009. |
 | `WORKER_MAX_OLD_MB` | runner | no | Heap cap per bot, in MB. Default 512. A bot that goes over is stopped and retried, and its run says "The bot ran out of memory". |
 | `INBOUND_STALE_MS` | runner | no | Milliseconds of silence from the game after which a logged-in bot reconnects. Off when unset. Set it to about 3× the p99 of `bot_inbound_gap_seconds` ([observability.md](observability.md#liveness)). |
 | `AUDIT_RETENTION_DAYS` | runner | no | Days to keep audit log entries. Default 365. The runner deletes older entries hourly ([operations.md](operations.md#disk)). |
