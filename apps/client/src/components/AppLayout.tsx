@@ -77,7 +77,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
         await logout.mutateAsync({})
         routerNavigate("/login", { replace: true })
     }
-    const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible), [t, tc, planVisible])
+    const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible, new Set(catalog.data?.map(e => e.key))), [t, tc, planVisible, catalog.data])
     return (
         <CampaignLayout
             product="GGE Command"

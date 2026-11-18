@@ -19,7 +19,7 @@ type Translate = (key: string) => string
 type Labels = { client: Translate; common: Translate }
 
 /** The sidebar: one group per module group, in the registry's order, with the app's own pages placed among them. */
-export function buildNav({ client, common }: Labels, planVisible: boolean): NavItem[] {
+export function buildNav({ client, common }: Labels, planVisible: boolean, catalogKeys: ReadonlySet<string>): NavItem[] {
     const page = (key: PageKey, label: string, icon: typeof TeamOutlined): NavItem => ({ key, label, icon: createElement(icon), href: PAGES[key] })
     const extras: Partial<Record<ModuleGroup, { first?: NavItem[]; last?: NavItem[] }>> = {
         overview: { first: [page("accounts", client("nav.overview"), TeamOutlined)], last: [page("logs", client("nav.logs"), ProfileOutlined)] },
@@ -30,7 +30,7 @@ export function buildNav({ client, common }: Labels, planVisible: boolean): NavI
         label: client(`modules.group.${group}`),
         children: [
             ...extras[group]?.first ?? [],
-            ...MODULES.filter(module => module.group === group).map((module): NavItem => ({
+            ...MODULES.filter(module => module.group === group && (!module.devOnly || module.plugins.some(key => catalogKeys.has(key)))).map((module): NavItem => ({
                 key: moduleKey(module.id), label: client(`modules.${module.id}.name`), href: `/m/${module.id}`,
                 icon: createElement(GameArt, { icon: module.icon }), ...module.status === "soon" && { tag: client("modules.soonTag") },
             })),

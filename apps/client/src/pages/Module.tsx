@@ -10,6 +10,7 @@ import { ComingSoon } from "./ComingSoon.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
+import { changedAdvanced } from "../plugin-values.ts"
 import { attackPluginsOn, changedPlugins, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
 import { moduleKey } from "../nav.ts"
 import type { OptionValues } from "../plugin-values.ts"
@@ -68,6 +69,7 @@ function LiveModule({ module }: { module: ModuleDef }) {
     }
     const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
 
+    if (module.devOnly && catalog.data && !entries.length) return <Navigate to="/" replace />
     if (accounts.isPending || catalog.isPending) return <Skeleton active paragraph={{ rows: 8 }} />
     return (
         <div className="gge-module">
@@ -140,10 +142,11 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const atLimit = attackLimit !== null && on >= attackLimit
     const botRunning = account?.status?.actualState === "running"
     const hasAdvanced = entries.some(e => e.options.some(def => def.advanced))
+    const advancedChanged = entries.reduce((total, entry) => total + changedAdvanced(entry, state.values[entry.key]?.options ?? {}), 0)
     const castles = account?.status?.castles ?? []
 
     const sections = entries.map(entry => (
-        <PluginSection key={entry.key} entry={entry} state={state} view={view} resetKey={resetKey} disabled={readOnly || save.isPending}
+        <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} view={view} disabled={readOnly || save.isPending}
             castles={castles} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone}
             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
@@ -170,7 +173,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
             {hasAdvanced && (
                 <div className="gge-module-tools">
                     <Segmented<View> aria-label={t("plugins.view.label")} value={view} onChange={next => { setView(next); writeView(next) }}
-                        options={[{ value: "simple", label: t("plugins.view.simple") }, { value: "advanced", label: t("plugins.view.advanced") }]} />
+                        options={[{ value: "simple", label: t("plugins.view.simple") }, { value: "advanced", label: advancedChanged ? t("plugins.view.advancedChanged", { count: advancedChanged }) : t("plugins.view.advanced") }]} />
                 </div>
             )}
 
@@ -213,12 +216,13 @@ function StatusRow({ entry, account, state, blocked, onEnabled, readOnly }: {
             <span className="gge-module-plugin-name">{label}</span>
             {entry.breaksPeace && <BreaksPeaceTag />}
             {account && enabled && botRunning && pill && <PluginStatusPill state={pill.state} />}
+            {account && enabled && botRunning && pill?.reason && <span style={{ flexBasis: "100%", color: "var(--gge-muted)", fontSize: 14 }}>{pill.reason}</span>}
         </div>
     )
 }
 
-function PluginSection({ entry, state, view, resetKey, disabled, castles, pluginStates, phone, register, onOptions }: {
-    entry: PluginCatalogEntry; state: ModuleState; view: View; resetKey: number; disabled: boolean
+function PluginSection({ entry, state, view, disabled, castles, pluginStates, phone, register, onOptions }: {
+    entry: PluginCatalogEntry; state: ModuleState; view: View; disabled: boolean
     castles: AccountCastle[]; pluginStates: PluginStates; phone: boolean
     register: (form: FormInstance | null) => void; onOptions: (options: OptionValues) => void
 }) {
@@ -242,7 +246,7 @@ function PluginSection({ entry, state, view, resetKey, disabled, castles, plugin
             <div>
                 {i18n.exists(descriptionKey, { ns: "bot" }) && <Typography.Paragraph type="secondary">{tb(descriptionKey)}</Typography.Paragraph>}
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
-                <Form key={resetKey} form={form} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
+                <Form name={entry.key} form={form} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
                     <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} />
                 </Form>
