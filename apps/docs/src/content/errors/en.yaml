@@ -108,3 +108,13 @@ IS_BANNED:
   fix: "Check the game. The ban is the game's decision and we cannot lift it. The bot stays stopped until you start it again after the ban ends."
 FAILED_TO_SET_CASTLE:
   fix: "Check the castle still exists in the game, then start the bot again. If it keeps happening, contact support with the account name."
+PLUGIN_OPTION_ARMY:
+  fix: "Open the module's Army setting and check it again. Pick Autofill or Waves, and in Waves make sure every slot that has a troop or tool also has an amount. Then save."
+VIRTUAL_PRESET_NOT_FOUND:
+  fix: "The preset was deleted, maybe in another tab. Reload the Virtual presets page and pick one from the list, or make a new one."
+VIRTUAL_PRESET_DUPLICATE:
+  fix: "Give the preset a name this account doesn't use yet. Each account keeps one preset per name."
+VIRTUAL_PRESET_IN_USE:
+  fix: "A module still sends this preset. Open the module the page names, switch its Waves to another preset or to waves written there, save, and then delete the preset."
+VIRTUAL_PRESET_LIMIT:
+  fix: "Delete a preset you no longer use on the Virtual presets page, then add the new one."
