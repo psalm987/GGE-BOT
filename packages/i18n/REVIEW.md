@@ -32,4 +32,4 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 | nb | Norwegian Bokmål | 2026-11-18 | pending | | Game code is no. |
 | tr | Turkish | 2026-11-18 | pending | |  |
 | uk | Ukrainian | 2026-11-18 | pending | | No game file served. Terms chosen by translator. |
-| ar | Arabic | pending | pending | | PRIORITY. Six plural forms. Right-to-left layout. |
+| ar | Arabic | 2026-11-18 | pending | | PRIORITY. Six plural forms. Right-to-left layout. |
