@@ -3,10 +3,11 @@ import { Alert, App, Button, Card, Form, Grid, Progress, Row, Segmented, Select,
 import { useEffect, useMemo, useReducer, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
-import { MODULES, type AccountCastle, type ModuleDef, type PluginCatalogEntry, type PluginStates, type PublicAccount } from "@gge/contracts"
+import { MODULES, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PluginStates, type PublicAccount } from "@gge/contracts"
 import { Icon, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
+import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
@@ -31,13 +32,14 @@ export function Module() {
     const title = <span className="gge-module-title"><Icon icon={module.icon} size={28} /><span>{t(`modules.${module.id}.name`)}</span></span>
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
-            {module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}
+            {module.page === "virtualPresets" ? <VirtualPresets module={module} />
+                : module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}
         </AppLayout>
     )
 }
 
 /** The account to show: the one in the address, else the last one picked, else the first. */
-function useAccountChoice(accounts: PublicAccount[] | undefined) {
+export function useAccountChoice(accounts: PublicAccount[] | undefined) {
     const [params, setParams] = useSearchParams()
     const wanted = params.get("account")
     const account = accounts?.find(a => a.id === wanted) ?? accounts?.find(a => a.id === remembered()) ?? accounts?.[0]
@@ -49,11 +51,29 @@ function useAccountChoice(accounts: PublicAccount[] | undefined) {
     return { account, choose: (id: string) => setParams(current => { current.set("account", id); return current }, { replace: true }) }
 }
 
+/** What the module does, and the account its page is about. */
+export function ModuleHead({ module, accounts, account, onPick }: { module: ModuleDef; accounts: PublicAccount[]; account: PublicAccount | undefined; onPick: (id: string) => void }) {
+    const { t } = useTranslation("client")
+    const servers = useQuery(orpc.servers.list.queryOptions())
+    const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
+    return (
+        <div className="gge-module-head">
+            <p className="gge-module-intro">{t(`modules.${module.id}.description`)}</p>
+            {account && (
+                <div className="gge-module-picker">
+                    <label htmlFor="module-account">{t("module.account")}</label>
+                    <Select id="module-account" value={account.id} onChange={onPick}
+                        options={accounts.map(a => ({ value: a.id, label: `${a.name} · ${serverLabel.get(a.serverId) ?? a.serverId}${a.externalEvent ? ` · ${t("module.event")}` : ""}` }))} />
+                </div>
+            )}
+        </div>
+    )
+}
+
 function LiveModule({ module }: { module: ModuleDef }) {
     const { t } = useTranslation("client")
     const { modal } = App.useApp()
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), refetchInterval: pollInterval(useRealtimeState()) })
-    const servers = useQuery(orpc.servers.list.queryOptions())
     const catalog = useQuery(orpc.plugins.catalog.queryOptions())
     const attackLimit = useQuery(orpc.plugins.attackLimit.queryOptions())
     const { account, choose } = useAccountChoice(accounts.data)
@@ -67,22 +87,12 @@ function LiveModule({ module }: { module: ModuleDef }) {
             onOk: () => { setUnsaved(false); choose(id) },
         })
     }
-    const serverLabel = new Map(servers.data?.map(s => [s.id, s.label]))
 
     if (module.devOnly && catalog.data && !entries.length) return <Navigate to="/" replace />
     if (accounts.isPending || catalog.isPending) return <Skeleton active paragraph={{ rows: 8 }} />
     return (
         <div className="gge-module">
-            <div className="gge-module-head">
-                <p className="gge-module-intro">{t(`modules.${module.id}.description`)}</p>
-                {account && (
-                    <div className="gge-module-picker">
-                        <label htmlFor="module-account">{t("module.account")}</label>
-                        <Select id="module-account" value={account.id} onChange={pick}
-                            options={accounts.data!.map(a => ({ value: a.id, label: `${a.name} · ${serverLabel.get(a.serverId) ?? a.serverId}${a.externalEvent ? ` · ${t("module.event")}` : ""}` }))} />
-                    </div>
-                )}
-            </div>
+            <ModuleHead module={module} accounts={accounts.data!} account={account} onPick={pick} />
             {!account && (
                 <Alert type="info" showIcon title={t("module.noAccounts")} action={<Link to="/?add=1"><Button size="small">{t("module.addAccount")}</Button></Link>} />
             )}
@@ -147,7 +157,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
 
     const sections = entries.map(entry => (
         <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} view={view} disabled={readOnly || save.isPending}
-            castles={castles} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone}
+            castles={castles} accountId={account?.id} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone}
             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
     ))
@@ -221,8 +231,8 @@ function StatusRow({ entry, account, state, blocked, onEnabled, readOnly }: {
     )
 }
 
-function PluginSection({ entry, state, view, disabled, castles, pluginStates, phone, register, onOptions }: {
-    entry: PluginCatalogEntry; state: ModuleState; view: View; disabled: boolean
+function PluginSection({ entry, state, view, disabled, castles, accountId, pluginStates, phone, register, onOptions }: {
+    entry: PluginCatalogEntry; state: ModuleState; view: View; disabled: boolean; accountId: string | undefined
     castles: AccountCastle[]; pluginStates: PluginStates; phone: boolean
     register: (form: FormInstance | null) => void; onOptions: (options: OptionValues) => void
 }) {
@@ -248,7 +258,7 @@ function PluginSection({ entry, state, view, disabled, castles, pluginStates, ph
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
                 <Form name={entry.key} form={form} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
-                    <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} />
+                    <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} accountId={accountId} />
                 </Form>
             </div>
             {!phone && checks}
@@ -256,10 +266,15 @@ function PluginSection({ entry, state, view, disabled, castles, pluginStates, ph
     )
 }
 
-function PluginFields({ entry, castles, showAdvanced }: { entry: PluginCatalogEntry; castles: AccountCastle[]; showAdvanced: boolean }) {
+function PluginFields({ entry, castles, showAdvanced, accountId }: { entry: PluginCatalogEntry; castles: AccountCastle[]; showAdvanced: boolean; accountId: string | undefined }) {
+    // An option tagged with an army mode shows only while the plugin's Army switch is on that mode.
+    const modeKey = entry.options.find(def => def.type === "ArmyMode")?.key
+    const mode = (Form.useWatch(["options", modeKey ?? ""]) as ArmyMode | undefined) ?? "autofill"
+    const otherMode = (def: PluginOptionDef) => "army" in def && def.army !== undefined && def.army !== mode
     return (
         <Row>
-            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} plugin={entry.key} def={def} castles={castles} hidden={Boolean(def.advanced) && !showAdvanced} />)}
+            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId}
+                hidden={(Boolean(def.advanced) && !showAdvanced) || otherMode(def)} />)}
         </Row>
     )
 }

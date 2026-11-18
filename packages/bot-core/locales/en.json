@@ -570,21 +570,12 @@
     "armyToolWrongSide": "A tool in the waves can't go on that side and was left out:",
     "armyPlanShort": "Waiting: the castle holds too few of these for the waves:",
     "attackBarronsGreatEmpire.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackBarronsGreatEmpire.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackBarronsBurningSands.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackBarronsBurningSands.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackBarronsEverWinterGlacier.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackBarronsEverWinterGlacier.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackBarronsFirePeaks.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackBarronsFirePeaks.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackFortressesBurningSands.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackFortressesBurningSands.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackFortressesEverWinterGlacier.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackFortressesEverWinterGlacier.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackFortressesFirePeaks.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackFortressesFirePeaks.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
     "attackForeign.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackForeign.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs.",
-    "attackBloodcrows.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
-    "attackBloodcrows.waves.help": "Each wave is empty, one of your in-game presets, or custom slots. An amount above what a side holds fills the side. The bot waits while the castle holds less than a slot needs."
+    "attackBloodcrows.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write."
 }

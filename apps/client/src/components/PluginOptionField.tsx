@@ -3,14 +3,15 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Typography } from "antd"
 import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { KINGDOM_IDS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
+import { KINGDOM_IDS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
+import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
 
 const KIND: Record<ItemCatalog, GameItemKind> = { banners: "banner", tools: "tool", troops: "troop", supportTools: "supportTool" }
 const COLUMN_KIND = { tool: "tool", troop: "troop" } as const
 
-function useGameItems(kind: GameItemKind) {
+export function useGameItems(kind: GameItemKind) {
     const { t } = useTranslation("game")
     const items = useQuery({ ...orpc.catalog.gameItems.queryOptions({ input: { kind } }), staleTime: Infinity }).data ?? []
     const nameOf = (item: GameItem) => t(item.nameKey, { defaultValue: item.name })
@@ -198,7 +199,8 @@ const extraOf = (...lines: (ReactNode | undefined)[]) => {
 }
 
 /** One option of a plugin in its settings dialog, bound to the dialog form's `options.<key>`. */
-export function PluginOptionField({ plugin, def, castles, hidden }: { plugin: string; def: PluginOptionDef; castles: AccountCastle[]; hidden: boolean }) {
+export function PluginOptionField({ entry, def, castles, hidden, accountId }: { entry: PluginCatalogEntry; def: PluginOptionDef; castles: AccountCastle[]; hidden: boolean; accountId?: string }) {
+    const plugin = entry.key
     const { t, i18n } = useTranslation("bot")
     const { t: tc } = useTranslation("client")
     if (def.type === "")
@@ -248,8 +250,15 @@ export function PluginOptionField({ plugin, def, castles, hidden }: { plugin: st
         case "SkipTypes":
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><SkipTypesField label={label} /></Form.Item></Col>
         case "ArmyMode":
+            return (
+                <Col {...full}>
+                    <Form.Item name={name} label={label} extra={extraOf(help)}>
+                        <ArmyModeField label={label} source={def.autofill} defs={entry.options} wavesKey={entry.options.find(other => other.type === "Waves")?.key} accountId={accountId} />
+                    </Form.Item>
+                </Col>
+            )
         case "Waves":
-            return null
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} /></Form.Item></Col>
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)

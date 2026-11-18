@@ -62,11 +62,15 @@ export type ModuleDef = {
     tabs?: "per-plugin" | "sections"
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
+    /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
+    page?: "virtualPresets"
 }
 
 const live = (id: string, group: ModuleGroup, icon: IconId, plugins: readonly PluginKey[], tabs?: ModuleDef["tabs"]) =>
     ({ id, group, icon, status: "live" as const, plugins, ...(tabs && { tabs }) })
 const dev = (id: string, group: ModuleGroup, icon: IconId, plugins: readonly PluginKey[]) => ({ ...live(id, group, icon, plugins), devOnly: true as const })
+const page = (id: string, group: ModuleGroup, icon: IconId, screen: NonNullable<ModuleDef["page"]>) =>
+    ({ id, group, icon, status: "live" as const, plugins: [], page: screen })
 const soon = (id: string, group: ModuleGroup, icon: IconId) => ({ id, group, icon, status: "soon" as const, plugins: [] })
 
 /**
@@ -95,7 +99,7 @@ export const MODULES: readonly ModuleDef[] = [
     live("khan", "attacks", "wolf-head", ["attackKhan"]),
     live("green-berimond", "attacks", "viking-helmet", ["attackBerimondInvasion"]),
     live("invasion-events", "attacks", "raven", ["attackForeign", "attackBloodcrows"], "per-plugin"),
-    soon("virtual-presets", "attacks", "battle-gear"),
+    page("virtual-presets", "attacks", "battle-gear", "virtualPresets"),
     soon("coin-farmer", "bth", "coins-pile"),
     soon("bth-blacksmith", "bth", "gear-hammer"),
     soon("influence-farming", "bth", "imperial-crown"),

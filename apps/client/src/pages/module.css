@@ -1,4 +1,6 @@
 .gge-module { display: grid; gap: 16px; }
+/* A grid item is as wide as its content at least, which an auto-fit grid inside it turns into every column side by side. */
+.gge-module > * { min-width: 0; }
 .gge-module-title { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-width: 0; vertical-align: middle; }
 .gge-module-title > :first-child { flex: none; }
 .gge-module-title > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -31,3 +33,12 @@
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
 }
 .gge-savebar-actions { display: flex; gap: 8px; margin-inline-start: auto; }
+.gge-preset-list { list-style: none; margin: 0; padding: 0; }
+.gge-preset-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 56px; padding: 8px 0; border-bottom: 1px solid var(--gge-rule); }
+.gge-preset-list li:last-child { border-bottom: 0; }
+.gge-preset-name { flex: 1 1 160px; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.gge-preset-summary { flex: 2 1 260px; color: var(--gge-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.gge-preset-editor { display: grid; gap: 16px; }
+.gge-preset-field { display: grid; gap: 6px; max-width: 420px; }
+.gge-preset-field label { font-weight: 500; }
+.gge-preset-error { color: #FF9A8A; font-size: 14px; }

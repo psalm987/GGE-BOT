@@ -20,9 +20,10 @@ test("every plugin a player can see belongs to exactly one live module", () => {
     expect([...owners.keys()].filter(key => !shown.includes(key) && !devOnly.has(key)), "module plugins the catalog does not show").toEqual([])
 })
 
-test("a live module has plugins, a soon module has none, and several plugins say how to lay out", () => {
+test("a live module has plugins unless it is a page of its own, a soon module has none, and several plugins say how to lay out", () => {
     for (const module of MODULES) {
-        expect(module.plugins.length > 0, module.id).toBe(module.status === "live")
+        expect(module.plugins.length > 0, module.id).toBe(module.status === "live" && !module.page)
+        expect(module.page === undefined || module.status === "live", module.id).toBe(true)
         expect(Boolean(module.tabs), module.id).toBe(module.plugins.length > 1)
     }
 })
