@@ -1,10 +1,45 @@
+const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats } = require("../../army.js")
+
+const AUTOFILL = {
+    sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
+    whenNoSides: ["left", "courtyard"],
+    waves: "attackWaves",
+    tools: ["useWallTools", "useShields"],
+    unitOrder: "unitOrder",
+    supply: "supply",
+}
+/** The options of every robber baron plugin. `attackWaves` is the kingdom's default wave count, if it has one. */
+const baronOptions = ({ attackWaves } = {}) => [
+    { type: "Label", key: "horseSettings" },
+    { type: "Checkbox", key: "useFeather", default: false },
+    { type: "Checkbox", key: "useCoin", default: true },
+    { type: "Checkbox", key: "useTimeSkips", default: false },
+    { type: "Checkbox", key: "upgradeTowers", default: false },
+    { type: "Text", key: "commanderWhiteList", default: "1-99" },
+    { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
+    ...armyOptions(AUTOFILL),
+    { type: "Label", key: "attackSettings", army: "autofill" },
+    { type: "Checkbox", key: "useWallTools", default: true, army: "autofill" },
+    { type: "Checkbox", key: "useShields", default: false, army: "autofill" },
+    { type: "Checkbox", key: "useDogs", default: false, army: "autofill" },
+    { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
+    { type: "Checkbox", key: "attackLeft", default: false, army: "autofill" },
+    { type: "Checkbox", key: "attackMiddle", default: false, army: "autofill" },
+    { type: "Checkbox", key: "attackRight", default: false, army: "autofill" },
+    { type: "Checkbox", key: "attackCourtyard", default: false, army: "autofill" },
+    { type: "Text", key: "attackWaves", ...(attackWaves ? { default: attackWaves } : {}), army: "autofill" },
+    unitOrderOption(),
+    supplyOption(),
+]
+const baronChecks = [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }]
+
 if (require("node:worker_threads").isMainThread)
-    return module.exports = { hidden: true }
+    return module.exports = { hidden: true, baronOptions, baronChecks }
 
 const pretty = require("pretty-time")
 
 const { spendSkip, haveEnoughSkips } = require("../skips.js")
-const { parseAutofill, orderUnits, eats } = require("../../army.js")
+const { statusReporter } = require("../../pluginStatus.js")
 const { castles, ClientCommands, AreaType, KingdomID, movements, movementEvents, resources } = require("../../protocols")
 const {
     waitToAttack,
@@ -13,7 +48,7 @@ const {
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
     getMaxUnitsInReinforcementWave,
-    getTotalAmountToolsFlank, sendAttack } = require("./attack.js")
+    getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { areasAround } = require("../../mapScan.js")
@@ -28,8 +63,12 @@ catch (e) {
     console.debug(e)
 }
 
-async function barronHit(type, kingdomID, options, maxLevel) {
+/** `filename` is the plugin's file, which its status goes by. */
+async function barronHit(type, kingdomID, options, maxLevel, filename) {
     const autofill = parseAutofill(options)
+    const army = readArmy(options, (...report) => statusReporter(filename)(...report))
+    if (!army)
+        return
     const getLevel = victorys =>
         Math.floor(1.9 * Math.pow(victorys, .555)) + ([1, 35, 20, 45][kingdomID] ?? 0)
 
@@ -122,6 +161,17 @@ async function barronHit(type, kingdomID, options, maxLevel) {
 
                 const areaInfo = areas[index]
                 const level = getLevel(areaInfo.extraData[1], kingdomID)
+
+                if (army.mode == "waves") {
+                    const stats = commander.getEffects()
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, options, stats.additionalWaves)
+                    fillFromPlan(attackInfo, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level, stats.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, stats.attackUnitAmountFront),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | stats.attackUnitAmountReinforcementBonus),
+                    })
+                    return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                }
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []

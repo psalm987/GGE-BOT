@@ -6,10 +6,12 @@ if (require('node:worker_threads').isMainThread)
 const pretty = require('pretty-time')
 const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID } = require('../../protocols')
 const { mapGrid, scanGrid, wholeMapRects } = require('../../mapScan.js')
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
+const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
+    getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
-const { parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { statusReporter } = require("../../pluginStatus.js")
 
 const err = require('../../err.json')
 
@@ -17,9 +19,13 @@ const minTroopCount = 100
 const minTroopCountCY = 500
 const type = AreaType.fortress
 
-async function fortressHit(kingdomID, level, options) {
+/** `filename` is the plugin's file, which its status goes by. */
+async function fortressHit(kingdomID, level, options, filename) {
     const horse = choice(HORSES, options.horse, HORSES[2])
     const autofill = parseAutofill(options, { unitOrder: "fastest" })
+    const army = readArmy(options, (...report) => statusReporter(filename)(...report))
+    if (!army)
+        return
 
     const areas = []
 
@@ -59,6 +65,15 @@ async function fortressHit(kingdomID, level, options) {
                 let AI = areas[index]
 
                 const attackInfo = getAttackInfo(kingdomID, castle, AI, commander, level, undefined, horse)
+
+                if (army.mode == "waves") {
+                    fillFromPlan(attackInfo, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level), frontUnits: getAmountSoldiersFront(level),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level),
+                    })
+                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
+                }
 
                 const attackerTroops = []
 

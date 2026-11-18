@@ -7,7 +7,7 @@ if (require('node:worker_threads').isMainThread)
                 key: "commanderWhiteList",
                 default: "1-99"
             },
-            ...require("../../army.js").fortressAutofillOptions()
+            ...require("../../army.js").fortressOptions(3)
         ]
     }
 
@@ -20,4 +20,4 @@ const kid = KingdomID.everWinterGlacier
 const level = 20
 
 events.on("load", () => 
-    fortressHit(kid, level, pluginOptions))
+    fortressHit(kid, level, pluginOptions, __filename))
