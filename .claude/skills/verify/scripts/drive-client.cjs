@@ -41,7 +41,7 @@ async function addAccount(page, accountName, beforeAdding = async () => {}) {
     await page.getByLabel("Game password").fill("hunter2")
     await beforeAdding()
     await page.getByRole("button", { name: "Add account", exact: true }).last().click()
-    await page.getByText(`${accountName} added`).waitFor()
+    await page.getByText(`${accountName} added`).first().waitFor()
     await drawerClosed(page)
 }
 
@@ -124,10 +124,10 @@ async function driveLogs(page) {
     await page.getByRole("tab", { name: "Logs" }).click()
     const drawer = page.getByRole("dialog")
     const drawerLog = drawer.getByRole("log", { name: "Bot log" })
-    await drawerLog.getByText(`Consumed ${mine}`).waitFor()
+    await drawerLog.getByText(`Feasts used this much food: ${mine}`).waitFor()
     const facets = await rpc(page, "logs/facets")
     const ironholdCount = facets.accounts.find(a => a.name === "Ironhold").count
-    assert(await drawerLog.getByText(`Consumed ${theirs}`).count() === 0, "the drawer's Logs tab shows Ironhold's new line and not Ravenmoor's")
+    assert(await drawerLog.getByText(`Feasts used this much food: ${theirs}`).count() === 0, "the drawer's Logs tab shows Ironhold's new line and not Ravenmoor's")
     assert((await drawer.locator(".ant-segmented-item", { hasText: "All" }).innerText()).includes(String(ironholdCount)), `the drawer counts Ironhold's ${ironholdCount} lines, not every account's`)
     assert((await termRows(drawerLog)).every(row => row.account === null), "the drawer's terminal has no account column")
     await drawer.locator(".ant-segmented-item", { hasText: "Warning" }).click()
@@ -228,7 +228,7 @@ async function driveLogs(page) {
     await page.waitForTimeout(1500)
     const first = unique()
     await insertLogLine({ accountName: "Ironhold", level: 1, plugin: "feast", parts: ["consumed", first] })
-    await log.getByText(`Consumed ${first}`).waitFor()
+    await log.getByText(`Feasts used this much food: ${first}`).waitFor()
     await page.waitForTimeout(300)
     assert((await termRows(log)).at(-1).text.includes(String(first)) && await atBottom(log) && await page.getByText("Following live").isVisible(),
         "a line written while following appears at the bottom and the view stays there")
@@ -1094,8 +1094,8 @@ async function drivePalette(page, browser) {
     await page.waitForURL(/\/m\/nom-sam-daimyo\?account=/)
     await page.getByRole("switch", { name: "Enable Attack Nomads" }).waitFor()
     assert(true, "a plugin entry opens its module's page for that account")
-    await page.locator("body").click({ position: { x: 5, y: 5 } })
     await page.goto(CLIENT_URL)
+    await opener.focus()
 
     await page.keyboard.press(right)
     await search.fill("polski")
@@ -1103,8 +1103,9 @@ async function drivePalette(page, browser) {
     await page.waitForFunction(() => document.documentElement.lang === "pl")
     assert(true, "a language entry switches the interface language (html lang is pl)")
     await page.keyboard.press(right)
-    await search.fill("automatic")
-    await options.first().waitFor()
+    // The interface is Polish now, so the search box has its Polish name; "automat" finds the Automatic entry in both languages.
+    await page.getByRole("dialog").getByRole("combobox").fill("automat")
+    await page.getByRole("dialog").getByRole("option").first().waitFor()
     await page.keyboard.press("Enter")
     await page.waitForFunction(() => document.documentElement.lang === "en")
     assert(true, "the Automatic entry puts the language back")
@@ -1330,7 +1331,7 @@ async function drivePalette(page, browser) {
     const alerts = await page.getByRole("alert").allTextContents()
     const fieldErrors = await page.locator(".ant-form-item-explain-error").allTextContents()
     if (alerts.length || fieldErrors.length) console.log("form errors:", alerts, fieldErrors)
-    await page.getByText(`Storm${name} added`).waitFor()
+    await page.getByText(`Storm${name} added`).first().waitFor()
     await drawerClosed(page)
     const row = page.getByRole("row", { name: new RegExp(`Storm${name}`) })
     await row.waitFor()
@@ -1408,7 +1409,7 @@ async function drivePalette(page, browser) {
     await axe(page, "add-twin drawer")
     await page.getByLabel("Game password").fill("hunter2")
     await page.getByRole("button", { name: "Add account", exact: true }).last().click()
-    await page.getByText(`${gale} added`).waitFor()
+    await page.getByText(`${gale} added`).first().waitFor()
     await drawerClosed(page)
     const galeRows = page.getByRole("row", { name: new RegExp(gale) })
     await galeRows.nth(1).waitFor()
@@ -1443,7 +1444,8 @@ async function drivePalette(page, browser) {
     await mainRow.getByRole("button", { name: "Stop" }).waitFor()
     const drawer = page.getByRole("dialog")
     const scheduleSwitch = drawer.getByRole("switch", { name: "Run on a schedule" })
-    const pluginsOf = async () => JSON.stringify((await rpc(page, "accounts/list")).find(a => a.name === gale).plugins)
+    // Sorted by plugin, because the API lists them in the database's row order, which an update can change.
+    const pluginsOf = async () => { const plugins = (await rpc(page, "accounts/list")).find(a => a.name === gale).plugins; return JSON.stringify(Object.fromEntries(Object.entries(plugins).sort(([a], [b]) => a.localeCompare(b)))) }
     let pluginsBefore
     const openSchedule = async () => {
         pluginsBefore ??= await pluginsOf()
@@ -1490,6 +1492,13 @@ async function drivePalette(page, browser) {
     await drawer.getByRole("button", { name: "Save changes" }).click()
     await page.getByText(`${gale} saved`).waitFor()
     await drawerClosed(page)
+    {
+        const afterPlugins = await pluginsOf()
+        if (afterPlugins !== pluginsBefore) {
+            const a = JSON.parse(pluginsBefore), b = JSON.parse(afterPlugins)
+            console.log("plugin settings differ:", Object.keys({ ...a, ...b }).filter(k => JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => `${k}: ${JSON.stringify(a[k])} -> ${JSON.stringify(b[k])}`))
+        }
+    }
     assert(await pluginsOf() === pluginsBefore, "saving from the Schedule tab, without opening Settings, leaves the account's plugin settings as they were")
     const sleeping = mainRow.getByText(`Sleeping until ${when}`)
     await sleeping.waitFor()
@@ -1595,6 +1604,8 @@ async function drivePalette(page, browser) {
     assert(true, "the Run history tab lists the account's runs")
 
     const pl = JSON.parse(require("fs").readFileSync(path.join(__dirname, "../../../../packages/bot-core/locales/pl.json"), "utf8"))
+    const plClient = JSON.parse(require("fs").readFileSync(path.join(__dirname, "../../../../packages/i18n/catalogs/pl/client.json"), "utf8"))
+    const editIronholdPl = plClient["dashboard.edit"].replace("{{name}}", "Ironhold")
     const picker = seeded.locator('header button[aria-haspopup="dialog"]:has(.anticon-global)')
     const htmlAttr = attr => seeded.evaluate(a => document.documentElement.getAttribute(a), attr)
     await seeded.goto(`${CLIENT_URL}/settings`)
@@ -1624,14 +1635,14 @@ async function drivePalette(page, browser) {
     await options.getByText("Polski").click()
     await seeded.waitForFunction(() => document.documentElement.lang === "pl")
     assert(await htmlAttr("lang") === "pl", "picking Polski sets <html lang=pl>")
-    await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
+    await seeded.getByRole("button", { name: editIronholdPl }).click()
     await seeded.getByRole("tab").nth(1).click()
-    const polishPlugin = seeded.getByRole("switch", { name: `Enable ${pl.feast}` })
+    const polishPlugin = seeded.getByRole("switch", { name: plClient["plugins.enable"].replace("{{label}}", pl.feast) })
     await polishPlugin.waitFor()
     assert(pl.feast !== "Feast", `a plugin name in the account drawer is Polish (${pl.feast})`)
     await seeded.screenshot({ path: `${out}/27-language-polish-drawer.png` })
     await seeded.reload()
-    await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+    await seeded.getByRole("button", { name: editIronholdPl }).waitFor()
     assert(await htmlAttr("lang") === "pl" && await seeded.evaluate(() => localStorage.getItem("gge.locale")) === "pl", "the Polish choice survives a reload")
 
     await picker.click()
