@@ -120,7 +120,9 @@ The `api` metric `geoip_lookups_total{result="ip"|"none"|"skipped"|"error"}` sho
 
 MaxMind's licence asks apps to credit the data. The player app's Settings page does: "Automatic uses GeoLite2 data created by MaxMind."
 
-**Behind Cloudflare.** If Cloudflare proxies your domain, Traefik must trust Cloudflare's IP ranges so it passes the visitor's address on in `X-Forwarded-For`. Without that, every lookup sees a Cloudflare edge address and the whole world gets one country. Add Cloudflare's published ranges to Traefik's `forwardedHeaders.trustedIPs` for the web entrypoint. Caddy inside `web` already trusts Traefik's private address (`infra/Caddyfile.dokploy`), so Traefik is the hop to fix.
+**Behind Cloudflare.** Traefik does not trust Cloudflare, so it replaces `X-Forwarded-For` with the Cloudflare edge's address. Caddy inside `web` therefore takes the visitor's address from Cloudflare's `CF-Connecting-IP` header, and passes only that address to the API (`infra/Caddyfile.dokploy`). Without Cloudflare, the header is absent and Caddy uses `X-Forwarded-For` from Traefik. To check, call `i18n.detect` from a browser and compare `country` with your own: `curl -s -X POST https://app.<domain>/rpc/i18n/detect -H 'origin: https://app.<domain>' -H 'content-type: application/json' -d '{"json":{}}'`.
+
+Anyone who reaches the server's IP directly, without passing through Cloudflare, can send a forged `CF-Connecting-IP`. The forged address then sets their language and the key of their per-IP rate limits. To prevent this, let only [Cloudflare's IP ranges](https://www.cloudflare.com/ips/) reach ports 80 and 443, with the host firewall or your provider's firewall.
 
 ## Paystack
 
