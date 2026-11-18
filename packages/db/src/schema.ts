@@ -197,6 +197,16 @@ export const pluginSettings = pgTable("plugin_settings", {
     options: jsonb("options").notNull().default({}),
 }, t => [primaryKey({ columns: [t.accountId, t.pluginKey] })])
 
+/** A named wave plan an account's attack plugins can pick by id; `plan` is a `ManualPlan`, parsed again on every read. */
+export const virtualPresets = pgTable("virtual_presets", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    plan: jsonb("waves").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+}, t => [uniqueIndex("virtual_presets_account_name").on(t.accountId, sql`lower(${t.name})`)])
+
 /** Published by the runner at boot from bot-core's plugin registry. */
 export const pluginCatalog = pgTable("plugin_catalog", {
     key: text("key").primaryKey(),

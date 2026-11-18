@@ -5,6 +5,7 @@ import {
     AdminPeriod, AdminPurchase, BillingConfig, BillingSettings, BillingStatus, Checkout, GrantDays, LicenseCode, MyPlan, Package, PaymentOutcome, Period, PlanRow, PointsRedemption,
     PointsSummary, Purchase, PurchaseStatus, RecordPurchase, UpdatePackage, UserPlan,
 } from "./billing.ts"
+import { CreateVirtualPreset, UpdateVirtualPreset, VirtualPreset } from "./army.ts"
 import { DataExport } from "./data-export.ts"
 import { GameItem, GameItemKind } from "./game-items.ts"
 import { AttackPluginCap, PluginCatalogEntry } from "./plugins.ts"
@@ -107,6 +108,18 @@ export const clientContract = {
         remove: oc.input(Ids).output(z.void()),
         setDesiredState: oc.input(Ids.extend({ state: DesiredState })).output(z.void()),
         runs: oc.input(RunsInput).output(z.array(Run)),
+    },
+    /**
+     * Named wave plans an account's attack plugins can pick. Every call is scoped to the caller's accounts: another player's
+     * account answers ACCOUNT_NOT_FOUND and their preset VIRTUAL_PRESET_NOT_FOUND, as if it did not exist.
+     */
+    virtualPresets: {
+        list: oc.input(z.object({ accountId: z.uuid() })).output(z.array(VirtualPreset)),
+        /** Refused with VIRTUAL_PRESET_LIMIT past MAX_VIRTUAL_PRESETS, and VIRTUAL_PRESET_DUPLICATE for a name the account already has (any case). */
+        create: oc.input(CreateVirtualPreset).output(VirtualPreset),
+        update: oc.input(UpdateVirtualPreset).output(VirtualPreset),
+        /** Refused with VIRTUAL_PRESET_IN_USE while a plugin of the account stores it as its waves. */
+        remove: oc.input(Id).output(z.void()),
     },
     /** Tokens for the Centrifugo websocket at /connection/websocket. Both answer NOT_IMPLEMENTED on a deployment without Centrifugo. */
     realtime: {

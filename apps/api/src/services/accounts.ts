@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import {
-    appSettings, botRuns, botStatus, gameAccounts, gameItems, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publicStatus, publishMany, servers, users,
+    appSettings, botRuns, botStatus, gameAccounts, gameItems, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publicStatus, publishMany, servers, users, virtualPresets,
     type Db, type OwnerPlan,
 } from "@gge/db"
 import { sealFor } from "@gge/crypto"
@@ -39,14 +39,34 @@ export async function attackLimitFor(db: Pick<Db, "select">, userId: string): Pr
     return attackPluginLimit(user?.cap ?? settings?.cap ?? "4")
 }
 
-async function validSettings(db: Db, ownerId: string, settings: PluginSettings) {
+/** `accountId` is null for an account that does not exist yet, which owns no presets. */
+async function validSettings(db: Db, ownerId: string, accountId: string | null, settings: PluginSettings) {
+    const catalog = await loadCatalog(db)
     try {
-        return normalizePluginSettings(await loadCatalog(db), settings, await attackLimitFor(db, ownerId))
+        const valid = normalizePluginSettings(catalog, settings, await attackLimitFor(db, ownerId))
+        await keepOwnPresets(db, catalog, accountId, valid)
+        return valid
     } catch (error) {
         if (error instanceof PluginSettingsError)
             throw fail("BAD_REQUEST", error.problem.code, error.problem.params as never)
         throw error
     }
+}
+
+/** A Waves option may name a virtual preset only if it belongs to this same account. */
+async function keepOwnPresets(db: Db, catalog: PluginCatalogEntry[], accountId: string | null, settings: PluginSettings) {
+    const wavesKeys = new Map(catalog.map(entry => [entry.key, entry.options.filter(def => def.type === "Waves").map(def => def.key)]))
+    const named = Object.entries(settings).flatMap(([pluginKey, setting]) => (wavesKeys.get(pluginKey) ?? []).flatMap(optionKey => {
+        const value = setting.options[optionKey] as { kind?: string; presetId?: string } | undefined
+        return value?.kind === "virtual" ? [{ where: `${pluginKey}.${optionKey}`, presetId: value.presetId! }] : []
+    }))
+    if (!named.length)
+        return
+    const own = new Set(accountId === null ? [] : (await db.select({ id: virtualPresets.id }).from(virtualPresets).where(and(
+        eq(virtualPresets.accountId, accountId), inArray(virtualPresets.id, named.map(n => n.presetId))))).map(r => r.id))
+    const stranger = named.find(n => !own.has(n.presetId))
+    if (stranger)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ARMY", params: { where: stranger.where } })
 }
 
 async function assertServer(db: Db, serverId: number) {
@@ -191,7 +211,7 @@ async function replaceSettings(db: Pick<Db, "insert" | "delete">, accountId: str
 export async function createAccount(db: Db, sealKey: string, ownerId: string,
     input: { name: string; serverId: number; password: string; externalEvent: boolean; plugins: PluginSettings; schedule: Schedule | null }) {
     await assertServer(db, input.serverId)
-    const settings = await validSettings(db, ownerId, input.plugins)
+    const settings = await validSettings(db, ownerId, null, input.plugins)
     const id = await db.transaction(tx => keepWithinPlan(tx, ownerId, async () => {
         const [account] = await tx.insert(gameAccounts).values({
             ownerId,
@@ -212,7 +232,7 @@ export async function updateAccount(db: Db, sealKey: string, ownerId: string,
     await getOwnedAccount(db, ownerId, input.id)
     if (input.serverId !== undefined)
         await assertServer(db, input.serverId)
-    const settings = input.plugins && await validSettings(db, ownerId, input.plugins)
+    const settings = input.plugins && await validSettings(db, ownerId, input.id, input.plugins)
     await db.transaction(tx => keepWithinPlan(tx, ownerId, async owner => {
         const [account] = await tx.update(gameAccounts).set({
             ...(input.name !== undefined && { name: input.name }),

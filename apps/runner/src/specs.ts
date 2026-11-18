@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto"
 import { and, eq, inArray } from "drizzle-orm"
 import {
-    NO_PROXY_FREE, TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, scheduleState, storedSchedule,
-    type OptionValue, type PluginSettings,
+    NO_PROXY_FREE, ManualPlan, TOO_MANY_ATTACK_PLUGINS, attackPluginLimit, effectivePluginConfig, enabledAttackPlugins, scheduleState, storedSchedule,
+    type OptionValue, type PluginCatalogEntry, type PluginSettings,
 } from "@gge/contracts"
-import { appSettings, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botStatus, gameAccounts, loadPlanOwners, planOwnerColumns, pluginSettings, servers, users, virtualPresets, type Db } from "@gge/db"
 import type { PluginRegistry } from "./catalog.ts"
 import { planStanding } from "./plan.ts"
 import { enabledProxiesOf, type SpecProxy } from "./proxies.ts"
@@ -80,6 +80,8 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
     const ids = rows.map(r => r.account.id)
     const settings = ids.length ? await db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)) : []
 
+    const presets = ids.length ? await db.select().from(virtualPresets).where(inArray(virtualPresets.accountId, ids)) : []
+
     const [defaults] = await db.select({ attackPluginCap: appSettings.attackPluginCap }).from(appSettings)
     const proxyHolder = (accountId: string) => mainOf.get(accountId) ?? accountId
     const proxyOf = await enabledProxiesOf(db, ids.map(proxyHolder))
@@ -90,10 +92,11 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
             .filter(s => s.accountId === account.id)
             .map(s => [s.pluginKey, { enabled: s.enabled, options: s.options as Record<string, OptionValue> }]))
         const plugins: WorkerPlugins = {}
+        const plans = new Map(presets.filter(p => p.accountId === account.id).map(p => [p.id, p.plan]))
         for (const [key, config] of Object.entries(effectivePluginConfig(registry.catalog, saved))) {
             const filename = registry.filenames.get(key)
             if (filename)
-                plugins[key] = { ...config, filename }
+                plugins[key] = { ...withPresetPlans(registry.catalog, key, config, plans), filename }
         }
         const proxy = proxyOf.get(proxyHolder(account.id)) ?? null
         specs.set(account.id, {
@@ -116,6 +119,25 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
         })
     }
     return { specs, sleeping, staleErrors, nextChange }
+}
+
+/**
+ * Swaps each Waves option that names a virtual preset for that preset's plan. A preset that is gone, or whose stored plan no
+ * longer parses, stays a `virtual` reference, which the bot reads as a deleted preset and stops the plugin for.
+ */
+function withPresetPlans<T extends Record<string, OptionValue>>(catalog: PluginCatalogEntry[], key: string, config: T, plans: Map<string, unknown>): T {
+    const swapped: Record<string, OptionValue> = {}
+    for (const def of catalog.find(entry => entry.key === key)?.options ?? []) {
+        if (def.type !== "Waves")
+            continue
+        const value = config[def.key] as { kind?: string; presetId?: string } | undefined
+        if (value?.kind !== "virtual")
+            continue
+        const plan = ManualPlan.safeParse(plans.get(value.presetId!))
+        if (plan.success)
+            swapped[def.key] = plan.data
+    }
+    return { ...config, ...swapped }
 }
 
 const sha256 = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex")

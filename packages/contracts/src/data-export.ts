@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { VirtualPreset } from "./army.ts"
 import { LicenseCode, Period, PointsEntry, Purchase } from "./billing.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { PLAN_IDS } from "./plans.ts"
@@ -36,6 +37,8 @@ export const DataExport = z.object({
     runs: z.array(Run.extend({ accountId: z.uuid() })),
     /** Whatever the log retention still holds. */
     logs: z.array(z.object({ accountId: z.uuid(), ts: z.date(), level: z.number().int(), message: z.string() })),
+    /** The wave plans of the accounts above, by `accountId`. */
+    virtualPresets: z.array(VirtualPreset),
     notifications: z.array(Notification),
     /** What the player did, as the audit log recorded it. */
     audit: z.array(z.object({ action: z.string(), targetType: z.string().nullable(), targetId: z.string().nullable(), meta: z.unknown(), ts: z.date() })),
