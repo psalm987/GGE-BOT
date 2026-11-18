@@ -1,0 +1,370 @@
+:root {
+    --sl-font: "Alegreya Sans", "IBM Plex Sans Arabic";
+    --sl-font-mono: "IBM Plex Mono";
+    --gge-font-heading: "Alegreya", "IBM Plex Sans Arabic", Georgia, serif;
+    --gge-font-display: "Cinzel", Georgia, serif;
+    --sl-text-body: 1.0625rem;
+    --sl-line-height: 1.6;
+    --sl-content-width: 42rem;
+    --sl-menu-button-size: 2.75rem;
+    --gge-measure: 70ch;
+    --gge-anchor-offset: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height) + 1.5rem);
+}
+
+html {
+    scroll-padding-top: var(--gge-anchor-offset);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
+[id] {
+    scroll-margin-top: var(--gge-anchor-offset);
+}
+
+:focus-visible {
+    outline: 2px solid var(--gge-focus);
+    outline-offset: 2px;
+}
+
+.sl-skip-link {
+    color: var(--gge-on-accent-fill);
+}
+
+.sl-markdown-content {
+    font-size: var(--sl-text-body);
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--gge-font-heading);
+    font-weight: 700;
+    color: var(--gge-heading);
+}
+
+.sl-markdown-content :is(p, ul, ol, dl) {
+    max-inline-size: var(--gge-measure);
+}
+
+.sl-markdown-content a:not(.sl-anchor-link) {
+    color: var(--gge-accent);
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.18em;
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+    padding-block-end: 0.4rem;
+    background: linear-gradient(to right, var(--gge-accent), transparent 70%) bottom / 100% 1px no-repeat;
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h2:dir(rtl) {
+    background-image: linear-gradient(to left, var(--gge-accent), transparent 70%);
+}
+
+.site-title {
+    font-family: var(--gge-font-display);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+code,
+pre {
+    font-family: var(--sl-font-mono);
+}
+
+/* Touch targets */
+site-search button,
+starlight-theme-select select,
+starlight-lang-select select,
+.sidebar-content :is(a, summary),
+.right-sidebar a,
+mobile-starlight-toc summary,
+.pagination-links a {
+    min-block-size: 2.75rem;
+}
+
+site-search button {
+    min-inline-size: 2.75rem;
+}
+
+.sidebar-content a,
+.right-sidebar a {
+    display: flex;
+    align-items: center;
+}
+
+/* Heading link */
+.sl-markdown-content .sl-anchor-link {
+    transition: opacity 150ms ease-out;
+}
+
+@media (hover: none) {
+    .sl-markdown-content .sl-anchor-link {
+        opacity: 1;
+    }
+}
+
+/* Callouts */
+.gge-aside {
+    --kind-accent: var(--gge-note-accent);
+    --kind-ground: var(--gge-note-ground);
+    position: relative;
+    max-inline-size: var(--gge-measure);
+    padding: 0.75rem 1rem 1rem;
+    border-inline-start: 0.25rem solid var(--kind-accent);
+    border-radius: 0.25rem;
+    background: var(--kind-ground);
+    color: var(--gge-text);
+}
+
+.gge-aside--tip {
+    --kind-accent: var(--gge-tip-accent);
+    --kind-ground: var(--gge-tip-ground);
+}
+
+.gge-aside--caution {
+    --kind-accent: var(--gge-caution-accent);
+    --kind-ground: var(--gge-caution-ground);
+}
+
+.gge-aside--danger {
+    --kind-accent: var(--gge-danger-accent);
+    --kind-ground: var(--gge-danger-ground);
+}
+
+.gge-aside__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--kind-accent);
+    font-family: var(--gge-font-heading);
+    font-size: var(--sl-text-h5);
+    font-weight: 700;
+}
+
+.gge-aside__icon {
+    flex: none;
+    inline-size: 1.25em;
+    block-size: 1.25em;
+}
+
+.gge-aside__copy {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    margin-inline-start: auto;
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+    margin-block: -0.5rem;
+    border: 0;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--kind-accent);
+    cursor: pointer;
+}
+
+.gge-aside__copy-icon {
+    grid-area: 1 / 1;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    transition: opacity 150ms ease-out;
+}
+
+.gge-aside__copy-check,
+.gge-aside__copy[data-state="copied"] .gge-aside__copy-link {
+    opacity: 0;
+}
+
+.gge-aside__copy[data-state="copied"] .gge-aside__copy-check {
+    opacity: 1;
+}
+
+.gge-aside__body > :first-child {
+    margin-block-start: 0.25rem;
+}
+
+.gge-aside__body > :last-child {
+    margin-block-end: 0;
+}
+
+.gge-aside__body a {
+    color: var(--kind-accent);
+}
+
+/* Side notes */
+.gge-sidenote__mark {
+    position: relative;
+    appearance: none;
+    padding: 0 0.2em;
+    border: 0;
+    background: transparent;
+    color: var(--gge-accent);
+    font: inherit;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    translate: 0 -0.5em;
+    cursor: pointer;
+}
+
+/* A 44px hit area that leaves the line height alone. */
+.gge-sidenote__mark::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    translate: -50% -50%;
+}
+
+.gge-sidenote__mark:dir(rtl)::after {
+    translate: 50% -50%;
+}
+
+.gge-sidenote__num::before {
+    content: attr(data-n);
+}
+
+.gge-sidenote__tint,
+.gge-sidenote__mark::before {
+    content: "";
+    position: absolute;
+    inset: -0.15em -0.1em;
+    border-radius: 0.2em;
+    background: var(--gge-accent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease-out;
+}
+
+.is-paired > .gge-sidenote__tint,
+.gge-sidenote__mark.is-paired::before {
+    opacity: 0.14;
+}
+
+.gge-sidenote__body {
+    position: relative;
+    font-size: 0.875em;
+    line-height: 1.45;
+    color: var(--gge-muted);
+}
+
+.gge-sidenote__num {
+    margin-inline-end: 0.35em;
+    color: var(--gge-accent);
+    font-weight: 700;
+}
+
+.gge-js .gge-sidenote__body:not(.is-open) {
+    display: none;
+}
+
+.gge-js .gge-sidenote__body.is-open {
+    display: block;
+    max-inline-size: var(--gge-measure);
+    margin-block: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    border-inline-start: 0.125rem solid var(--gge-accent);
+}
+
+.sl-markdown-content :is(p, li) {
+    position: relative;
+}
+
+@media (min-width: 90rem) {
+    :root {
+        --gge-margin-col: 12rem;
+        --gge-margin-gap: 1.5rem;
+    }
+
+    .gge-js .gge-sidenote__body,
+    .gge-js .gge-sidenote__body:not(.is-open) {
+        display: block;
+        position: absolute;
+        inset-inline-start: calc(100% + var(--gge-margin-gap));
+        inline-size: var(--gge-margin-col);
+        margin: 0;
+        padding: 0.15em 0.4em;
+        border: 0;
+        max-inline-size: none;
+    }
+
+    html[data-has-toc] .right-sidebar-container {
+        width: 14rem;
+    }
+
+    html[data-has-toc][data-has-sidebar] .main-pane {
+        width: calc(100% - 14rem);
+    }
+
+    html[data-has-sidebar][data-has-toc] .sl-container {
+        margin-inline: clamp(0px, calc((100% - var(--gge-measure) - var(--gge-margin-col) - var(--gge-margin-gap)) / 2), 4rem) auto;
+    }
+}
+
+/* Arrival */
+.gge-arrival {
+    position: relative;
+}
+
+.gge-arrival::before,
+.gge-arrival::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+}
+
+.gge-arrival::before {
+    inset-block: 0;
+    inset-inline-start: -0.625rem;
+    inline-size: 0.25rem;
+    border-radius: 0.125rem;
+    background: var(--gge-accent);
+    transform-origin: top;
+    animation: gge-bar-in 200ms ease-out both;
+}
+
+.gge-arrival::after {
+    inset: -0.25rem -0.5rem;
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--gge-accent) 14%, transparent);
+    animation: gge-tint-out 1.2s ease-out forwards;
+}
+
+@keyframes gge-bar-in {
+    from {
+        transform: scaleY(0);
+    }
+}
+
+@keyframes gge-tint-out {
+    to {
+        opacity: 0;
+    }
+}
+
+.gge-arrival:focus-visible,
+.gge-arrival :focus-visible {
+    outline-offset: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gge-arrival::after {
+        display: none;
+    }
+
+    .gge-arrival::before,
+    .gge-arrival::after,
+    .gge-aside__copy-icon,
+    .gge-sidenote__tint,
+    .gge-sidenote__mark::before,
+    .sl-markdown-content .sl-anchor-link {
+        animation: none;
+        transition: none;
+    }
+}

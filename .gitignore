@@ -28,3 +28,4 @@ infra/.env
 .audit
 # Downloaded game client for tools/protocol (about 43 MB)
 tools/protocol/dl/
+.astro/

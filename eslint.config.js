@@ -13,6 +13,7 @@ module.exports = [
             ".context-mem/**",
             "**/verification/**/out/**",
             "**/dist/**",
+            "**/.astro/**",
             "**/.turbo/**",
         ],
     },

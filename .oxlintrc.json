@@ -12,6 +12,7 @@
         "plugins-extra/**",
         "plugins-personal/**",
         "**/verification/**/out/**",
-        "**/dist/**"
+        "**/dist/**",
+        "**/.astro/**"
     ]
 }
