@@ -862,6 +862,205 @@ async function driveGlorySettings(page) {
     await page.setViewportSize({ width: 1280, height: 860 })
 }
 
+/**
+ * The army settings, as the seeded demo player on Ironhold: the Autofill or Waves switch and its summary on Fortress, the
+ * wave editor (every wave opened, an in-game preset, custom flanks, a support tool, a courtyard row), a save read back
+ * through the API and after a reload, then a virtual preset made, sent by the module, refused for deletion while in
+ * use, and deleted. Puts Ironhold's plugin settings back at the end.
+ */
+async function driveArmies(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const plugin = "attackFortressesBurningSands"
+    const stored = async () => (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins[plugin]?.options ?? {}
+    // Starts from no army settings and no presets, even after a run that failed before putting them back.
+    const { armyMode: _mode, waves: _waves, ...otherOptions } = ironhold.plugins[plugin]?.options ?? {}
+    const before = { ...ironhold.plugins, ...(ironhold.plugins[plugin] && { [plugin]: { ...ironhold.plugins[plugin], options: otherOptions } }) }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    for (const preset of await rpc(page, "virtualPresets/list", { accountId: ironhold.id }))
+        await rpc(page, "virtualPresets/remove", { id: preset.id })
+    /** Picks an option of the select with this accessible name: by its text, or the first one. Returns the option's text. */
+    const pick = async (scope, name, text) => {
+        const box = scope.getByRole("combobox", { name, exact: true })
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        // A select that has just closed can swallow the click while its list fades out.
+        const handle = await box.elementHandle()
+        const opened = () => page.waitForFunction(el => el.getAttribute("aria-expanded") === "true", handle, { timeout: 1500 }).then(() => true, () => false)
+        if (!(await opened())) { await box.click(); await opened() }
+        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
+        await dropdown.waitFor()
+        // The list only draws the rows around the current choice, so start from its top.
+        await dropdown.locator(".rc-virtual-list-holder").evaluate(el => { el.scrollTop = 0 }).catch(() => {})
+        const option = text ? dropdown.locator(".ant-select-item-option", { hasText: text }).first() : dropdown.locator(".ant-select-item-option").first()
+        const label = (await option.innerText()).trim()
+        await option.click()
+        await dropdown.waitFor({ state: "hidden" })
+        return label
+    }
+    const segment = (scope, group, text) => scope.locator(`[aria-label="${group}"] .ant-segmented-item`, { hasText: text })
+    const saveBar = page.locator(".gge-savebar")
+    const save = async () => {
+        await saveBar.getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        await saveBar.waitFor({ state: "detached" })
+    }
+    const openFortress = async () => {
+        await openModule(page, "Fortress")
+        await page.getByRole("tab", { name: "Attack fortresses (Burning Sands)", selected: true }).waitFor()
+        await page.waitForTimeout(300)
+        return page.getByRole("tabpanel")
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    let form = await openFortress()
+    const summary = () => form.locator("[data-army-summary]").innerText()
+    assert(await summary() === "L+CY · 3w · no tools", `Fortress starts on Autofill, summed up as "${await summary()}"`)
+    assert(await form.getByLabel("Horse", { exact: true }).isVisible(), "the fortress plugin has a Horse choice")
+    assert(await form.locator(".ant-select-content", { hasText: /^Feather$/ }).count() === 1, "the horse starts on the feather the plugin always rode")
+    assert(await form.getByRole("region", { name: "Courtyard troops" }).count() === 0, "on Autofill the wave editor isn't drawn")
+    await page.locator(".gge-module-tools .ant-segmented-item", { hasText: "Advanced" }).click()
+    assert(await form.getByLabel("Unit order", { exact: true }).isVisible() && await form.getByLabel("Troop supply", { exact: true }).isVisible(), "Advanced shows Unit order and Troop supply on Autofill")
+    await axe(page, "fortress autofill 1440")
+    await page.screenshot({ path: `${out}/60-army-autofill-1440.png`, fullPage: true })
+
+    await segment(form, "Army", "Waves").click()
+    assert(await summary() === "No waves written yet", "switching to Waves says no waves are written yet")
+    assert(!(await form.getByLabel("Unit order", { exact: true }).isVisible()), "the autofill options hide on Waves")
+    assert(await saveBar.count() === 1, "the switch is a change to save")
+    const headers = form.locator(".ant-collapse-header")
+    assert(await headers.count() === 4 && await form.locator(".ant-collapse-header .ant-tag", { hasText: "Empty" }).count() === 4, "the editor lists waves 1 to 4, each Empty")
+    for (let n = 1; n <= 4; n++) {
+        await headers.nth(n - 1).click()
+        await form.getByRole("combobox", { name: `In-game preset for wave ${n}`, exact: true }).waitFor()
+    }
+    assert(true, "each wave opens on its in-game preset choice")
+
+    await pick(form, "In-game preset for wave 4", "Preset 3")
+    assert(await form.getByText("A wave uses an in-game preset. The bot can't read those yet", { exact: false }).isVisible(), "picking an in-game preset warns that the bot can't read it yet")
+    assert(await headers.nth(3).locator(".ant-tag").innerText() === "Preset 3", "the wave's tag names the preset")
+    await pick(form, "In-game preset for wave 4", "Empty (no troops)")
+
+    await segment(form, "Wave 1 comes from", "Custom slots").click()
+    const ranged = await pick(form, "Wave 1, Left flank, troop 1")
+    await form.getByRole("spinbutton", { name: "Wave 1, Left flank, troop 1: how many" }).fill("40")
+    const ladder = await pick(form, "Wave 1, Left flank, tool 1")
+    await pick(form, "Wave 1, Front, troop 6")
+    await form.getByRole("spinbutton", { name: "Wave 1, Front, troop 6: how many" }).fill("9999")
+    await form.getByRole("spinbutton", { name: "Wave 1, Front, troop 6: how many" }).blur()
+    assert(await headers.nth(0).locator(".ant-tag").innerText() === "Custom · 3 filled", "wave 1's tag counts its filled slots")
+    await segment(form, "Wave 2 comes from", "Custom slots").click()
+    await pick(form, "Wave 2, Right flank, troop 2")
+    const support = await pick(form, "Support tool 1")
+    await pick(form, "Courtyard row 1")
+    await form.getByRole("spinbutton", { name: "Courtyard row 1: how many" }).fill("25")
+    await form.getByRole("spinbutton", { name: "Courtyard row 1: how many" }).blur()
+    assert(await summary() === "Waves written: 2 of 4 · Support tools: 1 · Courtyard rows: 1", `the summary counts what is written: "${await summary()}"`)
+    await axe(page, "fortress waves editor 1440")
+    await page.screenshot({ path: `${out}/61-army-waves-editor-1440.png`, fullPage: true })
+
+    await save()
+    let options = await stored()
+    const troop = (await rpc(page, "catalog/gameItems", { kind: "troop" }))[0]
+    assert(options.armyMode === "waves" && options.waves.kind === "manual", "the API stores Waves mode and a written plan")
+    assert(JSON.stringify(options.waves.waves[0].left.units[0]) === JSON.stringify({ item: troop.id, amount: 40 }), `wave 1's left flank holds 40 of ${ranged}`)
+    assert(options.waves.waves[0].left.tools[0].amount === 10 && options.waves.waves[0].front.units[5].amount === 9999, `the tool slot (${ladder}) keeps its starting 10, and the last front slot its 9999`)
+    assert(options.waves.waves[1].kind === "custom" && options.waves.waves[1].right.units[1] !== null && options.waves.waves[2].kind === "preset" && options.waves.waves[3].preset === 0, "wave 2 is custom, waves 3 and 4 are the empty preset")
+    assert(options.waves.ast[0] !== null && options.waves.ast[1] === null && options.waves.rw[0].amount === 25 && options.waves.rw[1] === null, `the plan holds ${support} and a courtyard row of 25`)
+
+    await page.reload()
+    form = await openFortress()
+    assert(await summary() === "Waves written: 2 of 4 · Support tools: 1 · Courtyard rows: 1", "after a reload the page still shows the saved plan's summary")
+    assert(await form.locator(".ant-collapse-item-active").count() === 2, "the two written waves open by themselves")
+    assert(await form.getByRole("spinbutton", { name: "Wave 1, Left flank, troop 1: how many" }).inputValue() === "40", "wave 1's amount reads back")
+    assert(await form.getByRole("spinbutton", { name: "Courtyard row 1: how many" }).inputValue() === "25", "the courtyard row reads back")
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the wave editor at 390")
+    await axe(page, "fortress waves editor 390")
+    await page.screenshot({ path: `${out}/61-army-waves-editor-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await segment(form, "Army", "Autofill").click()
+    assert(await summary() === "L+CY · 3w · no tools", "back on Autofill the summary is the autofill's")
+    await segment(form, "Army", "Waves").click()
+    assert(await form.getByRole("spinbutton", { name: "Wave 1, Left flank, troop 1: how many" }).inputValue() === "40", "the plan is still there after a look at Autofill")
+    assert(await saveBar.count() === 0, "and nothing is left to save")
+
+    // Virtual presets: make one, send it from the module, and delete it.
+    await sidebar(page, "Virtual presets")
+    await page.getByRole("button", { name: "New preset" }).waitFor()
+    assert(await page.getByText("No virtual presets yet.", { exact: false }).isVisible(), "the Virtual presets page starts empty for Ironhold")
+    await axe(page, "virtual presets empty 1440")
+    await page.getByRole("button", { name: "New preset" }).click()
+    await page.getByRole("button", { name: "Save" }).click()
+    assert(await page.getByRole("alert").filter({ hasText: "Give the preset a name." }).count() === 1, "a preset without a name is refused under its field")
+    const name = `Ranged first ${Date.now().toString(36)}`
+    await page.getByLabel("Name", { exact: true }).fill(name)
+    await page.locator(".ant-collapse-header").nth(0).click()
+    await segment(page, "Wave 1 comes from", "Custom slots").click()
+    await pick(page, "Wave 1, Left flank, troop 1")
+    await pick(page, "Courtyard row 2")
+    await axe(page, "virtual preset editor 1440")
+    await page.screenshot({ path: `${out}/62-virtual-preset-editor-1440.png`, fullPage: true })
+    await page.getByRole("button", { name: "Save" }).click()
+    await page.getByText(`${name} saved`).first().waitFor()
+    const row = page.locator(".gge-preset-list li", { hasText: name })
+    assert(await row.getByText("Waves written: 1 of 4 · Support tools: 0 · Courtyard rows: 1").count() === 1, "the list shows the new preset and what it holds")
+    const [preset] = await rpc(page, "virtualPresets/list", { accountId: ironhold.id })
+    assert(preset.name === name && preset.plan.waves[0].kind === "custom" && preset.plan.rw[1] !== null, "the API lists the preset with its plan")
+    await atBothWidths(page, "63-virtual-presets-list", "virtual presets list")
+
+    form = await openFortress()
+    await segment(form, "Waves come from", "Virtual preset").click()
+    assert(await summary() === `Virtual preset: ${name}`, "picking Virtual preset sums up as the preset's name")
+    assert(await form.getByRole("region", { name: "Courtyard troops" }).count() === 0, "the written plan's editor gives way to the preset choice")
+    await page.screenshot({ path: `${out}/64-army-virtual-1440.png`, fullPage: true })
+    await save()
+    options = await stored()
+    assert(options.waves.kind === "virtual" && options.waves.presetId === preset.id, "the API stores the module's plan as that virtual preset")
+
+    await sidebar(page, "Virtual presets")
+    await page.locator(".gge-preset-list li", { hasText: name }).getByText("Sent by: Attack fortresses (Burning Sands)").waitFor()
+    assert(true, "the list says which module sends the preset")
+    await page.getByRole("button", { name: `Delete ${name}` }).click()
+    const inUse = page.getByRole("dialog", { name: "This preset is in use" })
+    assert(await inUse.getByText(`${name} is still sent by Attack fortresses (Burning Sands).`, { exact: false }).count() === 1, "deleting a preset a module still sends is stopped, naming the module")
+    await page.screenshot({ path: `${out}/65-virtual-preset-in-use-1440.png` })
+    await inUse.getByRole("button", { name: "OK" }).click()
+    const refused = await rpc(page, "virtualPresets/remove", { id: preset.id })
+    assert((await rpc(page, "virtualPresets/list", { accountId: ironhold.id })).length === 1, `the API refuses it too (${refused?.data?.code ?? refused?.code})`)
+
+    form = await openFortress()
+    await segment(form, "Waves come from", "Written here").click()
+    assert(await summary() === "Waves written: 0 of 4 · Support tools: 0 · Courtyard rows: 0", "switching back to Written here starts a new plan, since the preset took the saved one's place")
+    await segment(form, "Army", "Autofill").click()
+    await save()
+    assert((await stored()).waves.kind === "manual", "the module no longer names the preset")
+    await sidebar(page, "Virtual presets")
+    await page.getByRole("button", { name: `Delete ${name}` }).click()
+    await page.getByRole("dialog", { name: `Delete ${name}?` }).getByRole("button", { name: "Delete" }).click()
+    await page.getByText(`${name} deleted`).first().waitFor()
+    assert((await rpc(page, "virtualPresets/list", { accountId: ironhold.id })).length === 0, "once no module sends it the preset deletes")
+
+    // Right to left, and the settings as they were.
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await page.goto(`${CLIENT_URL}/m/fortress?account=${ironhold.id}`)
+    await page.locator("[data-army-summary]").first().waitFor()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the army settings in Arabic at 1440")
+    await axe(page, "fortress army settings ar 1440")
+    await page.screenshot({ path: `${out}/66-army-ar-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the army settings in Arabic at 390")
+    await axe(page, "fortress army settings ar 390")
+    await page.screenshot({ path: `${out}/66-army-ar-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    assert((await stored()).armyMode === undefined, "Ironhold's plugin settings are back as they were")
+}
+
 /** The account drawer's Overview tab, as the seeded demo player: figures for Ironhold, a live change, and the empty state for an account that never ran. */
 async function driveOverview(page) {
     const castles = [{ kingdom: 0, id: 1001, name: "Ironhold", x: 412, y: 288, type: 1 }, { kingdom: 0, id: 1002, name: "Ironhold Watch", x: 430, y: 301, type: 4 }, { kingdom: 2, id: 2001, name: "Frostgate", x: 120, y: 77, type: 12 }]
@@ -1150,6 +1349,17 @@ async function drivePalette(page, browser) {
 
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "armies") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveArmies(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "glory-settings") {
         const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
         await demo.goto(`${CLIENT_URL}/login`)
