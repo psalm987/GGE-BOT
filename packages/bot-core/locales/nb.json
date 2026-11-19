@@ -477,7 +477,6 @@
     "attackSamurai.useFeather.help": "Bruker ett raskt hestefjær for hvert angrep. Når du ikke har noe, går troppene uten.",
     "attackKhan.eventWallToolsFirst.help": "Foretrekker vanlige slottsmurverktøy framfor eventverktøy.",
     "attackNomads.eventWallToolsFirst.help": "Foretrekker vanlige slottsmurverktøy framfor eventverktøy.",
-    "attackKhan.wavesTillChests.help": "Så mange bølger går først uten eventverktøy.",
     "attackBerimondInvasion.wavesTillChests.help": "Så mange bølger går først uten eventverktøy.",
     "attackBerimondInvasion.reputation.help": "Velger eventverktøyene som gir mest aktelse i stedet for flest poeng.",
     "attackBerimondInvasion.useCoin.help": "Rir en hest som koster mynter. Krever en stall i slottet. Uten stall går troppene til fots.",

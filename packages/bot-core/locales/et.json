@@ -477,7 +477,6 @@
     "attackSamurai.useFeather.help": "Kasutab iga rünnaku jaoks ühe kiire hobuse sule. Kui sul pole ühtegi, lähevad väed ilma.",
     "attackKhan.eventWallToolsFirst.help": "Eelistab tavalisi müüritööriistu sündmuse tööriistadele.",
     "attackNomads.eventWallToolsFirst.help": "Eelistab tavalisi müüritööriistu sündmuse tööriistadele.",
-    "attackKhan.wavesTillChests.help": "Nii mitu lainet lähevad esmalt ilma sündmuse tööriistadeta.",
     "attackBerimondInvasion.wavesTillChests.help": "Nii mitu lainet lähevad esmalt ilma sündmuse tööriistadeta.",
     "attackBerimondInvasion.reputation.help": "Valib sündmuse tööriistad, mis annavad kõige rohkem mainet kõige rohkemate punktide asemel.",
     "attackBerimondInvasion.useCoin.help": "Ratsutab hobusega, mis maksab münte. Vajab lossis tallu. Ilma selleta lähevad väed jalgsi.",

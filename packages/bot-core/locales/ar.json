@@ -481,7 +481,6 @@
     "attackSamurai.useFeather.help": "تستخدم ريشة خيل سريعة واحدة لكل هجوم. عندما لا تملك أيًّا منها، يذهب الجنود بدونها.",
     "attackKhan.eventWallToolsFirst.help": "يفضّل أدوات الجدار العادية على أدوات الحدث.",
     "attackNomads.eventWallToolsFirst.help": "يفضّل أدوات الجدار العادية على أدوات الحدث.",
-    "attackKhan.wavesTillChests.help": "هذا العدد من الموجات يذهب أولًا بدون أدوات الحدث.",
     "attackBerimondInvasion.wavesTillChests.help": "هذا العدد من الموجات يذهب أولًا بدون أدوات الحدث.",
     "attackBerimondInvasion.reputation.help": "يختار أدوات الحدث التي تعطي أكبر قدر من السمعة بدل أكبر قدر من النقاط.",
     "attackBerimondInvasion.useCoin.help": "يركب حصانًا يكلف عملات. يحتاج إلى إسطبل في القلعة. بدونه يسير الجنود.",

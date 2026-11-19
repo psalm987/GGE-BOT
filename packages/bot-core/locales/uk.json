@@ -479,7 +479,6 @@
     "attackSamurai.useFeather.help": "Використовує одну пір'їнку швидкого коня на кожну атаку. Якщо їх немає, війська йдуть без неї.",
     "attackKhan.eventWallToolsFirst.help": "Віддає перевагу звичайним знаряддям для стіни перед подієвими.",
     "attackNomads.eventWallToolsFirst.help": "Віддає перевагу звичайним знаряддям для стіни перед подієвими.",
-    "attackKhan.wavesTillChests.help": "Стільки хвиль іде спершу без подієвих знарядь.",
     "attackBerimondInvasion.wavesTillChests.help": "Стільки хвиль іде спершу без подієвих знарядь.",
     "attackBerimondInvasion.reputation.help": "Обирає подієві знаряддя, які дають найбільше репутації, а не найбільше очок.",
     "attackBerimondInvasion.useCoin.help": "Їде на коні, який коштує монет. Потрібна конюшня в замку. Без неї війська йдуть пішки.",

@@ -477,7 +477,6 @@
     "attackSamurai.useFeather.help": "Използва по едно перо за бърз кон на атака. Когато нямате, войските тръгват без.",
     "attackKhan.eventWallToolsFirst.help": "Предпочита обикновените инструменти за стена пред тези от събитието.",
     "attackNomads.eventWallToolsFirst.help": "Предпочита обикновените инструменти за стена пред тези от събитието.",
-    "attackKhan.wavesTillChests.help": "Толкова вълни тръгват първи без инструменти от събитието.",
     "attackBerimondInvasion.wavesTillChests.help": "Толкова вълни тръгват първи без инструменти от събитието.",
     "attackBerimondInvasion.reputation.help": "Избира инструментите от събитието, които дават най-много репутация вместо най-много точки.",
     "attackBerimondInvasion.useCoin.help": "Язди кон, който струва монети. Изисква конюшня в замъка. Без нея войските вървят пеша.",

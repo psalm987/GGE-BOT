@@ -479,7 +479,6 @@
     "attackSamurai.useFeather.help": "Używa jednego pióra szybkiego konia na każdy atak. Gdy ich nie masz, wojska idą bez niego.",
     "attackKhan.eventWallToolsFirst.help": "Woli zwykłe narzędzia na mur od narzędzi wydarzenia.",
     "attackNomads.eventWallToolsFirst.help": "Woli zwykłe narzędzia na mur od narzędzi wydarzenia.",
-    "attackKhan.wavesTillChests.help": "Tyle fal idzie najpierw bez narzędzi wydarzenia.",
     "attackBerimondInvasion.wavesTillChests.help": "Tyle fal idzie najpierw bez narzędzi wydarzenia.",
     "attackBerimondInvasion.reputation.help": "Wybiera narzędzia wydarzenia, które dają najwięcej reputacji zamiast najwięcej punktów.",
     "attackBerimondInvasion.useCoin.help": "Jedzie na koniu, który kosztuje monety. Wymaga stajni w zamku. Bez niej wojska idą pieszo.",

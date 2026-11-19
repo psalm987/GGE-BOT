@@ -63,49 +63,23 @@ if (require('node:worker_threads').isMainThread)
         ]
     }
 
-const err = require("../err.json")
-const { events, botConfig, xtHandler } = require("../ggeBot.js")
-const { resources, activeEvent } = require("../protocols.js")
-const { ask, chore } = require("../chores.js")
+const { events, botConfig } = require("../ggeBot.js")
+const { resources } = require("../protocols.js")
+const { chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
+const { units, liveOffers, buy } = require("../armourer.js")
 const stock = require("./stock.js")
-const loadItem = require("../paths.js").loadItem
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
 reportStatus("waiting", "statusBuyToolsStarting")
 
-const ARMOURER_EVENT = 27
 const NOT_ENOUGH_COINS = 10
 const STORAGE_FULL = 154
 /** The most packages the overflow burn buys in one run, so a refusal it can't read ends it. */
 const MAX_BURN_ORDERS = 20
 
-const units = new Map(loadItem("units").map(unit => [Number(unit.wodID), unit]))
-const packages = new Map(loadItem("packages").map(pack => [Number(pack.packageID), pack]))
-
 const option = (key, fallback) => Number.isFinite(Number(pluginOptions[key])) && pluginOptions[key] !== "" && pluginOptions[key] !== null ? Number(pluginOptions[key]) : fallback
-
-/** The package ids the armourer lists in the latest `sei`, whether the game sends an array or a comma list. */
-function livePackageIDs() {
-    const listed = activeEvent(ARMOURER_EVENT)?.PIDS
-    return (Array.isArray(listed) ? listed : String(listed ?? "").split(",")).map(Number).filter(Number.isInteger)
-}
-
-/** The cheapest live coin package for each tool, as `{ pid, price, perPackage, maxPerClick }`. */
-function liveOffers() {
-    const offers = new Map()
-    for (const pid of livePackageIDs()) {
-        const pack = packages.get(pid)
-        const tool = Number(pack?.unitID), price = Number(pack?.packagePriceC1)
-        if (!pack || !units.has(tool) || !(price > 0))
-            continue
-        const cap = Number(pack.maxBuyPerClick) > 0 ? Number(pack.maxBuyPerClick) : Infinity
-        if (!offers.has(tool) || price < offers.get(tool).price)
-            offers.set(tool, { pid, price, perPackage: Number(pack.unitAmount) || 1, maxPerClick: cap })
-    }
-    return offers
-}
 
 const targetRows = () => (Array.isArray(pluginOptions.targets) ? pluginOptions.targets : [])
     .map(row => ({ kingdom: Number(row.kingdom), tool: Number(row.tool), stock: Number(row.stock) }))
@@ -115,24 +89,6 @@ const targetRows = () => (Array.isArray(pluginOptions.targets) ? pluginOptions.t
 const OUTCOMES = ["bought", "met", "refused", "storageFull", "capReached", "coinFloor", "noOffer"]
 const BLOCKERS = ["noOffer", "coinFloor", "capReached", "storageFull", "refused"]
 const STATUS_KEY = { noOffer: "statusBuyToolsNoOffer", coinFloor: "statusBuyToolsCoinFloor", capReached: "statusBuyToolsCapReached", storageFull: "statusBuyToolsStorageFull", refused: "statusBuyToolsRefused" }
-
-/**
- * Buys `packagesToBuy` of `offer` for kingdom `kingdom`. Resolves to the game's result (0 when the buy went
- * through), after taking the new coin count from the reply. With `dryRun` it logs the order and sends nothing.
- */
-async function buy(offer, packagesToBuy, kingdom, dryRun) {
-    const order = { PID: offer.pid, BT: 0, TID: ARMOURER_EVENT, AMT: packagesToBuy, KID: kingdom, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 }
-    if (dryRun) {
-        console.log("dryRunSbp", JSON.stringify(order))
-        return 0
-    }
-    const { reply, result } = await ask("sbp", order)
-    if (result === 0 && reply.gcu)
-        xtHandler.emit("gcu", reply.gcu)
-    if (result !== 0)
-        console.warn("buyToolsRefused", JSON.stringify(order), " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
-    return result
-}
 
 /** Spends the coins above the threshold on the targeted tools, in row order, until the next package doesn't fit. */
 async function burnOverflow(rows, offers, coins, dryRun, active) {

@@ -477,7 +477,6 @@
     "attackSamurai.useFeather.help": "Käyttää yhden nopean hevosen höyhenen jokaiseen hyökkäykseen. Kun sinulla ei ole yhtään, joukot lähtevät ilman.",
     "attackKhan.eventWallToolsFirst.help": "Suosii tavallisia muurityökaluja tapahtumatyökalujen sijaan.",
     "attackNomads.eventWallToolsFirst.help": "Suosii tavallisia muurityökaluja tapahtumatyökalujen sijaan.",
-    "attackKhan.wavesTillChests.help": "Näin monta aaltoa lähtee ensin ilman tapahtumatyökaluja.",
     "attackBerimondInvasion.wavesTillChests.help": "Näin monta aaltoa lähtee ensin ilman tapahtumatyökaluja.",
     "attackBerimondInvasion.reputation.help": "Valitsee tapahtumatyökalut, jotka antavat eniten mainetta eniten pisteitä antavien sijaan.",
     "attackBerimondInvasion.useCoin.help": "Ratsastaa kolikoita maksavalla hevosella. Vaatii linnaan tallin. Ilman sitä joukot kävelevät.",

@@ -477,7 +477,6 @@
     "attackSamurai.useFeather.help": "Använder en snabb hästfjäder för varje anfall. När du inte har någon går trupperna utan.",
     "attackKhan.eventWallToolsFirst.help": "Föredrar vanliga slottsmursverktyg framför eventverktyg.",
     "attackNomads.eventWallToolsFirst.help": "Föredrar vanliga slottsmursverktyg framför eventverktyg.",
-    "attackKhan.wavesTillChests.help": "Så här många vågor går först utan eventverktyg.",
     "attackBerimondInvasion.wavesTillChests.help": "Så här många vågor går först utan eventverktyg.",
     "attackBerimondInvasion.reputation.help": "Väljer de eventverktyg som ger mest anseende i stället för flest poäng.",
     "attackBerimondInvasion.useCoin.help": "Rider en häst som kostar mynt. Kräver ett stall i slottet. Utan stall går trupperna till fots.",

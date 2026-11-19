@@ -478,7 +478,6 @@
     "attackSamurai.useFeather.help": "Koristi jedno pero brzog konja za svaki napad. Kad ih nemaš, trupe idu bez njega.",
     "attackKhan.eventWallToolsFirst.help": "Daje prednost običnim zidnim alatima pred događajnim alatima.",
     "attackNomads.eventWallToolsFirst.help": "Daje prednost običnim zidnim alatima pred događajnim alatima.",
-    "attackKhan.wavesTillChests.help": "Toliko valova ide prvo bez događajnih alata.",
     "attackBerimondInvasion.wavesTillChests.help": "Toliko valova ide prvo bez događajnih alata.",
     "attackBerimondInvasion.reputation.help": "Bira događajne alate koji daju najviše ugleda umjesto najviše bodova.",
     "attackBerimondInvasion.useCoin.help": "Jaše konja koji košta novčiće. Treba stajaću u dvorcu. Bez nje trupe idu pješice.",

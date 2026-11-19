@@ -479,7 +479,6 @@
     "attackSamurai.useFeather.help": "Použije jedno pero rýchleho koňa na každý útok. Ak žiadne nemáš, vojsko ide bez neho.",
     "attackKhan.eventWallToolsFirst.help": "Uprednostní bežné nástroje na hradby pred nástrojmi eventu.",
     "attackNomads.eventWallToolsFirst.help": "Uprednostní bežné nástroje na hradby pred nástrojmi eventu.",
-    "attackKhan.wavesTillChests.help": "Toľko vĺn pôjde najprv bez nástrojov eventu.",
     "attackBerimondInvasion.wavesTillChests.help": "Toľko vĺn pôjde najprv bez nástrojov eventu.",
     "attackBerimondInvasion.reputation.help": "Vyberá nástroje eventu, ktoré dávajú najviac reputácie namiesto najviac bodov.",
     "attackBerimondInvasion.useCoin.help": "Jazdí na koni, ktorý stojí mince. Vyžaduje stajne v hrade. Bez nich vojsko pôjde pešo.",
