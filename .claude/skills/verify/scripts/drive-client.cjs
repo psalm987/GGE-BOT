@@ -218,6 +218,10 @@ async function driveTowers(page) {
 
     const global = page.locator(".ant-card", { has: page.getByText("All kingdoms", { exact: true }) })
     assert((await global.getByText(/attacks in 24 hours/).innerText()).startsWith("3500"), "the Global card shows the account's daily cap")
+    assert(await global.getByText(/ask for .* attacks a day between them/).count() === 0, "the kingdoms' 25 attacks a day fit under the account's cap, so the card says nothing about it")
+    await panel("Green").locator(".ant-form-item", { has: page.getByText("Most attacks a day", { exact: true }) }).getByRole("spinbutton").fill("3900")
+    assert(await global.getByText("The kingdoms that are on ask for 3900 attacks a day between them. The account's cap of 3500 still holds.").isVisible(), "kingdoms that ask for more than the account's cap get a warning on the card")
+    await page.locator(".gge-savebar").getByRole("button", { name: "Discard changes" }).click()
     assert(await global.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/m/account-settings?account=${ironhold.id}`, "and links to Account settings")
     const soon = await global.locator("li[data-soon]").allInnerTexts()
     assert(soon.length === 4 && soon.every(text => text.includes("Coming soon")) && ["Loot priority", "Stop after a defeat", "Speed bonus", "VIP commanders"].every((name, i) => soon[i].startsWith(name)),

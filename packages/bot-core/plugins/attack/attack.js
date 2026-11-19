@@ -20,7 +20,8 @@ if (require('node:worker_threads').isMainThread) {
                 type: "Text",
                 key: "attackLimit",
                 default: "3500",
-                min: 1
+                min: 1,
+                max: 4000
             }
         ]
     }
@@ -243,11 +244,16 @@ let attackThreshold = undefined
 if([,""].includes(pluginOptions.attackLimit))
     pluginOptions.attackLimit = 3500
 
+/** The game sends no more than this many attacks for an account in any 24 hours, so no setting may ask for more. */
+const GAME_DAILY_ATTACKS = 4000
+/** The attacks the account may send today: the lowest of the player's limit, the game's own threshold and the game's hard limit. */
+const dailyLimit = () => Math.min(...[pluginOptions.attackLimit, attackThreshold, GAME_DAILY_ATTACKS].map(Number).filter(limit => limit > 0))
+
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 /** Attacks used today are reported in steps of this many, so the status isn't rewritten after every attack. */
 const USAGE_STEP = 50
 function reportUsage() {
-    const limit = Number(pluginOptions.attackLimit || attackThreshold)
+    const limit = dailyLimit()
     if (attackCount >= limit)
         return reportStatus("waiting", "statusDailyLimitReached", { limit })
     reportStatus("running", "statusAttacksToday", { used: Math.floor(attackCount / USAGE_STEP) * USAGE_STEP, limit })
@@ -261,7 +267,19 @@ xtHandler.on("gai", obj => {
 })
 let announced = false
 
-const limiter = new RateLimiter({ tokensPerInterval: 120, interval: "hour" })
+const SHARED_HOURLY_ATTACKS = 120
+const limiter = new RateLimiter({ tokensPerInterval: SHARED_HOURLY_ATTACKS, interval: "hour" })
+
+/**
+ * What the account's own limits leave: the attacks counted today against the daily limit (`used` is undefined until
+ * the game has said), and whether the hourly limit every attack plugin shares has an attack left.
+ */
+const accountLimits = () => ({
+    used: botConfig.externalEvent ? undefined : attackCount,
+    limit: dailyLimit(),
+    hourly: SHARED_HOURLY_ATTACKS,
+    hourlyLeft: limiter.getTokensRemaining() >= 1,
+})
 
 const err = require("../../err.json")
 const MAX_REJECTIONS_IN_A_ROW = 3
@@ -295,7 +313,7 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
     if (haltReason)
         return reject("ATTACKS_HALTED")
 
-    if(!botConfig.externalEvent && attackCount >= Number(pluginOptions.attackLimit || attackThreshold)) {
+    if(!botConfig.externalEvent && attackCount >= dailyLimit()) {
         if(!announced) {
             announced = true
             console.log("maxAttacksReached")
@@ -431,5 +449,6 @@ module.exports = {
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
     getMaxUnitsInReinforcementWave,
+    accountLimits,
     boxMullerRandom
 }

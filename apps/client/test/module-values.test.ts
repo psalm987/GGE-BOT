@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import type { PluginCatalogEntry } from "@gge/contracts"
-import { attackPluginsOn, changedPlugins, moduleReducer, pluginsToSave, startModule } from "../src/module-values.ts"
+import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSave, startModule } from "../src/module-values.ts"
 
 const khan: PluginCatalogEntry = {
     key: "attackKhan", force: false, hidden: false, category: "attack",
@@ -50,4 +50,11 @@ test("the attack count takes this module from the form and every other module as
     const state = moduleReducer(startModule([khan], saved), { type: "enabled", plugin: "attackKhan", enabled: true })
     expect(attackPluginsOn(catalog, saved, state.values)).toBe(2)
     expect(attackPluginsOn(catalog, saved, startModule([khan], saved).values)).toBe(1)
+})
+
+test("the attacks a day a page asks for are those of the plugins that are on, and a plugin with no cap asks for none", () => {
+    const state = startModule([khan, nomads], { attackKhan: { enabled: true, options: { score: 50 } }, attackNomads: { enabled: false, options: {} } })
+    expect(dailyAsked([khan, nomads], state, "score")).toBe(50)
+    expect(dailyAsked([khan, nomads], moduleReducer(state, { type: "enabled", plugin: "attackKhan", enabled: false }), "score")).toBe(0)
+    expect(dailyAsked([khan, nomads], state, undefined)).toBe(0)
 })

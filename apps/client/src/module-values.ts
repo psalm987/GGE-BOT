@@ -53,3 +53,15 @@ export function pluginsToSave(saved: PluginSettings, entries: PluginCatalogEntry
 export function attackPluginsOn(catalog: PluginCatalogEntry[], saved: PluginSettings, values: PluginFormValues): number {
     return catalog.filter(e => e.category === "attack" && !e.force && !e.hidden && (values[e.key] ? values[e.key]!.enabled : saved[e.key]?.enabled)).length
 }
+
+/**
+ * The attacks a day the plugins that are on ask for between them, by the option that caps each one. A plugin with no
+ * cap of its own (0) asks for nothing here: it runs up to the account's cap.
+ */
+export function dailyAsked(entries: PluginCatalogEntry[], state: ModuleState, option: string | undefined): number {
+    if (option === undefined) return 0
+    return entries.reduce((total, entry) => {
+        const value = state.values[entry.key]
+        return total + (value?.enabled ? Number(value.options[option]) || 0 : 0)
+    }, 0)
+}

@@ -66,7 +66,12 @@ export type ModuleDef = {
     /** With `tabs` "kingdoms": the kingdom id of each plugin, in the order of `plugins`. */
     kingdoms?: readonly number[]
     /** A card of what holds for every plugin of the page: the account's daily attack cap, and settings that are still to come. */
-    global?: { accountCap: true; soon: readonly string[] }
+    global?: {
+        accountCap: true
+        /** The Number option that caps one plugin's attacks a day. The card warns when the plugins that are on ask for more between them than the account's cap. */
+        dailyCapOption?: string
+        soon: readonly string[]
+    }
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
     /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
@@ -98,7 +103,7 @@ export const MODULES: readonly ModuleDef[] = [
         ...live("towers", "attacks", "stone-tower",
             ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"], "kingdoms"),
         kingdoms: [0, 1, 2, 3],
-        global: { accountCap: true as const, soon: ["lootPriority", "stopAfterDefeat", "speedBonus", "vipCommanders"] },
+        global: { accountCap: true as const, dailyCapOption: "maxPerDay", soon: ["lootPriority", "stopAfterDefeat", "speedBonus", "vipCommanders"] },
     },
     soon("leveller", "attacks", "rank-3"),
     live("armourer", "attacks", "anvil", ["buyTools"]),

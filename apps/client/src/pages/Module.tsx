@@ -13,7 +13,7 @@ import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
 import { CopyToAll, PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
 import { changedAdvanced } from "../plugin-values.ts"
-import { attackPluginsOn, changedPlugins, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
+import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
 import { moduleKey } from "../nav.ts"
 import type { OptionValues } from "../plugin-values.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
@@ -188,7 +188,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                 {!byKingdom && entries.map(entry => <StatusRow key={entry.key} entry={entry} account={account} state={state} blocked={entry.category === "attack" && atLimit}
                     onEnabled={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })} readOnly={readOnly || save.isPending} />)}
             </ParchmentCard>
-            <GlobalCard module={module} account={account}
+            <GlobalCard module={module} account={account} asked={dailyAsked(entries, state, module.global?.dailyCapOption)}
                 attackLimit={(account?.plugins.attack?.options.attackLimit as string | undefined) || catalog.find(e => e.key === "attack")?.options.flatMap(def => def.key === "attackLimit" && def.type === "Text" ? def.default ?? [] : [])[0]} />
 
             {readOnly && <Typography.Text type="secondary" role="status">{t("module.readOnly")}</Typography.Text>}

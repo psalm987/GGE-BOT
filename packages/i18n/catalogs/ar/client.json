@@ -840,5 +840,6 @@
   "presets.duplicate": "Duplicate",
   "presets.duplicateNamed": "Duplicate {{name}}",
   "presets.copyMark": "(copy)",
-  "presets.duplicated": "{{name}} added"
+  "presets.duplicated": "{{name}} added",
+  "module.global.capOver": "The kingdoms that are on ask for {{asked}} attacks a day between them. The account's cap of {{limit}} still holds."
 }

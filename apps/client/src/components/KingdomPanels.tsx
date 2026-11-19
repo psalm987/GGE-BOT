@@ -3,7 +3,7 @@ import { Alert, Checkbox, Tag } from "antd"
 import { useId, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import type { IconId, ModuleDef, PublicAccount } from "@gge/contracts"
+import { GAME_DAILY_ATTACKS, type IconId, type ModuleDef, type PublicAccount } from "@gge/contracts"
 import { Icon, ParchmentCard } from "@gge/ui"
 import { PluginStatusPill, type PluginPill } from "./PluginPanels.tsx"
 import { useKingdomName } from "./PluginOptionField.tsx"
@@ -51,18 +51,23 @@ export function KingdomPanel({ kingdom, icon, enabled, onEnabled, blocked, readO
     )
 }
 
-/** What holds for every kingdom of a module: the account's daily attack cap, and the settings that are still to come. */
-export function GlobalCard({ module, account, attackLimit }: { module: ModuleDef; account: PublicAccount | undefined; attackLimit: string | undefined }) {
+/**
+ * What holds for every kingdom of a module: the account's daily attack cap, and the settings that are still to come.
+ * `asked` is what the kingdoms that are on ask for in a day between them, when each of them has a cap of its own.
+ */
+export function GlobalCard({ module, account, attackLimit, asked }: { module: ModuleDef; account: PublicAccount | undefined; attackLimit: string | undefined; asked: number }) {
     const { t } = useTranslation("client")
     if (!module.global) return null
+    const limit = attackLimit ? Math.min(Number(attackLimit), GAME_DAILY_ATTACKS) : undefined
     return (
         <ParchmentCard title={t("module.global.title")}>
             <ul className="gge-global-list">
                 <li>
                     <span className="gge-global-name">{t("module.global.cap")}</span>
                     <span className="gge-global-text">
-                        {attackLimit ? t("module.global.capValue", { limit: Number(attackLimit) }) : t("module.global.capUnknown")}{" "}
+                        {limit ? t("module.global.capValue", { limit }) : t("module.global.capUnknown")}{" "}
                         <Link to={account ? `/m/account-settings?account=${account.id}` : "/m/account-settings"}>{t("module.global.capLink")}</Link>
+                        {limit !== undefined && asked > limit && <span className="gge-global-warning" role="status">{t("module.global.capOver", { asked, limit })}</span>}
                     </span>
                 </li>
                 {module.global.soon.map(item => (

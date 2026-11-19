@@ -149,6 +149,18 @@ describe("notices from a running bot", () => {
 })
 
 describe("starting and stopping", () => {
+    test("a bot starts with its tower attacks of the last 24 hours, so its daily limits carry on", async () => {
+        const a = await addAccount("ok-history")
+        const b = await addAccount("ok-fresh")
+        store.log(a, 0, ["[12:00] ", "[", "sharedBarronAttackLogic", "] ", "hittingTargetAttack", "greatEmpire", " ", "C", 3, " ", 610, ":", 600, " ", "4m", "tillImpactAttack", " ", 30, "toolsInAttack"], "")
+        await reconcile()
+
+        await until(async () => (await status(a))?.actualState === "running" && (await status(b))?.actualState === "running")
+        const data = (name: string) => spawned.find(d => d.name === name)!
+        expect(data("ok-history").attackHistory).toEqual({ attackBarronsGreatEmpire: [{ at: expect.any(Number), tools: 30 }] })
+        expect(data("ok-fresh").attackHistory).toEqual({})
+    })
+
     test("starts every wanted account with its decrypted password and plugins, one login at a time", async () => {
         const a = await addAccount("ok-a")
         const b = await addAccount("ok-b")

@@ -41,3 +41,4 @@
 .gge-slider-number > .ant-slider { flex: 1; min-width: 0; margin-inline: 6px; }
 .gge-slider-number > .ant-input-number { flex: 0 0 132px; }
 .gge-global-text a { text-decoration: underline; }
+.gge-global-warning { display: block; margin-top: 4px; color: var(--gge-level-warn); }

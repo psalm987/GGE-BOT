@@ -76,11 +76,12 @@ const {
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
     getMaxUnitsInReinforcementWave,
-    getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack } = require("./attack.js")
+    getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, accountLimits } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
-const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle } = require("../../towers.js")
+const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
+const { towerAttackLine } = require("../../attackLog.js")
 const { boxMullerRandom, sleep } = require("../../pacing.js")
 const err = require("../../err.json")
 const minTroopCount = 80
@@ -99,6 +100,10 @@ const RESCAN_MINUTES = [30, 40]
 const SCAN_RETRY_SECONDS = [45, 120]
 /** With nothing to attack, the plugin looks again after this long at most and this soon at least, in milliseconds. */
 const IDLE_MS = [5_000, 60_000]
+/** With the account's daily limit reached, the plugin asks again after this long, in milliseconds. */
+const DAILY_LIMIT_RECHECK_MS = 30 * 60_000
+/** Counts in a status are rounded down to these steps, so the status isn't rewritten after every attack. */
+const STATUS_STEPS = { attacks: 10, tools: 100 }
 /** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
 const TROOPS_RECHECK_MS = 10 * 60_000
 
@@ -111,8 +116,59 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     const toolSet = choice(TOOL_SETS, options.tools, "ladders")
     const useWallTools = toolSet != "none"
     const useShields = toolSet == "all"
-    // "distance" rides the coin horse until the bot picks a horse for each target.
-    const horse = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2], distance: HORSES[1] }[choice(BARON_HORSES, options.horse, "coin")]
+    const horseChoice = choice(BARON_HORSES, options.horse, "coin")
+    const horseDistance = Number(options.horseDistance) || 15
+    const RIDES = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2] }
+    /** Whether the last attack wanted a feather and rode the coin horse, or walked, because the player has none. */
+    let outOfFeathers = false
+    /** What `getAttackInfo` reads the horse from, for one target. */
+    function horseFor(areaInfo) {
+        if (horseChoice != "distance")
+            return RIDES[horseChoice]
+        const ride = horseByDistance(marchDistance(castle.areaInfo, areaInfo), horseDistance, resources.pegasusTicket)
+        if (ride.fellBack && !outOfFeathers)
+            console.warn("towersNoFeathers")
+        outOfFeathers = ride.fellBack
+        return RIDES[ride.horse]
+    }
+    const troopFloor = Math.max(minTroopCount, Number(options.minTroops) || 0)
+    const caps = { day: Number(options.maxPerDay) || 0, hour: Number(options.attacksPerHour) || 0, tools: Number(options.toolBudgetPerDay) || 0 }
+    const sentInDay = new RollingWindow(DAY), sentInHour = new RollingWindow(HOUR), toolsInDay = new RollingWindow(DAY)
+    // What the runner kept of this kingdom's last 24 hours, so a restart doesn't hand the limits back.
+    for (const { at, tools } of botConfig.attackHistory?.[require("node:path").basename(filename, ".js")] ?? []) {
+        sentInDay.add(at)
+        sentInHour.add(at)
+        toolsInDay.add(at, tools)
+    }
+    /** The minutes until `time`, rounded up to 5 above ten minutes and to 30 above an hour, so a long wait's status is rewritten seldom. */
+    const minutesTo = time => {
+        const minutes = Math.max(1, Math.ceil((time - Date.now()) / 60_000))
+        const step = minutes > 60 ? 30 : minutes > 10 ? 5 : 1
+        return Math.ceil(minutes / step) * step
+    }
+    /**
+     * The limit that keeps this kingdom from attacking now, as a status and the time it lifts, or undefined. When
+     * several apply, the one that lifts last is the one in force.
+     */
+    function limitInForce() {
+        const now = Date.now()
+        const account = accountLimits()
+        const blocks = [
+            caps.day > 0 && { until: sentInDay.roomAt(now, caps.day), key: "statusTowersLimitDay", params: { cap: caps.day } },
+            caps.hour > 0 && { until: sentInHour.roomAt(now, caps.hour), key: "statusTowersLimitHour", params: { cap: caps.hour } },
+            !account.hourlyLeft && { until: now + IDLE_MS[1], key: "statusTowersLimitShared", params: { cap: account.hourly } },
+            account.used >= account.limit && { until: now + DAILY_LIMIT_RECHECK_MS, key: "statusTowersLimitAccount", params: { cap: account.limit } },
+        ].filter(block => block && block.until > now)
+        return blocks.sort((a, b) => b.until - a.until)[0]
+    }
+    /** Set while the tool budget keeps an attack home: the time the budget has room for it. */
+    let toolsFreeAt
+    /** The numbers every status of a running kingdom carries. */
+    const progress = () => {
+        const now = Date.now()
+        const shown = (used, step, cap) => cap > 0 ? `${used}/${cap}` : String(used < step ? used : Math.floor(used / step) * step)
+        return { castle: from, found: areas.length, attacks: shown(sentInDay.total(now), STATUS_STEPS.attacks, caps.day), tools: shown(toolsInDay.total(now), STATUS_STEPS.tools, caps.tools) }
+    }
     const autofill = parseAutofill(options)
     const army = readArmy(options, reportStatus)
     if (!army)
@@ -232,6 +288,24 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
                 const areaInfo = areas[index]
                 const level = getLevel(areaInfo.extraData[1])
+                const horse = horseFor(areaInfo)
+                const stock = castle.unitInventory.map(unit => unit.amount)
+                /** Sends the frame unless its tools would take the day over the budget. Then it puts the castle's counts back and sends nothing. */
+                const sendWithinBudget = async attackInfo => {
+                    const tools = toolsIn(attackInfo)
+                    const freeAt = caps.tools > 0 && tools > 0 ? toolsInDay.roomAt(Date.now(), caps.tools, tools) : 0
+                    if (freeAt > Date.now()) {
+                        castle.unitInventory.forEach((unit, i) => unit.amount = stock[i])
+                        toolsFreeAt = freeAt
+                        return
+                    }
+                    const sent = await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                    const now = Date.now()
+                    sentInDay.add(now)
+                    sentInHour.add(now)
+                    toolsInDay.add(now, tools)
+                    return { ...sent, tools }
+                }
 
                 if (army.mode == "waves") {
                     const stats = commander.getEffects()
@@ -241,13 +315,14 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | stats.attackUnitAmountReinforcementBonus),
                     })
-                    return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                    return await sendWithinBudget(attackInfo)
                 }
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
                 const attackerShieldTools = []
                 const attackerWallTools = []
+                const attackerGateTools = []
 
                 for (let i = 0; i < castle.unitInventory.length; i++) {
                     const unit = castle.unitInventory[i]
@@ -261,6 +336,8 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                         unit.unitInfo.amountPerWave == undefined) {
                         if (unit.unitInfo.wallBonus)
                             attackerWallTools.push(unit)
+                        else if (unit.unitInfo.gateBonus)
+                            attackerGateTools.push(unit)
                         else if (unit.unitInfo.defRangeBonus)
                             attackerShieldTools.push(unit)
                     }
@@ -288,7 +365,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 attackerRangeTroops.forEach(e => allTroopCount += e.amount)
                 attackerMeleeTroops.forEach(e => allTroopCount += e.amount)
 
-                if (allTroopCount < minTroopCount)
+                if (allTroopCount < troopFloor)
                     throw "NO_MORE_TROOPS"
 
                 attackerWallTools.sort((a, b) =>
@@ -296,6 +373,12 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
                 attackerShieldTools.sort((a, b) =>
                     Number(a.unitInfo.defRangeBonus) - Number(b.unitInfo.defRangeBonus))
+
+                attackerGateTools.sort((a, b) =>
+                    Number(a.unitInfo.gateBonus) - Number(b.unitInfo.gateBonus))
+                // The front's second slot takes rams once the tools setting asks for them, and shields while the castle has none.
+                const sendRams = useShields && attackerGateTools.some(unit => unit.amount > 0)
+                const frontTools = i => i == 0 ? attackerWallTools : i == 1 && sendRams ? attackerGateTools : attackerShieldTools
 
                 const autoConfigure = !(options.attackLeft || options.attackRight || options.attackMiddle)
                 const attackLeft = autoConfigure || options.attackLeft
@@ -306,6 +389,8 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                 const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
                 const maxToolsFlank = useShields ? getTotalAmountToolsFlank(level, 0) : 10
+                // The front always took the flank's room. With rams it takes its own, which is never less, so the shields still fit.
+                const maxToolsFront = sendRams ? getTotalAmountToolsFront(level) : maxToolsFlank
 
                 attackInfo.A.forEach((wave, index) => {
                     let maxTroops = maxTroopFlank
@@ -333,11 +418,10 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                                 maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                     attackerMeleeTroops : attackerRangeTroops, maxTroops))
                         }
-                        maxTools = maxToolsFlank
+                        maxTools = maxToolsFront
                         if (attackMiddle) {
                             wave.M.T.forEach((unitSlot, i) =>
-                                maxTools -= assignUnit(unitSlot, i == 0 ?
-                                    attackerWallTools : attackerShieldTools, Math.min(maxTools, desiredToolCount)))
+                                maxTools -= assignUnit(unitSlot, frontTools(i), Math.min(maxTools, desiredToolCount)))
 
                             maxTroops = maxTroopFront
                             wave.M.U.forEach(unitSlot =>
@@ -378,7 +462,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     })
                 }
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                return await sendWithinBudget(attackInfo)
             })
 
             if (!attackInfo) {
@@ -386,8 +470,12 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 return false
             }
             
-            reportStatus("running", "statusTowersAttacking", { castle: from, found: areas.length })
-            console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
+            if (outOfFeathers)
+                reportStatus("running", "statusTowersAttackingNoFeathers", progress())
+            else
+                reportStatus("running", "statusTowersAttacking", progress())
+            console.info(...towerAttackLine(KingdomID[kingdomID], attackInfo.AAM.UM.L.VIS + 1, attackInfo.AAM.M.TA[1], attackInfo.AAM.M.TA[2],
+                pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), attackInfo.tools))
             return true
         } catch (e) {
             freeCommander(commander.lordID)
@@ -427,6 +515,9 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 case "ATTACK_TOO_MANY_UNITS":
                 case "CASTLE_LOCKED":
                     return true
+                case "ATTACK_LIMIT_REACHED":
+                    // The loop's own look at the limits reports it and waits.
+                    return false
                 case "CANT_START_NEW_ARMIES":
                 default:
                     throw e
@@ -436,8 +527,26 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
     await scan()
     while (true) {
-        if (await sendHit())
+        const limit = limitInForce()
+        if (limit) {
+            reportStatus("waiting", limit.key, { ...limit.params, minutes: minutesTo(limit.until) })
+            await sleep(Math.min(Math.max(limit.until - Date.now(), IDLE_MS[0]), IDLE_MS[1]))
             continue
+        }
+        // With the budget used up, an autofill that sends tools would only build an attack to put it back.
+        toolsFreeAt = caps.tools > 0 && army.mode == "autofill" && useWallTools && toolsInDay.roomAt(Date.now(), caps.tools) > Date.now()
+            ? toolsInDay.roomAt(Date.now(), caps.tools) : undefined
+        if (!toolsFreeAt && await sendHit())
+            continue
+        if (toolsFreeAt) {
+            const used = toolsInDay.total(Date.now())
+            if (Number.isFinite(toolsFreeAt))
+                reportStatus("waiting", "statusTowersLimitTools", { cap: caps.tools, used, minutes: minutesTo(toolsFreeAt) })
+            else
+                reportStatus("waiting", "statusTowersToolsOverBudget", { cap: caps.tools })
+            await sleep(Math.min(Math.max(toolsFreeAt - Date.now(), IDLE_MS[0]), IDLE_MS[1]))
+            continue
+        }
         // Nothing can be attacked now. The map is read again once the last look is old enough, and never sooner.
         if (Date.now() >= nextScanAt) {
             await scan()
@@ -448,9 +557,9 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         if (areas.length == 0)
             reportStatus("waiting", "statusTowersNoneInRange", { castle: from, radius })
         else if (Number.isFinite(nextReady))
-            reportStatus("waiting", "statusTowersCooling", { castle: from, found: areas.length, minutes: Math.max(1, Math.ceil((nextReady - Date.now()) / 60_000)) })
+            reportStatus("waiting", "statusTowersCooling", { ...progress(), minutes: minutesTo(nextReady) })
         else
-            reportStatus("waiting", "statusTowersAllOut", { castle: from, found: areas.length })
+            reportStatus("waiting", "statusTowersAllOut", progress())
         const wait = Math.min(nextReady, nextScanAt) - Date.now()
         await sleep(Math.min(Math.max(wait, IDLE_MS[0]), IDLE_MS[1]))
     }

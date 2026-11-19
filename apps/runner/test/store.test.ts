@@ -224,3 +224,26 @@ test("a status carries the figures of the worker's last report, and when they ar
     const reportedAt = event?.kind === "status" ? event.status.resources?.reportedAt : undefined
     expect(new Date(reportedAt!).getTime()).toBeGreaterThanOrEqual(before)
 })
+
+test("a starting bot gets each tower plugin's attacks of the last 24 hours, with their tools, and nothing older or of another kind", async () => {
+    const line = (kingdom: string, ...tail: (string | number)[]) =>
+        ["[12:00] ", "[", "sharedBarronAttackLogic", "] ", "hittingTargetAttack", kingdom, " ", "C", 3, " ", 610, ":", 600, " ", "4m", "tillImpactAttack", ...tail]
+    const now = Date.now()
+    const ago = (minutes: number) => new Date(now - minutes * 60_000)
+    await db.insert(botLogs).values([
+        { accountId, ts: ago(25 * 60), level: 0, message: "", parts: line("greatEmpire", " ", 30, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(23 * 60), level: 0, message: "", parts: line("greatEmpire", " ", 30, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(60), level: 0, message: "", parts: line("firePeaks", " ", 0, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(30), level: 0, message: "", parts: ["[12:00] ", "[", "sharedBarronAttackLogic", "] ", "waitingForMoreTroops"], plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(20), level: 0, message: "", parts: ["[12:00] ", "[", "sharedFortressAttackLogic", "] ", "hittingTargetAttack", "firePeaks"], plugin: "sharedFortressAttackLogic" },
+    ])
+    // A line the bot has only just logged is still in the store's buffer, and counts.
+    store.log(accountId, 0, line("greatEmpire", " ", 20, "toolsInAttack"), "")
+
+    const history = await store.recentAttacks(accountId, now)
+    expect(Object.keys(history).sort()).toEqual(["attackBarronsFirePeaks", "attackBarronsGreatEmpire"])
+    expect(history.attackBarronsFirePeaks).toEqual([{ at: ago(60).getTime(), tools: 0 }])
+    expect(history.attackBarronsGreatEmpire!.map(attack => attack.tools)).toEqual([30, 20])
+    expect(history.attackBarronsGreatEmpire![0]!.at).toBe(ago(23 * 60).getTime())
+    expect(now - history.attackBarronsGreatEmpire![1]!.at).toBeLessThan(5000)
+})

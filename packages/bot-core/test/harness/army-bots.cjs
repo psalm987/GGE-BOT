@@ -94,16 +94,20 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * A march takes `travelSeconds` each way. When it reaches home the tower has one more victory and waits `cooldown`
  * seconds, and the commander is free again. `commanders` is how many the player has. While `scanFails()` is true the
  * game leaves a map request unanswered, and `sendResult(cra)` may return an error name for the game to refuse a send with.
+ * `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
+ * `attackOptions` are the account's attack settings.
  */
 function startTowers(options, {
-    kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
-    resources = {}, horses: stable = horses, logLines = [], sendResult = () => undefined, scanFails = () => false,
+    kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, attackOptions = {}, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
+    resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
     bot.botConfig.ggeConfig = { humanize: { map_grid: mapGrid } }
     bot.botConfig.plugins.skips = {}
-    bot.botConfig.plugins.attack = { attackLimit: "3500", ...options.attack }
+    bot.botConfig.plugins.attack = { attackLimit: "3500", ...attackOptions }
+    if (history)
+        bot.botConfig.attackHistory = { [TOWER_PLUGINS[kingdomID]]: history }
     const movementEvents = new EventEmitter()
     const requests = []
     const protocols = {
@@ -173,12 +177,15 @@ function startTowers(options, {
                 freeCommander, useCommander() {},
             },
             "../skips.js": { spendSkip() {}, haveEnoughSkips: () => false },
-            "attackLog.js": { recentAttacks: () => logLines },
         },
     })
     const stopped = []
+    const logged = []
+    const info = console.info
+    // The plugin's attack lines, as the runner would store them, for a test to feed back as a restart's history.
+    console.info = (...parts) => { logged.push(["[12:00] ", "[", "sharedBarronAttackLogic", "] ", ...parts]); info(...parts) }
     Promise.resolve(mod(BARON, kingdomID, options, TOP_LEVELS[kingdomID], file)).catch(error => stopped.push(error))
-    return { sent, statuses, requests, map, stopped, protocols, bot }
+    return { sent, statuses, requests, map, stopped, protocols, bot, logged }
 }
 
 module.exports = { firstCra, barons, fortress, startTowers, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }

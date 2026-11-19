@@ -101,6 +101,9 @@ export type AttackPluginCap = z.infer<typeof AttackPluginCap>
 /** The number of attack plugins a cap allows; null means no limit. */
 export const attackPluginLimit = (cap: AttackPluginCap): number | null => cap === "none" ? null : Number(cap)
 
+/** The game lets an account send this many attacks in any 24 hours, so the account's own daily limit is never above it. */
+export const GAME_DAILY_ATTACKS = 4000
+
 export const TOO_MANY_ATTACK_PLUGINS = "TOO_MANY_ATTACK_PLUGINS"
 
 /** Attack plugins a settings record turns on. Force plugins don't count: nobody can turn them off. */

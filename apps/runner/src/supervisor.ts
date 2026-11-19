@@ -109,6 +109,8 @@ export type SupervisorDeps = {
         proxyOk(proxyId: string): Promise<void>
         proxyFailed(proxyId: string, error: string, options: { counts: boolean }): Promise<void>
         log(accountId: string, level: number, parts: unknown, message: string): void
+        /** Each tower plugin's attacks of the last 24 hours, which a starting bot counts against its daily limits. */
+        recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
     }
     /** Opens a sealed game password or proxy URL. */
     openSealed: (sealed: Buffer) => string
@@ -400,6 +402,14 @@ export class Supervisor {
         await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
         if (this.bots.get(id) !== bot || bot.worker)
             return
+        const attackHistory = await this.deps.store.recentAttacks?.(id).catch(error => {
+            this.log.warn("reading the last 24 hours of attacks failed; the daily limits start from nothing", error)
+            return undefined
+        })
+        if (this.bots.get(id) !== bot || bot.worker)
+            return
+        if (attackHistory)
+            workerData = { ...workerData, attackHistory }
 
         const worker = this.deps.spawn(workerData)
         bot.worker = worker

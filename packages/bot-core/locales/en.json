@@ -630,9 +630,18 @@
     "towersSourceCastleGone": "The saved source castle is no longer on the account. Attacking from the main castle instead:",
     "statusTowersNoCastle": "This account has no castle in this kingdom. Unlock the kingdom in the game, then restart the bot.",
     "statusTowersCastleFallback": "The saved source castle is gone, so attacks leave from the main castle, {{castle}}. Pick a castle again in the settings.",
-    "statusTowersAttacking": "Attacking from {{castle}}. {{found}} towers in range.",
+    "statusTowersAttacking": "Attacking from {{castle}}. {{found}} towers in range. In the last 24 hours: {{attacks}} attacks, {{tools}} tools.",
     "statusTowersNoTroops": "{{castle}} has too few troops for an attack. Waiting for troops to come home.",
     "statusTowersNoneInRange": "No tower within {{radius}} tiles of {{castle}} passes the tower filter. The map is read again every 30 minutes or so.",
-    "statusTowersCooling": "Attacking from {{castle}}. {{found}} towers in range, the next one ready in about {{minutes}} min.",
-    "statusTowersAllOut": "Attacking from {{castle}}. Every one of the {{found}} towers in range has a march on its way."
+    "statusTowersCooling": "Attacking from {{castle}}. {{found}} towers in range, the next one ready in about {{minutes}} min. In the last 24 hours: {{attacks}} attacks, {{tools}} tools.",
+    "statusTowersAllOut": "Attacking from {{castle}}. Every one of the {{found}} towers in range has a march on its way. In the last 24 hours: {{attacks}} attacks, {{tools}} tools.",
+    "towersNoFeathers": "No fast horse feathers left. Far towers get the coin horse until there are feathers again.",
+    "toolsInAttack": " tools",
+    "statusTowersAttackingNoFeathers": "Attacking from {{castle}} with no feathers left, so far towers get the coin horse. {{found}} towers in range. In the last 24 hours: {{attacks}} attacks, {{tools}} tools.",
+    "statusTowersLimitDay": "This kingdom's limit of {{cap}} attacks in 24 hours is reached. The next attack is free in about {{minutes}} min.",
+    "statusTowersLimitHour": "This kingdom's limit of {{cap}} attacks an hour is reached. The next attack is free in about {{minutes}} min.",
+    "statusTowersLimitShared": "The account's {{cap}} attacks an hour, shared by every attack module, are used. Looking again in {{minutes}} min.",
+    "statusTowersLimitAccount": "The account's daily cap of {{cap}} attacks is reached. Looking again in {{minutes}} min.",
+    "statusTowersLimitTools": "This kingdom's tool budget is used: {{used}} of {{cap}} tools in 24 hours. Attacks with tools wait about {{minutes}} min. Set Tools to No tools to attack without them.",
+    "statusTowersToolsOverBudget": "One attack needs more tools than the budget of {{cap}} a day. Raise the tool budget or set Tools to No tools."
 }
