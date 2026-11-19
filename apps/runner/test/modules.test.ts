@@ -28,6 +28,25 @@ test("a live module has plugins unless it is a page of its own, a soon module ha
     }
 })
 
+test("a module laid out by kingdom names the kingdom of each plugin, which is the one the plugin's castle picker lists", () => {
+    const catalog = readPluginRegistry({ discordHub: true }).catalog
+    for (const module of MODULES) {
+        expect(module.kingdoms !== undefined, module.id).toBe(module.tabs === "kingdoms")
+        if (!module.kingdoms) continue
+        expect(module.kingdoms.length, module.id).toBe(module.plugins.length)
+        module.plugins.forEach((key, i) => {
+            const pickers = catalog.find(entry => entry.key === key)!.options.flatMap(def => def.type === "CastlePicker" ? [def.kingdom] : [])
+            expect(pickers, key).toEqual([module.kingdoms![i]])
+        })
+    }
+    expect(MODULES.find(m => m.id === "towers")).toMatchObject({ kingdoms: [0, 1, 2, 3], plugins: ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"] })
+})
+
+test("every setting a module says is still to come has its English name and description", () => {
+    for (const module of MODULES) for (const item of module.global?.soon ?? []) for (const part of ["name", "description"])
+        expect(en[`modules.${module.id}.soon.${item}.${part}`], `${module.id} ${item} ${part}`).toBeTruthy()
+})
+
 test("ids and orders are unique, orders ascend and groups follow the sidebar's order", () => {
     expect(new Set(MODULES.map(m => m.id)).size).toBe(MODULES.length)
     MODULES.forEach((module, i) => {

@@ -1,9 +1,19 @@
-import { eq, inArray, isNull, sql } from "drizzle-orm"
+import { createRequire } from "node:module"
+import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type BotNotice, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
 import {
     botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 import { logTag } from "./log-render.ts"
+
+const { TOWER_LOG_TAG, readTowerAttack } = createRequire(import.meta.url)("@gge/bot-core/attackLog.js") as {
+    TOWER_LOG_TAG: string
+    readTowerAttack(parts: unknown): { plugin: string; tools: number } | null
+}
+
+/** The attacks a tower plugin sent lately, each with the time it was logged (ms) and the tools it carried. By plugin key. */
+export type AttackHistory = Record<string, { at: number; tools: number }[]>
+const HISTORY_MS = 24 * 60 * 60_000
 
 export type ActualState = "starting" | "running" | "stopped" | "auth_failed" | "banned" | "error" | "crash_loop"
 export type StatusPatch = {
@@ -55,11 +65,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         })
     }
 
-    async function flushLogs() {
-        clearTimeout(timer)
-        timer = undefined
-        const batch = pending
-        pending = []
+    async function writeBatch(batch: typeof pending) {
         if (!batch.length)
             return
         try {
@@ -70,6 +76,18 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 return console.error("log flush failed", error)
             await insertLogs(batch).catch(e => console.error("log flush failed", e))
         }
+    }
+
+    // Flushes run one after another, so a caller that awaits flushLogs (recentAttacks, shutdown) also waits for a
+    // flush the timer already started, instead of reading the table before those lines are committed.
+    let flushing: Promise<void> = Promise.resolve()
+    function flushLogs() {
+        clearTimeout(timer)
+        timer = undefined
+        const batch = pending
+        pending = []
+        flushing = flushing.then(() => writeBatch(batch))
+        return flushing
     }
 
     /** A worker's report with the time it arrived, so the dashboard can say how old the figures are. */
@@ -116,6 +134,25 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             } catch (error) {
                 if (!isMissingAccount(error)) throw error
             }
+        },
+
+        /**
+         * Each tower plugin's attacks of the last 24 hours, oldest first, read from the log lines kept for the account.
+         * A starting bot counts them against its daily limits, so a restart doesn't hand the limits back. Lines the
+         * log's retention has dropped are not counted.
+         */
+        async recentAttacks(accountId: string, now = Date.now()): Promise<AttackHistory> {
+            await flushLogs()
+            const rows = await db.select({ ts: botLogs.ts, parts: botLogs.parts }).from(botLogs)
+                .where(and(eq(botLogs.accountId, accountId), eq(botLogs.plugin, TOWER_LOG_TAG), gte(botLogs.ts, new Date(now - HISTORY_MS))))
+                .orderBy(asc(botLogs.id))
+            const history: AttackHistory = {}
+            for (const row of rows) {
+                const attack = readTowerAttack(row.parts)
+                if (attack)
+                    (history[attack.plugin] ??= []).push({ at: row.ts.getTime(), tools: attack.tools })
+            }
+            return history
         },
 
         /** Merges one plugin's report into the account's states and tells the owner, in one statement and one transaction. */

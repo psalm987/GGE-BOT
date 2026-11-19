@@ -89,7 +89,7 @@ function insertResources({ accountName, resources }) {
         const figure = value => typeof value === "number" ? value : null
         const status = {
             actualState: row.actual_state, heartbeatAt: row.heartbeat_at, lastError: row.last_error, bannedUntil: row.banned_until,
-            pluginStates: row.plugin_states, castles: stored?.castles ?? [],
+            pluginStates: row.plugin_states, castles: stored?.castles ?? [], commanders: stored?.commanders ?? null,
             resources: stored && {
                 food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
                 aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,
@@ -100,7 +100,15 @@ function insertResources({ accountName, resources }) {
     })
 }
 
-module.exports = { insertLogLine, insertNotification, insertResources }
+/** Stores one plugin's settings as given, the way a record written before an option changed sits in the table. The API would bring it up to date on the way in. */
+function storePluginSettings({ accountName, plugin, enabled, options }) {
+    return withAccount(accountName, db => db.query(
+        `insert into plugin_settings (account_id, plugin_key, enabled, options) values ((select id from game_accounts where name = $1 order by created_at limit 1), $2, $3, $4)
+         on conflict (account_id, plugin_key) do update set enabled = $3, options = $4`,
+        [accountName, plugin, enabled, JSON.stringify(options)]))
+}
+
+module.exports = { insertLogLine, insertNotification, insertResources, storePluginSettings }
 
 if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)

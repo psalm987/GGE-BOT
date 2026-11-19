@@ -58,8 +58,22 @@ export type ModuleDef = {
     status: "live" | "soon"
     /** The plugins whose settings the page edits. Empty for a module that is "soon". */
     plugins: readonly PluginKey[]
-    /** How a page with several plugins lays them out: a tab for each, or all of them one below another. */
-    tabs?: "per-plugin" | "sections"
+    /**
+     * How a page with several plugins lays them out: a tab for each, all of them one below another, or a panel for each
+     * kingdom that opens and closes, with the kingdom's switch in its header.
+     */
+    tabs?: "per-plugin" | "sections" | "kingdoms"
+    /** With `tabs` "kingdoms": the kingdom id of each plugin, in the order of `plugins`. */
+    kingdoms?: readonly number[]
+    /** A card of what holds for every plugin of the page: the account's daily attack cap, and settings that are still to come. */
+    global?: {
+        accountCap: true
+        /** The Number option that caps one plugin's attacks a day. The card warns when the plugins that are on ask for more between them than the account's cap. */
+        dailyCapOption?: string
+        /** The commander list option of each plugin. The card shows how many commanders the plugins that are on send between them. */
+        commanderOption?: string
+        soon: readonly string[]
+    }
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
     /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
@@ -87,8 +101,12 @@ export const MODULES: readonly ModuleDef[] = [
     live("messages", "account", "envelope", ["chat"]),
     soon("rift-raid", "attacks", "magic-portal"),
     soon("berimond", "attacks", "crossed-axes"),
-    live("towers", "attacks", "stone-tower",
-        ["attackBarronsGreatEmpire", "attackBarronsEverWinterGlacier", "attackBarronsBurningSands", "attackBarronsFirePeaks"], "per-plugin"),
+    {
+        ...live("towers", "attacks", "stone-tower",
+            ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"], "kingdoms"),
+        kingdoms: [0, 1, 2, 3],
+        global: { accountCap: true as const, dailyCapOption: "maxPerDay", commanderOption: "commanderWhiteList", soon: ["lootPriority", "stopAfterDefeat", "speedBonus", "vipCommanders"] },
+    },
     soon("leveller", "attacks", "rank-3"),
     live("armourer", "attacks", "anvil", ["buyTools"]),
     soon("blacksmith-event-shops", "attacks", "sword-smithing"),

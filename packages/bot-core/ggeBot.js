@@ -345,6 +345,17 @@ let loginWatchdog = setTimeout(loginTimedOut, 90 * 1000 * timeoutMultiplier)
 
 events.on("configModified", () => console.log("botConfigReloaded"))
 
+/** How many commanders the account has, which the settings check a commander list against. */
+xtHandler.on("gli", (obj, result) => {
+    if (result || !obj?.C)
+        return
+    const commanders = Array.from(obj.C).length
+    if (status.commanders === commanders)
+        return
+    status.commanders = commanders
+    parentPort.postMessage([ActionType.StatusUser, status])
+})
+
 /** The account's castles as the settings' castle pickers list them. */
 events.once("load", () => {
     const { castles } = require("./protocols.js")

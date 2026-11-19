@@ -45,15 +45,23 @@ movementEvents.on("return", (/** @type {import("../protocols.js").ClassTypes.Mov
 
     freeCommander(movement.lord.lordID)
 })
-/** The 0-based commander positions a whitelist like "1-5,9" picks, or the list unchanged when it is empty or parsed already. */
+/** No account has more commanders than this, so a longer range picks no more. */
+const MAX_COMMANDER_POSITION = 500
+
+/**
+ * The 0-based commander positions a whitelist like "1-5,9" or "1;2;3" picks, or the list unchanged when it is empty
+ * or parsed already. Positions and ranges are set apart by commas or semicolons, and a part that isn't one is left
+ * out, as @gge/contracts' readCommanderList reads the same list for the settings page.
+ */
 function parseWhitelist(commanderWhitelist) {
     if ([, 0, ""].includes(commanderWhitelist) || Array.isArray(commanderWhitelist))
         return commanderWhitelist
-    return commanderWhitelist.split(",").map(e => {
-        let [start, end] = e.split("-").map(Number)
-
-        return Array.from({ length: (end ?? start) - start + 1 }, (_, i) => start + i - 1)
-    }).flat()
+    return String(commanderWhitelist).split(/[,;]/).filter(part => part.trim() !== "").flatMap(part => {
+        const [start, end = start] = part.split("-").map(Number)
+        if (!Number.isInteger(start) || !Number.isInteger(end))
+            return []
+        return Array.from({ length: Math.max(0, Math.min(end, MAX_COMMANDER_POSITION) - start + 1) }, (_, i) => start + i - 1)
+    })
 }
 
 /** A whitelisted commander that is free right now, marked used; undefined when none is. Never waits. */
@@ -125,6 +133,7 @@ module.exports = {
     movementEvents,
     waitForCommanderAvailable,
     takeFreeCommander,
+    parseWhitelist,
     useCommander,
     freeCommander
 }

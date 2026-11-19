@@ -103,15 +103,36 @@ async function scanGrid(getAreaInfo, kingdomID, centre, wanted, { radius = SCAN_
     return found
 }
 
-/**
- * The wanted areas within 50 tiles of `centre`, from one request. With
- * map_grid on they come from a grid scan instead, unless it finds none.
- */
-async function areasAround(getAreaInfo, kingdomID, centre, wanted) {
-    const found = mapGrid ? await scanGrid(getAreaInfo, kingdomID, centre, wanted) : []
-    if (found.length > 0)
-        return found
-    return (await getAreaInfo(kingdomID, centre.x - 50, centre.y - 50, centre.x + 50, centre.y + 50)).areaInfo.filter(wanted)
+/** No scan looks farther than this many tiles from its centre, however far it is asked to. */
+const MAX_RADIUS = 100
+/** One request covers at most this many tiles each way, as the whole-map walk's do. */
+const REQUEST_SPAN = 100
+
+/** The rectangles that cover every tile within `radius` of (cx, cy): one, or four quarters once one would be too wide. */
+function rectsAround(cx, cy, radius) {
+    if (2 * radius <= REQUEST_SPAN)
+        return [{ x: cx - radius, y: cy - radius, w: cx + radius, h: cy + radius }]
+    const halves = c => [[c - radius, c], [c + 1, c + radius]]
+    return halves(cx).flatMap(([x, w]) => halves(cy).map(([y, h]) => ({ x, y, w, h })))
 }
 
-module.exports = { mapGrid, spiralCoordinates, wholeMapRects, gridBoxes, scanGrid, areasAround, BOX, SCAN_RADIUS, SCAN_TARGETS }
+/**
+ * The wanted areas around `centre`, from one request that reaches 50 tiles each way. With map_grid on they come from
+ * a grid scan instead, unless it finds none. A caller that gives a `radius` gets only the areas within that many tiles
+ * on either axis, never more than MAX_RADIUS: the grid then looks that far, and a radius above 50 takes four requests.
+ */
+async function areasAround(getAreaInfo, kingdomID, centre, wanted, { radius } = {}) {
+    const reach = Math.min(radius ?? 50, MAX_RADIUS)
+    const inRange = radius === undefined ? wanted
+        : area => wanted(area) && Math.max(Math.abs(area.x - centre.x), Math.abs(area.y - centre.y)) <= reach
+    const boxes = radius === undefined ? SCAN_RADIUS : Math.max(1, Math.floor(reach / BOX))
+    const found = mapGrid ? await scanGrid(getAreaInfo, kingdomID, centre, inRange, { radius: boxes }) : []
+    if (found.length > 0)
+        return found
+    const areas = []
+    for (const rect of rectsAround(centre.x, centre.y, reach))
+        areas.push(...(await getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).areaInfo.filter(inRange))
+    return areas
+}
+
+module.exports = { mapGrid, spiralCoordinates, wholeMapRects, gridBoxes, scanGrid, areasAround, rectsAround, BOX, SCAN_RADIUS, SCAN_TARGETS, MAX_RADIUS }

@@ -73,6 +73,21 @@ describe("login", () => {
     }, 15000)
 })
 
+describe("the account's commanders", () => {
+    test("their count goes to the host when the game lists them, and again when it changes", async () => {
+        bot = startBot()
+        await bot.login()
+        const counts = () => bot.toParent.filter(m => m[0] === 7 && m[1].commanders !== undefined).map(m => m[1].commanders)
+        bot.xt("gli", 0, { C: [{ ID: 1, VIS: 0 }, { ID: 2, VIS: 1 }, { ID: 3, VIS: 2 }] })
+        await bot.until(() => counts().length > 0)
+        bot.xt("gli", 0, { C: [{ ID: 1, VIS: 0 }, { ID: 2, VIS: 1 }, { ID: 3, VIS: 2 }] })
+        bot.xt("gli", 0, { C: [{ ID: 1, VIS: 0 }, { ID: 2, VIS: 1 }] })
+        await bot.until(() => counts().includes(2))
+
+        expect([...new Set(counts())]).toEqual([3, 2])
+    }, 15000)
+})
+
 describe("important error counter", () => {
     const reply = async result => {
         const { done } = await bot.startWaitForResult("tst", 1000)

@@ -60,6 +60,8 @@ export const BotStatus = z.object({
     pluginStates: PluginStates.default({}),
     /** The castles the bot last found on the account; empty until it has run. */
     castles: z.array(AccountCastle).default([]),
+    /** How many commanders the bot last counted on the account; null until it has run. */
+    commanders: z.number().int().min(0).nullable().default(null),
     /** The figures in the worker's last report; null until it has made one. */
     resources: AccountResources.nullable().default(null),
 })

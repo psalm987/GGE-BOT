@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], resources: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, resources: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], resources: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, resources: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -223,4 +223,27 @@ test("a status carries the figures of the worker's last report, and when they ar
     expect(event).toMatchObject({ status: { resources: { cash: 1200, gold: 7, food: 3000, mead: null, aquamarine: 55, attackDailyCount: 14 } } })
     const reportedAt = event?.kind === "status" ? event.status.resources?.reportedAt : undefined
     expect(new Date(reportedAt!).getTime()).toBeGreaterThanOrEqual(before)
+})
+
+test("a starting bot gets each tower plugin's attacks of the last 24 hours, with their tools, and nothing older or of another kind", async () => {
+    const line = (kingdom: string, ...tail: (string | number)[]) =>
+        ["[12:00] ", "[", "sharedBarronAttackLogic", "] ", "hittingTargetAttack", kingdom, " ", "C", 3, " ", 610, ":", 600, " ", "4m", "tillImpactAttack", ...tail]
+    const now = Date.now()
+    const ago = (minutes: number) => new Date(now - minutes * 60_000)
+    await db.insert(botLogs).values([
+        { accountId, ts: ago(25 * 60), level: 0, message: "", parts: line("greatEmpire", " ", 30, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(23 * 60), level: 0, message: "", parts: line("greatEmpire", " ", 30, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(60), level: 0, message: "", parts: line("firePeaks", " ", 0, "toolsInAttack"), plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(30), level: 0, message: "", parts: ["[12:00] ", "[", "sharedBarronAttackLogic", "] ", "waitingForMoreTroops"], plugin: "sharedBarronAttackLogic" },
+        { accountId, ts: ago(20), level: 0, message: "", parts: ["[12:00] ", "[", "sharedFortressAttackLogic", "] ", "hittingTargetAttack", "firePeaks"], plugin: "sharedFortressAttackLogic" },
+    ])
+    // A line the bot has only just logged is still in the store's buffer, and counts.
+    store.log(accountId, 0, line("greatEmpire", " ", 20, "toolsInAttack"), "")
+
+    const history = await store.recentAttacks(accountId, now)
+    expect(Object.keys(history).sort()).toEqual(["attackBarronsFirePeaks", "attackBarronsGreatEmpire"])
+    expect(history.attackBarronsFirePeaks).toEqual([{ at: ago(60).getTime(), tools: 0 }])
+    expect(history.attackBarronsGreatEmpire!.map(attack => attack.tools)).toEqual([30, 20])
+    expect(history.attackBarronsGreatEmpire![0]!.at).toBe(ago(23 * 60).getTime())
+    expect(now - history.attackBarronsGreatEmpire![1]!.at).toBeLessThan(5000)
 })
