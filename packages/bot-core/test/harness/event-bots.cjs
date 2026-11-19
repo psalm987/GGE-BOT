@@ -84,7 +84,7 @@ async function runEvent(plugin, options, {
         waitForCommanderAvailable: () => handedOut++ < sends ? Promise.resolve({ lordID: 9, getEffects: () => effects }) : new Promise(() => {}),
         freeCommander() {}, useCommander() {},
     }
-    const mapScan = { mapGrid: true, MAX_RADIUS: 100, scanGrid: async () => [...areas], wholeMapRects: () => [], areasAround: async (get, kid, origin, wanted) => areas.filter(wanted) }
+    const mapScan = { ...loadModule("mapScan.js", { bot }).mod, mapGrid: true, MAX_RADIUS: 100, scanGrid: async () => [...areas], wholeMapRects: () => [], areasAround: async (get, kid, origin, wanted) => areas.filter(wanted) }
     loadModule(path, {
         bot, items: { horses, ...items },
         parentPort: { postMessage: ([, report]) => statuses.push(report), on() {} },

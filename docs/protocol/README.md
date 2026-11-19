@@ -9,6 +9,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [dethrone.md](dethrone.md) | Replacing an invader camp with `rae`, and what it costs |
 | [stationing.md](stationing.md) | Sending troops to an ally castle with `cds`, recalling them, opening gates and the protection fields |
 | [tools.md](tools.md) | Workshop production, Sceat tool levels, the armourer and the coin cap |
+| [event-camps.md](event-camps.md) | The side of a Berimond invasion camp, the commands Daimyo castles need, and the aquamarine packages of the Storm Islands shop |
 
 ## How the findings were obtained
 
