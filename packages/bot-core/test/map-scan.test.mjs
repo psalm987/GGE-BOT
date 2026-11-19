@@ -215,12 +215,12 @@ describe("the attack plugins", () => {
     test("the robber baron scan is one wide request with map_grid off and 49 boxes with it on", async () => {
         const barons = [[BARRON, 605, 596], [BARRON, 640, 640]]
         const off = loadPlugin("plugins/attack/sharedBarronAttackLogic.js", barons, false)
-        off.run(BARRON, 1, {}, 10)
+        off.run(BARRON, 1, {}, 10, "/plugins/attackBarronsBurningSands.js")
         await settle()
         expect(off.requests).toEqual([[550, 550, 650, 650]])
 
         const on = loadPlugin("plugins/attack/sharedBarronAttackLogic.js", barons, true)
-        on.run(BARRON, 1, {}, 10)
+        on.run(BARRON, 1, {}, 10, "/plugins/attackBarronsBurningSands.js")
         await settle()
         expect(on.requests).toHaveLength(49)
         expect(on.requests.some(wide)).toBe(false)

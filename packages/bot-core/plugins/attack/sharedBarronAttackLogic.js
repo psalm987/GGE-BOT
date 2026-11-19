@@ -79,7 +79,9 @@ const {
     getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
-const { areasAround } = require("../../mapScan.js")
+const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
+const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle } = require("../../towers.js")
+const { boxMullerRandom, sleep } = require("../../pacing.js")
 const err = require("../../err.json")
 const minTroopCount = 80
 const troopBlackList = [277]
@@ -91,34 +93,64 @@ catch (e) {
     console.debug(e)
 }
 
+/** A scan is not repeated sooner than this, in minutes: 30, and up to 10 more so that kingdoms don't scan in step. */
+const RESCAN_MINUTES = [30, 40]
+/** After a scan the game didn't answer, the next one waits this long, in seconds. */
+const SCAN_RETRY_SECONDS = [45, 120]
+/** With nothing to attack, the plugin looks again after this long at most and this soon at least, in milliseconds. */
+const IDLE_MS = [5_000, 60_000]
+/** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
+const TROOPS_RECHECK_MS = 10 * 60_000
+
+const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
+
 /** `filename` is the plugin's file, which its status goes by. */
 async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     const options = readLegacy(baronOptions({ kingdom: kingdomID }), stored)
+    const reportStatus = statusReporter(filename)
     const toolSet = choice(TOOL_SETS, options.tools, "ladders")
     const useWallTools = toolSet != "none"
     const useShields = toolSet == "all"
     // "distance" rides the coin horse until the bot picks a horse for each target.
     const horse = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2], distance: HORSES[1] }[choice(BARON_HORSES, options.horse, "coin")]
     const autofill = parseAutofill(options)
-    const army = readArmy(options, (...report) => statusReporter(filename)(...report))
+    const army = readArmy(options, reportStatus)
     if (!army)
         return
-    const getLevel = victorys =>
-        Math.floor(1.9 * Math.pow(victorys, .555)) + ([1, 35, 20, 45][kingdomID] ?? 0)
+    const filter = choice(TOWER_FILTERS, options.towerFilter, "all")
+    const radius = Math.min(Number(options.searchRadius) || 50, MAX_RADIUS)
+    const getLevel = victorys => towerLevel(victorys, kingdomID)
+    const wanted = areaInfo => areaInfo.type == type && matchesFilter(filter, getLevel(areaInfo.extraData[1]), maxLevel)
 
-    const castle = castles.find(e => e.kingdomID == kingdomID &&
-        [AreaType.externalKingdom, AreaType.mainCastle].includes(e.areaInfo.type))
+    const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.externalKingdom, AreaType.mainCastle])
+    const castle = source.castle
+    if (!castle) {
+        console.warn("towersNoCastle")
+        reportStatus("stopped", "statusTowersNoCastle")
+        return
+    }
+    const from = castleName(castle)
+    if (source.fellBack) {
+        console.warn("towersSourceCastleGone", from)
+        reportStatus("waiting", "statusTowersCastleFallback", { castle: from })
+    }
 
-    do {
+    let areas = []
+    let nextScanAt = 0
+    /** Looks at the map again. Towers that appeared since the last look come in, and every wait and level is fresh. */
+    async function scan() {
         try {
-            var areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort((a, b) =>
-                    (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
-                    (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
-            break
+            const found = await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, wanted, { radius })
+            areas = found.sort((a, b) => marchDistance(castle.areaInfo, a) - marchDistance(castle.areaInfo, b))
+            nextScanAt = Date.now() + boxMullerRandom(...RESCAN_MINUTES) * 60_000
         } catch (e) {
             console.warn(e)
+            nextScanAt = Date.now() + boxMullerRandom(...SCAN_RETRY_SECONDS) * 1000
         }
-    } while (true)
+    }
+    const inFlight = areaInfo => movements.some(movement =>
+        movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
+    const readyAt = areaInfo => areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000
 
     async function skipTarget(areaInfo) {
         while (areaInfo.extraData[2] > 0) {
@@ -133,7 +165,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 break
         }
     }
-    
+
     movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
         if (movement.targetOwner.ownerID != playerInfo.playerID)
             return
@@ -144,15 +176,20 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         if (movement.sourceAttack.type != type)
             return
 
-        const shouldUpgradeTower = options.upgradeTowers && getLevel(movement.sourceAttack.extraData[1], kingdomID) != maxLevel
-        
-        if ((options.useTimeSkips || shouldUpgradeTower) && 
-            movements.find(movement2 => 
+        // The march home carries the tower as the attack left it: its new level and the wait before the next attack.
+        const hit = areas.find(areaInfo => areaInfo.x == movement.sourceAttack.x && areaInfo.y == movement.sourceAttack.y)
+        if (hit)
+            Object.assign(hit, { extraData: movement.sourceAttack.extraData, timeSinceRequest: movement.sourceAttack.timeSinceRequest })
+
+        const shouldUpgradeTower = options.upgradeTowers && getLevel(movement.sourceAttack.extraData[1]) != maxLevel
+
+        if ((options.useTimeSkips || shouldUpgradeTower) &&
+            movements.find(movement2 =>
                 movement2.kingdomID           == kingdomID               &&
-                movement2.sourceAttack.type   == type                    && 
-                movement2.sourceAttack.x      == movement.sourceAttack.x && 
+                movement2.sourceAttack.type   == type                    &&
+                movement2.sourceAttack.x      == movement.sourceAttack.x &&
                 movement2.sourceAttack.y      == movement.sourceAttack.y))
-                skipTarget(movement.sourceAttack)
+                skipTarget(movement.sourceAttack).catch(e => console.warn(e))
     })
 
     const sendHit = async () => {
@@ -164,7 +201,9 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 const timeSinceEpoch = Date.now()
                 for (let i = 0; i < areas.length; i++) {
                     const areaInfo = areas[i]
-                    const shouldUpgradeTower = options.upgradeTowers && getLevel(areaInfo.extraData[1], kingdomID) != maxLevel
+                    if (!wanted(areaInfo))
+                        continue
+                    const shouldUpgradeTower = options.upgradeTowers && getLevel(areaInfo.extraData[1]) != maxLevel
                     const skipsPerTower = 7200
 
                     const coinSkips = recruitTroops ? Math.floor(resources.coins / (1000 / (20 * 5))) : 0
@@ -180,11 +219,9 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                             continue
                         }
                     }
-                    else if (((areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000) - timeSinceEpoch) > 0)
+                    else if (readyAt(areaInfo) - timeSinceEpoch > 0)
                         continue
-                    else if (movements.find(movement =>
-                        movement.kingdomID == kingdomID &&
-                        movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y))
+                    else if (inFlight(areaInfo))
                         continue
 
                     index = i
@@ -194,7 +231,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     return
 
                 const areaInfo = areas[index]
-                const level = getLevel(areaInfo.extraData[1], kingdomID)
+                const level = getLevel(areaInfo.extraData[1])
 
                 if (army.mode == "waves") {
                     const stats = commander.getEffects()
@@ -349,6 +386,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 return false
             }
             
+            reportStatus("running", "statusTowersAttacking", { castle: from, found: areas.length })
             console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
@@ -365,13 +403,21 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                         console.debug(e)
                     }
                     console.log("[", KingdomID[kingdomID], "] ", "waitingForMoreTroops")
-                    await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
-                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                            return
-
-                        movementEvents.off("return", self)
-                        resolve()
-                    }))
+                    reportStatus("waiting", "statusTowersNoTroops", { castle: from })
+                    await new Promise(resolve => {
+                        const recheck = setTimeout(done, TROOPS_RECHECK_MS)
+                        recheck.unref?.()
+                        function done() {
+                            clearTimeout(recheck)
+                            movementEvents.off("return", home)
+                            resolve()
+                        }
+                        function home(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
+                            if (movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
+                                done()
+                        }
+                        movementEvents.on("return", home)
+                    })
                     return true
                 case "LORD_IS_USED":
                     useCommander(commander.lordID)
@@ -388,26 +434,25 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         }
     }
 
+    await scan()
     while (true) {
-        if (!options.useTimeSkips && !options.upgradeTowers) {
-            let minimumTimeTillHit = 5 * 1000 + Date.now()
-
-            areas.forEach(areaInfo => {
-                if (movements.find(movement =>
-                    movement.kingdomID == kingdomID &&
-                    movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y))
-                    return
-
-                minimumTimeTillHit = Math.min(minimumTimeTillHit, (areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000))
-            })
-
-            const time = (Math.max(0, minimumTimeTillHit - Date.now()))
-            if (time > 0)
-                console.info("waitingForNextPossibleHit", Math.round(time / 1000), "waitingForNextPossibleHit2")
-            await new Promise(r => setTimeout(r, time).unref())
+        if (await sendHit())
+            continue
+        // Nothing can be attacked now. The map is read again once the last look is old enough, and never sooner.
+        if (Date.now() >= nextScanAt) {
+            await scan()
+            if (areas.some(areaInfo => !inFlight(areaInfo) && readyAt(areaInfo) <= Date.now()))
+                continue
         }
-
-        while (await sendHit());
+        const nextReady = Math.min(...areas.filter(areaInfo => !inFlight(areaInfo)).map(readyAt))
+        if (areas.length == 0)
+            reportStatus("waiting", "statusTowersNoneInRange", { castle: from, radius })
+        else if (Number.isFinite(nextReady))
+            reportStatus("waiting", "statusTowersCooling", { castle: from, found: areas.length, minutes: Math.max(1, Math.ceil((nextReady - Date.now()) / 60_000)) })
+        else
+            reportStatus("waiting", "statusTowersAllOut", { castle: from, found: areas.length })
+        const wait = Math.min(nextReady, nextScanAt) - Date.now()
+        await sleep(Math.min(Math.max(wait, IDLE_MS[0]), IDLE_MS[1]))
     }
 }
 

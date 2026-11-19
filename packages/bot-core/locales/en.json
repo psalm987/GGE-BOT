@@ -625,5 +625,14 @@
     "attackBarronsFirePeaks.horse.help": "No horse walks. Coin horse needs a stable. Feather spends one fast horse feather for each attack. By distance rides the coin horse to near towers and spends a feather on far ones.",
     "attackBarronsFirePeaks.horseDistance.help": "With By distance, a tower farther away than this gets a feather. A nearer one gets the coin horse.",
     "attackBarronsFirePeaks.tools.help": "The tools of the first wave. Ladders only sends wall tools. Ladders, rams and mantlets also sends gate tools on the front and shields beside them.",
-    "attackBarronsFirePeaks.minTroops.help": "The bot waits until the castle holds at least this many attack troops. It never attacks with fewer than 80."
+    "attackBarronsFirePeaks.minTroops.help": "The bot waits until the castle holds at least this many attack troops. It never attacks with fewer than 80.",
+    "towersNoCastle": "This account has no castle in this kingdom, so no towers are attacked here.",
+    "towersSourceCastleGone": "The saved source castle is no longer on the account. Attacking from the main castle instead:",
+    "statusTowersNoCastle": "This account has no castle in this kingdom. Unlock the kingdom in the game, then restart the bot.",
+    "statusTowersCastleFallback": "The saved source castle is gone, so attacks leave from the main castle, {{castle}}. Pick a castle again in the settings.",
+    "statusTowersAttacking": "Attacking from {{castle}}. {{found}} towers in range.",
+    "statusTowersNoTroops": "{{castle}} has too few troops for an attack. Waiting for troops to come home.",
+    "statusTowersNoneInRange": "No tower within {{radius}} tiles of {{castle}} passes the tower filter. The map is read again every 30 minutes or so.",
+    "statusTowersCooling": "Attacking from {{castle}}. {{found}} towers in range, the next one ready in about {{minutes}} min.",
+    "statusTowersAllOut": "Attacking from {{castle}}. Every one of the {{found}} towers in range has a march on its way."
 }
