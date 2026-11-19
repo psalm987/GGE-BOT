@@ -65,11 +65,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         })
     }
 
-    async function flushLogs() {
-        clearTimeout(timer)
-        timer = undefined
-        const batch = pending
-        pending = []
+    async function writeBatch(batch: typeof pending) {
         if (!batch.length)
             return
         try {
@@ -80,6 +76,18 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 return console.error("log flush failed", error)
             await insertLogs(batch).catch(e => console.error("log flush failed", e))
         }
+    }
+
+    // Flushes run one after another, so a caller that awaits flushLogs (recentAttacks, shutdown) also waits for a
+    // flush the timer already started, instead of reading the table before those lines are committed.
+    let flushing: Promise<void> = Promise.resolve()
+    function flushLogs() {
+        clearTimeout(timer)
+        timer = undefined
+        const batch = pending
+        pending = []
+        flushing = flushing.then(() => writeBatch(batch))
+        return flushing
     }
 
     /** A worker's report with the time it arrived, so the dashboard can say how old the figures are. */
