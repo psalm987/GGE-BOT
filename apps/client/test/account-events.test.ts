@@ -17,13 +17,13 @@ test("a status event replaces that account's status and leaves the others alone"
 
     const next = applyUserEvent(list, fromWire({ kind: "status", accountId: A, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null } }))!
 
-    expect(next[0]!.status).toEqual({ actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], resources: null })
+    expect(next[0]!.status).toEqual({ actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, resources: null })
     expect(next[0]!.desiredState).toBe("stopped")
     expect(next[1]).toBe(list[1])
 })
 
 test("an account event changes only whether the account should run", () => {
-    const status = { actualState: "running" as const, heartbeatAt: new Date(1), lastError: null, bannedUntil: null, pluginStates: {}, castles: [], resources: null }
+    const status = { actualState: "running" as const, heartbeatAt: new Date(1), lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, resources: null }
     const list = [account(A, { desiredState: "running", status })]
 
     const [next] = applyUserEvent(list, fromWire({ kind: "account", accountId: A, desiredState: "stopped" }))!

@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Form, Grid, Progress, Row, Segmented, Select,
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
-import { MODULES, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PluginStates, type PublicAccount } from "@gge/contracts"
+import { MODULES, commanderUsage, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PluginStates, type PublicAccount } from "@gge/contracts"
 import { Icon, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
@@ -158,12 +158,13 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
 
     const sections = entries.map(entry => (
         <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} view={view} disabled={readOnly || save.isPending}
-            castles={castles} accountId={account?.id} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone}
+            castles={castles} accountId={account?.id} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone} commanders={account?.status?.commanders ?? null}
             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
     ))
     const changed = new Set(changedPlugins(entries, state))
     const byKingdom = module.tabs === "kingdoms"
+    const commanderOption = module.global?.commanderOption
     /** One option's value, put into every plugin of the page: the forms that are drawn, and the page's own state. */
     function copyToAll(key: string, value: unknown) {
         for (const entry of entries) {
@@ -189,6 +190,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                     onEnabled={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })} readOnly={readOnly || save.isPending} />)}
             </ParchmentCard>
             <GlobalCard module={module} account={account} asked={dailyAsked(entries, state, module.global?.dailyCapOption)}
+                commanders={commanderOption === undefined ? undefined : commanderUsage(entries.filter(e => state.values[e.key]?.enabled).map(e => String(state.values[e.key]?.options[commanderOption] ?? "")), account?.status?.commanders)}
                 attackLimit={(account?.plugins.attack?.options.attackLimit as string | undefined) || catalog.find(e => e.key === "attack")?.options.flatMap(def => def.key === "attackLimit" && def.type === "Text" ? def.default ?? [] : [])[0]} />
 
             {readOnly && <Typography.Text type="secondary" role="status">{t("module.readOnly")}</Typography.Text>}
@@ -273,9 +275,9 @@ function StatusRow({ entry, account, state, blocked, onEnabled, readOnly }: {
     )
 }
 
-function PluginSection({ entry, state, view, disabled, castles, accountId, pluginStates, phone, register, onOptions }: {
+function PluginSection({ entry, state, view, disabled, castles, accountId, pluginStates, phone, commanders, register, onOptions }: {
     entry: PluginCatalogEntry; state: ModuleState; view: View; disabled: boolean; accountId: string | undefined
-    castles: AccountCastle[]; pluginStates: PluginStates; phone: boolean
+    castles: AccountCastle[]; pluginStates: PluginStates; phone: boolean; commanders: number | null
     register: (form: FormInstance | null) => void; onOptions: (options: OptionValues) => void
 }) {
     const { t } = useTranslation("client")
@@ -288,8 +290,9 @@ function PluginSection({ entry, state, view, disabled, castles, accountId, plugi
     const descriptionKey = `${entry.key}.description`
     const checks = (entry.checks ?? []).length > 0 && (
         <SetupChecks entry={entry} beside={!phone} input={{
-            options, pluginStates,
+            options, pluginStates, commanders, plugin: entry.key,
             plugins: Object.fromEntries(Object.entries(state.values).map(([key, value]) => [key, value.options])),
+            enabled: Object.fromEntries(Object.entries(state.values).map(([key, value]) => [key, value.enabled])),
         }} />
     )
     return (

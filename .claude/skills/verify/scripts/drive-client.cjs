@@ -202,6 +202,23 @@ async function driveTowers(page) {
     await green.getByRole("button", { name: "Apply to all kingdoms" }).click()
     await page.getByText("Horse copied to every kingdom").first().waitFor()
     assert(await chosen(ice, "Horse") === "Feather", "Apply to all kingdoms copies Green's horse to Ice")
+
+    // Commanders: Ironhold has 18, which the seeded bot report says.
+    const checks = scope => scope.getByRole("complementary", { name: "Setup checks" })
+    const commanders = scope => scope.getByLabel("Commanders to use", { exact: true })
+    const card = page.locator(".ant-card", { has: page.getByText("All kingdoms", { exact: true }) })
+    assert(await checks(green).getByText("18 of your 18 commanders can be sent. 0 stay free.").isVisible(), "the default list 1-99 is every one of the account's 18 commanders, not a mistake")
+    assert(await checks(green).getByText("Commanders also on the list of another kingdom that is on: 18.").isVisible(), "Green and Ice on the default list share every commander, which is a warning, not an error")
+    await commanders(green).fill("1;2;19")
+    assert(await checks(green).getByText("Commander 19 exceeds your total (18).").isVisible(), "a semicolon list that names commander 19 of 18 says so")
+    await commanders(green).fill("1;2;3")
+    assert(await checks(green).getByText("3 of your 18 commanders can be sent. 15 stay free.").isVisible(), "1;2;3 is read as three commanders, with 15 left")
+    assert(await checks(green).getByText("Commanders also on the list of another kingdom that is on: 3.").isVisible(), "Ice still lists the same three")
+    await commanders(ice).fill("4-6")
+    assert(await checks(green).getByText("No other kingdom that is on uses these commanders.").isVisible() && await checks(ice).getByText("No other kingdom that is on uses these commanders.").isVisible(), "with Ice on 4-6 the two kingdoms share none")
+    assert((await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ").includes("6 configured · 18 maximum · 12 remaining"), `the card sums the kingdoms that are on: ${(await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")}`)
+    await commanders(green).fill("1-99")
+    await commanders(ice).fill("1-99")
     await axe(page, "towers 1440")
     await page.screenshot({ path: `${out}/70-towers-1440.png`, fullPage: true })
 

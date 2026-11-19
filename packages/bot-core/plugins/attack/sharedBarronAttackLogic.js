@@ -1,5 +1,6 @@
 const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
+const { towerAttackLine, TOWER_PLUGINS } = require("../../attackLog.js")
 
 const AUTOFILL = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
@@ -59,7 +60,11 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     unitOrderOption(),
     supplyOption(),
 ]
-const baronChecks = [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }]
+const baronChecks = [
+    { type: "commanders", option: "commanderWhiteList" },
+    { type: "commandersShared", option: "commanderWhiteList", plugins: Object.values(TOWER_PLUGINS) },
+    { type: "dailyAttacks" },
+]
 
 if (require("node:worker_threads").isMainThread)
     return module.exports = { hidden: true, baronOptions, baronChecks }
@@ -81,7 +86,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
 const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
-const { towerAttackLine } = require("../../attackLog.js")
+
 const { boxMullerRandom, sleep } = require("../../pacing.js")
 const err = require("../../err.json")
 const minTroopCount = 80
