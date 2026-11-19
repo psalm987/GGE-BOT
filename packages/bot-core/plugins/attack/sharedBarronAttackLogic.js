@@ -1,33 +1,61 @@
-const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats } = require("../../army.js")
+const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { readLegacy } = require("../../legacyOptions.js")
 
 const AUTOFILL = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
     whenNoSides: ["left", "front", "right", "courtyard"],
     waves: "attackWaves",
-    tools: ["useWallTools", "useShields"],
+    tools: ["tools"],
     unitOrder: "unitOrder",
     supply: "supply",
+    minTroops: "minTroops",
 }
-/** The options of every robber baron plugin. `attackWaves` is the kingdom's default wave count, if it has one. */
-const baronOptions = ({ attackWaves } = {}) => [
+/** The horse of an attack, by the choice of the `horse` Select. "distance" picks one for each target. */
+const BARON_HORSES = ["none", "coin", "feather", "distance"]
+/** What the `tools` Select sends in the first wave: nothing, wall tools, or wall tools with shields beside them. */
+const TOOL_SETS = ["none", "ladders", "all"]
+const WAVE_COUNTS = ["All waves", "1 wave", "2 waves", "3 waves", "4 waves"]
+
+/**
+ * The options of every robber baron plugin, for the kingdom `kingdom`. `attackWaves` is the kingdom's default wave
+ * count; 0 sends every wave. The `legacy` rules read what the horse, tool and wave options held before they were Selects.
+ */
+const baronOptions = ({ kingdom, attackWaves = 0 }) => [
+    { type: "Label", key: "targetSettings" },
+    { type: "CastlePicker", key: "sourceCastle", kingdom, default: null },
+    { type: "Select", key: "towerFilter", selection: ["All towers", "Maxed only", "Non-maxed only"], default: 0 },
+    { type: "Number", key: "searchRadius", min: 10, max: 100, unit: "tiles", display: "slider", default: 50 },
+    { type: "Label", key: "limitSettings" },
+    { type: "Number", key: "maxPerDay", min: 0, max: 4000, unit: "attacks", display: "slider", default: 0 },
+    { type: "Number", key: "toolBudgetPerDay", min: 0, max: 10000, unit: "tools", display: "slider", default: 0 },
+    { type: "Number", key: "attacksPerHour", min: 0, max: 120, unit: "attacks", default: 0 },
     { type: "Label", key: "horseSettings" },
-    { type: "Checkbox", key: "useFeather", default: false },
-    { type: "Checkbox", key: "useCoin", default: true },
+    {
+        type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 1, copyToAll: true,
+        legacy: { from: { useFeather: false, useCoin: true }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 },
+    },
+    { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "tiles", default: 15 },
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
     { type: "Text", key: "commanderWhiteList", default: "1-99" },
     { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
     ...armyOptions(AUTOFILL),
     { type: "Label", key: "attackSettings", army: "autofill" },
-    { type: "Checkbox", key: "useWallTools", default: true, army: "autofill" },
-    { type: "Checkbox", key: "useShields", default: false, army: "autofill" },
+    {
+        type: "Select", key: "tools", selection: ["No tools", "Ladders only", "Ladders, rams and mantlets"], default: 1, army: "autofill",
+        legacy: { from: { useWallTools: true, useShields: false }, cases: [[{ useWallTools: false }, 0], [{ useShields: true }, 2]], otherwise: 1 },
+    },
+    {
+        type: "Select", key: "attackWaves", selection: WAVE_COUNTS, default: attackWaves, army: "autofill",
+        legacy: { from: { attackWaves: "" }, cases: [1, 2, 3, 4].map(waves => [{ attackWaves: String(waves) }, waves]), otherwise: 0 },
+    },
+    { type: "Number", key: "minTroops", min: 0, max: 5000, unit: "troops", default: 0, army: "autofill" },
     { type: "Checkbox", key: "useDogs", default: false, army: "autofill" },
     { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackLeft", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackMiddle", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackRight", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackCourtyard", default: false, army: "autofill" },
-    { type: "Text", key: "attackWaves", ...(attackWaves ? { default: attackWaves } : {}), army: "autofill" },
     unitOrderOption(),
     supplyOption(),
 ]
@@ -64,7 +92,13 @@ catch (e) {
 }
 
 /** `filename` is the plugin's file, which its status goes by. */
-async function barronHit(type, kingdomID, options, maxLevel, filename) {
+async function barronHit(type, kingdomID, stored, maxLevel, filename) {
+    const options = readLegacy(baronOptions({ kingdom: kingdomID }), stored)
+    const toolSet = choice(TOOL_SETS, options.tools, "ladders")
+    const useWallTools = toolSet != "none"
+    const useShields = toolSet == "all"
+    // "distance" rides the coin horse until the bot picks a horse for each target.
+    const horse = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2], distance: HORSES[1] }[choice(BARON_HORSES, options.horse, "coin")]
     const autofill = parseAutofill(options)
     const army = readArmy(options, (...report) => statusReporter(filename)(...report))
     if (!army)
@@ -164,7 +198,7 @@ async function barronHit(type, kingdomID, options, maxLevel, filename) {
 
                 if (army.mode == "waves") {
                     const stats = commander.getEffects()
-                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, options, stats.additionalWaves)
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, stats.additionalWaves)
                     fillFromPlan(attackInfo, army.waves, castle.unitInventory, {
                         flankUnits: getAmountSoldiersFlank(level, stats.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, stats.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
@@ -231,15 +265,15 @@ async function barronHit(type, kingdomID, options, maxLevel, filename) {
                 const attackRight = autoConfigure || options.attackRight
                 const attackMiddle = autoConfigure || options.attackMiddle
                 const commanderStats = commander.getEffects()
-                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, parseInt(options.attackWaves), options, commanderStats.additionalWaves)
+                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, Number(options.attackWaves), horse, commanderStats.additionalWaves)
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                 const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
-                const maxToolsFlank = options.useShields ? getTotalAmountToolsFlank(level, 0) : 10
+                const maxToolsFlank = useShields ? getTotalAmountToolsFlank(level, 0) : 10
 
                 attackInfo.A.forEach((wave, index) => {
                     let maxTroops = maxTroopFlank
 
-                    if (index == 0 && options.useWallTools) {
+                    if (index == 0 && useWallTools) {
                         const desiredToolCount = 10
                         let maxTools = maxToolsFlank
                         if (attackLeft) {

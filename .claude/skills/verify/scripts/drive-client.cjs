@@ -4,7 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
-const { insertLogLine, insertNotification, insertResources } = require("./dev-db.cjs")
+const { insertLogLine, insertNotification, insertResources, storePluginSettings } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -107,6 +107,157 @@ async function openModule(page, module, account = "Ironhold") {
         await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: account }).first().click()
     }
     await page.locator(".gge-module-plugin-row").first().waitFor()
+}
+
+/** The Towers page: a panel for each kingdom in the spec's order, the settings of one, and a config stored before the horse, tool and wave Selects. */
+async function driveTowers(page) {
+    const KINGDOMS = [["Green", "Great Empire", "attackBarronsGreatEmpire"], ["Sands", "Burning Sands", "attackBarronsBurningSands"], ["Ice", "Everwinter Glacier", "attackBarronsEverWinterGlacier"], ["Fire", "Fire Peaks", "attackBarronsFirePeaks"]]
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    const stored = async plugin => (await account()).plugins[plugin] ?? { enabled: false, options: {} }
+    for (const preset of await rpc(page, "virtualPresets/list", { accountId: ironhold.id }))
+        await rpc(page, "virtualPresets/remove", { id: preset.id })
+    for (const [, , plugin] of KINGDOMS.slice(1))
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options: {} })
+    await storePluginSettings({ accountName: "Ironhold", plugin: KINGDOMS[0][2], enabled: true, options: { useFeather: true, useCoin: false, useShields: true, attackWaves: "4" } })
+
+    const panel = short => page.locator(`section.gge-kingdom[aria-label="${short}"]`)
+    const chosen = async (scope, name) => (await scope.getByRole("combobox", { name, exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
+    const pickOption = async (scope, name, text) => {
+        const box = scope.getByRole("combobox", { name, exact: true })
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
+        await dropdown.waitFor()
+        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
+        await dropdown.waitFor({ state: "hidden" })
+    }
+    const optionsOf = async (scope, name) => {
+        const box = scope.getByRole("combobox", { name, exact: true })
+        await box.click()
+        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
+        await dropdown.waitFor()
+        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
+        await page.keyboard.press("Escape")
+        await dropdown.waitFor({ state: "hidden" })
+        return texts
+    }
+    const open = async () => {
+        await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+        await panel("Green").waitFor()
+        await page.waitForTimeout(300)
+    }
+    const saveBar = page.locator(".gge-savebar")
+
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(CLIENT_URL)
+    await sidebar(page, "Towers")
+    await panel("Green").waitFor()
+    const heads = await page.locator("section.gge-kingdom .gge-kingdom-toggle").allInnerTexts()
+    assert(JSON.stringify(heads.map(text => text.replace(/\s+/g, " ").trim())) === JSON.stringify(KINGDOMS.map(([short, full], kid) => `${short} ${full} KID ${kid}`)),
+        `the kingdoms come in the spec's order with their ids: ${heads.map(text => text.replace(/\s+/g, " ").trim()).join(" | ")}`)
+    await open()
+    assert(await panel("Green").getByRole("checkbox", { name: "Enable Green" }).isChecked(), "Green, which is on, has its box ticked")
+    assert(await panel("Green").locator(".gge-kingdom-toggle").getAttribute("aria-expanded") === "true" && await panel("Ice").locator(".gge-kingdom-toggle").getAttribute("aria-expanded") === "false",
+        "a kingdom that is on is open and one that is off is closed")
+    assert(await page.locator(".gge-module-plugin-row").count() === 0, "the kingdoms' switches are in their headers, not repeated in the status card")
+
+    const green = panel("Green")
+    assert(await chosen(green, "Horse") === "Feather", "a config stored with Use fast horse feathers shows Horse as Feather")
+    assert(await chosen(green, "Tools") === "Ladders, rams and mantlets", "stored wall tools and flank tools show as Ladders, rams and mantlets")
+    assert(await chosen(green, "Waves") === "4 waves", "the stored text 4 shows as 4 waves")
+    assert(await saveBar.count() === 0, "reading the old config changes nothing by itself")
+    assert(await green.locator("[data-army-summary]").innerText() === "L·F·R+CY · 4w · Ladders, rams and mantlets", `the army line sums the old config up: ${await green.locator("[data-army-summary]").innerText()}`)
+
+    const castles = await optionsOf(green, "Castle to attack from")
+    assert(castles.length === 2 && castles.every(text => text.includes("Great Empire")) && !castles.some(text => text.includes("Frostgate")), `Green's source castle lists only its own castles: ${castles.join(" | ")}`)
+    await pickOption(green, "Castle to attack from", "Ironhold Watch")
+
+    const radius = green.locator(".ant-form-item", { has: page.getByText("Search radius", { exact: true }) })
+    const slider = radius.getByRole("slider", { name: "Search radius" })
+    assert(await slider.getAttribute("aria-valuenow") === "50" && await radius.getByRole("spinbutton").inputValue() === "50", "Search radius starts at 50 on the slider and in the field")
+    await radius.getByRole("spinbutton").fill("80")
+    await radius.getByRole("spinbutton").blur()
+    assert(await slider.getAttribute("aria-valuenow") === "80", "typing 80 moves the slider")
+    await slider.focus()
+    await page.keyboard.press("ArrowRight")
+    assert(await radius.getByRole("spinbutton").inputValue() === "81", "an arrow key on the slider moves the field to 81")
+    for (const label of ["Most attacks a day", "Tool budget a day"])
+        assert(await green.getByRole("slider", { name: label }).count() === 1, `${label} has a slider beside its field`)
+    await green.locator(".ant-form-item", { has: page.getByText("Most attacks a day", { exact: true }) }).getByRole("spinbutton").fill("25")
+    await pickOption(green, "Tower filter", "Non-maxed only")
+
+    const sands = panel("Sands")
+    await sands.getByRole("checkbox", { name: "Enable Sands" }).check()
+    assert(await sands.locator(".gge-kingdom-toggle").getAttribute("aria-expanded") === "true", "ticking Sands opens it")
+    assert(await sands.getByText("This account has no castle in Burning Sands").isVisible() && await sands.locator("form").count() === 0, "a kingdom the account holds no castle in says so and shows no settings")
+    await sands.getByRole("checkbox", { name: "Enable Sands" }).uncheck()
+
+    const ice = panel("Ice")
+    await ice.getByRole("checkbox", { name: "Enable Ice" }).check()
+    const iceCastles = await optionsOf(ice, "Castle to attack from")
+    assert(iceCastles.length === 1 && iceCastles[0].includes("Frostgate"), `Ice's source castle lists Frostgate alone: ${iceCastles.join(" | ")}`)
+    assert(await chosen(ice, "Horse") === "Coin horse", "Ice starts on the coin horse")
+    await green.getByRole("button", { name: "Apply to all kingdoms" }).click()
+    await page.getByText("Horse copied to every kingdom").first().waitFor()
+    assert(await chosen(ice, "Horse") === "Feather", "Apply to all kingdoms copies Green's horse to Ice")
+    await axe(page, "towers 1440")
+    await page.screenshot({ path: `${out}/70-towers-1440.png`, fullPage: true })
+
+    await saveBar.getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const savedGreen = await stored(KINGDOMS[0][2]), savedIce = await stored(KINGDOMS[2][2]), savedSands = await stored(KINGDOMS[1][2])
+    const sorted = options => JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)))
+    assert(sorted(savedGreen.options) === sorted({ sourceCastle: { kingdom: 0, id: 1002 }, towerFilter: 2, searchRadius: 81, maxPerDay: 25, horse: 2, tools: 2, attackWaves: 4 }),
+        `Green saves the new options and none of the old ones: ${JSON.stringify(savedGreen.options)}`)
+    assert(savedIce.enabled && savedIce.options.horse === 2 && !savedSands.enabled && savedSands.options.horse === 2, "each kingdom saves by itself: Ice on with the feather, Sands still off")
+    await open()
+    assert(await chosen(panel("Green"), "Tower filter") === "Non-maxed only" && await panel("Green").getByRole("slider", { name: "Search radius" }).getAttribute("aria-valuenow") === "81"
+        && await panel("Ice").getByRole("checkbox", { name: "Enable Ice" }).isChecked(), "the saved kingdoms come back after a reload")
+
+    const global = page.locator(".ant-card", { has: page.getByText("All kingdoms", { exact: true }) })
+    assert((await global.getByText(/attacks in 24 hours/).innerText()).startsWith("3500"), "the Global card shows the account's daily cap")
+    assert(await global.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/m/account-settings?account=${ironhold.id}`, "and links to Account settings")
+    const soon = await global.locator("li[data-soon]").allInnerTexts()
+    assert(soon.length === 4 && soon.every(text => text.includes("Coming soon")) && ["Loot priority", "Stop after a defeat", "Speed bonus", "VIP commanders"].every((name, i) => soon[i].startsWith(name)),
+        "loot priority, stop after a defeat, the speed bonus and VIP commanders are listed as coming soon")
+    assert(await global.locator("input, button, [role=switch], [role=combobox]").count() === 0, "what is coming soon has no control to set")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers at 390")
+    await axe(page, "towers 390")
+    await page.screenshot({ path: `${out}/70-towers-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    const made = await rpc(page, "virtualPresets/create", { accountId: ironhold.id, name: "Towers, ranged first", plan: { kind: "manual", waves: Array.from({ length: 4 }, () => ({ kind: "preset", preset: 0 })), ast: [null, null, null], rw: [{ item: 1, amount: 40 }, ...Array(7).fill(null)] } })
+    await page.goto(`${CLIENT_URL}/m/virtual-presets?account=${ironhold.id}`)
+    await page.getByRole("button", { name: "Duplicate Towers, ranged first" }).click()
+    await page.getByText("Towers, ranged first (copy) added").first().waitFor()
+    const presets = await rpc(page, "virtualPresets/list", { accountId: ironhold.id })
+    const copy = presets.find(preset => preset.name === "Towers, ranged first (copy)")
+    assert(presets.length === 2 && copy && copy.id !== made.id && JSON.stringify(copy.plan) === JSON.stringify(made.plan), "Duplicate adds a second preset with the same waves under a name of its own")
+    await axe(page, "virtual presets with a copy 1440")
+    await page.screenshot({ path: `${out}/71-preset-duplicate-1440.png` })
+    for (const preset of presets) await rpc(page, "virtualPresets/remove", { id: preset.id })
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await open()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the Towers page is right to left")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers in Arabic at 1440")
+    await axe(page, "towers ar 1440")
+    await page.screenshot({ path: `${out}/72-towers-ar-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers in Arabic at 390")
+    await axe(page, "towers ar 390")
+    await page.screenshot({ path: `${out}/72-towers-ar-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await rpc(page, "account/setLocale", { locale: null })
+    for (const [, , plugin] of KINGDOMS)
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: Boolean(before[plugin]?.enabled), options: before[plugin]?.options ?? {} })
+    assert(JSON.stringify((await account()).plugins[KINGDOMS[0][2]] ?? null) === JSON.stringify(before[KINGDOMS[0][2]] ?? { enabled: false, options: {} }) || !before[KINGDOMS[0][2]], "Ironhold's tower settings are back as they were")
 }
 
 /** The account drawer's Logs tab and the Logs page, as the seeded demo player, in English. */
@@ -1352,6 +1503,17 @@ async function drivePalette(page, browser) {
 
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "towers") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveTowers(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "armies") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)

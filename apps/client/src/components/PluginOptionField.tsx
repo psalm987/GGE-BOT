@@ -1,7 +1,7 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { useQuery } from "@tanstack/react-query"
-import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Typography } from "antd"
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react"
+import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
+import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { KINGDOM_IDS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
@@ -35,11 +35,40 @@ function useCastleOptions(castles: AccountCastle[]) {
     return castles.map(c => ({ value: castleKey(c), label: t("plugins.castle.option", { name: c.name, kingdom: kingdomName(c.kingdom), x: c.x, y: c.y }) }))
 }
 
-/** One castle of the account, by kingdom and id. */
-function CastleSelect({ castles, value, onChange, ...aria }: { castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; "aria-label"?: string; id?: string }) {
+/** One castle of the account, by kingdom and id. A picked castle the account no longer lists shows as nothing picked. */
+function CastleSelect({ castles, value, onChange, placeholder, ...aria }: {
+    castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; placeholder?: string; "aria-label"?: string; id?: string
+}) {
     const options = useCastleOptions(castles)
-    return <Select {...aria} allowClear disabled={!castles.length} options={options} value={value ? castleKey(value) : undefined}
-        onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
+    const listed = value && castles.some(c => c.kingdom === value.kingdom && c.id === value.id)
+    return <Select {...aria} allowClear disabled={!castles.length} options={options} value={listed ? castleKey(value) : undefined} placeholder={placeholder}
+        status={value && castles.length && !listed ? "warning" : undefined} onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
+}
+
+/** A number as a slider with its exact value in a field beside it. */
+function SliderNumber({ value, onChange, min, max, step, suffix, label, id, disabled }: {
+    value?: number | null; onChange?: (v: number | null) => void; min: number; max: number; step?: number; suffix?: string; label: string; id?: string; disabled?: boolean
+}) {
+    return (
+        <div className="gge-slider-number">
+            <Slider min={min} max={max} step={step ?? 1} value={value ?? min} onChange={onChange} disabled={disabled} tooltip={{ open: false }} ariaLabelForHandle={label} />
+            <InputNumber id={id} min={min} max={max} step={step} value={value} onChange={onChange} suffix={suffix} disabled={disabled} />
+        </div>
+    )
+}
+
+/**
+ * On a page laid out by kingdom: copies one option's value to the page's other kingdoms. A Select marked `copyToAll`
+ * offers it.
+ */
+export const CopyToAll = createContext<((key: string, value: unknown) => void) | undefined>(undefined)
+
+function CopyToAllButton({ optionKey, label }: { optionKey: string; label: string }) {
+    const { t } = useTranslation("client")
+    const copy = useContext(CopyToAll)
+    const form = Form.useFormInstance()
+    if (!copy) return null
+    return <Button size="small" style={{ marginTop: 6 }} onClick={() => copy(optionKey, form.getFieldValue(["options", optionKey]))}>{t("plugins.copyToAll", { label })}</Button>
 }
 
 /**
@@ -221,7 +250,7 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: { 
         case "Select":
             return (
                 <Col {...half}>
-                    <Form.Item name={name} label={label} extra={extraOf(help)}>
+                    <Form.Item name={name} label={label} extra={extraOf(help, def.copyToAll && <CopyToAllButton optionKey={def.key} label={label} />)}>
                         <Select options={def.selection.map((option, value) => ({ label: t(option, { defaultValue: option }), value }))} />
                     </Form.Item>
                 </Col>
@@ -230,13 +259,23 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: { 
             return (
                 <Col {...half}>
                     <Form.Item name={name} label={label} extra={extraOf(tc("plugins.between", { min: def.min, max: def.max }), help)}>
-                        <InputNumber min={def.min} max={def.max} step={def.step} style={{ width: "100%" }}
-                            suffix={def.unit ? tc(`plugins.unit.${def.unit}`) : undefined} />
+                        {def.display === "slider"
+                            ? <SliderNumber min={def.min} max={def.max} step={def.step} label={label} suffix={def.unit ? tc(`plugins.unit.${def.unit}`) : undefined} />
+                            : <InputNumber min={def.min} max={def.max} step={def.step} style={{ width: "100%" }}
+                                suffix={def.unit ? tc(`plugins.unit.${def.unit}`) : undefined} />}
                     </Form.Item>
                 </Col>
             )
-        case "CastlePicker":
-            return <Col {...half}><Form.Item name={name} label={label} extra={extraOf(castles.length ? undefined : tc("plugins.castle.none"), help)}><CastleSelect castles={castles} /></Form.Item></Col>
+        case "CastlePicker": {
+            const listed = def.kingdom === undefined ? castles : castles.filter(c => c.kingdom === def.kingdom)
+            return (
+                <Col {...half}>
+                    <Form.Item name={name} label={label} extra={extraOf(castles.length ? undefined : tc("plugins.castle.none"), help)}>
+                        <CastleSelect castles={listed} placeholder={def.kingdom === undefined ? undefined : tc("plugins.castle.main")} />
+                    </Form.Item>
+                </Col>
+            )
+        }
         case "OrderedList":
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><OrderedList catalog={def.catalog} /></Form.Item></Col>
         case "Rows":

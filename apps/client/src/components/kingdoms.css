@@ -1,0 +1,43 @@
+.gge-kingdom { border: 1px solid var(--gge-rule); border-radius: 8px; background: rgba(0, 0, 0, 0.18); }
+.gge-kingdom[data-open] { border-color: var(--gge-gold); }
+.gge-kingdom-head { display: flex; align-items: stretch; }
+.gge-kingdom-check { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 56px; padding-inline-start: 8px; cursor: pointer; }
+.gge-kingdom-toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    min-height: 56px;
+    padding: 8px 16px 8px 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+.gge-kingdom-toggle:focus-visible { outline: 2px solid var(--gge-gold); outline-offset: -2px; border-radius: 8px; }
+.gge-kingdom-name { flex: 1 1 140px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.gge-kingdom-name > span { color: var(--gge-muted); font-size: 14px; }
+.gge-kingdom-kid { color: var(--gge-muted); font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.gge-kingdom-chevron { color: var(--gge-muted); transition: transform 0.15s ease; }
+.gge-kingdom[data-open] .gge-kingdom-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .gge-kingdom-chevron { transition: none; } }
+.gge-kingdom-body { padding: 4px 16px 16px; border-top: 1px solid var(--gge-rule); }
+.gge-kingdom-body[hidden] { display: none; }
+.gge-kingdom-reason { margin: 12px 0; color: var(--gge-muted); font-size: 14px; }
+.gge-kingdom-body > .gge-module-section { margin-top: 12px; }
+.gge-kingdoms { display: grid; gap: 12px; }
+.gge-kingdoms > * { min-width: 0; }
+.gge-global-list { list-style: none; margin: 0; padding: 0; }
+.gge-global-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-height: 48px; padding: 8px 0; border-bottom: 1px solid var(--gge-rule); }
+.gge-global-list li:last-child { border-bottom: 0; }
+.gge-global-name { flex: 0 0 180px; font-weight: 600; }
+.gge-global-text { flex: 1 1 260px; min-width: 0; color: var(--gge-muted); }
+.gge-global-list li[data-soon] .gge-global-name { color: var(--gge-muted); }
+.gge-slider-number { display: flex; align-items: center; gap: 12px; }
+.gge-slider-number > .ant-slider { flex: 1; min-width: 0; margin-inline: 6px; }
+.gge-slider-number > .ant-input-number { flex: 0 0 132px; }
+.gge-global-text a { text-decoration: underline; }

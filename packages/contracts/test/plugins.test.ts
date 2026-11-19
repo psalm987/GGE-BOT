@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings } from "../src/index.ts"
+import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, readLegacy } from "../src/index.ts"
 
 const catalog: PluginCatalogEntry[] = [
     {
@@ -187,5 +187,37 @@ describe("the richer option types", () => {
             .toEqual({ state: true, stopMinutesBefore: 30, bannerOrder: [660, 661], reserve: [], destinations: [] })
         expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: 900 } } }).attackForeign!.stopMinutesBefore).toBe(240)
         expect(effectivePluginConfig(richer, { attackForeign: { enabled: true, options: { stopMinutesBefore: "junk" } } }).attackForeign!.stopMinutesBefore).toBe(30)
+    })
+})
+
+describe("options a Select replaced", () => {
+    const towers: PluginCatalogEntry[] = [{
+        key: "towers", force: false, hidden: false, options: [
+            { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather"], default: 1, legacy: { from: { useFeather: false, useCoin: true }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 } },
+            { type: "Select", key: "waves", selection: ["All", "1", "2"], default: 2, legacy: { from: { waves: "" }, cases: [[{ waves: "1" }, 1], [{ waves: "2" }, 2]], otherwise: 0 } },
+            { type: "CastlePicker", key: "source", kingdom: 2 },
+            { type: "Number", key: "radius", min: 10, max: 100, unit: "tiles", display: "slider", default: 50 },
+        ],
+    }]
+    const defs = towers[0]!.options
+
+    test("a stored record reads as the choice its old options made, and loses them", () => {
+        expect(readLegacy(defs, { useFeather: true })).toEqual({ horse: 2 })
+        expect(readLegacy(defs, { useCoin: false, waves: "" })).toEqual({ horse: 0, waves: 0 })
+        expect(readLegacy(defs, { waves: "1" })).toEqual({ waves: 1 })
+    })
+    test("a stored choice wins over the options it replaced", () => {
+        expect(readLegacy(defs, { horse: 0, useFeather: true, waves: 2 })).toEqual({ horse: 0, waves: 2 })
+    })
+    test("a record with neither is left alone, so the defaults apply", () => {
+        expect(readLegacy(defs, {})).toEqual({})
+        expect(effectivePluginConfig(towers, { towers: { enabled: true, options: {} } }).towers).toEqual({ state: true, horse: 1, waves: 2, radius: 50 })
+    })
+    test("saving a record that still holds the old options stores the choice instead of refusing them", () => {
+        const out = normalizePluginSettings(towers, { towers: { enabled: true, options: { useFeather: true, useCoin: false, waves: "" } } })
+        expect(out.towers!.options).toEqual({ horse: 2, waves: 0 })
+    })
+    test("the bot gets the old choice, not the new default", () => {
+        expect(effectivePluginConfig(towers, { towers: { enabled: true, options: { useCoin: false, waves: "1" } } }).towers).toMatchObject({ horse: 0, waves: 1 })
     })
 })

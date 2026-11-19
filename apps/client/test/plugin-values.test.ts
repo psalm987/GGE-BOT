@@ -24,3 +24,26 @@ test("only values that differ from their default are saved, a reordered list inc
     expect(changedAdvanced(entry, values)).toBe(2)
 })
 
+
+const towers: PluginCatalogEntry = {
+    key: "attackBarronsGreatEmpire", force: false, hidden: false, options: [
+        { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 1, legacy: { from: { useFeather: false, useCoin: true }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 } },
+        { type: "Select", key: "tools", selection: ["No tools", "Ladders only", "Ladders, rams and mantlets"], default: 1, legacy: { from: { useWallTools: true, useShields: false }, cases: [[{ useWallTools: false }, 0], [{ useShields: true }, 2]], otherwise: 1 } },
+        { type: "Select", key: "attackWaves", selection: ["All waves", "1 wave", "2 waves", "3 waves", "4 waves"], default: 2, legacy: { from: { attackWaves: "" }, cases: [[{ attackWaves: "1" }, 1], [{ attackWaves: "2" }, 2], [{ attackWaves: "3" }, 3], [{ attackWaves: "4" }, 4]], otherwise: 0 } },
+    ],
+}
+
+test.each([
+    ["nothing stored", {}, { horse: 1, tools: 1, attackWaves: 2 }],
+    ["a feather, shields and four waves", { useFeather: true, useCoin: false, useShields: true, attackWaves: "4" }, { horse: 2, tools: 2, attackWaves: 4 }],
+    ["no horse, no wall tools and every wave", { useCoin: false, useWallTools: false, attackWaves: "" }, { horse: 0, tools: 0, attackWaves: 0 }],
+])("a config stored before the Selects shows the same choices: %s", (_, stored, shown) => {
+    expect(optionValues(towers, stored)).toEqual(shown)
+})
+
+test("an old config is unchanged until the player changes it, and then saves only the new options", () => {
+    const stored = { useFeather: true, useCoin: false, attackWaves: "" }
+    const shown = optionValues(towers, stored)
+    expect(optionsToSave(towers, shown)).toEqual({ horse: 2, attackWaves: 0 })
+    expect(optionsToSave(towers, { ...shown, horse: 3 })).toEqual({ horse: 3, attackWaves: 0 })
+})

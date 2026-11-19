@@ -1,4 +1,4 @@
-import { holdsValue, type OptionValue, type PluginCatalogEntry, type PluginSetting, type PluginSettings, type ValueOptionDef } from "@gge/contracts"
+import { holdsValue, readLegacy, type OptionValue, type PluginCatalogEntry, type PluginSetting, type PluginSettings, type ValueOptionDef } from "@gge/contracts"
 
 export type OptionValues = Record<string, OptionValue | undefined>
 export type PluginFormValues = Record<string, { enabled: boolean; options: OptionValues }>
@@ -10,8 +10,9 @@ const defaultOf = (def: ValueOptionDef): OptionValue | undefined =>
 const same = (a: OptionValue | undefined, b: OptionValue | undefined) =>
     a === b || (typeof a === "object" && typeof b === "object" && JSON.stringify(a) === JSON.stringify(b))
 
-/** One plugin's values on screen: saved values over catalog defaults. */
-export function optionValues(entry: PluginCatalogEntry, saved: PluginSetting["options"] = {}): OptionValues {
+/** One plugin's values on screen: saved values over catalog defaults. Options a Select replaced show as the choice they made. */
+export function optionValues(entry: PluginCatalogEntry, stored: PluginSetting["options"] = {}): OptionValues {
+    const saved = readLegacy(entry.options, stored)
     const options: OptionValues = {}
     for (const def of entry.options.filter(holdsValue)) {
         const value = saved[def.key] ?? defaultOf(def)

@@ -17,11 +17,25 @@ export const ItemCatalog = z.enum(["banners", "tools", "troops", "supportTools"]
 export type ItemCatalog = z.infer<typeof ItemCatalog>
 
 /** What a Number option counts, shown after its value. */
-export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins"])
+export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins", "tiles", "tools"])
 export type NumberUnit = z.infer<typeof NumberUnit>
 
 /** The game's kingdoms by id: Great Empire, Burning Sands, Everwinter Glacier, Fire Peaks, Storm Islands and Berimond. */
 export const KINGDOM_IDS = [0, 1, 2, 3, 4, 10] as const
+
+const Stored = z.union([z.string(), z.number(), z.boolean()])
+/**
+ * What a Select means for a record stored before it existed. `from` holds the options it replaced, each with the
+ * default it had. The first case whose values all match the stored ones gives the choice, else `otherwise`. A Select
+ * that took over an older option's own key names that key in `from`. Stored records are read through this and never
+ * rewritten; packages/bot-core/legacyOptions.js reads the same shape for the bot.
+ */
+export const LegacyChoice = z.object({
+    from: z.record(key, Stored),
+    cases: z.array(z.tuple([z.record(key, Stored), z.number().int().min(0)])),
+    otherwise: z.number().int().min(0),
+})
+export type LegacyChoice = z.infer<typeof LegacyChoice>
 
 /** A column of a Rows option: a castle, a kingdom, a game item, or a bounded number. */
 export const RowColumn = z.discriminatedUnion("type", [
@@ -45,14 +59,16 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     /** `min` and `max` make it a number field; an empty value means "use the default". */
     z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), advanced, army }),
     z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), advanced, army }),
-    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), advanced, army }),
+    /** `copyToAll` offers to copy the choice to the module's other kingdoms, on a page laid out by kingdom. */
+    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), legacy: LegacyChoice.optional(), copyToAll: z.literal(true).optional(), advanced, army }),
     z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), advanced }),
-    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), default: z.number().optional(), advanced, army }),
+    /** `display` "slider" draws a slider beside the number field. */
+    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), display: z.literal("slider").optional(), default: z.number().optional(), advanced, army }),
     /** Items from `catalog` in the order the plugin tries them, as wodIDs. */
     z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), advanced, army }),
     z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), advanced, army }),
-    /** One of the account's castles; null until the player picks one. */
-    z.looseObject({ type: z.literal("CastlePicker"), key, default: z.null().optional(), advanced }),
+    /** One of the account's castles; null until the player picks one. `kingdom` lists only that kingdom's castles. */
+    z.looseObject({ type: z.literal("CastlePicker"), key, kingdom: z.number().int().min(0).optional(), default: z.null().optional(), advanced }),
     /** The time skips this plugin may spend; null follows the account's Skips settings. */
     z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), advanced }),
     /** Autofill or Waves. `autofill` says which options make up the autofill, for its one-line summary. */
@@ -122,6 +138,27 @@ export class PluginSettingsError extends Error {
         super(problem.code)
         this.problem = problem
     }
+}
+
+/**
+ * A plugin's stored options as its options are today: each Select with a `legacy` rule gets its choice from the
+ * options it replaced, unless a choice is stored already, and the replaced options are left out.
+ */
+export function readLegacy<T extends Record<string, OptionValue | undefined>>(defs: PluginOptionDef[], stored: T): T {
+    const out: Record<string, OptionValue | undefined> = { ...stored }
+    const current = new Set(defs.map(def => def.key))
+    for (const def of defs) {
+        if (def.type !== "Select" || !def.legacy)
+            continue
+        const { from, cases, otherwise } = def.legacy
+        const old = (name: string) => stored[name] ?? from[name]
+        if (typeof stored[def.key] !== "number" && Object.keys(from).some(name => stored[name] !== undefined))
+            out[def.key] = cases.find(([when]) => Object.entries(when).every(([name, value]) => old(name) === value))?.[1] ?? otherwise
+        for (const name of Object.keys(from))
+            if (!current.has(name))
+                delete out[name]
+    }
+    return out as T
 }
 
 type TextDef = Extract<PluginOptionDef, { type: "Text" }>
@@ -253,7 +290,7 @@ export function normalizePluginSettings(catalog: PluginCatalogEntry[], settings:
             throw new PluginSettingsError({ code: "PLUGIN_UNKNOWN", params: { plugin: pluginKey } })
         const defs = new Map(entry.options.flatMap(def => def.key ? [[def.key, def] as const] : []))
         const options: Record<string, OptionValue> = {}
-        for (const [optionKey, value] of Object.entries(setting.options)) {
+        for (const [optionKey, value] of Object.entries(readLegacy(entry.options, setting.options))) {
             const def = defs.get(optionKey)
             if (!def)
                 throw new PluginSettingsError({ code: "PLUGIN_OPTION_UNKNOWN", params: { plugin: pluginKey, option: optionKey } })
@@ -281,7 +318,7 @@ export function effectivePluginConfig(catalog: PluginCatalogEntry[], settings: P
         for (const def of entry.options)
             if (holdsValue(def) && def.default !== undefined)
                 plugin[def.key] = def.default
-        Object.assign(plugin, saved?.options)
+        Object.assign(plugin, readLegacy(entry.options, saved?.options ?? {}))
         for (const def of entry.options) {
             if (!holdsValue(def) || plugin[def.key] === undefined)
                 continue

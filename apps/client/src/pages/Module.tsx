@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Card, Form, Grid, Progress, Row, Segmented, Select, Skeleton, Tabs, Tag, Typography, type FormInstance } from "antd"
-import { useEffect, useMemo, useReducer, useRef, useState } from "react"
+import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
 import { MODULES, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PluginStates, type PublicAccount } from "@gge/contracts"
@@ -9,7 +9,8 @@ import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
 import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
-import { PluginOptionField } from "../components/PluginOptionField.tsx"
+import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
+import { CopyToAll, PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
 import { changedAdvanced } from "../plugin-values.ts"
 import { attackPluginsOn, changedPlugins, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
@@ -162,6 +163,15 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
     ))
     const changed = new Set(changedPlugins(entries, state))
+    const byKingdom = module.tabs === "kingdoms"
+    /** One option's value, put into every plugin of the page: the forms that are drawn, and the page's own state. */
+    function copyToAll(key: string, value: unknown) {
+        for (const entry of entries) {
+            forms.current.get(entry.key)?.setFieldValue(["options", key], value)
+            dispatch({ type: "options", plugin: entry.key, options: { ...state.values[entry.key]?.options, [key]: value as OptionValues[string] } })
+        }
+        message.success(t("plugins.copiedToAll", { label: tb(key, { defaultValue: key }) }))
+    }
 
     return (
         <>
@@ -175,9 +185,11 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                             aria-label={t("plugins.attackCountLimited", { count: on, limit: attackLimit })} />}
                     </div>
                 )}
-                {entries.map(entry => <StatusRow key={entry.key} entry={entry} account={account} state={state} blocked={entry.category === "attack" && atLimit}
+                {!byKingdom && entries.map(entry => <StatusRow key={entry.key} entry={entry} account={account} state={state} blocked={entry.category === "attack" && atLimit}
                     onEnabled={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })} readOnly={readOnly || save.isPending} />)}
             </ParchmentCard>
+            <GlobalCard module={module} account={account}
+                attackLimit={(account?.plugins.attack?.options.attackLimit as string | undefined) || catalog.find(e => e.key === "attack")?.options.flatMap(def => def.key === "attackLimit" && def.type === "Text" ? def.default ?? [] : [])[0]} />
 
             {readOnly && <Typography.Text type="secondary" role="status">{t("module.readOnly")}</Typography.Text>}
             {hasAdvanced && (
@@ -187,7 +199,22 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                 </div>
             )}
 
-            {module.tabs === "per-plugin" && entries.length > 1
+            {byKingdom
+                ? <CopyToAll value={copyToAll}>
+                    <div className="gge-kingdoms">
+                        {entries.map((entry, i) => {
+                            const kingdom = module.kingdoms![module.plugins.indexOf(entry.key)]!
+                            return (
+                                <KingdomSection key={entry.key} entry={entry} kingdom={kingdom} module={module} account={account} state={state} changed={changed.has(entry.key)}
+                                    blocked={entry.category === "attack" && atLimit} readOnly={readOnly || save.isPending} locked={castles.length > 0 && !castles.some(c => c.kingdom === kingdom)}
+                                    onEnabled={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })}>
+                                    {sections[i]}
+                                </KingdomSection>
+                            )
+                        })}
+                    </div>
+                </CopyToAll>
+                : module.tabs === "per-plugin" && entries.length > 1
                 ? <Tabs items={entries.map((entry, i) => ({
                     key: entry.key, forceRender: true, children: sections[i],
                     label: <span>{tb(entry.key, { defaultValue: entry.key })}{changed.has(entry.key) && <Tag color="gold" style={{ marginInlineStart: 8 }}>{t("module.changed")}</Tag>}</span>,
@@ -206,6 +233,21 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                 </div>
             )}
         </>
+    )
+}
+
+function KingdomSection({ entry, kingdom, module, account, state, changed, blocked, readOnly, locked, onEnabled, children }: {
+    entry: PluginCatalogEntry; kingdom: number; module: ModuleDef; account: PublicAccount | undefined; state: ModuleState; changed: boolean
+    blocked: boolean; readOnly: boolean; locked: boolean; onEnabled: (enabled: boolean) => void; children: ReactNode
+}) {
+    const enabled = Boolean(state.values[entry.key]?.enabled)
+    const botRunning = account?.status?.actualState === "running"
+    const pill = usePluginPill(enabled, botRunning, botRunning ? account?.status?.pluginStates?.[entry.key] : undefined)
+    return (
+        <KingdomPanel kingdom={kingdom} icon={module.icon} enabled={enabled} onEnabled={onEnabled} blocked={blocked} readOnly={readOnly} changed={changed}
+            pill={account && enabled && botRunning ? pill : null} locked={locked}>
+            {children}
+        </KingdomPanel>
     )
 }
 

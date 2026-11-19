@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons"
+import { CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Input, Skeleton, Typography } from "antd"
 import { useEffect, useState } from "react"
@@ -41,6 +41,11 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
     const onError = (error: unknown) => message.error(messageOf(error))
     const create = useMutation(orpc.virtualPresets.create.mutationOptions({ onSuccess: onSaved, onError }))
     const update = useMutation(orpc.virtualPresets.update.mutationOptions({ onSuccess: onSaved, onError }))
+    const duplicate = useMutation(orpc.virtualPresets.create.mutationOptions({
+        onSuccess: preset => { void refresh(); message.success(t("presets.duplicated", { name: preset.name })) }, onError,
+    }))
+    /** The copy's name: the preset's, marked as a copy, inside the length a name may have. */
+    const copyName = (name: string) => { const mark = t("presets.copyMark"); return `${name.slice(0, 60 - mark.length - 1)} ${mark}` }
     const remove = useMutation(orpc.virtualPresets.remove.mutationOptions({ onError }))
     const saving = create.isPending || update.isPending
 
@@ -99,6 +104,8 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
                                     </span>
                                     <Button icon={<EditOutlined />} aria-label={t("presets.editNamed", { name: preset.name })}
                                         onClick={() => guarded(() => setDraft({ id: preset.id, name: preset.name, plan: preset.plan }))}>{t("presets.edit")}</Button>
+                                    <Button icon={<CopyOutlined />} aria-label={t("presets.duplicateNamed", { name: preset.name })} disabled={full || duplicate.isPending}
+                                        onClick={() => duplicate.mutate({ accountId: account.id, name: copyName(preset.name), plan: preset.plan })}>{t("presets.duplicate")}</Button>
                                     <Button danger icon={<DeleteOutlined />} aria-label={t("presets.deleteNamed", { name: preset.name })}
                                         onClick={() => confirmRemove(preset)}>{t("presets.delete")}</Button>
                                 </li>
