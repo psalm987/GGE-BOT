@@ -1,3 +1,16 @@
+/** The camps the `campSide` Select attacks, by the id of a camp's owner: -411 is the red side's and -410 the blue side's. */
+const CAMP_SIDES = [undefined, -411, -410]
+/** The first wave that carries event tools, counted from 0, by the choice of the `eventToolsFrom` Select. */
+const FIRST_TOOL_WAVES = [1, 2, 3, 4]
+/**
+ * `eventToolsFrom` replaced the text option `wavesTillChests`, which the plugin declared and never read. Event tools
+ * always started in the second wave, so that is what every stored record means.
+ */
+const waveOptions = () => [{
+    type: "Select", key: "eventToolsFrom", selection: ["Wave 2", "Wave 3", "Wave 4", "Wave 5"], default: 0, army: "autofill",
+    legacy: { from: { wavesTillChests: "4" }, cases: [], otherwise: 0 },
+}]
+
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
         checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
@@ -18,30 +31,40 @@ if (require('node:worker_threads').isMainThread)
                 default: "1-99"
             },
             { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
+            { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
+            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
                 key: "lowValueChests",
-                default: false
+                default: false,
+                army: "autofill"
             },
-            {
-                type: "Text",
-                key: "wavesTillChests",
-                default: "4"
-            },
+            ...waveOptions(),
             {
                 type: "Checkbox",
                 key: "noEventTools",
+                army: "autofill",
                 default: false
             },
             {
                 type: "Checkbox",
                 key: "reputation",
+                army: "autofill",
                 default: false
             },
             {
                 type: "Checkbox",
                 key: "foodTroopsOnly",
-                default: false
+                default: false,
+                army: "autofill"
+            },
+            require("../../army.js").unitOrderOption(),
+            require("../../army.js").supplyOption(),
+            {
+                type: "Checkbox",
+                key: "dryRun",
+                default: false,
+                advanced: true
             }
         ]
 
@@ -58,7 +81,14 @@ const pretty = require('pretty-time')
 
 const err = require('../../err.json')
 
-const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
+const { readLegacy } = require("../../legacyOptions.js")
+const pluginOptions = readLegacy(waveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
+const autofill = parseAutofill(pluginOptions)
+const campOwner = choice(CAMP_SIDES, pluginOptions.campSide, undefined)
+const firstToolWave = choice(FIRST_TOOL_WAVES, pluginOptions.eventToolsFrom, 1)
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
+reportStatus("waiting", "statusEventClosed")
 
 const kingdomID = KingdomID.greatEmpire
 const type = AreaType.beriCamp
@@ -86,7 +116,8 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
     if (movement.sourceAttack.type != type)
         return
 
-    skipTarget(movement.sourceAttack)
+    if (!pluginOptions.dryRun)
+        skipTarget(movement.sourceAttack)
 })
 
 let quit = false
@@ -99,17 +130,28 @@ events.on("eventStop", eventInfo => {
         return
 
     console.log("shuttingDownEvent", "eventEnded")
+    reportStatus("waiting", "statusEventClosed")
     quit = true
 })
 events.on("eventStart", async eventInfo => {
     if (eventInfo.EID != eventID)
         return
 
-    quit = false
+    const army = readArmy(pluginOptions, reportStatus)
+    if (!army)
+        return
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
     const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
+        .filter(ai => campOwner === undefined || ai.extraData[4] == campOwner)
+    if (areas.length == 0) {
+        console.error("campsNoneFound")
+        return reportStatus("stopped", campOwner === undefined ? "statusCampsNoneFound" : "statusCampsNoneOfSide")
+    }
+
+    quit = false
+    reportStatus("running")
 
     while (!quit) {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
@@ -119,8 +161,21 @@ events.on("eventStart", async eventInfo => {
 
                 areas.push(areaInfo)
 
-                await skipTarget(areaInfo)
+                if (!pluginOptions.dryRun)
+                    await skipTarget(areaInfo)
                 const level = areaInfo.extraData[1] + (areaInfo.extraData[6] == 100 ? 70 : 56)
+                const context = { level, extraData: areaInfo.extraData, dryRun: pluginOptions.dryRun }
+
+                if (army.mode == "waves") {
+                    const effects = commander.getEffects()
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    fillFromPlan(planned, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                    })
+                    return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
+                }
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
@@ -164,6 +219,8 @@ events.on("eventStart", async eventInfo => {
                             attackerShieldTools.push(unit)
                     }
                     else if (unit.unitInfo.fightType == 0) {
+                        if (!eats(autofill.supply, unit.unitInfo))
+                            continue
                         if (unit.unitInfo.role == "melee")
                             attackerMeleeTroops.push(unit)
                         else if (unit.unitInfo.role == "ranged")
@@ -178,6 +235,8 @@ events.on("eventStart", async eventInfo => {
 
                 if (allTroopCount < minTroopCount)
                     throw "NO_MORE_TROOPS"
+                orderUnits(attackerMeleeTroops, autofill.unitOrder)
+                orderUnits(attackerRangeTroops, autofill.unitOrder)
                 if (pluginOptions.reputation) {
                     attackerBerimondTools.sort((a, b) =>
                         Number(b.unitInfo.reputationBonus) - Number(a.unitInfo.reputationBonus))
@@ -248,10 +307,12 @@ events.on("eventStart", async eventInfo => {
                         wave.M.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                 attackerMeleeTroops : attackerRangeTroops, maxTroops))
-                        attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
-                        attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        if (autofill.unitOrder == "castle") {
+                            attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
+                            attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        }
                     }
-                    else if (!pluginOptions.noEventTools) {
+                    else if (!pluginOptions.noEventTools && index >= firstToolWave) {
                         const selectTool = i => {
                             let tools = attackerBerimondTools
                             if (tools.length == 0 || ((!tools[0]?.unitInfo.pointBonus && !tools[0]?.unitInfo.reputationBonus))) {
@@ -313,9 +374,9 @@ events.on("eventStart", async eventInfo => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
             })
-            if (!attackInfo) {
+            if (!attackInfo || attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 continue
             }
