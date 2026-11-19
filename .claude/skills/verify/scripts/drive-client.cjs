@@ -288,6 +288,123 @@ async function driveTowers(page) {
     assert(JSON.stringify((await account()).plugins[KINGDOMS[0][2]] ?? null) === JSON.stringify(before[KINGDOMS[0][2]] ?? { enabled: false, options: {} }) || !before[KINGDOMS[0][2]], "Ironhold's tower settings are back as they were")
 }
 
+/**
+ * The Phase C attack pages: Nomads and Samurai, Khan, Green Berimond and Storms. Each opens on a config stored before
+ * its new options, shows what that config always meant, takes a new choice, saves it and shows it again after a reload.
+ */
+async function drivePhaseC(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const before = (await account()).plugins
+    const stored = async plugin => (await account()).plugins[plugin] ?? { enabled: false, options: {} }
+    const OLD = {
+        attackNomads: { useFeather: true },
+        attackKhan: { wavesTillChests: "2" },
+        attackBerimondInvasion: { wavesTillChests: "4", reputation: true },
+        attackStormForts: { buyDecoration: true },
+    }
+    for (const [plugin, options] of Object.entries(OLD))
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options })
+
+    const chosen = async name => (await page.getByRole("combobox", { name, exact: true }).first().locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
+    const pickOption = async (name, text) => {
+        const box = page.getByRole("combobox", { name, exact: true }).first()
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
+        await dropdown.waitFor()
+        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
+        await dropdown.waitFor({ state: "hidden" })
+    }
+    const number = label => page.locator(".ant-form-item:visible", { has: page.getByText(label, { exact: true }) }).getByRole("spinbutton").first()
+    const save = async () => {
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+    }
+    const shots = async (file, what) => {
+        await axe(page, `${what} 1440`)
+        await page.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true })
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, `no horizontal overflow on ${what} at 390`)
+        await axe(page, `${what} 390`)
+        await page.screenshot({ path: `${out}/${file}-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+    }
+
+    await openModule(page, "Nomads, Samurai and Daimyo")
+    assert(await chosen("Camps to attack") === "Every camp, with time skips", "a Nomads config stored before the target options cycles the camps with skips")
+    assert(!(await page.getByText("Camp X", { exact: true }).first().isVisible()), "the camp's coordinates are hidden while every camp is attacked")
+    await pickOption("Camps to attack", "One camp, with time skips")
+    await page.getByText("Camp X", { exact: true }).first().waitFor()
+    await number("Camp X").fill("640")
+    await number("Camp Y").fill("12")
+    assert(await page.getByRole("radio", { name: "Autofill" }).first().isChecked(), "the army starts on Autofill")
+    await save()
+    const nomads = (await stored("attackNomads")).options
+    assert(nomads.targetMode === 2 && nomads.targetX === 640 && nomads.targetY === 12 && nomads.useFeather === true, `Nomads saves one camp at 640:12 and keeps the old horse: ${JSON.stringify(nomads)}`)
+    await openModule(page, "Nomads, Samurai and Daimyo")
+    assert(await chosen("Camps to attack") === "One camp, with time skips" && await number("Camp X").inputValue() === "640", "the one camp comes back after a reload")
+    await shots("80-nomads", "nomads")
+
+    await openModule(page, "Khan")
+    assert(await chosen("Rage waves") === "1 wave" && await chosen("Tablet chest waves") === "Every later wave", "a stored wavesTillChests of 2 shows as one rage wave, then chests in every later wave")
+    await page.getByRole("checkbox", { name: "Tablets only: never taunt the Khan" }).check()
+    await number("Pause hits at this many incoming Khan attacks").fill("120")
+    assert(await number("Flaming arrows").inputValue() === "0", "the defence stock starts at 0, which buys nothing")
+    await number("Flaming arrows").fill("500")
+    await save()
+    const khan = (await stored("attackKhan")).options
+    assert(khan.rageWaves === 1 && khan.tabletsOnly === true && khan.pauseAtTaunts === 120 && khan.stockFlamingArrows === 500 && !("wavesTillChests" in khan), `Khan saves the new options and drops the old key: ${JSON.stringify(khan)}`)
+    await openModule(page, "Khan")
+    assert(await page.getByRole("checkbox", { name: "Tablets only: never taunt the Khan" }).isChecked() && await number("Pause hits at this many incoming Khan attacks").inputValue() === "120", "Khan's choices come back after a reload")
+    await shots("81-khan", "khan")
+
+    await openModule(page, "Green Berimond")
+    assert(await chosen("Camp side") === "All camps" && await chosen("Event tools from") === "Wave 2", "a stored Berimond config attacks all camps, with event tools from the second wave as it always did")
+    await pickOption("Camp side", "Red camps only")
+    await save()
+    const berimond = (await stored("attackBerimondInvasion")).options
+    assert(berimond.campSide === 1 && berimond.reputation === true && !("wavesTillChests" in berimond), `Berimond saves the red side and drops the unread key: ${JSON.stringify(berimond)}`)
+    await openModule(page, "Green Berimond")
+    assert(await chosen("Camp side") === "Red camps only", "the camp side comes back after a reload")
+    await shots("82-berimond", "green berimond")
+
+    await openModule(page, "Storms")
+    assert(await chosen("Decoration") === "Whale Lagoon" && await chosen("Fort order") === "Highest level first", "the old Buy decoration checkbox shows as the Whale Lagoon, and forts go by level")
+    await pickOption("Fort order", "Nearest first")
+    await pickOption("Decoration", "Tide Garden")
+    await page.getByRole("checkbox", { name: "Buy 5-hour skips" }).check()
+    await number("Scaling ladders").fill("2000")
+    await save()
+    const storms = (await stored("attackStormForts")).options
+    assert(storms.fortOrder === 1 && storms.decoration === 2 && storms.buySkips5h === true && storms.stockLadders === 2000 && !("buyDecoration" in storms), `Storms saves the new options and drops the old key: ${JSON.stringify(storms)}`)
+    await openModule(page, "Storms")
+    assert(await chosen("Decoration") === "Tide Garden" && await number("Scaling ladders").inputValue() === "2000", "the Storm choices come back after a reload")
+    await shots("83-storms", "storms")
+    await page.getByRole("tab", { name: /Mead/ }).click()
+    await page.getByText("Send mead when it lasts less than", { exact: true }).waitFor()
+    assert(await number("Send mead when it lasts less than").inputValue() === "2.1", "the mead tab shows the threshold the plugin always used")
+    await page.screenshot({ path: `${out}/83-storms-mead-1440.png`, fullPage: true })
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    for (const [id, file] of [["nom-sam-daimyo", "80-nomads"], ["khan", "81-khan"], ["green-berimond", "82-berimond"], ["storms", "83-storms"]]) {
+        await page.goto(`${CLIENT_URL}/m/${id}?account=${(await account()).id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        assert(await page.evaluate(() => document.documentElement.dir) === "rtl" && await overflowOf(page) <= 0, `${id} is right to left in Arabic with no overflow at 1440`)
+        await axe(page, `${id} ar 1440`)
+        await page.screenshot({ path: `${out}/${file}-ar-1440.png`, fullPage: true })
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, `no horizontal overflow on ${id} in Arabic at 390`)
+        await axe(page, `${id} ar 390`)
+        await page.screenshot({ path: `${out}/${file}-ar-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+    }
+    await rpc(page, "account/setLocale", { locale: null })
+    for (const plugin of Object.keys(OLD))
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: Boolean(before[plugin]?.enabled), options: before[plugin]?.options ?? {} })
+}
+
 /** The account drawer's Logs tab and the Logs page, as the seeded demo player, in English. */
 async function driveLogs(page) {
     const searchOf = () => new URL(page.url()).searchParams
@@ -1539,6 +1656,17 @@ async function drivePalette(page, browser) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveTowers(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "phase-c") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await drivePhaseC(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

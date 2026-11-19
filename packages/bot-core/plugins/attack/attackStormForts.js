@@ -16,6 +16,7 @@ if (require('node:worker_threads').isMainThread) {
     module.exports = {
         checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
         pluginOptions: [
+            { type: "Select", key: "fortOrder", selection: ["Highest level first", "Nearest first"], default: 0 },
             { type: "Label", key: "easyForts", md: 2 },
             { type: "Checkbox", key: "allowLvl60Easy", default: true },
             { type: "Checkbox", key: "allowLvl70Easy", default: true },
@@ -29,7 +30,6 @@ if (require('node:worker_threads').isMainThread) {
             { type: "Checkbox", key: "allowLvl70Hard", default: false },
             { type: "Checkbox", key: "allowLvl80Hard", default: false },
 
-            { type: "Select", key: "fortOrder", selection: ["Highest level first", "Nearest first"], default: 0 },
             ...armyOptions({ sides: { left: true, right: true }, waves: 3, tools: [], unitOrder: "unitOrder", supply: "supply" }),
             unitOrderOption(),
             supplyOption(),
