@@ -246,8 +246,11 @@ if([,""].includes(pluginOptions.attackLimit))
 
 /** The game sends no more than this many attacks for an account in any 24 hours, so no setting may ask for more. */
 const GAME_DAILY_ATTACKS = 4000
-/** The attacks the account may send today: the lowest of the player's limit, the game's own threshold and the game's hard limit. */
-const dailyLimit = () => Math.min(...[pluginOptions.attackLimit, attackThreshold, GAME_DAILY_ATTACKS].map(Number).filter(limit => limit > 0))
+/**
+ * The attacks the account may send today: the player's limit (or, with none, the game's ACTH), never above the game's hard
+ * limit. ACTH's exact meaning is unconfirmed, so it does not undercut a limit the player set.
+ */
+const dailyLimit = () => Math.min(Number(pluginOptions.attackLimit || attackThreshold) || GAME_DAILY_ATTACKS, GAME_DAILY_ATTACKS)
 
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 /** Attacks used today are reported in steps of this many, so the status isn't rewritten after every attack. */

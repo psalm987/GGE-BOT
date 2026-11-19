@@ -126,7 +126,7 @@ describe("the account's limits", () => {
 
     test.each([
         ["a limit above the game's 4,000 is cut to 4,000", "9000", 99_999, 3999, 4000],
-        ["the game's own threshold wins when it is lower", "3500", 1200, 1199, 1200],
+        ["the player's limit holds even when the game's ACTH is lower", "3500", 1200, 3499, 3500],
         ["the player's limit wins when it is lower", "500", 9999, 499, 500],
     ])("%s", async (_, attackLimit, ACTH, under, cap) => {
         const open = startTowers({}, { castles: castles(), map: row(), commanders: 9, travelSeconds: 30, cooldown: 60, attackOptions: { attackLimit } })
