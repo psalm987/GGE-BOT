@@ -3,6 +3,7 @@
  * tools it keeps in stock. Nothing here talks to the game.
  */
 const { choice } = require("./army.js")
+const { stockOptions, spendOptions } = require("./stockOptions.js")
 
 /** A wave count of the `rageWaves` and `boosterWaves` Selects, by choice. The last choice is every wave that is left. */
 const WAVE_COUNTS = [0, 1, 2, 3, 4, 5, Infinity]
@@ -25,17 +26,13 @@ const khanWaveOptions = () => [
 
 /** The defence tools the plugin can keep in stock, as [option key, wodID]: flaming arrows, hurling rocks, gate reinforcement and sharpened stakes. */
 const DEFENCE_TOOLS = [["stockFlamingArrows", 629], ["stockHurlingRocks", 637], ["stockGateReinforcement", 626], ["stockSharpenedStakes", 634]]
-/** A tool that has run low is bought in batches of this many. */
-const ARMOURER_BATCH = 1000
-
 /** The taunt and stock options. Every stock starts at 0, which buys nothing. */
 const khanChainOptions = () => [
     { type: "Checkbox", key: "tabletsOnly", default: false },
     { type: "Number", key: "pauseAtTaunts", min: 0, max: 500, unit: "attacks", default: 0 },
     { type: "Label", key: "defenceStock" },
-    ...DEFENCE_TOOLS.map(([key]) => ({ type: "Number", key, min: 0, max: 100_000, step: 100, unit: "tools", default: 0 })),
-    { type: "Number", key: "armourerSpendCap", min: 0, max: 2_147_483_647, step: 1000, unit: "coins", default: 500_000 },
-    { type: "Number", key: "armourerCoinFloor", min: 0, max: 2_147_483_647, step: 1000, unit: "coins", default: 0 },
+    ...stockOptions(DEFENCE_TOOLS),
+    ...spendOptions(),
 ]
 
 const idList = value => Array.isArray(value) ? value.filter(Number.isInteger) : []
@@ -62,4 +59,4 @@ const incomingTaunts = (movements, playerID, campType) => movements.filter(march
     march.targetOwner?.ownerID == playerID && march.owner?.ownerID != playerID &&
     (march.sourceAttack?.type == campType || march.owner?.ownerID == KHAN_OWNER)).length
 
-module.exports = { khanWaveOptions, khanChainOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS, ARMOURER_BATCH }
+module.exports = { khanWaveOptions, khanChainOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS }

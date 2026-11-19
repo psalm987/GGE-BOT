@@ -100,7 +100,7 @@ const ggeConfig = require("../../config.js")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS, ARMOURER_BATCH } = require("../../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS } = require("../../khan.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
@@ -509,22 +509,5 @@ events.on("eventStart", async ({ EID, EDID }) => {
 })
 
 
-/** Tops up the defence tools the Khan's counter-attacks use up, from the armourer, when the main castle runs low. */
-const wantedTools = DEFENCE_TOOLS.map(([key, tool]) => ({ tool, keep: Number(pluginOptions[key]) || 0 })).filter(row => row.keep > 0)
-if (wantedTools.length > 0) {
-    const { chore } = require("../../chores.js")
-    const { topUp } = require("../../armourer.js")
-    const stock = require("../stock.js")
-    const { boxMullerRandom } = require("../../pacing.js")
-    events.once("load", () => chore("khanArmourer", async active => {
-        await stock.refreshHome()
-        const rows = wantedTools.map(row => ({ ...row, have: stock.toolStock(row.tool, { kingdom: kingdomID }).total }))
-        const { bought, spent } = await topUp(rows, {
-            kingdom: kingdomID, batch: ARMOURER_BATCH, dryRun: Boolean(pluginOptions.dryRun), active,
-            coinFloor: Number(pluginOptions.armourerCoinFloor) || 0, spendCap: Number(pluginOptions.armourerSpendCap) || 0,
-        })
-        if (bought > 0)
-            console.info("khanDefenceToolsBought", bought, "khanDefenceToolsCoins", spent)
-        return boxMullerRandom(25 * 60_000, 35 * 60_000)
-    }, boxMullerRandom(3 * 60_000, 8 * 60_000)))
-}
+// The Khan's counter-attacks use up defence tools, so the main castle's stock is topped up from the armourer.
+require("../../armourer.js").keepStocked("khanArmourer", DEFENCE_TOOLS, kingdomID, pluginOptions, ["khanDefenceToolsBought", "khanDefenceToolsCoins"])

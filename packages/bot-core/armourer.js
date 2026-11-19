@@ -5,8 +5,9 @@
 const err = require("./err.json")
 const { xtHandler } = require("./ggeBot.js")
 const { resources, activeEvent } = require("./protocols.js")
-const { ask } = require("./chores.js")
-const { pause } = require("./pacing.js")
+const { events } = require("./ggeBot.js")
+const { ask, chore } = require("./chores.js")
+const { pause, boxMullerRandom } = require("./pacing.js")
 const loadItem = require("./paths.js").loadItem
 
 const ARMOURER_EVENT = 27
@@ -81,4 +82,31 @@ async function topUp(rows, { kingdom, batch, coinFloor, spendCap, dryRun, active
     return { bought, spent }
 }
 
-module.exports = { ARMOURER_EVENT, units, liveOffers, buy, topUp }
+/** A tool that has run low is bought in batches of this many. */
+const BATCH = 1000
+
+/**
+ * Keeps tools in stock in one kingdom for a plugin, checking about every 30 minutes from a few minutes after login.
+ * `stocks` is `[[option key, wodID]]` and `options` the plugin's: a tool whose option is above 0 is bought, one batch
+ * at a time, while the kingdom holds fewer than that. `armourerSpendCap` and `armourerCoinFloor` bound each check,
+ * and `dryRun` logs the orders instead. With every stock at 0 nothing is started.
+ */
+function keepStocked(name, stocks, kingdom, options, logKeys) {
+    const wanted = stocks.map(([key, tool]) => ({ tool, keep: Number(options[key]) || 0 })).filter(row => row.keep > 0)
+    if (wanted.length == 0)
+        return
+    const stock = require("./plugins/stock.js")
+    events.once("load", () => chore(name, async active => {
+        await stock.refreshHome()
+        const rows = wanted.map(row => ({ ...row, have: stock.toolStock(row.tool, { kingdom }).total }))
+        const { bought, spent } = await topUp(rows, {
+            kingdom, batch: BATCH, dryRun: Boolean(options.dryRun), active,
+            coinFloor: Number(options.armourerCoinFloor) || 0, spendCap: Number(options.armourerSpendCap) || 0,
+        })
+        if (bought > 0)
+            console.info(logKeys[0], bought, logKeys[1], spent)
+        return boxMullerRandom(25 * 60_000, 35 * 60_000)
+    }, boxMullerRandom(3 * 60_000, 8 * 60_000)))
+}
+
+module.exports = { ARMOURER_EVENT, units, liveOffers, buy, topUp, keepStocked }
