@@ -21,7 +21,7 @@ function useAutofillSummary() {
         return [
             sides || t("army.summary.noSides"),
             autofill.waves === "all" ? t("army.summary.allWaves") : t("army.summary.waves", { n: autofill.waves }),
-            autofill.tools.length ? autofill.tools.map(key => tb(key, { defaultValue: key })).join(", ") : t("army.summary.noTools"),
+            autofill.tools.length ? autofill.tools.map(key => tb(key, { defaultValue: key })).join(", ") : source.whenNoTools ? tb(source.whenNoTools) : t("army.summary.noTools"),
         ].join(" · ")
     }
 }

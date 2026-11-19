@@ -22,7 +22,7 @@ if (require('node:worker_threads').isMainThread)
                 default: "4"
             },
             ...require("../../eventCamps.js").campTargetOptions(),
-            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], unitOrder: "unitOrder", supply: "supply" }),
+            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
                 key: "eventWallToolsFirst",

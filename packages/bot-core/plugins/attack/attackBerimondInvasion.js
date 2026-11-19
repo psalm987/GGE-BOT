@@ -32,7 +32,7 @@ if (require('node:worker_threads').isMainThread)
             },
             { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
             { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
-            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], unitOrder: "unitOrder", supply: "supply" }),
+            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
                 key: "lowValueChests",

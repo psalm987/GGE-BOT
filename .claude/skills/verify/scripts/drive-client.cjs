@@ -348,6 +348,8 @@ async function drivePhaseC(page) {
 
     await openModule(page, "Khan")
     assert(await chosen("Rage waves") === "1 wave" && await chosen("Tablet chest waves") === "Every later wave", "a stored wavesTillChests of 2 shows as one rage wave, then chests in every later wave")
+    const khanSummary = await page.locator("[data-army-summary]").innerText()
+    assert(khanSummary === "L·F·R+CY · all waves · Event tools", `the army line says event tools go while no tool option is on: ${khanSummary}`)
     await page.getByRole("checkbox", { name: "Tablets only: never taunt the Khan" }).check()
     await number("Pause hits at this many incoming Khan attacks").fill("120")
     assert(await number("Flaming arrows").inputValue() === "0", "the defence stock starts at 0, which buys nothing")
