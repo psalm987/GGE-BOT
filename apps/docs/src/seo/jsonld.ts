@@ -1,7 +1,7 @@
 // Typed builders for the schema.org structured data each page carries. Pure, so they test without Astro.
 export const SITE_URL = "https://docs.neisesolutions.com"
 export const ORG_NAME = "Neise Solutions"
-export const ORG_URL = "https://neisesolutions.com"
+export const ORG_URL = "https://docs.neisesolutions.com"
 export const APP_NAME = "GGE Command"
 
 export type Crumb = { name: string; url: string }
