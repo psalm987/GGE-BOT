@@ -63,7 +63,7 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), legacy: LegacyChoice.optional(), copyToAll: z.literal(true).optional(), advanced, army }),
     z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), advanced }),
     /** `display` "slider" draws a slider beside the number field. */
-    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), display: z.literal("slider").optional(), default: z.number().optional(), advanced, army }),
+    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), display: z.literal("slider").optional(), default: z.number().optional(), showWhen: z.object({ key, in: z.array(z.number().int()).min(1) }).optional(), advanced, army }),
     /** Items from `catalog` in the order the plugin tries them, as wodIDs. */
     z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), advanced, army }),
     z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), advanced, army }),

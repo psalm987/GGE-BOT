@@ -202,6 +202,13 @@ async function driveTowers(page) {
     await green.getByRole("button", { name: "Apply to all kingdoms" }).click()
     await page.getByText("Horse copied to every kingdom").first().waitFor()
     assert(await chosen(ice, "Horse") === "Feather", "Apply to all kingdoms copies Green's horse to Ice")
+    assert(!(await ice.getByText("Feather beyond", { exact: true }).isVisible()), "Feather beyond is hidden while the horse is Feather")
+    await pickOption(ice, "Horse", "By distance")
+    await ice.getByText("Feather beyond", { exact: true }).waitFor()
+    assert(true, "choosing By distance shows Feather beyond")
+    await pickOption(ice, "Horse", "Feather")
+    await ice.getByText("Feather beyond", { exact: true }).waitFor({ state: "hidden" })
+    assert(true, "going back to Feather hides it again")
 
     // Commanders: Ironhold has 18, which the seeded bot report says.
     const checks = scope => scope.getByRole("complementary", { name: "Setup checks" })

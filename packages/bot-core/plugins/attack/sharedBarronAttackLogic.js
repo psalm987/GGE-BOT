@@ -35,7 +35,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
         type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 1, copyToAll: true,
         legacy: { from: { useFeather: false, useCoin: true }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 },
     },
-    { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "tiles", default: 15 },
+    { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "tiles", default: 15, showWhen: { key: "horse", in: [3] } },
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
     { type: "Text", key: "commanderWhiteList", default: "1-99" },

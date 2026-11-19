@@ -316,10 +316,13 @@ function PluginFields({ entry, castles, showAdvanced, accountId }: { entry: Plug
     const modeKey = entry.options.find(def => def.type === "ArmyMode")?.key
     const mode = (Form.useWatch(["options", modeKey ?? ""]) as ArmyMode | undefined) ?? "autofill"
     const otherMode = (def: PluginOptionDef) => "army" in def && def.army !== undefined && def.army !== mode
+    // An option with showWhen shows only while the option it names holds one of the listed choices.
+    const values = (Form.useWatch(["options"]) as Record<string, unknown> | undefined) ?? {}
+    const unwanted = (def: PluginOptionDef) => def.type === "Number" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
     return (
         <Row>
             {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId}
-                hidden={(Boolean(def.advanced) && !showAdvanced) || otherMode(def)} />)}
+                hidden={(Boolean(def.advanced) && !showAdvanced) || otherMode(def) || unwanted(def)} />)}
         </Row>
     )
 }
