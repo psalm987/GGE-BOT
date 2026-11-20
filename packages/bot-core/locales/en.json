@@ -21,6 +21,7 @@
     "resourceSend": "Send wood and stone from the Storm Islands to your other castles",
     "attack": "Attack",
     "sharedBarronAttackLogic": "Baron attacks",
+    "sharedEventCampLogic": "Event camps",
     "sharedFortressAttackLogic": "Fortress attacks",
     "incomingAttacks": "Incoming attacks",
     "aquaIsland": "Aquamarine Islands",

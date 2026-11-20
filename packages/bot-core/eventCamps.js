@@ -58,7 +58,9 @@ function campQueue(target, areas = []) {
          */
         pick(movements = [], now = Date.now()) {
             const marchingTo = area => movements.some(march => march.targetAttack?.x == area.x && march.targetAttack?.y == area.y)
-            const index = queue.maySkip(now) ? Math.min(0, areas.length - 1) : areas.findIndex(area => readyAt(area) <= now && !marchingTo(area))
+            if (areas.length == 0)
+                return undefined
+            const index = queue.maySkip(now) ? 0 : areas.findIndex(area => readyAt(area) <= now && !marchingTo(area))
             if (index < 0)
                 return undefined
             const [area] = areas.splice(index, 1)
@@ -87,4 +89,29 @@ async function campAt(getAreaInfo, gridBoxes, kingdomID, { x, y }, type) {
     return (areaInfo ?? []).find(area => area.type == type && area.x == x && area.y == y)
 }
 
-module.exports = { TARGET_MODES, campTargetOptions, parseTarget, readyAt, campQueue, campAt }
+/**
+ * What sets one event's camps apart from another's. `areaType` names the camp in protocols.js' AreaType, `kingdom` is
+ * where the camps stand, and `booster` is the field an event tool carries its point bonus in. A camp of the classic
+ * difficulty is looked up in the `classicCamps` item file. In the first wave a slot takes `plainToolCount` tools
+ * while the castle holds no point boosters, and with `splitToolRoom` the slots of a side share its room equally.
+ */
+const EVENT_PROFILES = {
+    nomad: {
+        eventID: 72, areaType: "nomadCamp", kingdom: 0, booster: "khanTabletBooster", classicCamps: "nomadCamps",
+        plainToolCount: 40, splitToolRoom: true,
+        isEventTool: info => info.khanTabletBooster != undefined && info.ragePointBonus == undefined,
+        isTroop: (info, options) => info.fightType == 0 && !info.beefSupply && !(info.foodSupply && !options.useFood),
+        classicCamp: (camps, extraData) => camps.find(camp => extraData[1] == camp.id),
+        classicLevel: camp => 80 + camp.countVictory,
+    },
+    samurai: {
+        eventID: 80, areaType: "samCamp", kingdom: 0, booster: "samuraiTokenBooster", classicCamps: "samuraiCamps",
+        plainToolCount: 20, splitToolRoom: false,
+        isEventTool: info => info.samuraiTokenBooster != undefined,
+        isTroop: info => info.fightType == 0,
+        classicCamp: (camps, extraData) => camps.find(camp => extraData[1] + 1 == Number(camp.countVictory)),
+        classicLevel: camp => 80 + Number(camp.countVictory),
+    },
+}
+
+module.exports = { EVENT_PROFILES, TARGET_MODES, campTargetOptions, parseTarget, readyAt, campQueue, campAt }
