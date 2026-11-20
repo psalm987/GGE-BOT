@@ -22,7 +22,7 @@ const optionDefs = [
             { key: "stationKeep", type: "number", min: 0, max: 10_000_000 },
         ],
     },
-    { type: "Text", key: "commanderWhiteList", default: "1-99" },
+    { type: "Text", key: "commanderWhiteList", default: "1-50" },
     { type: "Select", key: "stationGateFallback", selection: GATE_CHOICES, default: 0 },
     { type: "Number", key: "stationGateMaxRubies", min: 0, max: 60_000, step: 10, unit: "rubies", default: 700 },
     { type: "Number", key: "stationMinArmy", min: 0, max: 10_000_000, step: 1, unit: "troops", default: 0, advanced: true },

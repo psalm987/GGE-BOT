@@ -15,7 +15,7 @@ const gloryOptions = [
     { type: "Select", key: "gloryDifficulty", selection: DIFFICULTIES, default: 0 },
     { type: "Number", key: "scoreShutoff", min: 0, max: 100_000_000, step: 1, default: 0 },
     { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
-    { type: "Text", key: "commanderWhiteList", default: "1-99" },
+    { type: "Text", key: "commanderWhiteList", default: "1-50" },
     { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather"], default: 0 },
     ...armyOptions({
         sides: { left: true, front: true, right: true, courtyard: "courtyardWave" }, waves: "all", tools: ["waveTemplate"],

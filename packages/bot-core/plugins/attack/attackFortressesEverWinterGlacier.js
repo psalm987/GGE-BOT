@@ -5,7 +5,7 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Text",
                 key: "commanderWhiteList",
-                default: "1-99"
+                default: "1-50"
             },
             ...require("../../army.js").fortressOptions(3)
         ]

@@ -116,3 +116,20 @@ test("three rejections in a row halt attacks; a success resets the count", async
     await vi.advanceTimersByTimeAsync(10 * 60_000)
     await expect(waitToAttack(ok)).rejects.toBe("ATTACKS_HALTED")
 })
+
+test("with the default settings attacks go about every 6 seconds, also past the 120th of the hour", async () => {
+    const declared = loadModule("plugins/attack/attack.js", { mainThread: true }).mod.pluginOptions
+    const defaults = Object.fromEntries(declared.map(def => [def.key, def.default]))
+    vi.useFakeTimers()
+    const { waitToAttack } = loadAttack({ ...defaults, attackLimit: "" })
+    const ranAt = []
+    const start = Date.now()
+    for (let i = 0; i < 200; i++)
+        waitToAttack(() => { ranAt.push(Date.now() - start); return true })
+    for (let t = 0; t < 2 * 60 * 60_000 && ranAt.length < 200; t += 250)
+        await vi.advanceTimersByTimeAsync(250)
+    expect(ranAt).toHaveLength(200)
+    const gaps = ranAt.slice(1).map((at, i) => at - ranAt[i])
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(4500)
+    expect(Math.max(...gaps)).toBeLessThan(7500)
+}, 60_000)
