@@ -91,7 +91,7 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
                     <div className="gge-preset-actions">
                         <Button type="primary" icon={<PlusOutlined />} disabled={full} className="gge-press" aria-describedby={full ? "preset-limit" : undefined}
                             onClick={() => guarded(() => setDraft({ name: "", plan: emptyPlan() }))}>{t("presets.new")}</Button>
-                        <Typography.Text type="secondary" data-testid="preset-count">{t("presets.count", { used: list.length, max: MAX_VIRTUAL_PRESETS })}</Typography.Text>
+                        {!presets.isPending && <Typography.Text type="secondary" data-testid="preset-count">{t("presets.count", { used: list.length, max: MAX_VIRTUAL_PRESETS })}</Typography.Text>}
                         {full && <Typography.Text id="preset-limit" type="secondary">{t("presets.limit", { max: MAX_VIRTUAL_PRESETS })}</Typography.Text>}
                     </div>
                     {presets.isPending ? <Skeleton active paragraph={{ rows: 2 }} />

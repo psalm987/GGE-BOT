@@ -193,7 +193,6 @@ async function drivePlayer(browser, lng, dirOut, demoCookie) {
         await screens(screen, async () => {
             await page.goto(`${CLIENT_URL}/m/${id}`)
             await page.locator(".gge-module-plugin-row, .ant-tag").first().waitFor()
-            await page.locator(".gge-module-tools .ant-segmented-item").last().click({ timeout: 1000 }).catch(() => {})
             await page.waitForTimeout(200)
             await bothWidths(page, lng, screen, dirOut)
         })

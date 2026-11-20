@@ -38,7 +38,7 @@ Preconditions:
 
 ## New stack: the plugin settings dialog (drive-client.cjs)
 
-The player app lists plugins in the account drawer: a switch, the plugin's status pill while the bot runs, a **Breaks peace** tag where it applies, and a **Settings** button (accessible name `<Plugin> settings`) that opens a dialog. The dialog has the plugin's status and reason in its header, a **Simple** / **Advanced** switch (options with `advanced: true` show only in Advanced, and the switch counts changed advanced settings), **Setup checks** beside the form (above it on a phone), and a Save / Cancel footer. Save in the dialog stores that plugin's options at once for an existing account; for a new account it keeps them in the drawer until **Add account**.
+The player app lists plugins in the account drawer: a switch, the plugin's status pill while the bot runs, a **Breaks peace** tag where it applies, and a **Settings** button (accessible name `<Plugin> settings`) that opens a dialog. The dialog has the plugin's status and reason in its header, every option at once (no Simple/Advanced switch and no Setup checks), and a Save / Cancel footer. Save in the dialog stores that plugin's options at once for an existing account; for a new account it keeps them in the drawer until **Add account**.
 
 Option types: `Text`, `Checkbox`, `Select`, `Channel`, `Label`, `Number` (bounded, with a unit), `OrderedList` (game items from `catalog.gameItems`, reordered with the arrow buttons or Alt+Up/Down), `Rows` (castle, tool, troop and number columns, add and remove rows), and `CastlePicker` (the castles the bot last reported).
 

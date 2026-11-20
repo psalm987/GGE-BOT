@@ -16,7 +16,7 @@ const assert = (ok, what) => { if (!ok) throw new Error("FAILED: " + what); cons
 
 async function axe(page, name) {
     await page.addScriptTag({ content: axeSource })
-    const result = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map(v => `${v.id} (${v.impact}): ${v.nodes.length} node(s) e.g. ${v.nodes[0].target.join(" ")}`))
+    const result = await page.evaluate(async () => (await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa"] })).violations.map(v => `${v.id} (${v.impact}): ${v.nodes.length} node(s) e.g. ${v.nodes[0].target.join(" ")} ${v.nodes[0].html.slice(0, 160)}`))
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
 
@@ -145,7 +145,7 @@ async function driveTowers(page) {
     }
     const open = async () => {
         await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
-        await panel("Green").waitFor()
+        await page.locator("section.gge-kingdom").first().waitFor()
         await page.waitForTimeout(300)
     }
     const saveBar = page.locator(".gge-savebar")
@@ -211,20 +211,13 @@ async function driveTowers(page) {
     assert(true, "going back to Feather hides it again")
 
     // Commanders: Ironhold has 18, which the seeded bot report says.
-    const checks = scope => scope.getByRole("complementary", { name: "Setup checks" })
     const commanders = scope => scope.getByLabel("Commanders to use", { exact: true })
     const card = page.locator(".ant-card", { has: page.getByText("All kingdoms", { exact: true }) })
     assert(await commanders(green).inputValue() === "1-50", `the commander list starts on 1-50, the game's most: ${await commanders(green).inputValue()}`)
     assert(await green.getByText("You have 18 commanders (positions 1–18).", { exact: true }).isVisible(), "the commander field names the account's real range")
-    assert(await checks(green).getByText("18 of your 18 commanders can be sent. 0 stay free.").isVisible(), "the default list 1-50 is every one of the account's 18 commanders, not a mistake")
-    assert(await checks(green).getByText("Commanders also on the list of another kingdom that is on: 18.").isVisible(), "Green and Ice on the default list share every commander, which is a warning, not an error")
-    await commanders(green).fill("1;2;19")
-    assert(await checks(green).getByText("Commander 19 exceeds your total (18).").isVisible(), "a semicolon list that names commander 19 of 18 says so")
+    assert(await page.getByRole("complementary", { name: "Setup checks" }).count() === 0, "Towers has no Setup checks panel")
     await commanders(green).fill("1;2;3")
-    assert(await checks(green).getByText("3 of your 18 commanders can be sent. 15 stay free.").isVisible(), "1;2;3 is read as three commanders, with 15 left")
-    assert(await checks(green).getByText("Commanders also on the list of another kingdom that is on: 3.").isVisible(), "Ice still lists the same three")
     await commanders(ice).fill("4-6")
-    assert(await checks(green).getByText("No other kingdom that is on uses these commanders.").isVisible() && await checks(ice).getByText("No other kingdom that is on uses these commanders.").isVisible(), "with Ice on 4-6 the two kingdoms share none")
     assert((await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ").includes("6 configured · 18 maximum · 12 remaining"), `the card sums the kingdoms that are on: ${(await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")}`)
     await commanders(green).fill("1-50")
     await commanders(ice).fill("1-50")
@@ -473,7 +466,7 @@ async function driveEventCamps(page) {
     assert(await summary() === "L·F·R+CY · all waves · Wave 1 tools and event boosters", `the Nomads army line names the default tools choice: ${await summary()}`)
     assert(await saveBar.count() === 0, "reading the old config changes nothing by itself")
 
-    assert(!(await shown("Camp X")) && await shown(SKIP_TYPES), "the classic mode hides the camp's coordinates and shows the skip types in the Simple view")
+    assert(!(await shown("Camp X")) && await shown(SKIP_TYPES), "the classic mode hides the camp's coordinates and shows the skip types")
     await pickOption("Camps to attack", "Cycle mode: every camp nearby, no skips")
     await tab().getByText(SKIP_TYPES, { exact: true }).first().waitFor({ state: "hidden" })
     assert(!(await shown("Camp X")), "Cycle mode hides the skip types and the camp's coordinates")
@@ -497,7 +490,8 @@ async function driveEventCamps(page) {
     assert(!(await shown("Feather beyond")), "Feather beyond is hidden while the horse is Feather")
     await pickOption("Horse", "By distance")
     await tab().getByText("Feather beyond", { exact: true }).first().waitFor()
-    assert(await number("Feather beyond").inputValue() === "15", "choosing By distance shows Feather beyond, at 15 tiles")
+    assert(await number("Feather beyond").inputValue() === "15", "choosing By distance shows Feather beyond, at 15")
+    assert(await tab().getByText("clicks", { exact: true }).first().isVisible() && await tab().getByText("tiles", { exact: true }).count() === 0, "Feather beyond counts in clicks, not tiles")
 
     assert(JSON.stringify(await optionsOf("Tools")) === JSON.stringify(["No tools", "Wave 1 tools only", "Wave 1 tools and event boosters"]), "Tools offers no tools, wave 1 tools, and wave 1 tools with event boosters")
     await pickOption("Tools", "No tools")
@@ -964,7 +958,7 @@ async function driveBilling(browser) {
     await Promise.all([player.context().close(), admin.context().close(), friend.context().close()])
 }
 
-/** Ironhold's plugin settings dialogs, as the seeded demo: status, Simple and Advanced, Setup checks, every option type, save and reopen. */
+/** Ironhold's plugin settings dialogs, as the seeded demo: status, every option showing at once, no Setup checks, every option type, save and reopen. */
 async function drivePluginSettings(page) {
     const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
     // Starts from the seeded settings even after a run that failed before putting them back.
@@ -972,11 +966,11 @@ async function drivePluginSettings(page) {
     await rpc(page, "accounts/update", { id: ironhold.id, plugins: seeded })
     const banners = await rpc(page, "catalog/gameItems", { kind: "banner" })
     const bannerName = id => banners.find(b => b.id === id).name
-    const view = async which => {
-        await page.locator(".gge-module-tools .ant-segmented-item", { hasText: which }).click()
-        await page.waitForTimeout(150)
-    }
     const saveBar = page.locator(".gge-savebar")
+    const noToggleOrChecks = async what => {
+        assert(await page.getByText("Setup checks").count() === 0 && await page.getByRole("complementary", { name: "Setup checks" }).count() === 0, `${what} has no Setup checks panel`)
+        assert(await page.locator(".ant-segmented-item", { hasText: /^(Simple|Advanced)/ }).count() === 0 && await page.locator(".gge-module-tools").count() === 0, `${what} has no Simple/Advanced toggle`)
+    }
 
     // Nomads, Samurai and Daimyo has a tab for each plugin, so the form is the open tab's panel.
     await openModule(page, "Nomads, Samurai and Daimyo")
@@ -985,24 +979,16 @@ async function drivePluginSettings(page) {
     assert(await nomadsRow.getByText("Waiting", { exact: true }).count() === 1, "the Attack Nomads row shows its Waiting pill while Ironhold runs")
     assert(await nomadsRow.getByText("The event isn't running. This resumes when it opens.").count() === 1, "the row says why in words")
     assert(await form.getByText("Attacks Nomad camps during the Nomad event until it ends or the score you set is reached.").count() === 1, "the page describes Attack Nomads")
-    await view("Simple")
-    assert(!(await form.getByText("Leaves out troops that eat mead, so only troops that eat food go.").isVisible()), "Simple shows no help for the advanced food-only option")
-    assert(await form.getByText("The bot stops for this event once it reaches this many points. Leave it empty for no limit.").isVisible(), "a field's help shows under it")
-    assert(!(await form.getByText("Log only: write the attacks to the log instead of sending them").isVisible()), "Simple hides the advanced Log only option")
-    await view("Advanced")
-    assert(await form.getByText("Log only: write the attacks to the log instead of sending them").isVisible(), "Advanced shows the Log only option")
+    await noToggleOrChecks("the Nomads page")
+    assert(await form.getByText("The bot stops for this event once it reaches this many points. Leave it at 0 for no limit.").isVisible(), "a field's help shows under it")
+    assert(await form.getByText("Log only: write the attacks to the log instead of sending them").isVisible(), "the Log only option shows with every other option")
     const food = form.getByRole("checkbox", { name: "Food troops only" })
     assert(await food.isVisible() && await form.getByText("Leaves out troops that eat mead, so only troops that eat food go.").isVisible(), "the Food troops only option has a label and its help, where it used to show a raw key")
     assert(await form.getByText("foodTroopsOnly").count() === 0, "no raw option key shows on the page")
-    await page.screenshot({ path: `${out}/40-module-nomads-advanced-1440.png` })
-    const checks = form.getByRole("complementary", { name: "Setup checks" })
-    assert(await checks.getByText("18 of your 18 commanders can be sent. 0 stay free.").count() === 1, "Setup checks count the commanders the whitelist picks")
+    await page.screenshot({ path: `${out}/40-module-nomads-all-options-1440.png` })
     assert(await form.getByText("You have 18 commanders (positions 1–18).", { exact: true }).isVisible(), "the commander field names the account's real range")
-    assert(await checks.getByText("About 1,240 of 3,500 daily attacks used.").count() === 1, "Setup checks show today's attacks from the attack engine's report")
     assert(await saveBar.count() === 0, "an untouched module page has no save bar")
     await form.getByLabel("Commanders to use").fill("")
-    await checks.getByText("No commander list, so every commander can be sent", { exact: false }).waitFor()
-    assert(await checks.getByText("Check this").count() === 1, "clearing the whitelist turns that check into a warning, in words as well as colour")
     assert(await saveBar.count() === 0, "an empty whitelist means the default, so it is no change to save")
     await form.getByLabel("Commanders to use").fill("1-5")
     await saveBar.waitFor()
@@ -1022,7 +1008,7 @@ async function drivePluginSettings(page) {
     await openModule(page, "Settings preview (dev only)")
     form = page.locator(".gge-content")
     assert(await form.getByText("Running this plugin ends the account’s beginner or peace protection.").count() === 1, "a peace-breaking plugin says so on its page")
-    await view("Advanced")
+    await noToggleOrChecks("the Settings preview page")
     const list = form.locator(".gge-ordered-list ol > li")
     const order = async () => (await list.allInnerTexts()).map(text => text.split("\n")[1])
     assert(JSON.stringify(await order()) === JSON.stringify([660, 661, 77].map(bannerName)), "the banner order starts at its default, named from the game's items")
@@ -1056,7 +1042,6 @@ async function drivePluginSettings(page) {
     await form.getByLabel("Target, row 1").fill("1500")
     await form.getByText("Fill in every column, or remove the row.").waitFor({ state: "hidden" })
     assert(true, "the row's error clears once every column is filled")
-    assert((await page.locator(".gge-module-tools .ant-segmented-item-selected").innerText()).includes("changed"), "the Advanced switch counts the advanced settings that differ from their defaults")
     await page.screenshot({ path: `${out}/41-module-preview-1440.png` })
     await axe(page, "module page with every option type 1440")
     await saveBar.getByRole("button", { name: "Save" }).click()
@@ -1067,18 +1052,14 @@ async function drivePluginSettings(page) {
         `Save stores the order, the number, the castle and the row at once (${JSON.stringify(saved)})`)
 
     await openModule(page, "Settings preview (dev only)")
-    await view("Advanced")
     assert(JSON.stringify(await order()) === JSON.stringify([661, 77, 660].map(bannerName)) && await form.getByLabel("Stop before the event ends").inputValue() === "45"
         && await form.getByText("Ironhold Watch").count() > 0, "reopened, the page shows what was saved")
-    assert((await page.locator(".gge-module-tools .ant-segmented-item-selected").innerText()).includes("changed"), "the Advanced switch still counts what differs from the defaults")
 
     await page.setViewportSize({ width: 390, height: 844 })
     await openModule(page, "Nomads, Samurai and Daimyo")
     await page.waitForTimeout(400)
     form = page.getByRole("tabpanel")
-    const checksBox = await form.getByRole("complementary", { name: "Setup checks" }).boundingBox()
-    const formBox = await form.locator("form").boundingBox()
-    assert(checksBox.y + checksBox.height <= formBox.y + 1, "on a phone the Setup checks fold above the form")
+    await noToggleOrChecks("the Nomads page on a phone")
     assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, "no horizontal overflow at 390 on a module page")
     await page.screenshot({ path: `${out}/42-module-390.png` })
     await axe(page, "nomads module 390")
@@ -1086,20 +1067,14 @@ async function drivePluginSettings(page) {
 
     await openModule(page, "Refinery and toolsmith")
     form = page.locator(".gge-content")
-    await form.getByRole("complementary", { name: "Setup checks" }).getByText("Nothing is set in the list yet, so this plugin does nothing.").waitFor()
-    await view("Simple")
-    assert(await form.getByText("Keep at least this much of each resource").isHidden(), "Simple hides the Toolsmith resource floor")
-    await view("Advanced")
+    await noToggleOrChecks("the Toolsmith page")
     assert(await form.getByText("Keep at least this much of each resource").isVisible() && await form.getByText("Log only: write the orders to the log instead of sending them").isVisible(),
-        "Advanced shows the Toolsmith resource floor and log only")
-    await view("Simple")
+        "the Toolsmith resource floor and log only show without a toggle")
     await form.getByRole("button", { name: "Add row" }).first().click()
     await form.getByLabel("Tool, row 1").click()
     await page.keyboard.type("Battering ram")
     await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: "Battering ram" }).first().click()
     await form.getByLabel("Stock, row 1").fill("1500")
-    await form.getByRole("complementary", { name: "Setup checks" }).getByText("1 row is set.").waitFor()
-    assert(true, "a Toolsmith target turns the rows check into a count")
     await page.screenshot({ path: `${out}/43-toolsmith-1440.png` })
     await axe(page, "toolsmith module 1440")
     await saveBar.getByRole("button", { name: "Discard changes" }).click()
@@ -1107,13 +1082,9 @@ async function drivePluginSettings(page) {
 
     await openModule(page, "Armourer")
     form = page.locator(".gge-content")
-    await form.getByRole("complementary", { name: "Setup checks" }).getByText("Nothing is set in the list yet, so this plugin does nothing.").waitFor()
+    await noToggleOrChecks("the Armourer page")
     assert(/^4,?000$/.test(await form.getByLabel("Extra tools to buy on top of the shortfall").inputValue()), "Buy tools starts with a margin of 4,000")
-    await view("Simple")
-    assert(await form.getByText("Spend coins above a limit on tools so none are lost").isHidden(), "Simple hides the overflow burn")
-    await view("Advanced")
-    assert(await form.getByRole("checkbox", { name: "Spend coins above a limit on tools so none are lost" }).isChecked() === false, "the overflow burn is off by default")
-    await view("Simple")
+    assert(await form.getByRole("checkbox", { name: "Spend coins above a limit on tools so none are lost" }).isChecked() === false, "the overflow burn shows, and is off by default")
     await page.screenshot({ path: `${out}/44-buy-tools-1440.png` })
     await axe(page, "armourer module 1440")
 
@@ -1130,7 +1101,7 @@ async function drivePluginSettings(page) {
 }
 
 /**
- * The Auto Station dialog (Simple and Advanced, the gate fallback off with its ruby cost in the label, a fixed
+ * The Auto Station page (every option showing, the gate fallback off with its ruby cost in the label, a fixed
  * destination row with its kingdom picker) and an incoming-attack notification in the bell, at 1440 and 390.
  */
 async function driveStationSettings(page) {
@@ -1139,9 +1110,8 @@ async function driveStationSettings(page) {
     await page.setViewportSize(WIDE_VIEW)
     await openModule(page, "Alert and autostation")
     const dialog = page.locator(".gge-content")
-    const view = async which => { await page.locator(".gge-module-tools .ant-segmented-item", { hasText: which }).click(); await page.waitForTimeout(150) }
 
-    await view("Simple")
+    assert(await page.locator(".ant-segmented-item", { hasText: /^(Simple|Advanced)/ }).count() === 0, "the Auto Station page has no Simple/Advanced toggle")
     assert(await dialog.getByText("Running this plugin ends the account’s beginner or peace protection.").count() === 1, "the page's alert says stationing ends protection")
     assert(await dialog.getByText("Sending troops to an alliance castle ends your beginner or peace protection.").count() === 0, "the peace warning is not repeated as a heading in the form")
     assert(await dialog.getByText("When a player attacks one of your castles, moves its troops to a protected alliance castle just before the attack lands, then calls them home.").count() === 1, "the header describes Auto Station")
@@ -1150,34 +1120,30 @@ async function driveStationSettings(page) {
     assert(await gate.isVisible(), "the gate fallback is shown")
     assert(await dialog.getByText("Opening the gates costs rubies, from 450 to 56,700 each time", { exact: false }).isVisible(), "the gate fallback's help names its ruby cost")
     assert(await dialog.locator(".ant-select-content", { hasText: /^Off$/ }).count() === 1, "the gate fallback is off by default")
-    assert(!(await dialog.getByText("Log only: write the station, recall and gate commands to the log instead of sending them").isVisible()), "Simple hides Log only")
     await dialog.getByRole("button", { name: "Add row" }).first().click()
     await dialog.getByLabel("Kingdom, row 1").click()
     await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: "Everwinter Glacier" }).first().click()
     await dialog.getByLabel("X, row 1").fill("310")
     await dialog.getByLabel("Y, row 1").fill("402")
     assert(await dialog.locator(".ant-select-content", { hasText: "Everwinter Glacier" }).count() === 1, "a fixed destination row picks its kingdom by name")
-    await axe(page, "auto station dialog simple 1440")
-    await page.screenshot({ path: `${shots}/auto-station-simple-1440.png` })
+    await axe(page, "auto station page 1440")
+    await page.screenshot({ path: `${shots}/auto-station-1440.png` })
 
-    await view("Advanced")
-    assert(await dialog.getByText("Log only: write the station, recall and gate commands to the log instead of sending them").isVisible(), "Advanced shows Log only")
+    assert(await dialog.getByText("Log only: write the station, recall and gate commands to the log instead of sending them").isVisible(), "Log only shows with every other option")
     assert(await dialog.getByRole("checkbox", { name: "Watch outposts" }).isChecked(), "outposts are watched by default")
-    await axe(page, "auto station dialog advanced 1440")
-    await page.screenshot({ path: `${shots}/auto-station-advanced-1440.png` })
+    await axe(page, "auto station page with Log only 1440")
+    await page.screenshot({ path: `${shots}/auto-station-log-only-1440.png` })
 
     await page.setViewportSize(PHONE_VIEW)
     await page.waitForTimeout(400)
     assert(await overflowOf(page) <= 0, "no horizontal overflow at 390 on the Auto Station page")
-    await axe(page, "auto station dialog advanced 390")
-    await page.screenshot({ path: `${shots}/auto-station-advanced-390.png` })
+    await axe(page, "auto station page 390")
+    await page.screenshot({ path: `${shots}/auto-station-390.png` })
     await dialog.getByLabel("Kingdom, row 1").scrollIntoViewIfNeeded()
     const kingdom = await dialog.getByLabel("Kingdom, row 1").boundingBox()
     const form = await dialog.locator("form").boundingBox()
     assert(kingdom.x >= 0 && form.x + form.width <= PHONE_VIEW.width, `at 390 a destination row scrolls inside its table instead of widening the form past the screen (form ends at ${form.x + form.width})`)
     await page.screenshot({ path: `${shots}/auto-station-rows-390.png` })
-    await view("Simple")
-    await page.screenshot({ path: `${shots}/auto-station-simple-390.png` })
     await page.locator(".gge-savebar").getByRole("button", { name: "Discard changes" }).click()
     await page.locator(".gge-savebar").waitFor({ state: "detached" })
 
@@ -1237,16 +1203,16 @@ async function driveSidebar(page) {
     assert(new URL(page.url()).searchParams.get("account") === ironhold.id, "an old ?account=&plugin= link lands on the module page for that account")
 
     await openModule(page, "Khan")
-    const waves = page.getByLabel("Waves before event tools")
+    const waves = page.getByLabel("Stop at this score", { exact: true })
     const before = await waves.inputValue()
-    await waves.fill(before === "5" ? "4" : "5")
+    await waves.fill(before === "5000" ? "4000" : "5000")
     await page.locator(".gge-savebar").waitFor()
     await page.locator("#module-account").click()
     await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").nth(1).click()
     await page.locator(".ant-modal-confirm-title", { hasText: "Discard your changes?" }).waitFor()
     assert(true, "switching account with an unsaved change asks first")
     await page.getByRole("button", { name: "Keep editing" }).click()
-    await page.getByRole("link", { name: linkName("Storms") }).click()
+    await sidebar(page, "Storms")
     await page.locator(".ant-modal-confirm-title", { hasText: "Discard your changes?" }).waitFor()
     assert(true, "leaving through the sidebar with an unsaved change asks first")
     await page.getByRole("button", { name: "Keep editing" }).click()
@@ -1277,7 +1243,7 @@ async function driveSidebar(page) {
     await page.setViewportSize(WIDE_VIEW)
 }
 
-/** The Foreign Lords and Bloodcrow glory dialogs: the Simple and Advanced split and the off-by-default safety options, at 1440 and 390. */
+/** The Foreign Lords and Bloodcrow glory pages: every option showing and the off-by-default safety options, at 1440 and 390. */
 async function driveGlorySettings(page) {
     for (const [plugin, file, described] of [["Attack Foreign Lords", "50-glory-foreign", "Attacks Foreign Lords' camps during the Foreign Invasion event"], ["Attack Bloodcrows", "51-glory-bloodcrows", "Attacks Bloodcrow camps during the Bloodcrow event"]]) {
         await page.setViewportSize(WIDE_VIEW)
@@ -1286,41 +1252,36 @@ async function driveGlorySettings(page) {
         await page.getByRole("tab", { name: plugin, selected: true }).waitFor()
         await page.waitForTimeout(400)
         const dialog = page.getByRole("tabpanel")
-        const view = async which => { await page.locator(".gge-module-tools .ant-segmented-item", { hasText: which }).click(); await page.waitForTimeout(150) }
 
+        assert(await page.locator(".ant-segmented-item", { hasText: /^(Simple|Advanced)/ }).count() === 0, `${plugin}: no Simple/Advanced toggle`)
         assert(await dialog.getByText(described, { exact: false }).isVisible(), `${plugin}: the header describes the plugin`)
-        await view("Simple")
         assert(await dialog.getByText("Hard and above are rented with rubies when you pick one by hand", { exact: false }).isVisible(), `${plugin}: the difficulty help says tiers 5 and up are rented with rubies`)
         for (const label of ["Difficulty", "Stop at this score", "Stop before the event ends", "Commanders to use", "Horse"])
-            assert(await dialog.getByLabel(label, { exact: true }).isVisible(), `${plugin}: Simple shows ${label} (${await dialog.getByLabel(label, { exact: true }).count()} found, ${await page.getByRole("tabpanel").count()} panels)`)
-        assert(!(await dialog.getByText("Dethrone camps before attacking them").isVisible()), `${plugin}: Simple hides the dethrone setting`)
+            assert(await dialog.getByLabel(label, { exact: true }).isVisible(), `${plugin}: shows ${label} (${await dialog.getByLabel(label, { exact: true }).count()} found, ${await page.getByRole("tabpanel").count()} panels)`)
+        assert(await dialog.getByText("Dethrone camps before attacking them").isVisible(), `${plugin}: shows the dethrone setting`)
         assert(await dialog.locator(".ant-select-content", { hasText: "Highest unlocked without rubies" }).count() === 1, `${plugin}: the difficulty starts at the highest tier that needs no rubies`)
-        await axe(page, `${plugin} module simple 1440`)
-        await page.screenshot({ path: `${out}/${file}-simple-1440.png` })
+        await axe(page, `${plugin} module top 1440`)
+        await page.screenshot({ path: `${out}/${file}-top-1440.png` })
 
-        await view("Advanced")
         assert(await dialog.locator(".ant-select-content", { hasText: /^Off$/ }).count() === 1, `${plugin}: dethrone is off by default`)
         const protection = dialog.getByRole("checkbox", { name: /Attack while under protection/ })
         assert(await protection.isVisible() && !(await protection.isChecked()), `${plugin}: attacking under protection is off by default`)
         assert(await dialog.getByText("This ends your beginner or peace protection.", { exact: true }).isVisible(), `${plugin}: the protection option warns in words`)
-        assert(await dialog.getByText("Log only: write the attacks to the log instead of sending them").isVisible(), `${plugin}: Advanced shows Log only`)
+        assert(await dialog.getByText("Log only: write the attacks to the log instead of sending them").isVisible(), `${plugin}: shows Log only`)
         for (const label of ["Most to spend on one dethrone", "Most to spend on dethrones in one event", "Always keep at least this many coins or rubies"])
             assert(await dialog.getByLabel(label).inputValue() === "0", `${plugin}: "${label}" starts at 0, which allows no dethrone`)
-        await axe(page, `${plugin} module advanced 1440`)
-        await page.screenshot({ path: `${out}/${file}-advanced-1440.png` })
+        await axe(page, `${plugin} module with every option 1440`)
+        await page.screenshot({ path: `${out}/${file}-1440.png` })
         await protection.scrollIntoViewIfNeeded()
-        await page.screenshot({ path: `${out}/${file}-advanced-safety-1440.png` })
+        await page.screenshot({ path: `${out}/${file}-safety-1440.png` })
 
         await page.setViewportSize(PHONE_VIEW)
         await page.waitForTimeout(400)
         assert(await overflowOf(page) <= 0, `${plugin}: no horizontal overflow at 390 on the module page`)
-        await axe(page, `${plugin} module advanced 390`)
-        await page.screenshot({ path: `${out}/${file}-advanced-390.png` })
+        await axe(page, `${plugin} module 390`)
+        await page.screenshot({ path: `${out}/${file}-390.png` })
         await protection.scrollIntoViewIfNeeded()
-        await page.screenshot({ path: `${out}/${file}-advanced-safety-390.png` })
-        await view("Simple")
-        await axe(page, `${plugin} module simple 390`)
-        await page.screenshot({ path: `${out}/${file}-simple-390.png` })
+        await page.screenshot({ path: `${out}/${file}-safety-390.png` })
     }
     await page.setViewportSize({ width: 1280, height: 860 })
 }
@@ -1381,8 +1342,7 @@ async function driveArmies(page) {
     assert(await form.getByLabel("Horse", { exact: true }).isVisible(), "the fortress plugin has a Horse choice")
     assert(await form.locator(".ant-select-content", { hasText: /^Feather$/ }).count() === 1, "the horse starts on the feather the plugin always rode")
     assert(await form.getByRole("region", { name: "Courtyard troops" }).count() === 0, "on Autofill the wave editor isn't drawn")
-    await page.locator(".gge-module-tools .ant-segmented-item", { hasText: "Advanced" }).click()
-    assert(await form.getByLabel("Unit order", { exact: true }).isVisible() && await form.getByLabel("Troop supply", { exact: true }).isVisible(), "Advanced shows Unit order and Troop supply on Autofill")
+    assert(await form.getByLabel("Unit order", { exact: true }).isVisible() && await form.getByLabel("Troop supply", { exact: true }).isVisible(), "Unit order and Troop supply show on Autofill")
     await axe(page, "fortress autofill 1440")
     await page.screenshot({ path: `${out}/60-army-autofill-1440.png`, fullPage: true })
 
@@ -1813,8 +1773,143 @@ async function drivePalette(page, browser) {
     await signedIn.context().close()
 }
 
+/**
+ * The narrowing and the words: no Setup checks and no Simple/Advanced toggle on a module page, wolves instead of dogs, clicks
+ * instead of tiles (Feather beyond and the search radius), the preset count and the disabled New button at the limit, and a
+ * sidebar that keeps its scroll position across a group toggle, a module, and a move to another page.
+ */
+async function driveUxNarrow(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    const clearPresets = async () => { for (const preset of await rpc(page, "virtualPresets/list", { accountId: ironhold.id })) await rpc(page, "virtualPresets/remove", { id: preset.id }) }
+    await clearPresets()
+    await storePluginSettings({ accountName: "Ironhold", plugin: "attackBarronsGreatEmpire", enabled: true, options: { horse: 3 } })
+
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+    const green = page.locator("section.gge-kingdom").first()
+    await green.waitFor()
+    await page.waitForTimeout(300)
+    assert(await page.getByText("Setup checks").count() === 0 && await page.getByRole("complementary", { name: "Setup checks" }).count() === 0, "a module page has no Setup checks panel")
+    assert(await page.locator(".ant-segmented-item", { hasText: /^(Simple|Advanced)/ }).count() === 0 && await page.getByRole("radio", { name: /^(Simple|Advanced)/ }).count() === 0, "a module page has no Simple/Advanced toggle")
+    assert(await green.getByRole("checkbox", { name: "Send wolves only" }).isVisible(), "the Towers option says Send wolves only")
+    assert(await green.getByText("Sends only wolves. Other troops stay home.").isVisible(), "its help says wolves too")
+    assert(await page.getByText(/\bdogs?\b/i).count() === 0, "no dogs anywhere on the page")
+    assert(await green.getByText("Feather beyond", { exact: true }).isVisible(), "By distance shows Feather beyond")
+    assert(await green.getByText("clicks", { exact: true }).count() >= 2, "Feather beyond and the search radius count in clicks")
+    assert(await green.getByText("in clicks.", { exact: false }).count() === 1, "the search radius help says clicks")
+    assert(await page.getByText(/\btiles?\b/i).count() === 0, "no tiles anywhere on the page")
+    await axe(page, "towers narrowed 1440")
+    await page.screenshot({ path: `${out}/80-ux-narrow-towers-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(300)
+    await axe(page, "towers narrowed 390")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers at 390")
+    await page.screenshot({ path: `${out}/80-ux-narrow-towers-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await page.reload()
+    await green.waitFor()
+    await page.waitForTimeout(300)
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await green.getByText("ذئاب", { exact: false }).count() >= 2 && await green.getByText("نقرات", { exact: false }).count() >= 2, "in Arabic the wolf and click words show")
+    assert(await green.getByText(/كلاب|مربعات/).count() === 0, "in Arabic neither the dog nor the tile word is left")
+    await axe(page, "towers narrowed Arabic 1440")
+    await page.screenshot({ path: `${out}/80-ux-narrow-towers-ar-1440.png` })
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+
+    await page.goto(`${CLIENT_URL}/m/virtual-presets?account=${ironhold.id}`)
+    const count = page.getByTestId("preset-count")
+    await count.waitFor()
+    const newButton = page.getByRole("button", { name: "New preset" })
+    assert(await count.innerText() === "0 of 30 presets" && await newButton.isEnabled(), "an empty account reads 0 of 30 presets with New enabled")
+    const plan = { kind: "manual", waves: Array.from({ length: 4 }, () => ({ kind: "preset", preset: 0 })), ast: [null, null, null], rw: Array(8).fill(null) }
+    for (let n = 1; n <= 30; n++) { const made = await rpc(page, "virtualPresets/create", { accountId: ironhold.id, name: `Seed ${n}`, plan }); if (!made?.id) throw new Error("FAILED: seeding preset " + n + ": " + JSON.stringify(made)) }
+    await page.reload()
+    await count.waitFor()
+    assert(await count.innerText() === "30 of 30 presets", `thirty presets read 30 of 30 presets (${await count.innerText()})`)
+    assert(await newButton.isDisabled(), "New is disabled at the limit")
+    const reason = page.getByText("An account keeps up to 30 virtual presets.")
+    assert(await reason.isVisible() && await newButton.getAttribute("aria-describedby") === await reason.getAttribute("id"), "the reason shows beside New and is tied to the button")
+    const refused = await rpc(page, "virtualPresets/create", { accountId: ironhold.id, name: "One too many", plan })
+    assert((refused?.data?.code ?? refused?.code) !== undefined && (await rpc(page, "virtualPresets/list", { accountId: ironhold.id })).length === 30, "the API refuses a thirty-first preset too")
+    await axe(page, "virtual presets at the limit 1440")
+    await page.screenshot({ path: `${out}/81-ux-narrow-presets-limit-1440.png` })
+    const [last] = await rpc(page, "virtualPresets/list", { accountId: ironhold.id })
+    await rpc(page, "virtualPresets/remove", { id: last.id })
+    await page.reload()
+    await count.waitFor()
+    assert(await count.innerText() === "29 of 30 presets" && await newButton.isEnabled() && await reason.count() === 0, "removing one reads 29 of 30 presets, with New enabled and the reason gone")
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(300)
+    await axe(page, "virtual presets count 390")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Virtual presets at 390")
+    await page.screenshot({ path: `${out}/81-ux-narrow-presets-390.png` })
+    await page.setViewportSize(WIDE_VIEW)
+    await clearPresets()
+
+    await page.setViewportSize({ width: 1440, height: 520 })
+    await page.goto(`${CLIENT_URL}/m/khan?account=${ironhold.id}`)
+    await page.locator(".gge-module-plugin-row").first().waitFor()
+    const nav = page.getByRole("navigation", { name: "Modules" })
+    const box = nav.evaluate.bind(nav)
+    const state = () => box(el => ({ top: el.scrollTop, max: el.scrollHeight - el.clientHeight, marked: el.dataset.kept === "yes" }))
+    const inView = () => box(el => { const link = el.querySelector("[aria-current=page]").getBoundingClientRect(), room = el.getBoundingClientRect(); return link.top >= room.top && link.bottom <= room.bottom })
+    assert(await inView(), "arriving on a page, its link is scrolled into view when it was off screen")
+    await box(el => { el.dataset.kept = "yes"; el.scrollTop = 120 })
+    const start = await state()
+    assert(start.top === 120 && start.max > 300, `the menu is scrolled down and has room to move (${start.top} of ${start.max})`)
+    const groupButtons = nav.locator(".gge-nav-group-button")
+    const fullyInView = async item => {
+        const at = await item.boundingBox(), room = await nav.boundingBox()
+        return Boolean(at) && at.y >= room.y && at.y + at.height <= room.y + room.height
+    }
+    let button
+    for (let i = 0; i < await groupButtons.count() && !button; i++)
+        if (await fullyInView(groupButtons.nth(i))) button = groupButtons.nth(i)
+    assert(button, "a group heading is in view to click")
+    for (const turn of ["first", "second"]) {
+        const was = await button.getAttribute("aria-expanded")
+        await button.click()
+        assert(await button.getAttribute("aria-expanded") !== was && (await state()).top === 120, `the ${turn} click on the group heading toggled it and the menu stays at 120 (${(await state()).top})`)
+    }
+    const links = nav.locator("a[href]:visible")
+    let target
+    for (let i = 0; i < await links.count(); i++) {
+        const at = await links.nth(i).boundingBox(), room = await nav.boundingBox()
+        if (at && at.y >= room.y && at.y + at.height <= room.y + room.height && await links.nth(i).getAttribute("aria-current") !== "page" && (await links.nth(i).getAttribute("href")).startsWith("/m/")) { target = links.nth(i); break }
+    }
+    const href = await target.getAttribute("href")
+    await target.click()
+    await page.waitForURL(url => url.pathname === href.split("?")[0])
+    await page.waitForTimeout(400)
+    const afterModule = await state()
+    assert(afterModule.marked && afterModule.top === 120, `opening a module that is already in view leaves the menu where it was (${afterModule.top}), and it is the same menu`)
+    await nav.locator('a[href="/logs"]').evaluate(link => link.click())
+    await page.waitForURL(url => url.pathname === "/logs")
+    await page.waitForTimeout(400)
+    const afterPage = await state()
+    assert(afterPage.marked && afterPage.top === 120, `moving to the Logs page keeps the same menu at 120 (${afterPage.top})`)
+    await page.screenshot({ path: `${out}/82-ux-narrow-sidebar-kept-1440.png` })
+    await axe(page, "sidebar kept its place 1440")
+    await page.setViewportSize(WIDE_VIEW)
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "ux-narrow") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxNarrow(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "towers") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)
@@ -2305,6 +2400,7 @@ async function drivePalette(page, browser) {
     await driveDashboardHome(seeded, browser)
     await drivePalette(seeded, browser)
     await driveSidebar(seeded)
+    await driveUxNarrow(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
