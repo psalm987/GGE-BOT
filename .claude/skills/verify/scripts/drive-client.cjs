@@ -334,18 +334,18 @@ async function drivePhaseC(page) {
     }
 
     await openModule(page, "Nomads, Samurai and Daimyo")
-    assert(await chosen("Camps to attack") === "Every camp, with time skips", "a Nomads config stored before the target options cycles the camps with skips")
+    assert(await chosen("Camps to attack") === "Cycle mode with time skips (classic)", "a Nomads config stored before the target options cycles the camps with skips")
     assert(!(await page.getByText("Camp X", { exact: true }).first().isVisible()), "the camp's coordinates are hidden while every camp is attacked")
-    await pickOption("Camps to attack", "One camp, with time skips")
+    await pickOption("Camps to attack", "Skip mode: one camp, uses time skips")
     await page.getByText("Camp X", { exact: true }).first().waitFor()
     await number("Camp X").fill("640")
     await number("Camp Y").fill("12")
     assert(await page.getByRole("radio", { name: "Autofill" }).first().isChecked(), "the army starts on Autofill")
     await save()
     const nomads = (await stored("attackNomads")).options
-    assert(nomads.targetMode === 2 && nomads.targetX === 640 && nomads.targetY === 12 && nomads.useFeather === true, `Nomads saves one camp at 640:12 and keeps the old horse: ${JSON.stringify(nomads)}`)
+    assert(nomads.targetMode === 2 && nomads.targetX === 640 && nomads.targetY === 12 && nomads.horse === 2 && !("useFeather" in nomads), `Nomads saves one camp at 640:12 and the old feather as the Horse choice: ${JSON.stringify(nomads)}`)
     await openModule(page, "Nomads, Samurai and Daimyo")
-    assert(await chosen("Camps to attack") === "One camp, with time skips" && await number("Camp X").inputValue() === "640", "the one camp comes back after a reload")
+    assert(await chosen("Camps to attack") === "Skip mode: one camp, uses time skips" && await number("Camp X").inputValue() === "640", "the one camp comes back after a reload")
     await shots("80-nomads", "nomads")
 
     await openModule(page, "Khan")
@@ -406,6 +406,168 @@ async function drivePhaseC(page) {
     }
     await rpc(page, "account/setLocale", { locale: null })
     for (const plugin of Object.keys(OLD))
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: Boolean(before[plugin]?.enabled), options: before[plugin]?.options ?? {} })
+}
+
+/**
+ * The Nomads and Samurai tabs of the event camp page: configs stored with the old horse, tool and score options show
+ * as the same choices, the mode shows and hides the camp's coordinates and the skip types, the autofill options save
+ * and come back, and the All events card.
+ */
+async function driveEventCamps(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    const stored = async plugin => (await account()).plugins[plugin] ?? { enabled: false, options: {} }
+    await storePluginSettings({ accountName: "Ironhold", plugin: "attackNomads", enabled: true, options: { useFeather: true, scoreShutoff: "5000", lowValueChests: true } })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "attackSamurai", enabled: false, options: { noChests: true, useCoin: true, scoreShutoff: "" } })
+
+    const tab = () => page.getByRole("tabpanel")
+    const chosen = async name => (await tab().getByRole("combobox", { name, exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
+    const dropdownOf = async name => {
+        const box = tab().getByRole("combobox", { name, exact: true })
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
+        await dropdown.waitFor()
+        return dropdown
+    }
+    const pickOption = async (name, text) => {
+        const dropdown = await dropdownOf(name)
+        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
+        await dropdown.waitFor({ state: "hidden" })
+    }
+    const optionsOf = async name => {
+        const dropdown = await dropdownOf(name)
+        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
+        await page.keyboard.press("Escape")
+        await dropdown.waitFor({ state: "hidden" })
+        return texts
+    }
+    const field = label => tab().locator(".ant-form-item", { has: page.getByText(label, { exact: true }) })
+    const number = label => field(label).getByRole("spinbutton").first()
+    const shown = label => tab().getByText(label, { exact: true }).first().isVisible()
+    const summary = () => tab().locator("[data-army-summary]").innerText()
+    const saveBar = page.locator(".gge-savebar")
+    const open = async () => {
+        await page.goto(`${CLIENT_URL}/m/nom-sam-daimyo?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+    const SKIP_TYPES = "Time skips the bot may use"
+
+    await page.setViewportSize(WIDE_VIEW)
+    await openModule(page, "Nomads, Samurai and Daimyo")
+    await open()
+    const tabs = await page.getByRole("tab").allInnerTexts()
+    assert(JSON.stringify(tabs) === JSON.stringify(["Attack Nomads", "Attack Samurai"]), `each event has a tab of its own: ${tabs.join(" | ")}`)
+
+    assert(await chosen("Camps to attack") === "Cycle mode with time skips (classic)", "a Nomads config stored before the modes stays on every camp with time skips")
+    assert(await chosen("Event difficulty") === "Intermediate+", "the difficulty stays on Intermediate+")
+    assert(await chosen("Horse") === "Feather", "a config stored with Use fast horse feathers shows Horse as Feather")
+    assert(await chosen("Tools") === "Wave 1 tools and event boosters", "a config stored with event tools allowed shows Tools as wave 1 tools and event boosters")
+    assert(await number("Stop at this score").inputValue() === "5000", "the score stored as the text 5000 shows as the number 5000")
+    assert(await number("Attacks per run").inputValue() === "0" && await number("Minimum troops").inputValue() === "0" && await chosen("Waves") === "All waves", "attacks per run, minimum troops and waves start on no limit, 0 and all waves")
+    for (const side of ["Attack left flank", "Attack middle", "Attack right flank", "Attack courtyard"])
+        assert(await tab().getByRole("checkbox", { name: side }).isChecked(), `${side} starts ticked`)
+    assert(await summary() === "L·F·R+CY · all waves · Wave 1 tools and event boosters", `the Nomads army line names the default tools choice: ${await summary()}`)
+    assert(await saveBar.count() === 0, "reading the old config changes nothing by itself")
+
+    assert(!(await shown("Camp X")) && await shown(SKIP_TYPES), "the classic mode hides the camp's coordinates and shows the skip types in the Simple view")
+    await pickOption("Camps to attack", "Cycle mode: every camp nearby, no skips")
+    await tab().getByText(SKIP_TYPES, { exact: true }).first().waitFor({ state: "hidden" })
+    assert(!(await shown("Camp X")), "Cycle mode hides the skip types and the camp's coordinates")
+    await pickOption("Camps to attack", "Skip mode: one camp, uses time skips")
+    await tab().getByText("Camp X", { exact: true }).first().waitFor()
+    assert(await shown("Camp Y") && await shown(SKIP_TYPES), "Skip mode shows Camp X, Camp Y and the skip types")
+    await number("Camp X").fill("640")
+    await number("Camp Y").fill("12")
+
+    // The list draws only the choices in view. From Intermediate+, eight steps down reach the thirteenth and last choice.
+    const difficulties = await dropdownOf("Event difficulty")
+    for (let step = 0; step < 8; step++) await page.keyboard.press("ArrowDown")
+    await page.keyboard.press("Enter")
+    await difficulties.waitFor({ state: "hidden" })
+    assert(await chosen("Event difficulty") === "Keep the game's current difficulty", "the difficulty list ends with keeping the game's own difficulty")
+    const castles = await optionsOf("Castle to attack from")
+    assert(castles.length === 2 && castles.every(text => text.includes("Great Empire")), `the source castle lists only the Great Empire's castles: ${castles.join(" | ")}`)
+    await pickOption("Castle to attack from", "Ironhold Watch")
+    await number("Attacks per run").fill("5")
+
+    assert(!(await shown("Feather beyond")), "Feather beyond is hidden while the horse is Feather")
+    await pickOption("Horse", "By distance")
+    await tab().getByText("Feather beyond", { exact: true }).first().waitFor()
+    assert(await number("Feather beyond").inputValue() === "15", "choosing By distance shows Feather beyond, at 15 tiles")
+
+    assert(JSON.stringify(await optionsOf("Tools")) === JSON.stringify(["No tools", "Wave 1 tools only", "Wave 1 tools and event boosters"]), "Tools offers no tools, wave 1 tools, and wave 1 tools with event boosters")
+    await pickOption("Tools", "No tools")
+    await pickOption("Waves", "2 waves")
+    await number("Minimum troops").fill("300")
+    await tab().getByRole("checkbox", { name: "Attack courtyard" }).uncheck()
+    assert(await summary() === "L·F·R · 2w · No tools", `the army line follows the autofill options: ${await summary()}`)
+    assert(await tab().getByRole("radio", { name: "Autofill" }).isChecked() && await tab().locator(".ant-modal, [role=dialog]").count() === 0, "the autofill options sit on the page under the Autofill switch, with no pop-up")
+
+    await tab().getByRole("button", { name: "Apply to all events" }).click()
+    await page.getByText("Horse copied to every event").first().waitFor()
+    await page.getByRole("tab", { name: /Attack Samurai/ }).click()
+    await tab().getByRole("combobox", { name: "Horse", exact: true }).waitFor()
+    assert(await chosen("Horse") === "By distance", "Apply to all events copies the Nomads horse to Samurai")
+    assert(await chosen("Tools") === "Wave 1 tools only", "a Samurai config stored with Don't use event tools shows Tools as wave 1 tools only")
+    assert(await summary() === "L·F·R+CY · all waves · Wave 1 tools only", `the Samurai army line names its tools choice: ${await summary()}`)
+    assert(await number("Stop at this score").inputValue() === "0", "a score stored as empty text shows as 0, which is no limit")
+    assert((await optionsOf("Castle to attack from")).length === 2, "Samurai picks from the same castles")
+    await page.getByRole("tab", { name: /Attack Nomads/ }).click()
+
+    const card = page.locator(".ant-card", { has: page.getByText("All events", { exact: true }) })
+    assert((await card.getByText(/attacks in 24 hours/).innerText()).startsWith("3500"), "the All events card shows the account's daily cap")
+    assert(await card.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/m/account-settings?account=${ironhold.id}`, "and links to Account settings")
+    const usage = (await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")
+    assert(usage.includes("18 configured · 18 maximum · 0 remaining"), `the card counts the commanders of the events that are on: ${usage}`)
+    const soon = await card.locator("li[data-soon]").allInnerTexts()
+    assert(soon.length === 3 && soon.every(text => text.includes("Coming soon")) && ["Stop after a defeat", "VIP commanders", "Nomad Advisor"].every((name, i) => soon[i].startsWith(name)),
+        "stop after a defeat, VIP commanders and the Nomad Advisor are listed as coming soon")
+    assert(await card.locator("input, button, [role=switch], [role=combobox]").count() === 0, "what is coming soon has no control to set")
+    await axe(page, "event camps 1440")
+    await page.screenshot({ path: `${out}/90-event-camps-1440.png`, fullPage: true })
+
+    await saveBar.getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const sorted = options => JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)))
+    const nomads = await stored("attackNomads"), samurai = await stored("attackSamurai")
+    const wanted = { targetMode: 2, targetX: 640, targetY: 12, eventDifficulty: 12, sourceCastle: { kingdom: 0, id: 1002 }, attacksPerRun: 5, scoreShutoff: 5000, horse: 3, tools: 0, attackWaves: 2, minTroops: 300, attackCourtyard: false, lowValueChests: true }
+    assert(nomads.enabled && sorted(nomads.options) === sorted(wanted), `Nomads saves the new options and none of the old ones: ${JSON.stringify(nomads.options)}`)
+    assert(!samurai.enabled && sorted(samurai.options) === sorted({ horse: 3, tools: 1 }), `Samurai saves by itself, with its old options as choices: ${JSON.stringify(samurai.options)}`)
+
+    await open()
+    assert(await chosen("Camps to attack") === "Skip mode: one camp, uses time skips" && await number("Camp X").inputValue() === "640" && await number("Camp Y").inputValue() === "12", "the mode and the camp come back after a reload")
+    assert(await chosen("Event difficulty") === "Keep the game's current difficulty" && (await chosen("Castle to attack from")).startsWith("Ironhold Watch"), "the difficulty and the source castle come back")
+    assert(await chosen("Horse") === "By distance" && await chosen("Tools") === "No tools" && await chosen("Waves") === "2 waves" && await number("Minimum troops").inputValue() === "300" && await number("Attacks per run").inputValue() === "5",
+        "the horse, tools, waves, minimum troops and attacks per run come back")
+    assert(!(await tab().getByRole("checkbox", { name: "Attack courtyard" }).isChecked()) && await tab().getByRole("checkbox", { name: "Attack left flank" }).isChecked(), "the sides come back: courtyard off, left on")
+    assert(await summary() === "L·F·R · 2w · No tools", "and the army line says the same after the reload")
+    await page.screenshot({ path: `${out}/91-event-camps-saved-1440.png`, fullPage: true })
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the event camps at 390")
+    await axe(page, "event camps 390")
+    await page.screenshot({ path: `${out}/90-event-camps-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await open()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the event camp page is right to left")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the event camps in Arabic at 1440")
+    await axe(page, "event camps ar 1440")
+    await page.screenshot({ path: `${out}/92-event-camps-ar-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the event camps in Arabic at 390")
+    await axe(page, "event camps ar 390")
+    await page.screenshot({ path: `${out}/92-event-camps-ar-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await rpc(page, "account/setLocale", { locale: null })
+    for (const plugin of ["attackNomads", "attackSamurai"])
         await storePluginSettings({ accountName: "Ironhold", plugin, enabled: Boolean(before[plugin]?.enabled), options: before[plugin]?.options ?? {} })
 }
 
@@ -1661,6 +1823,17 @@ async function drivePalette(page, browser) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveTowers(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "event-camps") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveEventCamps(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest"
 const require = createRequire(import.meta.url)
 const { melee, ranged, tool } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
-const { parseTarget, campQueue, campTargetOptions } = require("../eventCamps.js")
+const { parseTarget, campQueue, eventCampOptions, EVENT_PROFILES } = require("../eventCamps.js")
 
 const camp = (x, y, wait = 0, type = 27) => ({ type, x, y, extraData: [0, 0, wait, 0, 0, 5, 0], timeSinceRequest: Date.now() })
 const items = { eventAutoScalingCamps: [{ eventAutoScalingCampID: 5, camplevel: "50" }] }
@@ -22,7 +22,7 @@ const soldiers = cra => new Set([...cra.A.flatMap(wave => [...wave.L.U, ...wave.
 describe("a camp plugin's target", () => {
     test("a record stored before the target options cycles the camps with skips and no budget", () => {
         expect(parseTarget({})).toEqual({ mode: "cycleSkips", skips: true, at: undefined, skipBudget: 0 })
-        expect(campTargetOptions().find(option => option.key == "targetMode").default).toBe(0)
+        expect(eventCampOptions(EVENT_PROFILES.nomad).find(option => option.key == "targetMode").default).toBe(0)
     })
     test("one camp needs both coordinates, on the map", () => {
         expect(parseTarget({ targetMode: 2, targetX: 640, targetY: 12 }).at).toEqual({ x: 640, y: 12 })

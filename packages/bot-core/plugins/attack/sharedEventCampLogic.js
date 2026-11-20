@@ -1,5 +1,3 @@
-const { EVENT_PROFILES } = require("../../eventCamps.js")
-
 if (require("node:worker_threads").isMainThread)
     return module.exports = { hidden: true }
 
@@ -9,8 +7,9 @@ const { movementEvents, movements, AreaType, castles, ClientCommands } = require
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
-const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
-const { parseTarget, campQueue, campAt } = require("../../eventCamps.js")
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { readLegacy } = require("../../legacyOptions.js")
+const { parseTarget, campQueue, campAt, eventCampOptions, CAMP_HORSES, CAMP_TOOL_SETS } = require("../../eventCamps.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo } = require("../../ggeBot.js")
 const { statusReporter } = require("../../pluginStatus.js")
 
@@ -24,22 +23,26 @@ const IDLE_MS = [5_000, 60_000]
 
 /**
  * Attacks the camps of one event while it runs. `profile` is the event's entry in eventCamps.js' EVENT_PROFILES,
- * `pluginOptions` the plugin's stored options and `filename` the plugin's file, which its status goes by.
+ * `stored` the plugin's stored options and `filename` the plugin's file, which its status goes by.
  */
-function eventCampAttacks(profile, pluginOptions, filename) {
+function eventCampAttacks(profile, stored, filename) {
+    const options = readLegacy(eventCampOptions(profile), stored)
+    const toolSet = choice(CAMP_TOOL_SETS, options.tools, "all")
+    const horse = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2] }[choice(CAMP_HORSES, options.horse, "none")] ?? HORSES[0]
+    const scoreShutoff = Number(options.scoreShutoff) > 0 ? Number(options.scoreShutoff) : Infinity
     const { eventID, kingdom: kingdomID, booster } = profile
     const type = AreaType[profile.areaType]
     const classicCamps = require("../../paths.js").loadItem(profile.classicCamps)
     let points = 0
     const reportStatus = statusReporter(filename)
     reportStatus("waiting", "statusEventClosed")
-    const target = parseTarget(pluginOptions)
-    const autofill = parseAutofill(pluginOptions)
+    const target = parseTarget(options)
+    const autofill = parseAutofill(options)
     const queue = campQueue(target)
 
     const skipTarget = async areaInfo => {
         while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
-            let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
+            let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
 
             if (skip == undefined)
                 throw new Error("couldntFindSkip")
@@ -59,7 +62,7 @@ function eventCampAttacks(profile, pluginOptions, filename) {
             return
 
         queue.update(movement.sourceAttack)
-        if (!pluginOptions.dryRun)
+        if (!options.dryRun)
             skipTarget(movement.sourceAttack)
     })
 
@@ -69,14 +72,11 @@ function eventCampAttacks(profile, pluginOptions, filename) {
         if (obj.EID != eventID)
             return
 
-        if (pluginOptions.scoreShutoff <= 0)
-            pluginOptions.scoreShutoff = Infinity
-
         points = Number(obj.OP[0])
         if (quit)
             return
 
-        if (points >= pluginOptions.scoreShutoff) {
+        if (points >= scoreShutoff) {
             console.log("shuttingDownEvent", "scoreReached")
             reportStatus("stopped", "statusScoreReached", { score: points })
             quit = true
@@ -98,10 +98,10 @@ function eventCampAttacks(profile, pluginOptions, filename) {
         if (eventInfo.EID != eventID)
             return
 
-        if (eventInfo.EDID == -1 && !(ggeConfig.classicBug && pluginOptions.eventDifficulty == 0)) {
+        if (eventInfo.EDID == -1 && !(ggeConfig.classicBug && options.eventDifficulty == 0)) {
             const eventDifficultyID =
                 Number(eventsDifficulties.find(e =>
-                    ((pluginOptions.eventDifficulty)) == e.difficultyTypeID &&
+                    ((options.eventDifficulty)) == e.difficultyTypeID &&
                     e.eventID == eventID)
                     .difficultyID)
 
@@ -115,7 +115,7 @@ function eventCampAttacks(profile, pluginOptions, filename) {
 
         const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
-        const army = readArmy(pluginOptions, reportStatus)
+        const army = readArmy(options, reportStatus)
         if (!army)
             return
         queue.areas.length = 0
@@ -147,14 +147,14 @@ function eventCampAttacks(profile, pluginOptions, filename) {
 
 
         while (!quit) {
-            const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
+            const commander = await waitForCommanderAvailable(options.commanderWhiteList)
             try {
                 const attackInfo = await waitToAttack(async () => {
                     const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
                     if (!areaInfo)
                         return
 
-                    if (!pluginOptions.dryRun)
+                    if (!options.dryRun)
                         await skipTarget(areaInfo)
                     if (areaInfo.extraData[2] > 0 && !queue.maySkip())
                         return
@@ -163,11 +163,11 @@ function eventCampAttacks(profile, pluginOptions, filename) {
                         eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
 
                     const level = Number(classic ? profile.classicLevel(campInfo) : campInfo.camplevel)
-                    const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun }
+                    const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: options.dryRun }
 
                     if (army.mode == "waves") {
                         const effects = commander.getEffects()
-                        const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                        const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, effects.additionalWaves)
                         fillFromPlan(planned, army.waves, castle.unitInventory, {
                             flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                             flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
@@ -215,10 +215,10 @@ function eventCampAttacks(profile, pluginOptions, filename) {
                             else if (unit.unitInfo.defRangeBonus)
                                 attackerShieldTools.push(unit)
                         }
-                        else if (profile.isTroop(unit.unitInfo, pluginOptions)) {
+                        else if (profile.isTroop(unit.unitInfo, options)) {
                             if (!eats(autofill.supply, unit.unitInfo))
                                 continue
-                            if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
+                            if(options.foodTroopsOnly && unit.unitInfo.meadSupply)
                                 continue
                             if (unit.unitInfo.role == "melee")
                                 attackerMeleeTroops.push(unit)
@@ -247,7 +247,7 @@ function eventCampAttacks(profile, pluginOptions, filename) {
                     attackerShieldEventTools.sort((a, b) =>
                         Number(b.unitInfo[booster]) - Number(a.unitInfo[booster]))
 
-                    if (pluginOptions.lowValueChests) {
+                    if (options.lowValueChests) {
                         attackerEventTools.reverse()
                         attackerGateEventTools.reverse()
                         attackerWallEventTools.reverse()
@@ -266,7 +266,7 @@ function eventCampAttacks(profile, pluginOptions, filename) {
                     const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                     const maxToolsFront = getTotalAmountToolsFront(level)
                     const commanderStats = commander.getEffects()
-                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, commanderStats.additionalWaves)
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, commanderStats.additionalWaves)
                     const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                     const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
                     const desiredToolCount = attackerEventTools.length == 0 ? profile.plainToolCount : 10
@@ -309,9 +309,9 @@ function eventCampAttacks(profile, pluginOptions, filename) {
                             }
                             return
                         }
-                        else if (!pluginOptions.noChests) {
+                        else if (toolSet == "all") {
                             const selectTool = i => {
-                                let tools = pluginOptions.eventWallToolsFirst ? [] : attackerEventTools
+                                let tools = options.eventWallToolsFirst ? [] : attackerEventTools
                                 if (tools.length == 0 || !tools[0]?.unitInfo[booster]) {
                                     if (i == 0) {
                                         tools = attackerWallEventTools

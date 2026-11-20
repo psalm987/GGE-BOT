@@ -720,5 +720,14 @@
   "plugins.commanders.one": "Имате 1 командир (позиция 1).",
   "plugins.commanders.owned": "Брой командири: {{count, number}} (позиции 1–{{count, number}}).",
   "plugins.commanders.none": "Ботът не отчете командири в този акаунт.",
-  "plugins.commanders.unknown": "Стартирайте бота веднъж, за да преброи командирите на този акаунт."
+  "plugins.commanders.unknown": "Стартирайте бота веднъж, за да преброи командирите на този акаунт.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }
