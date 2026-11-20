@@ -1,6 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
+        checks: [{ type: "commanders", option: "commanderWhiteList" }],
         pluginOptions: [
             {
                 type: "Text",

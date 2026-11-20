@@ -48,7 +48,3 @@ export function toPluginSettings(catalog: PluginCatalogEntry[], values: PluginFo
     }
     return out
 }
-
-/** How many advanced options hold something other than their default. */
-export const changedAdvanced = (entry: PluginCatalogEntry, values: OptionValues) =>
-    Object.keys(optionsToSave({ ...entry, options: entry.options.filter(def => def.advanced) }, values)).length

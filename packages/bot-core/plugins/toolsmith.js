@@ -1,6 +1,5 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "rows", options: ["targets", "castleTargets"] }],
         pluginOptions: [
             {
                 type: "Rows",
@@ -19,8 +18,7 @@ if (require('node:worker_threads').isMainThread)
                     { key: "tool", type: "tool" },
                     { key: "stock", type: "number", min: 1, max: 1_000_000, default: 1000 },
                 ],
-                default: [],
-                advanced: true
+                default: []
             },
             {
                 type: "Number",
@@ -28,14 +26,12 @@ if (require('node:worker_threads').isMainThread)
                 min: 0,
                 max: 100_000_000,
                 step: 1000,
-                default: 0,
-                advanced: true
+                default: 0
             },
             {
                 type: "Checkbox",
                 key: "dryRunOrders",
-                default: false,
-                advanced: true
+                default: false
             }
         ]
     }

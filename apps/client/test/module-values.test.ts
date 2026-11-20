@@ -4,7 +4,7 @@ import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSa
 
 const khan: PluginCatalogEntry = {
     key: "attackKhan", force: false, hidden: false, category: "attack",
-    options: [{ type: "Number", key: "score", min: 0, max: 100, default: 10 }, { type: "Checkbox", key: "dryRun", default: false, advanced: true }],
+    options: [{ type: "Number", key: "score", min: 0, max: 100, default: 10 }, { type: "Checkbox", key: "dryRun", default: false }],
 }
 const nomads: PluginCatalogEntry = { key: "attackNomads", force: false, hidden: false, category: "attack", options: [] }
 const feast: PluginCatalogEntry = { key: "feast", force: false, hidden: false, options: [] }

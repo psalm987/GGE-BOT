@@ -66,12 +66,11 @@ const order = (PID, AMT, KID = 0) => ({ PID, BT: 0, TID: 27, AMT, KID, AID: -1, 
 const ladders = (stock, kingdom = 0) => [{ kingdom, tool: 614, stock }]
 
 describe("the catalog entry", () => {
-    test("is accepted by the API, and the overflow burn and dry run are advanced", () => {
+    test("is accepted by the API", () => {
         const { mod } = loadModule("plugins/buyTools.js", { mainThread: true })
         const entry = { key: "buyTools", force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions, checks: mod.checks }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(mod.pluginOptions.map(o => o.key)).toEqual(["targets", "margin", "coinFloor", "spendCap", "burnOverflow", "overflowThreshold", "dryRunOrders"])
-        expect(mod.pluginOptions.filter(o => o.advanced).map(o => o.key)).toEqual(["burnOverflow", "overflowThreshold", "dryRunOrders"])
     })
 
     test("the overflow burn is off by default and the margin is 4,000", () => {

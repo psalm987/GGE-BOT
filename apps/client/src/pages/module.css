@@ -14,8 +14,6 @@
 .gge-module-plugin-name { flex: 1; min-width: 140px; font-weight: 600; }
 .gge-module-cap { display: grid; gap: 4px; margin-bottom: 8px; }
 .gge-module-section { display: grid; gap: 16px; align-items: start; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 992px) { .gge-module-section[data-checks] { grid-template-columns: minmax(0, 1fr) 280px; } }
-.gge-module-tools { display: flex; justify-content: flex-end; }
 .gge-savebar {
     position: sticky;
     bottom: 0;

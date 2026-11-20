@@ -215,7 +215,7 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     options: jsonb("options").notNull().default([]),
     /** "attack" for plugins under plugins/attack/, which count toward the attack plugin cap. */
     category: text("category"),
-    /** The plugin's Setup checks, as `PluginCheckDef`s. */
+    /** Marks the plugin commander list option, as `PluginCheckDef`s. */
     checks: jsonb("checks").notNull().default([]),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: boolean("breaks_peace").notNull().default(false),

@@ -1,6 +1,5 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "rows", options: ["targets"] }],
         pluginOptions: [
             {
                 type: "Rows",
@@ -41,8 +40,7 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Checkbox",
                 key: "burnOverflow",
-                default: false,
-                advanced: true
+                default: false
             },
             {
                 type: "Number",
@@ -51,14 +49,12 @@ if (require('node:worker_threads').isMainThread)
                 max: 2_147_483_647,
                 step: 1_000_000,
                 unit: "coins",
-                default: 2_000_000_000,
-                advanced: true
+                default: 2_000_000_000
             },
             {
                 type: "Checkbox",
                 key: "dryRunOrders",
-                default: false,
-                advanced: true
+                default: false
             }
         ]
     }

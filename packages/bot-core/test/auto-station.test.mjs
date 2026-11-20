@@ -136,9 +136,7 @@ describe("the catalog entry", () => {
         expect(byKey.stationGateMaxRubies).toMatchObject({ default: 700, unit: "rubies" })
     })
 
-    test("puts dry run, the scope and the commander limit in Advanced", () => {
-        const advanced = mod.pluginOptions.filter(o => o.advanced).map(o => o.key)
-        expect(advanced).toEqual(expect.arrayContaining(["stationDryRun", "stationScopeMain", "stationScopeOutposts", "stationScopeCaptures", "stationMaxCommanders", "stationMinArmy"]))
+    test("leaves dry run off by default", () => {
         expect(byKey.stationDryRun.default).toBe(false)
     })
 })

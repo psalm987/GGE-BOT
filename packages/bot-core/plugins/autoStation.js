@@ -25,14 +25,14 @@ const optionDefs = [
     { type: "Text", key: "commanderWhiteList", default: "1-50" },
     { type: "Select", key: "stationGateFallback", selection: GATE_CHOICES, default: 0 },
     { type: "Number", key: "stationGateMaxRubies", min: 0, max: 60_000, step: 10, unit: "rubies", default: 700 },
-    { type: "Number", key: "stationMinArmy", min: 0, max: 10_000_000, step: 1, unit: "troops", default: 0, advanced: true },
-    { type: "Checkbox", key: "stationAllowOutposts", default: false, advanced: true },
-    { type: "Number", key: "stationMaxCommanders", min: 1, max: 20, step: 1, default: 2, advanced: true },
-    { type: "Number", key: "stationHours", min: 1, max: 12, step: 1, unit: "hours", default: 12, advanced: true },
-    { type: "Checkbox", key: "stationScopeMain", default: true, advanced: true },
-    { type: "Checkbox", key: "stationScopeOutposts", default: true, advanced: true },
-    { type: "Checkbox", key: "stationScopeCaptures", default: true, advanced: true },
-    { type: "Checkbox", key: "stationDryRun", default: false, advanced: true },
+    { type: "Number", key: "stationMinArmy", min: 0, max: 10_000_000, step: 1, unit: "troops", default: 0 },
+    { type: "Checkbox", key: "stationAllowOutposts", default: false },
+    { type: "Number", key: "stationMaxCommanders", min: 1, max: 20, step: 1, default: 2 },
+    { type: "Number", key: "stationHours", min: 1, max: 12, step: 1, unit: "hours", default: 12 },
+    { type: "Checkbox", key: "stationScopeMain", default: true },
+    { type: "Checkbox", key: "stationScopeOutposts", default: true },
+    { type: "Checkbox", key: "stationScopeCaptures", default: true },
+    { type: "Checkbox", key: "stationDryRun", default: false },
 ]
 
 if (require("node:worker_threads").isMainThread)

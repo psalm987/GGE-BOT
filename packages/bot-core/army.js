@@ -37,8 +37,8 @@ const parseAutofill = (options, { unitOrder = "castle" } = {}) => ({
 })
 
 const unitOrderOption = (unitOrder = "castle") =>
-    ({ type: "Select", key: "unitOrder", selection: UNIT_ORDER_CHOICES, default: UNIT_ORDERS.indexOf(unitOrder), advanced: true, army: "autofill" })
-const supplyOption = () => ({ type: "Select", key: "supply", selection: SUPPLY_CHOICES, default: 0, advanced: true, army: "autofill" })
+    ({ type: "Select", key: "unitOrder", selection: UNIT_ORDER_CHOICES, default: UNIT_ORDERS.indexOf(unitOrder), army: "autofill" })
+const supplyOption = () => ({ type: "Select", key: "supply", selection: SUPPLY_CHOICES, default: 0, army: "autofill" })
 const horseOption = horse => ({ type: "Select", key: "horse", selection: HORSE_CHOICES, default: horse })
 
 const MAX_WAVES = 4

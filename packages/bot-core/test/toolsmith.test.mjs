@@ -97,7 +97,6 @@ describe("the catalog entry", () => {
         const entry = { key: "toolsmith", force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions, checks: mod.checks }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(mod.pluginOptions.map(o => o.key)).toEqual(["targets", "castleTargets", "resourceFloor", "dryRunOrders"])
-        expect(mod.pluginOptions.filter(o => o.advanced).map(o => o.key)).toEqual(["castleTargets", "resourceFloor", "dryRunOrders"])
     })
 
     test.each(["toolsmith", "targets", "castleTargets", "resourceFloor", "dryRunOrders", "toolsmithRefused", "dryRunBup", "toolsmithQueueUnknown", "stockQueueUnknown"])("en.json names %s", key => {

@@ -15,12 +15,16 @@ import { fail } from "../errors.ts"
 
 export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
     const rows = await db.select().from(pluginCatalog).orderBy(asc(pluginCatalog.key))
-    return rows.map(r => ({
-        key: r.key, force: r.force, hidden: r.hidden, options: r.options as PluginCatalogEntry["options"],
-        category: r.category === "attack" ? "attack" as const : null,
-        ...(r.checks as PluginCatalogEntry["checks"])?.length && { checks: r.checks as PluginCatalogEntry["checks"] },
-        ...r.breaksPeace && { breaksPeace: true },
-    }))
+    return rows.map(r => {
+        // A catalog row the runner wrote before other check kinds were removed still holds them until the next sync.
+        const checks = (r.checks as { type: string }[]).filter(c => c.type === "commanders") as PluginCatalogEntry["checks"]
+        return {
+            key: r.key, force: r.force, hidden: r.hidden, options: r.options as PluginCatalogEntry["options"],
+            category: r.category === "attack" ? "attack" as const : null,
+            ...checks?.length && { checks },
+            ...r.breaksPeace && { breaksPeace: true },
+        }
+    })
 }
 
 /** The game's items of one kind for the settings pickers: banners strongest first, everything else by name. */

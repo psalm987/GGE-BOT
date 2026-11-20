@@ -1,6 +1,6 @@
 const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { towerAttackLine, TOWER_PLUGINS } = require("../../attackLog.js")
+const { towerAttackLine } = require("../../attackLog.js")
 
 const AUTOFILL = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
@@ -39,7 +39,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
     { type: "Text", key: "commanderWhiteList", default: "1-50" },
-    { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
+    { type: "SkipTypes", key: "skipTypes", default: null },
     ...armyOptions(AUTOFILL),
     { type: "Label", key: "attackSettings", army: "autofill" },
     {
@@ -60,11 +60,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     unitOrderOption(),
     supplyOption(),
 ]
-const baronChecks = [
-    { type: "commanders", option: "commanderWhiteList" },
-    { type: "commandersShared", option: "commanderWhiteList", plugins: Object.values(TOWER_PLUGINS) },
-    { type: "dailyAttacks" },
-]
+const baronChecks = [{ type: "commanders", option: "commanderWhiteList" }]
 
 if (require("node:worker_threads").isMainThread)
     return module.exports = { hidden: true, baronOptions, baronChecks }

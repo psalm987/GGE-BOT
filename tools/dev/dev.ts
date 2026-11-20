@@ -51,17 +51,17 @@ const dataDir = [process.env.GGE_DATA_DIR, path.join(root, "data"), path.join(ho
 /** Exercises every settings control. Only the dev database has it; a runner started with --runner drops it again. */
 const DEV_SETTINGS_PREVIEW: Parameters<typeof publishCatalog>[1][number] = {
     key: "devSettingsPreview", force: false, hidden: false, category: null, breaksPeace: true,
-    checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
+    checks: [{ type: "commanders", option: "commanderWhiteList" }],
     options: [
         { type: "Text", key: "commanderWhiteList", default: "1-99" },
         { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
         { type: "CastlePicker", key: "sourceCastle" },
-        { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661, 77], advanced: true },
+        { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661, 77] },
         {
-            type: "Rows", key: "toolTargets", advanced: true, default: [],
+            type: "Rows", key: "toolTargets", default: [],
             columns: [{ key: "castle", type: "castle" }, { key: "tool", type: "tool" }, { key: "target", type: "number", min: 0, max: 100000 }],
         },
-        { type: "Checkbox", key: "dryRun", default: false, advanced: true },
+        { type: "Checkbox", key: "dryRun", default: false },
     ],
 }
 

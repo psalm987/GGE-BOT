@@ -1,8 +1,8 @@
-import { CheckCircleFilled, ClockCircleOutlined, InfoCircleFilled, MinusCircleOutlined, PauseCircleOutlined, WarningFilled } from "@ant-design/icons"
-import { Switch, Tag, Typography } from "antd"
+import { CheckCircleFilled, ClockCircleOutlined, MinusCircleOutlined, PauseCircleOutlined, WarningFilled } from "@ant-design/icons"
+import { Switch, Tag } from "antd"
 import { type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { runChecks, type CheckLevel, type PluginCatalogEntry, type PluginRunState, type PluginState } from "@gge/contracts"
+import type { PluginRunState, PluginState } from "@gge/contracts"
 import { palette } from "@gge/ui"
 
 /** What the status pill shows: a plugin's own report, or why it can't be running. */
@@ -51,49 +51,6 @@ export function BreaksPeaceTag() {
         </Tag>
     )
 }
-
-const CHECK_ICONS: Record<CheckLevel, { color: string; text: string; icon: ReactNode }> = {
-    ok: { color: palette.emerald, text: palette.emeraldText, icon: <CheckCircleFilled /> },
-    warn: { color: palette.amber, text: palette.amber, icon: <WarningFilled /> },
-    info: { color: palette.azure, text: palette.azureText, icon: <InfoCircleFilled /> },
-}
-
-/** Beside the form it stays in view while the form scrolls; above it, on a phone, it scrolls away with it. */
-export function SetupChecks({ entry, input, beside }: { entry: PluginCatalogEntry; input: Parameters<typeof runChecks>[1]; beside: boolean }) {
-    const { t } = useTranslation("client")
-    const results = runChecks(entry.checks ?? [], input)
-    return (
-        <aside aria-labelledby={`checks-${entry.key}`} style={{ position: beside ? "sticky" : undefined, top: 0, background: palette.terminal, border: `1px solid ${palette.rule}`, borderRadius: 6, padding: "12px 14px" }}>
-            <Typography.Title level={5} id={`checks-${entry.key}`} className="gge-display" style={{ marginTop: 0, fontSize: 15 }}>{t("plugins.checks.title")}</Typography.Title>
-            {results.length === 0
-                ? <Typography.Text type="secondary">{t("plugins.checks.empty")}</Typography.Text>
-                : <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
-                    {results.map((check, i) => {
-                        const look = CHECK_ICONS[check.level]
-                        return (
-                            <li key={i} style={{ display: "grid", gridTemplateColumns: "20px 1fr", gap: 8 }}>
-                                <span aria-hidden style={{ color: look.color, paddingTop: 2 }}>{look.icon}</span>
-                                <span>
-                                    <strong style={{ color: look.text, fontSize: 13, display: "block" }}>{t(`plugins.check.level.${check.level}`)}</strong>
-                                    {t(`plugins.check.${check.key}`, check.params)}
-                                </span>
-                            </li>
-                        )
-                    })}
-                </ul>}
-        </aside>
-    )
-}
-
-export type View = "simple" | "advanced"
-const VIEW_KEY = "gge.pluginSettingsView"
-export function readView(): View {
-    try { return localStorage.getItem(VIEW_KEY) === "advanced" ? "advanced" : "simple" } catch { return "simple" }
-}
-export function writeView(view: View) {
-    try { localStorage.setItem(VIEW_KEY, view) } catch { /* the choice just isn't remembered */ }
-}
-
 
 /** An enable switch that can't be turned on while the account is at its attack plugin limit; it can always be turned off. */
 export function AttackAwareSwitch({ label, blockTurningOn, checked, onChange, disabled }: {

@@ -20,8 +20,8 @@ const khanWaveOptions = () => [
         legacy: { from: { wavesTillChests: "4" }, cases: [["", 0], ["0", 0], ["1", 0], ["2", 1], ["3", 2], ["4", 3], ["5", 4], ["6", 5]].map(([text, waves]) => [{ wavesTillChests: text }, waves]), otherwise: EVERY },
     },
     { type: "Select", key: "boosterWaves", selection: WAVE_COUNT_CHOICES, default: EVERY, army: "autofill" },
-    { type: "OrderedList", key: "rageTools", catalog: "tools", default: [], advanced: true, army: "autofill" },
-    { type: "OrderedList", key: "tabletChests", catalog: "tools", default: [], advanced: true, army: "autofill" },
+    { type: "OrderedList", key: "rageTools", catalog: "tools", default: [], army: "autofill" },
+    { type: "OrderedList", key: "tabletChests", catalog: "tools", default: [], army: "autofill" },
 ]
 
 /** The defence tools the plugin can keep in stock, as [option key, wodID]: flaming arrows, hurling rocks, gate reinforcement and sharpened stakes. */

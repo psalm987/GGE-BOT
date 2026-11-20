@@ -129,7 +129,7 @@ describe("the richer option types", () => {
     const richer: PluginCatalogEntry[] = [{
         key: "attackForeign", force: false, hidden: false, options: [
             { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
-            { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661], advanced: true },
+            { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661] },
             {
                 type: "Rows", key: "reserve", default: [], columns: [
                     { key: "castle", type: "castle" },
@@ -149,7 +149,7 @@ describe("the richer option types", () => {
     const save = (options: Record<string, unknown>) =>
         normalizePluginSettings(richer, { attackForeign: { enabled: true, options: options as never } }).attackForeign!.options
 
-    test("each new type is a catalog entry the API accepts, `advanced` included", () => {
+    test("each new type is a catalog entry the API accepts", () => {
         expect(PluginCatalogEntry.array().parse(richer)).toEqual(richer)
         expect(PluginCatalogEntry.safeParse({ ...richer[0], options: [{ type: "Number", key: "n", min: 0, max: 1, unit: "parsecs" }] }).success).toBe(false)
         expect(PluginCatalogEntry.safeParse({ ...richer[0], options: [{ type: "OrderedList", key: "o", catalog: "spells", default: [] }] }).success).toBe(false)

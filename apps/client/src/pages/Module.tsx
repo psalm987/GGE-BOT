@@ -1,9 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { Alert, App, Button, Card, Form, Grid, Progress, Row, Segmented, Select, Skeleton, Tabs, Tag, Typography, type FormInstance } from "antd"
+import { Alert, App, Button, Card, Form, Progress, Row, Select, Skeleton, Tabs, Tag, Typography, type FormInstance } from "antd"
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
-import { MODULES, commanderUsage, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PluginStates, type PublicAccount } from "@gge/contracts"
+import { MODULES, commanderUsage, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PublicAccount } from "@gge/contracts"
 import { Icon, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
@@ -11,8 +11,7 @@ import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
 import { CopyToAll, PluginOptionField } from "../components/PluginOptionField.tsx"
-import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, SetupChecks, readView, usePluginPill, writeView, type View } from "../components/PluginPanels.tsx"
-import { changedAdvanced } from "../plugin-values.ts"
+import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "../components/PluginPanels.tsx"
 import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
 import { moduleKey } from "../nav.ts"
 import type { OptionValues } from "../plugin-values.ts"
@@ -110,9 +109,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const { t: tb } = useTranslation("bot")
     const { t: tc } = useTranslation("common")
     const { message } = App.useApp()
-    const phone = !Grid.useBreakpoint().md
     const [state, dispatch] = useReducer(moduleReducer, undefined, () => startModule(entries, account?.plugins))
-    const [view, setView] = useState<View>(readView)
     const [resetKey, setResetKey] = useState(0)
     const forms = useRef(new Map<string, FormInstance>())
     const dirty = changedPlugins(entries, state).length > 0
@@ -151,14 +148,11 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const attackEntries = entries.filter(e => e.category === "attack" && !e.force)
     const on = attackPluginsOn(catalog, account?.plugins ?? {}, state.values)
     const atLimit = attackLimit !== null && on >= attackLimit
-    const botRunning = account?.status?.actualState === "running"
-    const hasAdvanced = entries.some(e => e.options.some(def => def.advanced))
-    const advancedChanged = entries.reduce((total, entry) => total + changedAdvanced(entry, state.values[entry.key]?.options ?? {}), 0)
     const castles = account?.status?.castles ?? []
 
     const sections = entries.map(entry => (
-        <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} view={view} disabled={readOnly || save.isPending}
-            castles={castles} accountId={account?.id} pluginStates={botRunning ? account?.status?.pluginStates ?? {} : {}} phone={phone} commanders={account?.status?.commanders ?? null}
+        <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} disabled={readOnly || save.isPending}
+            castles={castles} accountId={account?.id} commanders={account?.status?.commanders ?? null}
             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
     ))
@@ -201,12 +195,6 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                 attackLimit={(account?.plugins.attack?.options.attackLimit as string | undefined) || catalog.find(e => e.key === "attack")?.options.flatMap(def => def.key === "attackLimit" && def.type === "Text" ? def.default ?? [] : [])[0]} />
 
             {readOnly && <Typography.Text type="secondary" role="status">{t("module.readOnly")}</Typography.Text>}
-            {hasAdvanced && (
-                <div className="gge-module-tools">
-                    <Segmented<View> aria-label={t("plugins.view.label")} value={view} onChange={next => { setView(next); writeView(next) }}
-                        options={[{ value: "simple", label: t("plugins.view.simple") }, { value: "advanced", label: advancedChanged ? t("plugins.view.advancedChanged", { count: advancedChanged }) : t("plugins.view.advanced") }]} />
-                </div>
-            )}
 
             {byKingdom
                 ? <CopyToAll value={{ copy: copyToAll, each }}>
@@ -279,43 +267,32 @@ function StatusRow({ entry, account, state, blocked, onEnabled, readOnly }: {
     )
 }
 
-function PluginSection({ entry, state, view, disabled, castles, accountId, pluginStates, phone, commanders, register, onOptions }: {
-    entry: PluginCatalogEntry; state: ModuleState; view: View; disabled: boolean; accountId: string | undefined
-    castles: AccountCastle[]; pluginStates: PluginStates; phone: boolean; commanders: number | null
+function PluginSection({ entry, state, disabled, castles, accountId, commanders, register, onOptions }: {
+    entry: PluginCatalogEntry; state: ModuleState; disabled: boolean; accountId: string | undefined
+    castles: AccountCastle[]; commanders: number | null
     register: (form: FormInstance | null) => void; onOptions: (options: OptionValues) => void
 }) {
     const { t } = useTranslation("client")
     const { t: tb, i18n } = useTranslation("bot")
     const [form] = Form.useForm<{ options: OptionValues }>()
     useEffect(() => { register(form); return () => register(null) }, [form, register])
-    const hasAdvanced = entry.options.some(def => def.advanced)
-    const showAdvanced = view === "advanced" || !hasAdvanced
     const options = state.values[entry.key]?.options ?? {}
     const descriptionKey = `${entry.key}.description`
-    const checks = (entry.checks ?? []).length > 0 && (
-        <SetupChecks entry={entry} beside={!phone} input={{
-            options, pluginStates, commanders, plugin: entry.key,
-            plugins: Object.fromEntries(Object.entries(state.values).map(([key, value]) => [key, value.options])),
-            enabled: Object.fromEntries(Object.entries(state.values).map(([key, value]) => [key, value.enabled])),
-        }} />
-    )
     return (
-        <div className="gge-module-section" data-checks={checks ? "" : undefined}>
-            {phone && checks}
+        <div className="gge-module-section">
             <div>
                 {i18n.exists(descriptionKey, { ns: "bot" }) && <Typography.Paragraph type="secondary">{tb(descriptionKey)}</Typography.Paragraph>}
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
                 <Form name={entry.key} form={form} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
-                    <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} accountId={accountId} commanders={commanders} />
+                    <PluginFields entry={entry} castles={castles} accountId={accountId} commanders={commanders} />
                 </Form>
             </div>
-            {!phone && checks}
         </div>
     )
 }
 
-function PluginFields({ entry, castles, showAdvanced, accountId, commanders }: { entry: PluginCatalogEntry; castles: AccountCastle[]; showAdvanced: boolean; accountId: string | undefined; commanders: number | null }) {
+function PluginFields({ entry, castles, accountId, commanders }: { entry: PluginCatalogEntry; castles: AccountCastle[]; accountId: string | undefined; commanders: number | null }) {
     // An option tagged with an army mode shows only while the plugin's Army switch is on that mode.
     const modeKey = entry.options.find(def => def.type === "ArmyMode")?.key
     const mode = (Form.useWatch(["options", modeKey ?? ""]) as ArmyMode | undefined) ?? "autofill"
@@ -326,7 +303,7 @@ function PluginFields({ entry, castles, showAdvanced, accountId, commanders }: {
     return (
         <Row>
             {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId} commanders={commanders}
-                hidden={(Boolean(def.advanced) && !showAdvanced) || otherMode(def) || unwanted(def)} />)}
+                hidden={otherMode(def) || unwanted(def)} />)}
         </Row>
     )
 }

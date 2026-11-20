@@ -3,8 +3,6 @@ import { ArmyMode, AutofillSource, SkipTypes, WavePlan } from "./army.ts"
 import { PluginCheckDef } from "./plugin-checks.ts"
 
 const key = z.string().min(1)
-/** Puts the option in the settings dialog's Advanced view. */
-const advanced = z.literal(true).optional()
 /** Shows the option only while the plugin's ArmyMode option is in this mode. */
 const army = ArmyMode.optional()
 /** Shows the option only while the Select option it names holds one of the listed choices. */
@@ -53,33 +51,33 @@ export type RowColumn = z.infer<typeof RowColumn>
 export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
 export type RowValue = z.infer<typeof RowValue>
 
-/** The option types plugins declare (bot-core plugins' pluginOptions). Any option may set `advanced`, and any with a key `showWhen`. */
+/** The option types plugins declare (bot-core plugins' pluginOptions). Any option with a key may set `showWhen`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
-    z.looseObject({ type: z.literal(""), key: z.undefined().optional(), advanced }),
-    z.looseObject({ type: z.literal("Label"), key, showWhen, advanced, army }),
+    z.looseObject({ type: z.literal(""), key: z.undefined().optional() }),
+    z.looseObject({ type: z.literal("Label"), key, showWhen, army }),
     /** `min` and `max` make it a number field; an empty value means "use the default". */
-    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), showWhen, advanced, army }),
-    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), showWhen, advanced, army }),
+    z.looseObject({ type: z.literal("Text"), key, default: z.string().optional(), min: z.number().optional(), max: z.number().optional(), showWhen, army }),
+    z.looseObject({ type: z.literal("Checkbox"), key, default: z.boolean().optional(), showWhen, army }),
     /** `copyToAll` offers to copy the choice to the other plugins of the module's page: its other kingdoms, or its other events. */
-    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), legacy: LegacyChoice.optional(), copyToAll: z.literal(true).optional(), showWhen, advanced, army }),
-    z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), showWhen, advanced }),
+    z.looseObject({ type: z.literal("Select"), key, selection: z.array(z.string()), default: z.union([z.string(), z.number()]).optional(), legacy: LegacyChoice.optional(), copyToAll: z.literal(true).optional(), showWhen, army }),
+    z.looseObject({ type: z.literal("Channel"), key, default: z.string().optional(), showWhen }),
     /**
      * `display` "slider" draws a slider beside the number field. `legacy` "text" says the option was a Text once: a
      * stored string reads as its number, brought into the range, and an empty or unreadable one as nothing stored.
      */
-    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), display: z.literal("slider").optional(), default: z.number().optional(), legacy: z.literal("text").optional(), showWhen, advanced, army }),
+    z.looseObject({ type: z.literal("Number"), key, min: z.number(), max: z.number(), step: z.number().positive().optional(), unit: NumberUnit.optional(), display: z.literal("slider").optional(), default: z.number().optional(), legacy: z.literal("text").optional(), showWhen, army }),
     /** Items from `catalog` in the order the plugin tries them, as wodIDs. */
-    z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), showWhen, advanced, army }),
-    z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), showWhen, advanced, army }),
+    z.looseObject({ type: z.literal("OrderedList"), key, catalog: ItemCatalog, default: z.array(z.number().int()), showWhen, army }),
+    z.looseObject({ type: z.literal("Rows"), key, columns: z.array(RowColumn).min(1), default: z.array(RowValue), showWhen, army }),
     /** One of the account's castles; null until the player picks one. `kingdom` lists only that kingdom's castles. */
-    z.looseObject({ type: z.literal("CastlePicker"), key, kingdom: z.number().int().min(0).optional(), default: z.null().optional(), showWhen, advanced }),
+    z.looseObject({ type: z.literal("CastlePicker"), key, kingdom: z.number().int().min(0).optional(), default: z.null().optional(), showWhen }),
     /** The time skips this plugin may spend; null follows the account's Skips settings. */
-    z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), showWhen, advanced }),
+    z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), showWhen }),
     /** Autofill or Waves. `autofill` says which options make up the autofill, for its one-line summary. */
-    z.looseObject({ type: z.literal("ArmyMode"), key, default: ArmyMode.optional(), autofill: AutofillSource, showWhen, advanced }),
+    z.looseObject({ type: z.literal("ArmyMode"), key, default: ArmyMode.optional(), autofill: AutofillSource, showWhen }),
     /** A wave plan; unset until the player writes one. */
-    z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, advanced, army }),
+    z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, army }),
 ])
 export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 /** An option that holds a value: every type but the layout gap and the label. */
@@ -93,7 +91,7 @@ export const PluginCatalogEntry = z.object({
     options: z.array(PluginOptionDef),
     /** "attack" plugins count toward the attack plugin cap. */
     category: z.literal("attack").nullish(),
-    /** The settings dialog's Setup checks for this plugin. */
+    /** Marks the plugin's commander list option. */
     checks: z.array(PluginCheckDef).optional(),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: z.boolean().optional(),

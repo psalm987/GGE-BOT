@@ -49,7 +49,7 @@ const eventCampOptions = profile => [
     { type: "Label", key: "limitSettings" },
     { type: "Number", key: "attacksPerRun", min: 0, max: 4000, unit: "attacks", default: 0 },
     { type: "Number", key: "scoreShutoff", min: 0, max: 999_999_999, default: 0, legacy: "text" },
-    { type: "Number", key: "skipBudgetPerDay", min: 0, max: 5000, default: 0, advanced: true, showWhen: { key: "targetMode", in: SKIPPING } },
+    { type: "Number", key: "skipBudgetPerDay", min: 0, max: 5000, default: 0, showWhen: { key: "targetMode", in: SKIPPING } },
     { type: "Label", key: "horseSettings" },
     {
         type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 0, copyToAll: true,
@@ -70,15 +70,15 @@ const eventCampOptions = profile => [
     { type: "Checkbox", key: "attackRight", default: true, army: "autofill" },
     { type: "Checkbox", key: "attackCourtyard", default: true, army: "autofill" },
     { type: "Number", key: "minTroops", min: 0, max: 5000, unit: "troops", default: 0, army: "autofill" },
-    { type: "Checkbox", key: "lowValueChests", default: false, army: "autofill", advanced: true },
+    { type: "Checkbox", key: "lowValueChests", default: false, army: "autofill" },
     ...profile.ownOptions,
-    { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill", advanced: true },
+    { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
     unitOrderOption(),
     supplyOption(),
-    { type: "Checkbox", key: "dryRun", default: false, advanced: true },
+    { type: "Checkbox", key: "dryRun", default: false },
 ]
-/** The Setup checks of an event camp plugin. */
-const eventCampChecks = [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }]
+/** Marks the commander list option, for the roster line beside it. */
+const eventCampChecks = [{ type: "commanders", option: "commanderWhiteList" }]
 
 const coordinate = value => Number.isInteger(value) && value >= 0 && value <= MAP_MAX ? value : undefined
 
@@ -159,8 +159,8 @@ const EVENT_PROFILES = {
         eventID: 72, areaType: "nomadCamp", logName: "campOfNomads", kingdom: 0, booster: "khanTabletBooster", classicCamps: "nomadCamps",
         plainToolCount: 40, splitToolRoom: true,
         ownOptions: [
-            { type: "Checkbox", key: "eventWallToolsFirst", army: "autofill", advanced: true },
-            { type: "Checkbox", key: "useFood", army: "autofill", default: true, advanced: true },
+            { type: "Checkbox", key: "eventWallToolsFirst", army: "autofill" },
+            { type: "Checkbox", key: "useFood", army: "autofill", default: true },
         ],
         isEventTool: info => info.khanTabletBooster != undefined && info.ragePointBonus == undefined,
         isTroop: (info, options) => info.fightType == 0 && !info.beefSupply && !(info.foodSupply && !options.useFood),

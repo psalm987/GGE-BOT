@@ -13,7 +13,7 @@ const waveOptions = () => [{
 
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
+        checks: [{ type: "commanders", option: "commanderWhiteList" }],
         pluginOptions: [
             {
                 type: "Checkbox",
@@ -30,7 +30,7 @@ if (require('node:worker_threads').isMainThread)
                 key: "commanderWhiteList",
                 default: "1-50"
             },
-            { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
+            { type: "SkipTypes", key: "skipTypes", default: null },
             { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
@@ -63,8 +63,7 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Checkbox",
                 key: "dryRun",
-                default: false,
-                advanced: true
+                default: false
             }
         ]
 
