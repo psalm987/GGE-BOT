@@ -100,9 +100,9 @@
   "zod.invalid_key": "Tajā ir nederīga atslēga.",
   "zod.invalid_element": "Tajā ir nederīgs vienums.",
   "zod.custom": "Tas nav derīgs.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} nav derīgs armijas iestatījums",
+  "VIRTUAL_PRESET_NOT_FOUND": "Šī sagatave nepastāv",
+  "VIRTUAL_PRESET_DUPLICATE": "Šim kontam jau ir sagatave ar šādu nosaukumu",
+  "VIRTUAL_PRESET_IN_USE": "Kāds šī konta modulis joprojām sūta šo sagatavi. Vispirms izvēlies tur citu plānu.",
+  "VIRTUAL_PRESET_LIMIT": "Sagatavju maksimums vienā kontā: {{max}}. Izdzēs kādu, lai pievienotu citu."
 }

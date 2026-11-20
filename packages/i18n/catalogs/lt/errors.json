@@ -105,9 +105,9 @@
   "zod.invalid_key": "Čia yra netinkamas raktas.",
   "zod.invalid_element": "Čia yra netinkamas elementas.",
   "zod.custom": "Tai negalioja.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}}: netinkamas kariuomenės nustatymas",
+  "VIRTUAL_PRESET_NOT_FOUND": "Tokio šablono nėra",
+  "VIRTUAL_PRESET_DUPLICATE": "Ši paskyra jau turi šabloną tokiu pavadinimu",
+  "VIRTUAL_PRESET_IN_USE": "Šios paskyros modulis vis dar siunčia šį šabloną. Pirmiausia ten pasirinkite kitą planą.",
+  "VIRTUAL_PRESET_LIMIT": "Šablonų riba paskyroje: {{max}}. Ištrinkite vieną, kad pridėtumėte kitą."
 }

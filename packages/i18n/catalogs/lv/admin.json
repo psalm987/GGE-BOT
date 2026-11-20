@@ -243,7 +243,7 @@
   "announcements.col.severity": "Svarīgums",
   "announcements.col.shown": "Parādīts",
   "announcements.col.closed": "Aizvērts",
-  "announcements.severity.info": "Info",
+  "announcements.severity.info": "Informācija",
   "announcements.severity.warning": "Brīdinājums",
   "announcements.severity.critical": "Kritiski",
   "announcements.state.live": "Aktīvs",

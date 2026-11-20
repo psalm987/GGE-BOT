@@ -25,7 +25,7 @@
   "value.never": "Jamais",
   "validation.email": "Saisissez une adresse e-mail valide",
   "error.generic": "Une erreur s'est produite. Réessayez.",
-  "plan.basic": "Basic",
-  "plan.team": "Team",
-  "plan.teamName": "Team {{seats, number}}"
+  "plan.basic": "Basique",
+  "plan.team": "Équipe",
+  "plan.teamName": "Équipe {{seats, number}}"
 }
