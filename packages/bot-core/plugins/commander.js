@@ -64,6 +64,15 @@ function parseWhitelist(commanderWhitelist) {
     })
 }
 
+/**
+ * A `sortCallback` for waitForCommanderAvailable that takes commanders in the order a whitelist names them, so "5;2;1"
+ * sends commander 5 first. Undefined for an empty list, which names no order.
+ */
+function inWrittenOrder(commanderWhitelist) {
+    const order = parseWhitelist(commanderWhitelist)
+    return Array.isArray(order) ? (a, b) => order.indexOf(a.lordPosition) - order.indexOf(b.lordPosition) : undefined
+}
+
 /** A whitelisted commander that is free right now, marked used; undefined when none is. Never waits. */
 function takeFreeCommander(commanderWhitelist) {
     const whitelist = parseWhitelist(commanderWhitelist)
@@ -134,6 +143,7 @@ module.exports = {
     waitForCommanderAvailable,
     takeFreeCommander,
     parseWhitelist,
+    inWrittenOrder,
     useCommander,
     freeCommander
 }

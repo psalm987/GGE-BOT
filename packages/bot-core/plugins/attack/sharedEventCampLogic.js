@@ -3,13 +3,15 @@ if (require("node:worker_threads").isMainThread)
 
 const pretty = require('pretty-time')
 const { spendSkip } = require("../skips.js")
-const { movementEvents, movements, AreaType, castles, ClientCommands } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, accountLimits } = require("./attack.js")
+const { waitForCommanderAvailable, freeCommander, useCommander, inWrittenOrder } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { parseTarget, campQueue, campAt, eventCampOptions, CAMP_HORSES, CAMP_TOOL_SETS } = require("../../eventCamps.js")
+const { parseTarget, campQueue, areaAt, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
+const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
+const { campAttackLine } = require("../../attackLog.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo } = require("../../ggeBot.js")
 const { statusReporter } = require("../../pluginStatus.js")
 
@@ -18,6 +20,10 @@ const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScali
 const ggeConfig = require("../../config.js")
 
 const minTroopCount = 100
+/** A count of attacks in a status is rounded down to this step once it passes it, so the status isn't rewritten after every attack. */
+const STATUS_STEP = 10
+
+const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
 /** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
 const IDLE_MS = [5_000, 60_000]
 
@@ -28,8 +34,18 @@ const IDLE_MS = [5_000, 60_000]
 function eventCampAttacks(profile, stored, filename) {
     const options = readLegacy(eventCampOptions(profile), stored)
     const toolSet = choice(CAMP_TOOL_SETS, options.tools, "all")
-    const horse = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2] }[choice(CAMP_HORSES, options.horse, "none")] ?? HORSES[0]
+    const horseChoice = choice(CAMP_HORSES, options.horse, "none")
+    const horseDistance = Number(options.horseDistance) || 15
+    const RIDES = { none: HORSES[0], coin: HORSES[1], feather: HORSES[2] }
     const scoreShutoff = Number(options.scoreShutoff) > 0 ? Number(options.scoreShutoff) : Infinity
+    const runLimit = Math.max(0, Number(options.attacksPerRun) || 0)
+    const troopFloor = Math.max(minTroopCount, Number(options.minTroops) || 0)
+    // With left, middle and right all off the plugin fills every side, as it did before the sides could be chosen.
+    const everySide = !(options.attackLeft || options.attackMiddle || options.attackRight)
+    const sides = {
+        left: everySide || Boolean(options.attackLeft), front: everySide || Boolean(options.attackMiddle),
+        right: everySide || Boolean(options.attackRight), courtyard: everySide || Boolean(options.attackCourtyard),
+    }
     const { eventID, kingdom: kingdomID, booster } = profile
     const type = AreaType[profile.areaType]
     const classicCamps = require("../../paths.js").loadItem(profile.classicCamps)
@@ -40,7 +56,9 @@ function eventCampAttacks(profile, stored, filename) {
     const autofill = parseAutofill(options)
     const queue = campQueue(target)
 
+    /** Skips a camp's wait while the budget allows, and returns the skips it spent. */
     const skipTarget = async areaInfo => {
+        const spent = []
         while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
             let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
 
@@ -52,7 +70,9 @@ function eventCampAttacks(profile, stored, filename) {
             if (result != 0)
                 break
             queue.skipped()
+            spent.push(skip)
         }
+        return spent
     }
     movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
         if (movement.targetOwner.ownerID != playerInfo.playerID)
@@ -67,6 +87,8 @@ function eventCampAttacks(profile, stored, filename) {
     })
 
     let quit = false
+    /** The attacks sent since the event, or the bot, last started. */
+    let sentThisRun = 0
 
     xtHandler.on("pep", obj => {
         if (obj.EID != eventID)
@@ -98,6 +120,10 @@ function eventCampAttacks(profile, stored, filename) {
         if (eventInfo.EID != eventID)
             return
 
+        if (eventInfo.EDID == -1 && Number(options.eventDifficulty) == KEEP_DIFFICULTY) {
+            console.warn("campDifficultyNotSet")
+            return reportStatus("waiting", "statusCampDifficultyNotSet")
+        }
         if (eventInfo.EDID == -1 && !(ggeConfig.classicBug && options.eventDifficulty == 0)) {
             const eventDifficultyID =
                 Number(eventsDifficulties.find(e =>
@@ -113,7 +139,28 @@ function eventCampAttacks(profile, stored, filename) {
         if ([-1, 0].includes(eventInfo.EDID))
             classic = true
 
-        const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+        const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.mainCastle])
+        const castle = source.castle
+        const from = castleName(castle)
+        if (source.fellBack)
+            console.warn("campSourceCastleGone", from)
+        let saidNoBoosters = false
+        /** Whether the last attack wanted a feather and rode the coin horse because the player has none. */
+        let outOfFeathers = false
+        /** What `getAttackInfo` reads the horse from, for one camp, and the name the log gives it. */
+        function horseFor(areaInfo) {
+            if (horseChoice != "distance")
+                return { ride: RIDES[horseChoice], name: horseChoice }
+            const picked = horseByDistance(marchDistance(castle.areaInfo, areaInfo), horseDistance, resources.pegasusTicket)
+            if (picked.fellBack && !outOfFeathers)
+                console.warn("campNoFeathers")
+            outOfFeathers = picked.fellBack
+            return { ride: RIDES[picked.horse], name: picked.horse }
+        }
+        const shown = () => runLimit > 0 ? `${sentThisRun}/${runLimit}` : String(sentThisRun < STATUS_STEP ? sentThisRun : Math.floor(sentThisRun / STATUS_STEP) * STATUS_STEP)
+        const reportAttacking = () => target.mode == "single"
+            ? reportStatus("running", "statusCampAttackingOne", { ...target.at, castle: from, attacks: shown() })
+            : reportStatus("running", "statusCampsAttacking", { found: queue.areas.length, castle: from, attacks: shown() })
 
         const army = readArmy(options, reportStatus)
         if (!army)
@@ -124,10 +171,11 @@ function eventCampAttacks(profile, stored, filename) {
                 console.error("campTargetNotSet")
                 return reportStatus("error", "statusCampTargetNotSet")
             }
-            const camp = await campAt(ClientCommands.getAreaInfo, gridBoxes, kingdomID, target.at, type)
-            if (!camp) {
-                console.error("campTargetNotFound", `${target.at.x}:${target.at.y}`)
-                return reportStatus("error", "statusCampTargetNotFound", target.at)
+            const camp = await areaAt(ClientCommands.getAreaInfo, gridBoxes, kingdomID, target.at)
+            if (camp?.type != type) {
+                const otherEvent = Object.values(EVENT_PROFILES).some(other => AreaType[other.areaType] == camp?.type)
+                console.error(otherEvent ? "campTargetOtherEvent" : "campTargetNotFound", `${target.at.x}:${target.at.y}`)
+                return reportStatus("error", otherEvent ? "statusCampTargetOtherEvent" : "statusCampTargetNotFound", target.at)
             }
             queue.areas.push(camp)
         }
@@ -143,11 +191,16 @@ function eventCampAttacks(profile, stored, filename) {
         }
 
         quit = false
-        reportStatus("running")
-
+        sentThisRun = 0
+        if (source.fellBack)
+            reportStatus("waiting", "statusCampCastleFallback", { castle: from })
+        else
+            reportAttacking()
 
         while (!quit) {
-            const commander = await waitForCommanderAvailable(options.commanderWhiteList)
+            const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, inWrittenOrder(options.commanderWhiteList))
+            /** What the log line says of the attack being built: the skips spent on the camp and the horse. */
+            const sending = { skips: [], horse: "none" }
             try {
                 const attackInfo = await waitToAttack(async () => {
                     const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
@@ -155,9 +208,11 @@ function eventCampAttacks(profile, stored, filename) {
                         return
 
                     if (!options.dryRun)
-                        await skipTarget(areaInfo)
+                        sending.skips = await skipTarget(areaInfo)
                     if (areaInfo.extraData[2] > 0 && !queue.maySkip())
                         return
+                    const horse = horseFor(areaInfo)
+                    sending.horse = horse.name
 
                     const campInfo = classic ? profile.classicCamp(classicCamps, areaInfo.extraData) :
                         eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
@@ -167,7 +222,7 @@ function eventCampAttacks(profile, stored, filename) {
 
                     if (army.mode == "waves") {
                         const effects = commander.getEffects()
-                        const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, effects.additionalWaves)
+                        const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse.ride, effects.additionalWaves)
                         fillFromPlan(planned, army.waves, castle.unitInventory, {
                             flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                             flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
@@ -232,8 +287,12 @@ function eventCampAttacks(profile, stored, filename) {
                     attackerRangeTroops.forEach(e => allTroopCount += e.amount)
                     attackerMeleeTroops.forEach(e => allTroopCount += e.amount)
 
-                    if (allTroopCount < minTroopCount)
+                    if (allTroopCount < troopFloor)
                         throw "NO_MORE_TROOPS"
+                    if (toolSet == "all" && !saidNoBoosters && ![attackerEventTools, attackerWallEventTools, attackerGateEventTools, attackerShieldEventTools].some(tools => tools.length)) {
+                        saidNoBoosters = true
+                        console.warn("campNoEventBoosters")
+                    }
 
                     orderUnits(attackerMeleeTroops, autofill.unitOrder)
                     orderUnits(attackerRangeTroops, autofill.unitOrder)
@@ -266,7 +325,7 @@ function eventCampAttacks(profile, stored, filename) {
                     const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                     const maxToolsFront = getTotalAmountToolsFront(level)
                     const commanderStats = commander.getEffects()
-                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, commanderStats.additionalWaves)
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, Number(options.attackWaves), horse.ride, commanderStats.additionalWaves)
                     const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                     const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
                     const desiredToolCount = attackerEventTools.length == 0 ? profile.plainToolCount : 10
@@ -276,33 +335,41 @@ function eventCampAttacks(profile, stored, filename) {
                     attackInfo.A.forEach((wave, index) => {
                         let maxTools = maxToolsFlank
                         if (index == 0) {
-                            wave.L.T.forEach((unitSlot, i) =>
-                                maxTools -= assignUnit(unitSlot, i == 0 ?
-                                    attackerWallEventTools : attackerShieldEventTools, Math.min(maxTools / flankShare, desiredToolCount)))
+                            if (toolSet != "none") {
+                                if (sides.left)
+                                    wave.L.T.forEach((unitSlot, i) =>
+                                        maxTools -= assignUnit(unitSlot, i == 0 ?
+                                            attackerWallEventTools : attackerShieldEventTools, Math.min(maxTools / flankShare, desiredToolCount)))
 
-                            maxTools = maxToolsFlank
-                            wave.R.T.forEach((unitSlot, i) =>
-                                maxTools -= assignUnit(unitSlot, i == 0 ?
-                                    attackerWallEventTools : attackerShieldEventTools, Math.min(maxTools / flankShare, desiredToolCount)))
+                                maxTools = maxToolsFlank
+                                if (sides.right)
+                                    wave.R.T.forEach((unitSlot, i) =>
+                                        maxTools -= assignUnit(unitSlot, i == 0 ?
+                                            attackerWallEventTools : attackerShieldEventTools, Math.min(maxTools / flankShare, desiredToolCount)))
 
-                            maxTools = maxToolsFront
-                            wave.M.T.forEach((unitSlot, i) =>
-                                maxTools -= assignUnit(unitSlot, i == 0 ? attackerWallEventTools :
-                                    i == 1 ? attackerGateEventTools : attackerShieldEventTools, Math.min(maxTools / frontShare, desiredToolCount)))
+                                maxTools = maxToolsFront
+                                if (sides.front)
+                                    wave.M.T.forEach((unitSlot, i) =>
+                                        maxTools -= assignUnit(unitSlot, i == 0 ? attackerWallEventTools :
+                                            i == 1 ? attackerGateEventTools : attackerShieldEventTools, Math.min(maxTools / frontShare, desiredToolCount)))
+                            }
 
                             let maxTroops = maxTroopFlank
 
-                            wave.L.U.forEach(unitSlot =>
-                                maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
-                                    attackerMeleeTroops : attackerRangeTroops, maxTroops))
+                            if (sides.left)
+                                wave.L.U.forEach(unitSlot =>
+                                    maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
+                                        attackerMeleeTroops : attackerRangeTroops, maxTroops))
                             maxTroops = maxTroopFlank
-                            wave.R.U.forEach(unitSlot =>
-                                maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
-                                    attackerMeleeTroops : attackerRangeTroops, maxTroops))
+                            if (sides.right)
+                                wave.R.U.forEach(unitSlot =>
+                                    maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
+                                        attackerMeleeTroops : attackerRangeTroops, maxTroops))
                             maxTroops = maxTroopFront
-                            wave.M.U.forEach(unitSlot =>
-                                maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
-                                    attackerMeleeTroops : attackerRangeTroops, maxTroops))
+                            if (sides.front)
+                                wave.M.U.forEach(unitSlot =>
+                                    maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
+                                        attackerMeleeTroops : attackerRangeTroops, maxTroops))
                             if (autofill.unitOrder == "castle") {
                                 attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
                                 attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
@@ -337,32 +404,38 @@ function eventCampAttacks(profile, stored, filename) {
                                 return tools
                             }
 
-                            wave.L.T.forEach(unitSlot =>
-                                maxTools -= assignUnit(unitSlot, selectTool(0), maxTools))
+                            if (sides.left)
+                                wave.L.T.forEach(unitSlot =>
+                                    maxTools -= assignUnit(unitSlot, selectTool(0), maxTools))
                             maxTools = maxToolsFlank
-                            wave.R.T.forEach(unitSlot =>
-                                maxTools -= assignUnit(unitSlot, selectTool(1), maxTools))
+                            if (sides.right)
+                                wave.R.T.forEach(unitSlot =>
+                                    maxTools -= assignUnit(unitSlot, selectTool(1), maxTools))
                             maxTools = maxToolsFront
-                            wave.M.T.forEach(unitSlot =>
-                                maxTools -= assignUnit(unitSlot, selectTool(2), maxTools))
+                            if (sides.front)
+                                wave.M.T.forEach(unitSlot =>
+                                    maxTools -= assignUnit(unitSlot, selectTool(2), maxTools))
                         }
 
                         let maxTroops = maxTroopFlank
 
-                        wave.L.U.forEach(unitSlot =>
-                            maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
-                                attackerRangeTroops : attackerMeleeTroops, maxTroops))
+                        if (sides.left)
+                            wave.L.U.forEach(unitSlot =>
+                                maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
+                                    attackerRangeTroops : attackerMeleeTroops, maxTroops))
                         maxTroops = maxTroopFlank
-                        wave.R.U.forEach(unitSlot =>
-                            maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
-                                attackerRangeTroops : attackerMeleeTroops, maxTroops))
+                        if (sides.right)
+                            wave.R.U.forEach(unitSlot =>
+                                maxTroops -= assignUnit(unitSlot, attackerMeleeTroops.length <= 0 ?
+                                    attackerRangeTroops : attackerMeleeTroops, maxTroops))
                         maxTroops = maxTroopFront
-                        wave.M.U.forEach(unitSlot =>
-                            maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
-                                attackerMeleeTroops : attackerRangeTroops, maxTroops))
+                        if (sides.front)
+                            wave.M.U.forEach(unitSlot =>
+                                maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
+                                    attackerMeleeTroops : attackerRangeTroops, maxTroops))
                     })
                     let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | commanderStats.attackUnitAmountReinforcementBonus)
-                    attackInfo.RW.forEach((unitSlot, i) => {
+                    if (sides.courtyard) attackInfo.RW.forEach((unitSlot, i) => {
                         let attacker = i & 1 ?
                             (attackerMeleeTroops.length > 0 ? attackerMeleeTroops : attackerRangeTroops) :
                             (attackerRangeTroops.length > 0 ? attackerRangeTroops : attackerMeleeTroops)
@@ -380,18 +453,30 @@ function eventCampAttacks(profile, stored, filename) {
                     await new Promise(resolve => setTimeout(resolve, wait).unref())
                     continue
                 }
-                if (attackInfo.dryRun) {
+                sentThisRun++
+                if (attackInfo.dryRun)
                     freeCommander(commander.lordID)
-                    continue
+                else {
+                    if (!quit)
+                        reportAttacking()
+                    console.info(...campAttackLine(profile.logName, attackInfo.AAM.UM.L.VIS + 1, attackInfo.AAM.M.TA[1], attackInfo.AAM.M.TA[2],
+                        pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), sending))
                 }
-
-                reportStatus("running")
-                console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
+                if (!quit && runLimit > 0 && sentThisRun >= runLimit) {
+                    console.log("shuttingDownEvent", "campRunLimitReached")
+                    reportStatus("stopped", "statusCampRunLimit", { limit: runLimit })
+                    quit = true
+                }
             } catch (e) {
                 freeCommander(commander.lordID)
                 console.warn(e)
                 switch (e) {
+                    case "ATTACK_LIMIT_REACHED":
+                        reportStatus("stopped", "statusCampDailyCap", { limit: accountLimits().limit })
+                        quit = true
+                        break
                     case "NO_MORE_TROOPS":
+                        reportStatus("waiting", army.mode == "waves" ? "statusCampPlanShort" : "statusCampNoTroops", { castle: from, floor: troopFloor })
                         await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
                             if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
                                 return

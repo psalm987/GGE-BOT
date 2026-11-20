@@ -137,13 +137,13 @@ function campQueue(target, areas = []) {
 }
 
 /**
- * The camp of `type` at (x, y), or undefined when that tile holds none. It asks for the map box the game client
- * would ask for around that tile.
+ * What stands at (x, y), or undefined when the tile is empty. It asks for the map box the game client would ask for
+ * around that tile.
  */
-async function campAt(getAreaInfo, gridBoxes, kingdomID, { x, y }, type) {
+async function areaAt(getAreaInfo, gridBoxes, kingdomID, { x, y }) {
     const [box] = gridBoxes(x, y, 0)
     const { areaInfo } = await getAreaInfo(kingdomID, box.x, box.y, box.w, box.h)
-    return (areaInfo ?? []).find(area => area.type == type && area.x == x && area.y == y)
+    return (areaInfo ?? []).find(area => area.x == x && area.y == y)
 }
 
 /**
@@ -151,11 +151,12 @@ async function campAt(getAreaInfo, gridBoxes, kingdomID, { x, y }, type) {
  * where the camps stand, and `booster` is the field an event tool carries its point bonus in. A camp of the classic
  * difficulty is looked up in the `classicCamps` item file. In the first wave a slot takes `plainToolCount` tools
  * while the castle holds no point boosters, and with `splitToolRoom` the slots of a side share its room equally.
- * `ownOptions` are the options only this event's plugin has.
+ * `ownOptions` are the options only this event's plugin has, and `logName` is the bot-catalog key that names the
+ * event's camp in a log line.
  */
 const EVENT_PROFILES = {
     nomad: {
-        eventID: 72, areaType: "nomadCamp", kingdom: 0, booster: "khanTabletBooster", classicCamps: "nomadCamps",
+        eventID: 72, areaType: "nomadCamp", logName: "campOfNomads", kingdom: 0, booster: "khanTabletBooster", classicCamps: "nomadCamps",
         plainToolCount: 40, splitToolRoom: true,
         ownOptions: [
             { type: "Checkbox", key: "eventWallToolsFirst", army: "autofill", advanced: true },
@@ -167,7 +168,7 @@ const EVENT_PROFILES = {
         classicLevel: camp => 80 + camp.countVictory,
     },
     samurai: {
-        eventID: 80, areaType: "samCamp", kingdom: 0, booster: "samuraiTokenBooster", classicCamps: "samuraiCamps",
+        eventID: 80, areaType: "samCamp", logName: "campOfSamurai", kingdom: 0, booster: "samuraiTokenBooster", classicCamps: "samuraiCamps",
         plainToolCount: 20, splitToolRoom: false,
         ownOptions: [],
         isEventTool: info => info.samuraiTokenBooster != undefined,
@@ -177,4 +178,4 @@ const EVENT_PROFILES = {
     },
 }
 
-module.exports = { EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, eventCampOptions, eventCampChecks, parseTarget, readyAt, campQueue, campAt }
+module.exports = { EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, eventCampOptions, eventCampChecks, parseTarget, readyAt, campQueue, areaAt }
