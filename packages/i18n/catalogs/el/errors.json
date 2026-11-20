@@ -95,9 +95,9 @@
   "zod.invalid_key": "Αυτό περιέχει μη έγκυρο κλειδί.",
   "zod.invalid_element": "Αυτό περιέχει μη έγκυρο στοιχείο.",
   "zod.custom": "Αυτό δεν είναι έγκυρο.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "Το {{where}} δεν είναι έγκυρη ρύθμιση στρατού",
+  "VIRTUAL_PRESET_NOT_FOUND": "Αυτό το πρότυπο δεν υπάρχει",
+  "VIRTUAL_PRESET_DUPLICATE": "Αυτός ο λογαριασμός έχει ήδη πρότυπο με αυτό το όνομα",
+  "VIRTUAL_PRESET_IN_USE": "Μια ενότητα αυτού του λογαριασμού στέλνει ακόμη αυτό το πρότυπο. Επιλέξτε πρώτα άλλο πλάνο εκεί.",
+  "VIRTUAL_PRESET_LIMIT": "Ένας λογαριασμός μπορεί να έχει έως {{max}} πρότυπα. Διαγράψτε ένα για να προσθέσετε άλλο."
 }

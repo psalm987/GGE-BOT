@@ -105,9 +105,9 @@
   "zod.invalid_key": "Obsahuje neplatný klíč.",
   "zod.invalid_element": "Obsahuje neplatnou položku.",
   "zod.custom": "Toto není platné.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} není platné nastavení armády",
+  "VIRTUAL_PRESET_NOT_FOUND": "Tato předvolba neexistuje",
+  "VIRTUAL_PRESET_DUPLICATE": "Tento účet už má předvolbu s tímto názvem",
+  "VIRTUAL_PRESET_IN_USE": "Modul tohoto účtu stále posílá tuto předvolbu. Nejprve tam vyberte jiný plán.",
+  "VIRTUAL_PRESET_LIMIT": "Účet může mít nejvýše tolik předvoleb: {{max}}. Smažte jednu, abyste mohli přidat další."
 }
