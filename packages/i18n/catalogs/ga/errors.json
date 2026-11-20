@@ -110,9 +110,9 @@
   "zod.invalid_key": "Tá eochair neamhbhailí anseo.",
   "zod.invalid_element": "Tá mír neamhbhailí anseo.",
   "zod.custom": "Níl sé seo bailí.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "Ní socrú airm bailí é {{where}}",
+  "VIRTUAL_PRESET_NOT_FOUND": "Níl an réamhshocrú seo ann",
+  "VIRTUAL_PRESET_DUPLICATE": "Tá réamhshocrú leis an ainm sin ag an gcuntas seo cheana",
+  "VIRTUAL_PRESET_IN_USE": "Seolann modúl den chuntas seo an réamhshocrú seo fós. Roghnaigh plean eile ansin ar dtús.",
+  "VIRTUAL_PRESET_LIMIT": "Líon uasta na réamhshocruithe do chuntas: {{max}}. Scrios ceann chun ceann eile a chur leis."
 }

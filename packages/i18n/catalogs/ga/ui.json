@@ -98,8 +98,8 @@
   "palette.keyApple": "⌘K",
   "palette.keyOther": "Ctrl K",
   "palette.keyEsc": "Esc",
-  "nav.openMenu": "Open menu",
-  "nav.modules": "Modules",
-  "nav.filter": "Find a module",
-  "nav.noMatches": "No module matches"
+  "nav.openMenu": "Oscail an roghchlár",
+  "nav.modules": "Modúil",
+  "nav.filter": "Aimsigh modúl",
+  "nav.noMatches": "Níl aon mhodúl ag réiteach"
 }
