@@ -68,6 +68,8 @@ export type ModuleDef = {
     /** A card of what holds for every plugin of the page: the account's daily attack cap, and settings that are still to come. */
     global?: {
         accountCap: true
+        /** What each plugin of the page stands for, which the card's title and "Apply to all" name. */
+        each: "kingdoms" | "events"
         /** The Number option that caps one plugin's attacks a day. The card warns when the plugins that are on ask for more between them than the account's cap. */
         dailyCapOption?: string
         /** The commander list option of each plugin. The card shows how many commanders the plugins that are on send between them. */
@@ -105,12 +107,15 @@ export const MODULES: readonly ModuleDef[] = [
         ...live("towers", "attacks", "stone-tower",
             ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"], "kingdoms"),
         kingdoms: [0, 1, 2, 3],
-        global: { accountCap: true as const, dailyCapOption: "maxPerDay", commanderOption: "commanderWhiteList", soon: ["lootPriority", "stopAfterDefeat", "speedBonus", "vipCommanders"] },
+        global: { accountCap: true as const, each: "kingdoms" as const, dailyCapOption: "maxPerDay", commanderOption: "commanderWhiteList", soon: ["lootPriority", "stopAfterDefeat", "speedBonus", "vipCommanders"] },
     },
     soon("leveller", "attacks", "rank-3"),
     live("armourer", "attacks", "anvil", ["buyTools"]),
     soon("blacksmith-event-shops", "attacks", "sword-smithing"),
-    live("nom-sam-daimyo", "attacks", "cloaked-figure-on-horseback", ["attackNomads", "attackSamurai"], "per-plugin"),
+    {
+        ...live("nom-sam-daimyo", "attacks", "cloaked-figure-on-horseback", ["attackNomads", "attackSamurai"], "per-plugin"),
+        global: { accountCap: true as const, each: "events" as const, commanderOption: "commanderWhiteList", soon: ["stopAfterDefeat", "vipCommanders", "nomadAdvisor"] },
+    },
     live("storms", "attacks", "sinking-ship", ["attackStormForts", "meadReplaceStorm"], "per-plugin"),
     live("fortress", "attacks", "locked-fortress",
         ["attackFortressesBurningSands", "attackFortressesEverWinterGlacier", "attackFortressesFirePeaks"], "per-plugin"),

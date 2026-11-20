@@ -131,12 +131,14 @@ const key = z.string().min(1)
  * Where a plugin's autofill reads from, so the settings page can sum it up in a line. A side is the Checkbox that turns it
  * on, or true when the plugin always fills it. `waves` is a number option, or a fixed count. `tools` are Checkbox and
  * Select options whose chosen label names the tools. `whenNoSides` is what the plugin fills while every side is off.
+ * `whenNoTools` names, as a bot label, what the plugin sends while no tool option is on.
  */
 export const AutofillSource = z.object({
     sides: z.partialRecord(ArmySide, z.union([key, z.literal(true)])),
     whenNoSides: z.array(ArmySide).optional(),
     waves: z.union([key, z.number().int().min(1), z.literal("all")]),
     tools: z.array(key),
+    whenNoTools: key.optional(),
     unitOrder: key.optional(),
     supply: key.optional(),
     minTroops: key.optional(),

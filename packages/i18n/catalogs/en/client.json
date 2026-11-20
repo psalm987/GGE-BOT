@@ -720,5 +720,14 @@
   "module.global.commandersValue": "{{configured, number}} configured · {{max, number}} maximum · {{remaining, number}} remaining",
   "module.global.commandersUnknown": "{{configured, number}} configured at most. Start the bot once to count this account's commanders.",
   "plugins.check.commandersOf": "{{count, number}} of your {{max, number}} commanders can be sent. {{remaining, number}} stay free.",
-  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other."
+  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

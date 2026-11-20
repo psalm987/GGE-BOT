@@ -52,19 +52,20 @@ export function KingdomPanel({ kingdom, icon, enabled, onEnabled, blocked, readO
 }
 
 /**
- * What holds for every kingdom of a module: the account's daily attack cap, and the settings that are still to come.
- * `asked` is what the kingdoms that are on ask for in a day between them, when each of them has a cap of its own.
+ * What holds for every kingdom or every event of a module: the account's daily attack cap, and the settings that are
+ * still to come. `asked` is what the kingdoms that are on ask for in a day between them, when each of them has a cap
+ * of its own.
  */
 export function GlobalCard({ module, account, attackLimit, asked, commanders }: {
     module: ModuleDef; account: PublicAccount | undefined; attackLimit: string | undefined; asked: number
-    /** How the kingdoms that are on use the account's commanders between them; left out when the module has no commander lists. */
+    /** How the plugins that are on use the account's commanders between them; left out when the module has no commander lists. */
     commanders?: { configured: number; max: number | null; remaining: number | null }
 }) {
     const { t } = useTranslation("client")
     if (!module.global) return null
     const limit = attackLimit ? Math.min(Number(attackLimit), GAME_DAILY_ATTACKS) : undefined
     return (
-        <ParchmentCard title={t("module.global.title")}>
+        <ParchmentCard title={t(module.global.each === "events" ? "module.global.titleEvents" : "module.global.title")}>
             <ul className="gge-global-list">
                 <li>
                     <span className="gge-global-name">{t("module.global.cap")}</span>

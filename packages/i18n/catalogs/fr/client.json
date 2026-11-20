@@ -753,5 +753,14 @@
   "plugins.commanders.one": "Vous avez 1 commandant (position 1).",
   "plugins.commanders.owned": "Vous avez {{count, number}} commandants (positions 1–{{count, number}}).",
   "plugins.commanders.none": "Le bot n'a compté aucun commandant sur ce compte.",
-  "plugins.commanders.unknown": "Démarrez le bot une fois pour qu'il puisse compter les commandants de ce compte."
+  "plugins.commanders.unknown": "Démarrez le bot une fois pour qu'il puisse compter les commandants de ce compte.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

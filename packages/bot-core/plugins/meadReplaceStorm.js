@@ -1,5 +1,10 @@
 if (require('node:worker_threads').isMainThread)
-    return module.exports = { }
+    return module.exports = {
+        pluginOptions: [
+            { type: "Number", key: "refillBelowHours", min: 1, max: 24, step: 0.1, unit: "hours", default: 2.1 },
+            { type: "Number", key: "sourceReserve", min: 0, max: 100_000_000, step: 1000, default: 0 },
+        ]
+    }
 
 const {
     ClientCommands,
@@ -10,9 +15,12 @@ const {
     unlockInfoList
 } = require("../protocols.js")
 const { spendSkip } = require("./skips.js")
-const { events } = require("../ggeBot.js")
+const { events, botConfig } = require("../ggeBot.js")
 
-const hoursLeftTillRefilMandatory = 2.1
+const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const hoursLeftTillRefilMandatory = Number(pluginOptions.refillBelowHours) || 2.1
+/** Mead the main castle keeps for itself. 0 sends whatever the Storm castle has room for, as the plugin always did. */
+const sourceReserve = Math.max(0, Number(pluginOptions.sourceReserve) || 0)
 const hoursLeftTillRefilWarning = 3.1
 const sendResTimeout = 29 * 30 * 1000
 const kingdomID = KingdomID.stormIslands
@@ -66,6 +74,12 @@ events.once("load", async () => {
 
         setTimeout(async () => {
             let amount = Math.floor((stormCastle.getProductionData.maxAmountMead - stormCastle.mead))
+            if (sourceReserve > 0)
+                amount = Math.min(amount, Math.floor((Number(mainCastle.mead) || 0) - sourceReserve))
+            if (amount <= 0) {
+                console.log("meadReserveReached")
+                return setTimeout(checkMead, sendResTimeout)
+            }
 
             let result = await ClientCommands.kingdomUnitTransfer(
                 mainCastle.id,

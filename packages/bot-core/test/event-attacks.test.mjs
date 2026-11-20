@@ -21,7 +21,7 @@ async function firstAttack(plugin, { eventID, start = {}, target, inventory, pro
         bot, items,
         extra: {
             "protocols.js": {
-                movementEvents: new EventEmitter(), castles: [castle], ClassTypes: {},
+                movementEvents: new EventEmitter(), movements: [], castles: [castle], ClassTypes: {},
                 AreaType: { mainCastle: 1, khanCamp: 35, beriCamp: 30 }, KingdomID: { greatEmpire: 0 },
                 ClientCommands: { getNextMapObject: async () => ({ areaInfo: target }), skipTarget: async () => ({ result: 0 }) },
                 ...protocols,

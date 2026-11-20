@@ -753,5 +753,14 @@
   "plugins.commanders.one": "Tev ir 1 komandieris (pozīcija 1).",
   "plugins.commanders.owned": "Tavu komandieru skaits: {{count, number}} (pozīcijas 1–{{count, number}}).",
   "plugins.commanders.none": "Bots šajā kontā neatrada nevienu komandieri.",
-  "plugins.commanders.unknown": "Reizi palaid botu, lai tas varētu saskaitīt šī konta komandierus."
+  "plugins.commanders.unknown": "Reizi palaid botu, lai tas varētu saskaitīt šī konta komandierus.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

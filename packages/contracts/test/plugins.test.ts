@@ -217,6 +217,28 @@ describe("options a Select replaced", () => {
         const out = normalizePluginSettings(towers, { towers: { enabled: true, options: { useFeather: true, useCoin: false, waves: "" } } })
         expect(out.towers!.options).toEqual({ horse: 2, waves: 0 })
     })
+    test("a Number that was a Text reads its stored string as a number in range, and an empty or unreadable one as nothing", () => {
+        const score: PluginCatalogEntry[] = [{ key: "camps", force: false, hidden: false, options: [{ type: "Number", key: "score", min: 0, max: 1000, default: 0, legacy: "text" }, { type: "Number", key: "plain", min: 0, max: 9 }] }]
+        const read = (stored: Record<string, string | number>) => readLegacy(score[0]!.options, stored)
+        expect(read({ score: "250" })).toEqual({ score: 250 })
+        expect(read({ score: "" })).toEqual({})
+        expect(read({ score: "many" })).toEqual({})
+        expect(read({ score: "-4" })).toEqual({ score: 0 })
+        expect(read({ score: "5000" })).toEqual({ score: 1000 })
+        expect(read({ score: 40 })).toEqual({ score: 40 })
+        expect(read({ plain: "3" })).toEqual({ plain: "3" })
+        expect(normalizePluginSettings(score, { camps: { enabled: true, options: { score: "250" } } }).camps!.options).toEqual({ score: 250 })
+        expect(effectivePluginConfig(score, { camps: { enabled: true, options: { score: "" } } }).camps).toMatchObject({ score: 0 })
+    })
+    test("any option with a key may show only for some choices of a Select", () => {
+        const defs = [
+            { type: "SkipTypes", key: "skipTypes", default: null, showWhen: { key: "mode", in: [0, 2] } },
+            { type: "Checkbox", key: "flag", showWhen: { key: "mode", in: [1] } },
+            { type: "Label", key: "heading", showWhen: { key: "mode", in: [1] } },
+        ]
+        expect(PluginCatalogEntry.safeParse({ key: "camps", force: false, hidden: false, options: defs }).success).toBe(true)
+        expect(PluginCatalogEntry.safeParse({ key: "camps", force: false, hidden: false, options: [{ ...defs[1], showWhen: { key: "mode", in: [] } }] }).success).toBe(false)
+    })
     test("the bot gets the old choice, not the new default", () => {
         expect(effectivePluginConfig(towers, { towers: { enabled: true, options: { useCoin: false, waves: "1" } } }).towers).toMatchObject({ horse: 0, waves: 1 })
     })

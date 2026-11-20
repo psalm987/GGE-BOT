@@ -58,17 +58,17 @@ function SliderNumber({ value, onChange, min, max, step, suffix, label, id, disa
 }
 
 /**
- * On a page laid out by kingdom: copies one option's value to the page's other kingdoms. A Select marked `copyToAll`
- * offers it.
+ * On a page with a plugin for each kingdom or each event: copies one option's value to the page's other plugins. A
+ * Select marked `copyToAll` offers it. `each` is what a plugin of the page stands for, which the button names.
  */
-export const CopyToAll = createContext<((key: string, value: unknown) => void) | undefined>(undefined)
+export const CopyToAll = createContext<{ copy: (key: string, value: unknown) => void; each: "kingdoms" | "events" } | undefined>(undefined)
 
 function CopyToAllButton({ optionKey, label }: { optionKey: string; label: string }) {
     const { t } = useTranslation("client")
-    const copy = useContext(CopyToAll)
+    const all = useContext(CopyToAll)
     const form = Form.useFormInstance()
-    if (!copy) return null
-    return <Button size="small" style={{ marginTop: 6 }} onClick={() => copy(optionKey, form.getFieldValue(["options", optionKey]))}>{t("plugins.copyToAll", { label })}</Button>
+    if (!all) return null
+    return <Button size="small" style={{ marginTop: 6 }} onClick={() => all.copy(optionKey, form.getFieldValue(["options", optionKey]))}>{t(all.each === "events" ? "plugins.copyToAllEvents" : "plugins.copyToAll", { label })}</Button>
 }
 
 /**
