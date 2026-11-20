@@ -44,14 +44,20 @@ export function GroupedNav({ nav, activeKey, onNavigate, compact = false }: {
         if (group) setOpen(previous => previous.has(group) ? previous : new Set(previous).add(group))
     }, [activeKey, groupOf])
 
-    // After the group has opened, bring the current page into view without moving anything else on the page.
+    // When the current page changes, bring its link into view once its group has opened, and only if it is off screen. Opening or
+    // closing a group on purpose never scrolls the menu.
+    const arrived = useRef<string | null>(activeKey)
+    useEffect(() => { arrived.current = activeKey }, [activeKey, compact])
     useEffect(() => {
         const box = scroller.current
-        const current = box?.querySelector<HTMLElement>("[aria-current='page']")
-        if (!box || !current) return
-        const top = current.offsetTop - box.offsetTop
-        if (top < box.scrollTop) box.scrollTop = top - 8
-        else if (top + current.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + current.offsetHeight - box.clientHeight + 8
+        if (!box || arrived.current !== activeKey) return
+        const current = box.querySelector<HTMLElement>("[aria-current='page']")
+        if (!current) return void (arrived.current = null)
+        if (!current.offsetParent) return
+        arrived.current = null
+        const room = box.getBoundingClientRect(), link = current.getBoundingClientRect()
+        if (link.top < room.top) box.scrollTop += link.top - room.top - 8
+        else if (link.bottom > room.bottom) box.scrollTop += link.bottom - room.bottom + 8
     }, [activeKey, open, compact])
 
     const focusables = () => [...(scroller.current?.querySelectorAll<HTMLElement>("a[href], button") ?? [])].filter(el => !el.closest("[hidden]"))

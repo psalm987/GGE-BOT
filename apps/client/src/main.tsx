@@ -8,6 +8,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router"
 import { CampaignProvider, initI18n } from "@gge/ui"
 import { client, queryClient } from "./api.ts"
 import { RequireAuth } from "./auth.tsx"
+import { AppShell } from "./components/AppLayout.tsx"
 import { RequireVerified } from "./components/EmailGate.tsx"
 import { LiveUpdates } from "./components/LiveUpdates.tsx"
 import { Credits } from "./pages/Credits.tsx"
@@ -39,14 +40,16 @@ function Root() {
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/confirm-email-change" element={<ConfirmEmailChange />} />
-                        <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
-                        <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
-                        <Route path="/logs" element={<RequireAuth><RequireVerified><Logs /></RequireVerified></RequireAuth>} />
-                        <Route path="/m/:id" element={<RequireAuth><RequireVerified><Module /></RequireVerified></RequireAuth>} />
-                        <Route path="/plan" element={<RequireAuth><RequireVerified><Plan /></RequireVerified></RequireAuth>} />
-                        <Route path="/plan/return" element={<RequireAuth><RequireVerified><PlanReturn /></RequireVerified></RequireAuth>} />
+                        <Route element={<AppShell />}>
+                            <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+                            <Route path="/" element={<RequireAuth><RequireVerified><Dashboard /></RequireVerified></RequireAuth>} />
+                            <Route path="/logs" element={<RequireAuth><RequireVerified><Logs /></RequireVerified></RequireAuth>} />
+                            <Route path="/m/:id" element={<RequireAuth><RequireVerified><Module /></RequireVerified></RequireAuth>} />
+                            <Route path="/plan" element={<RequireAuth><RequireVerified><Plan /></RequireVerified></RequireAuth>} />
+                            <Route path="/plan/return" element={<RequireAuth><RequireVerified><PlanReturn /></RequireVerified></RequireAuth>} />
+                            <Route path="/redeem" element={<Redeem />} />
+                        </Route>
                         <Route path="/credits" element={<Credits />} />
-                        <Route path="/redeem" element={<Redeem />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>

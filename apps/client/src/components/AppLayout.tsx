@@ -2,9 +2,9 @@ import { InfoCircleOutlined, SettingOutlined, SyncOutlined, UserOutlined } from 
 import { moduleOfPlugin } from "@gge/contracts"
 import { App, Grid, Tag, type MenuProps } from "antd"
 import { useQuery } from "@tanstack/react-query"
-import { useCallback, useEffect, useMemo, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { useLocation, useNavigate } from "react-router"
+import { Outlet, useLocation, useNavigate } from "react-router"
 import { CampaignLayout, type CommandItem } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { useLogout, useMe, useSaveLocale } from "../auth.tsx"
@@ -16,15 +16,29 @@ import { usePlanVisible } from "../use-billing.ts"
 import { AlertBanners } from "./AlertBanners.tsx"
 import { NotificationBell } from "./NotificationBell.tsx"
 
-/** The signed-in shell shared by every player page. */
-export function AppLayout({ activeKey, title, extra, accountMenu = [], children }: {
+/** What a page says about itself to the shell around it. */
+type Chrome = {
     /** A page key ("accounts", "logs", "plan", "settings") or a module's, "m:<id>". */
     activeKey: string
     title: ReactNode
     extra?: ReactNode
     accountMenu?: NonNullable<MenuProps["items"]>
-    children: ReactNode
-}) {
+}
+const SetChrome = createContext<(chrome: Chrome) => void>(() => {})
+
+/**
+ * What a page puts in the shell's header and menu, and the page itself. The shell is one route above the pages, so the sidebar
+ * keeps its scroll position and open groups while the player moves between them.
+ */
+export function AppLayout({ activeKey, title, extra, accountMenu, children }: Chrome & { children: ReactNode }) {
+    const setChrome = useContext(SetChrome)
+    useLayoutEffect(() => setChrome({ activeKey, title, extra, accountMenu }))
+    return children
+}
+
+/** The signed-in shell shared by every player page: the sidebar and the header, with the page in between. */
+export function AppShell() {
+    const [{ activeKey, title, extra, accountMenu = [] }, setChrome] = useState<Chrome>({ activeKey: "accounts", title: null })
     const routerNavigate = useNavigate()
     const { t } = useTranslation("client")
     const { t: tc } = useTranslation("common")
@@ -78,6 +92,8 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
         routerNavigate("/login", { replace: true })
     }
     const nav = useMemo(() => buildNav({ client: t, common: tc }, planVisible, new Set(catalog.data?.map(e => e.key))), [t, tc, planVisible, catalog.data])
+    // Signed out, the page itself sends the player to sign in, so no sidebar shows meanwhile.
+    if (!me.data) return <Outlet />
     return (
         <CampaignLayout
             product="GGE Command"
@@ -106,7 +122,7 @@ export function AppLayout({ activeKey, title, extra, accountMenu = [], children 
                 {extra}
                 <NotificationBell />
             </>}>
-            {children}
+            <SetChrome.Provider value={setChrome}><Outlet /></SetChrome.Provider>
         </CampaignLayout>
     )
 }
