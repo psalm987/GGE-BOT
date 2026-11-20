@@ -89,8 +89,8 @@
   "palette.keyApple": "⌘K",
   "palette.keyOther": "Ctrl K",
   "palette.keyEsc": "Esc",
-  "nav.openMenu": "Open menu",
-  "nav.modules": "Modules",
-  "nav.filter": "Find a module",
-  "nav.noMatches": "No module matches"
+  "nav.openMenu": "Öppna menyn",
+  "nav.modules": "Moduler",
+  "nav.filter": "Hitta en modul",
+  "nav.noMatches": "Ingen modul matchar"
 }
