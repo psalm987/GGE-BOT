@@ -40,7 +40,7 @@ export function join(_session: Session, events: readonly TraceEvent[]): Joined {
   }
 
   const clearSock = (sock: string | undefined) => {
-    for (const key of [...open.keys()]) if (sock === undefined || key.startsWith(`${sock}\0`)) open.delete(key)
+    for (const key of open.keys()) if (sock === undefined || key.startsWith(`${sock}\0`)) open.delete(key)
   }
 
   for (const e of sorted) {

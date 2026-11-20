@@ -33,4 +33,9 @@ module.exports = [
         languageOptions: { sourceType: "module", ecmaVersion: "latest", globals: { ...globals.node } },
         rules: { "no-undef": "error" },
     },
+    {
+        // Functions passed to page.evaluate run inside the browser and the extension.
+        files: ["apps/recorder/test/e2e.mjs"],
+        languageOptions: { globals: { ...globals.node, ...globals.browser, ...globals.webextensions } },
+    },
 ]
