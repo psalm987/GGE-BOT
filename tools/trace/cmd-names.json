@@ -1,0 +1,2114 @@
+{
+ "DTS": {
+  "s2c": "S2C_DOWNTIME_STATUS"
+ },
+ "FTF": {
+  "s2c": "S2C_FEATURE_FLAGS"
+ },
+ "aa": {
+  "c2s": "C2SActivateAttackAdvisorVO",
+  "s2c": "S2C_ACTIVATE_ATTACK_ADVISOR_EVENT"
+ },
+ "aaa": {
+  "c2s": "C2SAllianceAnswerApplicationVO",
+  "s2c": "S2C_ALLIANCE_ANSWER_APPLICATION"
+ },
+ "aai": {
+  "c2s": "C2SAllianceAcceptInviteVO",
+  "s2c": "S2C_ALLIANCE_ACCEPT_INVITE"
+ },
+ "aal": {
+  "c2s": "C2SAllianceApplicationListVO",
+  "s2c": "S2C_ALLIANCE_APPLICATION_LIST"
+ },
+ "aao": {
+  "c2s": "C2SAdvisorAttackOverviewVO",
+  "s2c": "S2C_ATTACK_ADVISOR_OVERVIEW_EVENT"
+ },
+ "aas": {
+  "c2s": "C2SAutoAllianceSearchVO",
+  "s2c": "S2C_AUTO_ALLIANCE_SEARCH"
+ },
+ "aat": {
+  "c2s": "C2SAllianceAnswerTopicVO",
+  "s2c": "S2C_ALLIANCE_ANSWER_TOPIC"
+ },
+ "aatb": {
+  "c2s": "C2SActivateAllianceTowerBuffVO",
+  "s2c": "S2C_ACTIVATE_ALLIANCE_TOWER_BUFF"
+ },
+ "abd": {
+  "s2c": "S2C_DELETE_ALLIANCE_BOOKMARK"
+ },
+ "abgcam": {
+  "c2s": "C2SCreateAllianceBattleGroundCollectorArmyAttackMovementVO",
+  "s2c": "S2C_CREATE_ARMY_ATTACK_MOVEMENT_ALLIANCE_BATTLE_GROUND"
+ },
+ "abgi": {
+  "s2c": "S2C_ALLIANCE_BATTLE_GROUND_INFO"
+ },
+ "abgph": {
+  "c2s": "C2SAllianceBattleGroundGetOwnRanksVO",
+  "s2c": "S2C_ABG_GET_POINT_HIGHSCORE"
+ },
+ "abi": {
+  "c2s": "C2SAttackInfoBossDungeonVO",
+  "s2c": "S2C_ATTACK_INFO_BOSSDUNGEON"
+ },
+ "abl": {
+  "s2c": "S2C_ALLIANCE_BUFF_LIST"
+ },
+ "abpi": {
+  "c2s": "C2SSetBreweryProductionVO",
+  "s2c": "S2C_AREA_BUILDING_PRODUCTION_INFO"
+ },
+ "abr": {
+  "s2c": "S2C_ARMY_REACHED_BIG_RADIUS"
+ },
+ "acc": {
+  "c2s": "C2SGetCollectorAttackInfoVO",
+  "s2c": "S2C_GET_COLLECTOR_ATTACK_INFO"
+ },
+ "acd": {
+  "c2s": "C2SAllianceChangeDescriptionVO",
+  "s2c": "S2C_ALLIANCE_CHANGE_DESCRIPTION"
+ },
+ "ace": {
+  "c2s": "C2STempServerApplyChargeCampEffectsEventVO",
+  "s2c": "S2C_TEMP_SERVER_CHARGE_CHAMP_EFFECTS_APPLY"
+ },
+ "aci": {
+  "c2s": "C2SGetAttackCastleInfosVO",
+  "s2c": "S2C_GET_ATTACK_CASTLE_INFOS"
+ },
+ "acl": {
+  "s2c": "S2C_ALLIANCE_CHAT_LOG"
+ },
+ "acm": {
+  "c2s": "C2SAllianceChatVO",
+  "s2c": "S2C_ALLIANCE_CHAT"
+ },
+ "acn": {
+  "c2s": "C2SAllianceChangeNameVO",
+  "s2c": "S2C_ALLIANCE_CHANGE_NAME"
+ },
+ "acr": {
+  "s2c": "S2C_ALLIANCE_TOPIC_CHANGE_RANKS"
+ },
+ "ada": {
+  "c2s": "C2SAllianceDeleteTopicAnswerVO",
+  "s2c": "S2C_ALLIANCE_DELETE_TOPIC_ANSWER"
+ },
+ "adi": {
+  "c2s": "C2SGetAttackDungeonInfosVO",
+  "s2c": "S2C_GET_ATTACK_DUNGEON_INFOS"
+ },
+ "ado": {
+  "c2s": "C2SAllianceDonateVO",
+  "s2c": "S2C_ALLIANCE_DONATE"
+ },
+ "adp": {
+  "c2s": "C2SAllianceChangeDiplomacyVO",
+  "s2c": "S2C_ALLIANCE_CHANGE_DIPLOMACY"
+ },
+ "aec": {
+  "c2s": "C2SGetAllExpiredConstructionItemsVO",
+  "s2c": "S2C_GET_ALL_EXPIRED_CONSTRUCTION_ITEM_EVENT"
+ },
+ "aee": {
+  "s2c": "S2C_ALLIANCE_EMBLEM_EVENT"
+ },
+ "aes": {
+  "c2s": "C2SSetAutoSellEquipmentConditionsEventVO",
+  "s2c": "S2C_SET_AUTO_SELL_EQUIPMENT_CONDITIONS"
+ },
+ "afa": {
+  "s2c": "S2C_ALLIANCE_GET_FAME"
+ },
+ "afd": {
+  "c2s": "C2SGetAttackableFactionDataVO",
+  "s2c": "S2C_GET_ATTACKABLE_FACTION_DATA_EVENT"
+ },
+ "afo": {
+  "c2s": "C2SFoundAllianceVO",
+  "s2c": "S2C_FOUND_ALLIANCE"
+ },
+ "agb": {
+  "c2s": "C2SActivateGlobalEffectBuffVO",
+  "s2c": "S2C_ACTIVATE_GLOBAL_EFFECT_BOOSTER_EVENT"
+ },
+ "agc": {
+  "s2c": "S2C_ALLIANCE_GIFT_COLLECT"
+ },
+ "agr": {
+  "s2c": "S2C_ALLIANCE_GIFT_RECIEVED"
+ },
+ "ags": {
+  "c2s": "C2SSetAutoSellGemConditionsEventVO",
+  "s2c": "S2C_SET_AUTO_SELL_GEM_CONDITIONS"
+ },
+ "aha": {
+  "c2s": "C2SAllianceHelpAllRequestVO"
+ },
+ "ahc": {
+  "c2s": "C2SAllianceHelpConfirmedVO"
+ },
+ "ahd": {
+  "s2c": "S2C_ALLIANCE_HELP_DELETE"
+ },
+ "ahf": {
+  "s2c": "S2C_ALLIANCE_HELP_FEEDBACK"
+ },
+ "ahh": {
+  "s2c": "S2C_ALLIANCE_HELP_CHANGE_OR_ADD"
+ },
+ "ahl": {
+  "s2c": "S2C_ALLIANCE_HELP_LIST"
+ },
+ "ahr": {
+  "c2s": "C2SAllianceHelpRequestVO",
+  "s2c": "S2C_ALLIANCE_HELP_REQUEST"
+ },
+ "aic": {
+  "s2c": "S2C_ALLIANCE_INVASION_CAMP_INFO"
+ },
+ "aii": {
+  "c2s": "C2SAttackInfoIslandVO",
+  "s2c": "S2C_ATTACK_INFO_ISLAND"
+ },
+ "ain": {
+  "c2s": "C2SGetAllianceInfoVO",
+  "s2c": "S2C_GET_ALLIANCE_INFO"
+ },
+ "aip": {
+  "c2s": "C2SAllianceInvitePlayerVO",
+  "s2c": "S2C_ALLIANCE_INVITE_PLAYER"
+ },
+ "aja": {
+  "s2c": "S2C_AUTO_JOIN_ALLIANCE"
+ },
+ "ajp": {
+  "c2s": "C2SAllianceBattleGroundJoinedPlayerVO",
+  "s2c": "S2C_ABG_JOINED_PLAYER"
+ },
+ "akm": {
+  "c2s": "C2SAllianceKickMemberVO",
+  "s2c": "S2C_ALLIANCE_KICK_MEMBER"
+ },
+ "alb": {
+  "c2s": "C2SGetLoginBonusVO",
+  "s2c": "S2C_GET_LOGIN_BONUS"
+ },
+ "ali": {
+  "c2s": "C2SAttackInfoLandmarkVO",
+  "s2c": "S2C_ATTACK_INFO_LANDMARK"
+ },
+ "all": {
+  "c2s": "C2SAllianceActionListVO",
+  "s2c": "S2C_ALLIANCE_ACTION_LIST"
+ },
+ "ama": {
+  "s2c": "S2C_ALLIANCE_MEMBER_AQUA_POINTS_EVENT"
+ },
+ "ams": {
+  "c2s": "C2SArchiveMessageVO",
+  "s2c": "S2C_ARCHIVE_MESSAGE"
+ },
+ "anl": {
+  "c2s": "C2SAllianceNewsletterVO",
+  "s2c": "S2C_ALLIANCE_NEWSLETTER"
+ },
+ "apt": {
+  "c2s": "C2SAssignTitleVO",
+  "s2c": "S2C_ASSIGN_TITLE"
+ },
+ "aqi": {
+  "c2s": "C2SAllianceQuitVO",
+  "s2c": "S2C_ALLIANCE_QUIT"
+ },
+ "aqpc": {
+  "c2s": "C2SAllianceDivisionPlayerContributionVO",
+  "s2c": "S2C_ALLIANCE_DIVISION_PLAYER_CONTRIBUTION"
+ },
+ "aqs": {
+  "c2s": "C2SAllianceQuestStatusVO",
+  "s2c": "S2C_ALLIANCE_QUEST_STATUS"
+ },
+ "arb": {
+  "s2c": "S2C_ABORT_RAID_EVENT"
+ },
+ "arc": {
+  "c2s": "C2SRenameCastleVO",
+  "s2c": "S2C_RENAME_CASTLE"
+ },
+ "ard": {
+  "c2s": "C2SAllianceRefuseDiplomacyVO",
+  "s2c": "S2C_ALLIANCE_REFUSE_DIPLOMACY"
+ },
+ "arl": {
+  "c2s": "C2SRenameLordVO",
+  "s2c": "S2C_RENAME_LORD_EVENT"
+ },
+ "arm": {
+  "c2s": "C2SAllianceRerankMemberVO",
+  "s2c": "S2C_ALLIANCE_RERANK_MEMBER"
+ },
+ "asa": {
+  "c2s": "C2SAllianceSetSearchAllianceVO",
+  "s2c": "S2C_ALLIANCE_SET_SEARCH_ALLIANCE"
+ },
+ "asc": {
+  "c2s": "C2SGetAllianceSubscriberCountEventVO",
+  "s2c": "S2C_GET_ALLIANCE_SUBSCRIBER_COUNT"
+ },
+ "asg": {
+  "c2s": "C2SGetAutoSellConditionsEventVO",
+  "s2c": "S2C_GET_AUTO_SELL_CONDITIONS"
+ },
+ "asm": {
+  "c2s": "C2SAllianceSetSearchMemberVO",
+  "s2c": "S2C_ALLIANCE_SET_SEARCH_MEMBER"
+ },
+ "asr": {
+  "s2c": "S2C_ARMY_REACHED_SMALL_RADIUS"
+ },
+ "atc": {
+  "c2s": "C2SAllianceTopicCreateVO",
+  "s2c": "S2C_ALLIANCE_TOPIC_CREATE"
+ },
+ "atd": {
+  "c2s": "C2SAllianceTopicDeleteVO",
+  "s2c": "S2C_ALLIANCE_TOPIC_DELETE"
+ },
+ "atl": {
+  "s2c": "S2C_GET_AB_TEST_LIST"
+ },
+ "ato": {
+  "s2c": "S2C_SET_API_TOKEN"
+ },
+ "atp": {
+  "c2s": "C2SActivateTrainingProgramVO",
+  "s2c": "S2C_ACTIVATE_TRAINING_PROGRAM"
+ },
+ "aug": {
+  "c2s": "C2SAllianceUpgradeVO",
+  "s2c": "S2C_ALLIANCE_UPGRADE"
+ },
+ "avi": {
+  "c2s": "C2SAttackInfoVillageVO",
+  "s2c": "S2C_ATTACK_INFO_VILLAGE"
+ },
+ "bad": {
+  "s2c": "S2C_ADD_BOOKMARK"
+ },
+ "bai": {
+  "c2s": "C2SGetAllianceInvitationVO",
+  "s2c": "S2C_GET_ALLIANCE_INVITATION"
+ },
+ "bbs": {
+  "s2c": "S2C_BOSS_BROADCAST_STATUS_EVENT"
+ },
+ "bch": {
+  "s2c": "S2C_CHANGE_BOOKMARK"
+ },
+ "bcq": {
+  "c2s": "C2SBuyCampaignQuestVO",
+  "s2c": "S2C_BUY_CAMPAIGN_QUEST"
+ },
+ "bcr": {
+  "c2s": "C2SBuyCampaignRewardVO",
+  "s2c": "S2C_BUY_CAMPAIGN_REWARD"
+ },
+ "bcs": {
+  "c2s": "C2SCaravanOverloaderStartVO",
+  "s2c": "S2C_CARAVAN_OVERLOADER_START"
+ },
+ "bde": {
+  "s2c": "S2C_DELETE_BOOKMARK"
+ },
+ "bds": {
+  "s2c": "S2C_DOCTOR_START"
+ },
+ "bep": {
+  "c2s": "C2SBuySeasonPassEventEventVO",
+  "s2c": "S2C_BUY_SEASON_PASS_EVENT"
+ },
+ "beq": {
+  "s2c": "S2C_BOUGHT_EQUIPMENT"
+ },
+ "bfl": {
+  "c2s": "C2SSetMeadPrioVO",
+  "s2c": "S2C_SET_MEAD_PRIORITY"
+ },
+ "bfs": {
+  "c2s": "C2SFestivalStartVO",
+  "s2c": "S2C_FESTIVAL_START"
+ },
+ "bgc": {
+  "c2s": "C2SAllianceBattleGroundEntryConditionsVO",
+  "s2c": "S2C_ALLIANCE_BATTLEGROUND_ENTRY_CONDITIONS"
+ },
+ "bge": {
+  "s2c": "S2C_BIND_GEM"
+ },
+ "bgm": {
+  "s2c": "S2C_BOUGHT_GEM"
+ },
+ "bie": {
+  "s2c": "S2C_GLOBAL_EFFECT_BOOSTER_INFO_EVENT"
+ },
+ "bis": {
+  "c2s": "C2SInstructorStartVO",
+  "s2c": "S2C_INSTRUCTOR_START"
+ },
+ "bkp": {
+  "c2s": "C2SBuyBeggingKnightsPackageVO",
+  "s2c": "S2C_BUY_BEGGINGKNIGHTS_POINT"
+ },
+ "bld": {
+  "c2s": "C2SBattleLogDetailVO",
+  "s2c": "S2C_BATTLE_LOG_DETAIL"
+ },
+ "blm": {
+  "c2s": "C2SBattleLogMiddleVO",
+  "s2c": "S2C_BATTLE_LOG_MIDDLE"
+ },
+ "bls": {
+  "c2s": "C2SBattleLogShortVO",
+  "s2c": "S2C_BATTLE_LOG_SHORT"
+ },
+ "blv": {
+  "c2s": "C2SBuyLevelVO",
+  "s2c": "S2C_BUY_LEVEL"
+ },
+ "bms": {
+  "c2s": "C2SMarauderStartVO",
+  "s2c": "S2C_MARAUDER_START"
+ },
+ "boi": {
+  "c2s": "C2SBoosterInfoVO",
+  "s2c": "S2C_BOOSTER_INFO"
+ },
+ "bou": {
+  "c2s": "C2SBoostUnitPackageVO",
+  "s2c": "S2C_BOOST_UNIT_PACKAGE"
+ },
+ "bpv": {
+  "c2s": "C2SBuyPrivateResourceVillageVO",
+  "s2c": "S2C_BUY_PRIVATE_RESOURCE_VILLAGE"
+ },
+ "bri": {
+  "s2c": "S2C_BOUGHT_RELIC_EQUIPMENT"
+ },
+ "brp": {
+  "c2s": "C2SBugReportVO",
+  "s2c": "S2C_BUG_REPORT"
+ },
+ "brs": {
+  "c2s": "C2SReturnSpeedBoosterStartVO",
+  "s2c": "S2C_BOOST_RETURNSPEED_START"
+ },
+ "brt": {
+  "c2s": "C2SBountyHunterValidateOrResetTargetVO",
+  "s2c": "S2C_BOUNTY_HUNTER_VALIDATE_OR_RESET_TARGET"
+ },
+ "bsd": {
+  "s2c": "S2C_SPY_LOG_DETAIL"
+ },
+ "bse": {
+  "s2c": "S2C_BOSS_STATUS_EVENT"
+ },
+ "bso": {
+  "c2s": "C2SBuyBestsellerOfferVO",
+  "s2c": "S2C_BUY_BESTSELLER_OFFER"
+ },
+ "bsp": {
+  "c2s": "C2SBuySeasonPassPromotionEventVO",
+  "s2c": "S2C_BUY_SEASON_PASS_PROMOTION"
+ },
+ "bss": {
+  "c2s": "C2SBuySceatSkillVO",
+  "s2c": "S2C_BUY_SCEAT_SKILL"
+ },
+ "bst": {
+  "c2s": "C2SBountyHunterBuySkipTargetVO",
+  "s2c": "S2C_BOUNTYHUNTER_BUY_SKIP_TARGET"
+ },
+ "btx": {
+  "s2c": "S2C_BRIBE_TAX_COLLECTOR"
+ },
+ "bup": {
+  "c2s": "C2SBuyUnitPackageVO",
+  "s2c": "S2C_BUY_UNIT_PACKAGE"
+ },
+ "bus": {
+  "c2s": "C2SBuyUnlockedSymbolVO",
+  "s2c": "S2C_BUY_UNLOCKED_SYMBOL"
+ },
+ "caaq": {
+  "c2s": "C2SCancelActiveAllianceQuestVO",
+  "s2c": "S2C_CANCEL_ACTIVE_ALLIANCE_QUEST"
+ },
+ "cal": {
+  "c2s": "C2SChangeAllianceLanguageVO",
+  "s2c": "S2C_CHANGE_ALLIANCE_LANGUAGE"
+ },
+ "cam": {
+  "c2s": "C2SCreateArmyAttackMovementTempServerVO",
+  "s2c": "S2C_CREATE_ARMY_ATTACK_MOVEMENT_TEMP_SERVER"
+ },
+ "caq": {
+  "c2s": "C2SCompleteAllianceQuestVO",
+  "s2c": "S2C_COMPLETE_ALLIANCE_QUEST"
+ },
+ "car": {
+  "c2s": "C2SEventAnnouncementClaimRewardVO",
+  "s2c": "S2C_COLLECT_ANNOUNCEMENT_REWARD_EVENT"
+ },
+ "cat": {
+  "c2s": "C2SCreateArmyTravelMovementVO",
+  "s2c": "S2C_CREATE_ARMY_TRAVEL_MOVEMENT"
+ },
+ "cbx": {
+  "s2c": "S2C_BUILDING_XP"
+ },
+ "ccd": {
+  "c2s": "C2SColossusCoinDepositResourcesVO",
+  "s2c": "S2C_COLOSSUS_COIN_DEPOSIT_RESOURCES"
+ },
+ "cci": {
+  "c2s": "C2SGetConquerCapitalInfosVO",
+  "s2c": "S2C_GET_CONQUER_INFO_CAPITAL"
+ },
+ "ccr": {
+  "c2s": "C2STempServerChargeCampRerollEventVO",
+  "s2c": "S2C_TEMP_SERVER_CHARGE_CHAMP_EFFECTS_REROLL"
+ },
+ "cdd": {
+  "c2s": "C2SCreateDaimyoDefenseMovementVO",
+  "s2c": "S2C_CREATE_DAIMYO_DEFENSE_MOVEMENT"
+ },
+ "cde": {
+  "c2s": "C2SColossusDepositResourcesVO",
+  "s2c": "S2C_COLOSSUS_DEPOSIT_RESOURCES"
+ },
+ "cds": {
+  "c2s": "C2SCreateDefenceSupportMovementVO",
+  "s2c": "S2C_CREATE_DEFENCE_SUPPORT_MOVEMENT"
+ },
+ "cem": {
+  "c2s": "C2SChangeEmblemVO",
+  "s2c": "S2C_CHANGE_EMBLEM"
+ },
+ "ceq": {
+  "c2s": "C2SCraftEquipmentVO",
+  "s2c": "S2C_CRAFT_EQUIPMENT"
+ },
+ "cfc": {
+  "s2c": "S2C_GACHA_FREECHEST"
+ },
+ "cfi": {
+  "c2s": "C2SConquerInfoFactioncampVO",
+  "s2c": "S2C_CONQUER_INFO_FACTIONCAMP"
+ },
+ "cge": {
+  "c2s": "C2SCraftGemVO",
+  "s2c": "S2C_CRAFT_GEM"
+ },
+ "che": {
+  "c2s": "C2SColossusGetHighscoreVO",
+  "s2c": "S2C_COLOSSUS_GET_HIGHSCORE"
+ },
+ "cic": {
+  "c2s": "C2SCraftConstructionItemVO",
+  "s2c": "S2C_CRAFT_CONSTRUCTION_ITEM"
+ },
+ "cjs": {
+  "c2s": "C2SConvertJadeStatuettesVO",
+  "s2c": "S2C_CONVERT_JADE_STATUETTES"
+ },
+ "clb": {
+  "c2s": "C2SCatchLoginBonusVO",
+  "s2c": "S2C_CATCH_LOGIN_BONUS"
+ },
+ "clf": {
+  "c2s": "C2SCollectLostAndFoundItemVO",
+  "s2c": "S2C_COLLECT_LOST_AND_FOUND"
+ },
+ "cmc": {
+  "s2c": "S2C_CANCEL_MAIL_CHANGE"
+ },
+ "cmi": {
+  "c2s": "C2SMarketInfoVO",
+  "s2c": "S2C_MARKET_INFO"
+ },
+ "cmr": {
+  "s2c": "S2C_COLLECT_MINE_RESOURCES"
+ },
+ "coi": {
+  "c2s": "C2SGetConquerOutpostInfosVO",
+  "s2c": "S2C_GET_CONQUER_INFO_OUTPOST"
+ },
+ "core_nfo": {
+  "s2c": "S2C_SERVER_INFO_EVENT_CORE"
+ },
+ "core_poe": {
+  "s2c": "S2C_PRIME_OFFER_EVENT"
+ },
+ "core_pol": {
+  "s2c": "S2C_PRIVATE_OFFER_LIST"
+ },
+ "cpd": {
+  "c2s": "C2SAllianceBattleGroundGetCentersOfPowerDetailVO",
+  "s2c": "S2C_GET_ALLIANCE_CENTERS_OF_POWER_DETAIL"
+ },
+ "cpe": {
+  "c2s": "C2SAllianceBattleGroundGetCentersOfPowerVO",
+  "s2c": "S2C_GET_ALLIANCE_CENTERS_OF_POWER"
+ },
+ "cpi": {
+  "s2c": "S2C_GET_PLAGUEMONK_INFO"
+ },
+ "cpm": {
+  "c2s": "C2SCreatePlagueMonkMovementVO",
+  "s2c": "S2C_CREATE_PLAGUEMONK_MOVEMENT"
+ },
+ "cpn": {
+  "c2s": "C2SCollectPatchNoteRewardsVO",
+  "s2c": "S2C_COLLECT_PATCH_NOTE_REWARDS"
+ },
+ "cpne": {
+  "s2c": "S2C_CHANGE_PLAYER_NAME_EVENT"
+ },
+ "cqs": {
+  "s2c": "S2C_CAMPAIGN_QUEST_STATUS"
+ },
+ "cra": {
+  "c2s": "C2SCreateArmyAttackMovementVO",
+  "s2c": "S2C_CREATE_ARMY_ATTACK_MOVEMENT"
+ },
+ "crca": {
+  "c2s": "C2SCraftingCancelVO",
+  "s2c": "S2C_CRAFTING_CANCEL"
+ },
+ "cri": {
+  "c2s": "C2SRemoveConstructionItemVO",
+  "s2c": "S2C_CONSTRUCTION_ITEM_REMOVE"
+ },
+ "crin": {
+  "c2s": "C2SCraftingInfoVO",
+  "s2c": "S2C_GET_CRAFTING_INFO"
+ },
+ "crl": {
+  "s2c": "S2C_CANCEL_RECRUITMENT_LOOP"
+ },
+ "crm": {
+  "c2s": "C2SCreateMarketMovementVO",
+  "s2c": "S2C_CREATE_MARKET_MOVEMENT"
+ },
+ "crqm": {
+  "c2s": "C2SCraftingQueueMoveVO",
+  "s2c": "S2C_CRAFTING_QUEUE_MOVE"
+ },
+ "crsk": {
+  "c2s": "C2SCraftingSkipVO",
+  "s2c": "S2C_CRAFTING_SKIP"
+ },
+ "crst": {
+  "s2c": "S2C_CRAFTING_START"
+ },
+ "crun": {
+  "c2s": "C2SCraftingUnlockVO",
+  "s2c": "S2C_CRAFTING_UNLOCK"
+ },
+ "csc": {
+  "c2s": "C2SSelectSeasonCampVO",
+  "s2c": "S2C_SELECT_PREBUILT_CAMP_ID"
+ },
+ "csl": {
+  "s2c": "S2C_CASTLE_SLUM_LEVEL"
+ },
+ "csm": {
+  "c2s": "C2SCreateSpyMovementVO",
+  "s2c": "S2C_CREATE_SPY_MOVEMENT"
+ },
+ "csp": {
+  "c2s": "C2SConstructionItemInventorySpaceLeftVO",
+  "s2c": "S2C_CONSTRUCTION_ITEM_INVENTORYS_SPACE_LEFT"
+ },
+ "css": {
+  "s2c": "S2C_CREATE_SIEGE_MOVEMENT"
+ },
+ "ctc": {
+  "c2s": "C2SConfirmTermsAndConditionVO"
+ },
+ "cti": {
+  "c2s": "C2SGetConquerMetropolInfosVO",
+  "s2c": "S2C_GET_CONQUER_INFO_METROPOL"
+ },
+ "ctr": {
+  "c2s": "C2SClientSideTrackingVO"
+ },
+ "dci": {
+  "c2s": "C2SDisassembleConstructionItemVO",
+  "s2c": "S2C_DISASSEMBLE_CONSTRUCTION_ITEM"
+ },
+ "dcl": {
+  "c2s": "C2SGetDetailedCastleListVO",
+  "s2c": "S2C_GET_DETAILEDCASTLELIST"
+ },
+ "ddi": {
+  "c2s": "C2SDonatePointTypeVO",
+  "s2c": "S2C_DONATE_DONATION_ITEM"
+ },
+ "dfc": {
+  "c2s": "C2SDefenceCompleteVO",
+  "s2c": "S2C_DEFENSE_COMPLETE"
+ },
+ "dff": {
+  "c2s": "C2SDecoForgeFuseEventVO",
+  "s2c": "S2C_DECO_FORGE_FUSE"
+ },
+ "dfk": {
+  "c2s": "C2SDefenceKeepVO",
+  "s2c": "S2C_DEFENSE_KEEP"
+ },
+ "dfm": {
+  "c2s": "C2SDefenceMoatVO",
+  "s2c": "S2C_DEFENSE_MOAT"
+ },
+ "dfw": {
+  "c2s": "C2SDefenceWallVO",
+  "s2c": "S2C_DEFENSE_WALL"
+ },
+ "dge": {
+  "c2s": "C2SGachaSpinVO",
+  "s2c": "S2C_GACHA_SPIN"
+ },
+ "dio": {
+  "s2c": "S2C_DYNAMIC_OFFEREVENT"
+ },
+ "dms": {
+  "c2s": "C2SDeleteMessagesVO",
+  "s2c": "S2C_DELETE_MESSAGE"
+ },
+ "dql": {
+  "s2c": "S2C_DAILY_QUEST_LIST"
+ },
+ "dri": {
+  "c2s": "C2SDuplicateRecruitmentInfoVO",
+  "s2c": "S2C_DUPLICATE_RECRUITMENT_INFO"
+ },
+ "drl": {
+  "c2s": "C2SDuplicateRecruitmentLoopVO",
+  "s2c": "S2C_DUPLICATE_RECRUITMENT_LOOP"
+ },
+ "dup": {
+  "c2s": "C2SDismissUnitPackageVO",
+  "s2c": "S2C_DISMISS_UNIT_PACKAGE"
+ },
+ "ebe": {
+  "c2s": "C2SIsoBuyExpansionVO",
+  "s2c": "S2C_BUY_EXPANSION"
+ },
+ "ebu": {
+  "c2s": "C2SIsoBuyObjectVO",
+  "s2c": "S2C_BUY_OBJECT"
+ },
+ "edo": {
+  "c2s": "C2SIsoDisassembleObjectVO",
+  "s2c": "S2C_DISASSEMBLE_OBJECT"
+ },
+ "eeq": {
+  "c2s": "C2SEquipEquipmentVO",
+  "s2c": "S2C_EQUIP_EQUIPMENT"
+ },
+ "ege": {
+  "c2s": "C2SExtractGemVO",
+  "s2c": "S2C_EXTRACT_GEM"
+ },
+ "ego": {
+  "s2c": "S2C_GET_OBJECT"
+ },
+ "emo": {
+  "c2s": "C2SIsoMoveObjectVO",
+  "s2c": "S2C_EDITOR_MOVE_OBJECT"
+ },
+ "eqe": {
+  "s2c": "S2C_ENCHANT_EQUIPMENT_EVENT"
+ },
+ "ere": {
+  "c2s": "C2SEnchantRelicItemEventVO",
+  "s2c": "S2C_ENCHANT_RELIC_ITEM_EVENT"
+ },
+ "esl": {
+  "c2s": "C2SEquipmentSpaceLeftVO",
+  "s2c": "S2C_EQUIPMENT_INVENTORY_SPACE_LEFT"
+ },
+ "est": {
+  "s2c": "S2C_EDITOR_STORE_OBJECT"
+ },
+ "etc": {
+  "c2s": "C2SExtensionTreasureChestVO",
+  "s2c": "S2C_EXTENSION_TREASURE_CHEST"
+ },
+ "eud": {
+  "c2s": "C2SIsoUpgradeDefenceVO",
+  "s2c": "S2C_UPGRADE_DEFENCE"
+ },
+ "eup": {
+  "c2s": "C2SIsoUpgradeObjectVO",
+  "s2c": "S2C_UPGRADE_OBJECT"
+ },
+ "fbe": {
+  "s2c": "S2C_FINISHED_BUILDING"
+ },
+ "fcc": {
+  "c2s": "C2SFusionCatalystConversionEventVO",
+  "s2c": "S2C_FUSION_CATALYST_CONVERSION"
+ },
+ "fce": {
+  "c2s": "C2SGetFeastCostReductionVO",
+  "s2c": "S2C_GET_FEAST_COST_REDUCTION"
+ },
+ "fco": {
+  "c2s": "C2SIsoFastCompleteObjectVO",
+  "s2c": "S2C_FAST_COMPLETE_OBJECT"
+ },
+ "fcq": {
+  "c2s": "C2SFinishQuestConditionVO"
+ },
+ "fcs": {
+  "c2s": "C2SMapFacebookVO",
+  "s2c": "S2C_MAP_FACEBOOK"
+ },
+ "fec": {
+  "c2s": "C2SFindNextEnemyCastleVO",
+  "s2c": "S2C_FIND_NEXT_ENEMY_CASTLE"
+ },
+ "ffi": {
+  "c2s": "C2SGetFusionForgeInfoEventVO",
+  "s2c": "S2C_GET_FUSION_FORGE_INFO"
+ },
+ "ffl": {
+  "c2s": "C2SLevelUpFusionForgeEventVO",
+  "s2c": "S2C_LEVEL_UP_FUSION_FORGE"
+ },
+ "ffp": {
+  "c2s": "C2SStartFactionProtectionVO",
+  "s2c": "S2C_START_FACTIONPROTECTION"
+ },
+ "fgb": {
+  "s2c": "S2C_GET_FACTION_BALANCE"
+ },
+ "fjf": {
+  "s2c": "S2C_JOIN_FACTION"
+ },
+ "fki": {
+  "s2c": "S2C_GET_FACTIONKINGDOM_INFO"
+ },
+ "fnm": {
+  "c2s": "C2SFindNextMapObjectVO",
+  "s2c": "S2C_FIND_NEXT_MAPOBJECT"
+ },
+ "fnt": {
+  "c2s": "C2SFindNextTowerVO",
+  "s2c": "S2C_FIND_NEXT_TOWER"
+ },
+ "frc": {
+  "c2s": "C2SRequestForgeCraftVO",
+  "s2c": "S2C_REQUEST_FORGE_CRAFT"
+ },
+ "fsc": {
+  "c2s": "C2SSelectFactionCampVO",
+  "s2c": "S2C_SELECT_FACTION_CAMP_ID"
+ },
+ "fsr": {
+  "c2s": "C2SSkipFusionRechargeEventVO",
+  "s2c": "S2C_SKIP_FUSION_RECHARGE"
+ },
+ "fte": {
+  "c2s": "C2STemporaryServerTutorialSkipVO",
+  "s2c": "S2C_TEMPORARY_SERVER_TUTORIAL_SKIP"
+ },
+ "ftl": {
+  "c2s": "C2SBuyFortuneTellerPackageVO",
+  "s2c": "S2C_FORTUNE_TELLER_EVENT"
+ },
+ "fuc": {
+  "s2c": "S2C_GET_CAMP_UNIT_CAPACITY"
+ },
+ "fwd": {
+  "c2s": "C2SShowWelcomeDataVO",
+  "s2c": "S2C_SHOW_WELCOMEDATA"
+ },
+ "gaa": {
+  "c2s": "C2SGetAreasVO",
+  "s2c": "S2C_GET_AREAS"
+ },
+ "gaae": {
+  "s2c": "S2C_GENERALS_SET_ABILITIES"
+ },
+ "gab": {
+  "s2c": "S2C_GET_AREA_BOOSTER"
+ },
+ "gabgap": {
+  "c2s": "C2SAllianceBattleGroundGetAllianceInfluenceVO",
+  "s2c": "S2C_ABG_GET_ALLIANCE_INFLUENCE"
+ },
+ "gabgpp": {
+  "c2s": "C2SAllianceBattleGroundGetPlayerInfluenceVO",
+  "s2c": "S2C_ABG_GET_PLAYER_INFLUENCE"
+ },
+ "gae": {
+  "c2s": "C2SAllianceBattleGroundGetAlliancePerformanceVO",
+  "s2c": "S2C_ABG_GET_ALLIANCE_EVENT_STATISTICS"
+ },
+ "gai": {
+  "s2c": "S2C_GET_ATTACK_INFO"
+ },
+ "gal": {
+  "s2c": "S2C_GET_PLAYER_ALLIANCE"
+ },
+ "gam": {
+  "c2s": "C2SGetAllMovementsVO",
+  "s2c": "S2C_GET_ALL_MOVEMENTS"
+ },
+ "gap": {
+  "s2c": "S2C_GET_AQUAMARINE_POINTS"
+ },
+ "gas": {
+  "c2s": "C2SGetPreDefinedAttackSetupVO",
+  "s2c": "S2C_GET_PREDEFINED_ATTACK_SETUP"
+ },
+ "gat": {
+  "c2s": "C2SGetAllianceTopicsVO",
+  "s2c": "S2C_GET_ALLIANCE_TOPICS"
+ },
+ "gatp": {
+  "s2c": "S2C_GET_ACTIVE_TRAINING_PROGRAM_INFO"
+ },
+ "gaxp": {
+  "c2s": "C2SGeneralAddXpVO"
+ },
+ "gbc": {
+  "c2s": "C2SGetPackageBuyCountVO",
+  "s2c": "S2C_GET_PACKAGE_BUY_COUNT"
+ },
+ "gbd": {
+  "s2c": "S2C_GET_BASIC_DATA"
+ },
+ "gbl": {
+  "s2c": "S2C_GET_BOOKMARKLIST"
+ },
+ "gbp": {
+  "c2s": "C2SBuyPremiumFlagVO",
+  "s2c": "S2C_BUY_PREMIUIM_FLAG"
+ },
+ "gca": {
+  "s2c": "S2C_GET_CASTLE"
+ },
+ "gcb": {
+  "s2c": "S2C_GET_CHANGED_BUILDING_EFFICIENCY"
+ },
+ "gcc": {
+  "c2s": "C2SGetConstructionCraftingInfoVO",
+  "s2c": "S2C_GET_CONSTRUCTION_CRAFTING_INFO"
+ },
+ "gce": {
+  "c2s": "C2STempServerGetChargeCampEffectsEventVO",
+  "s2c": "S2C_GET_TEMP_SERVER_CHARGE_CHAMP_EFFECTS"
+ },
+ "gcl": {
+  "c2s": "C2SGetCastleListVO",
+  "s2c": "S2C_GET_CASTLELIST"
+ },
+ "gcs": {
+  "c2s": "C2SGeneralsHUBStatusVO",
+  "s2c": "S2C_GENERALS_HUB_STATUS"
+ },
+ "gctb": {
+  "c2s": "C2SGetCastleTransportationBuildingsVO",
+  "s2c": "S2C_GET_CASTLE_TRASPORTATION_BUILDINGS"
+ },
+ "gcu": {
+  "s2c": "S2C_GET_CURRENCY"
+ },
+ "gda": {
+  "c2s": "C2SGetDaimyoAreasEventVO",
+  "s2c": "S2C_GET_DAIMYO_AREAS_EVENT"
+ },
+ "gdb": {
+  "s2c": "S2C_GET_DAMAGED_BUILDINGS"
+ },
+ "gdc": {
+  "c2s": "C2SGetDaimyoAllianceContractsEventVO",
+  "s2c": "S2C_GET_DAIMYO_ALLIANCE_CONTRACTS"
+ },
+ "gde": {
+  "s2c": "S2C_GACHA_INFO"
+ },
+ "gdi": {
+  "s2c": "S2C_GET_DETAILPLAYERINFO"
+ },
+ "gdr": {
+  "c2s": "C2SGetDonationResourcesVO",
+  "s2c": "S2C_GET_DONATION_RESOURCES"
+ },
+ "gdti": {
+  "c2s": "C2SGetDonationPointTypeVO",
+  "s2c": "S2C_GET_DONATION_TYPE_INFO"
+ },
+ "gdw": {
+  "c2s": "C2SGetDaimyoWarEffortsEventVO",
+  "s2c": "S2C_GET_DAIMYO_WAR_EFFORTS"
+ },
+ "gec": {
+  "s2c": "S2C_GEM_CHANGE"
+ },
+ "gei": {
+  "s2c": "S2C_GET_EQUIPMENT_INVENTORY"
+ },
+ "gem": {
+  "s2c": "S2C_GET_EMBLEM"
+ },
+ "gfp": {
+  "c2s": "C2SGetFactionPointsVO",
+  "s2c": "S2C_GET_FACTION_POINTS"
+ },
+ "ggc": {
+  "s2c": "S2C_GET_GAME_CONSTANTS"
+ },
+ "ggm": {
+  "s2c": "S2C_GET_GEMS_EVENT"
+ },
+ "gho": {
+  "s2c": "S2C_GET_HONOR"
+ },
+ "ghw": {
+  "s2c": "S2C_HELLO_WORLD"
+ },
+ "gie": {
+  "c2s": "C2SGetGeneralsInfoVO",
+  "s2c": "S2C_GET_GENERALS_INFO"
+ },
+ "gii": {
+  "c2s": "C2SGetContructionItemsInventoryVO",
+  "s2c": "S2C_GET_CONSTRUCTION_ITEMS_INVENTORY"
+ },
+ "gil": {
+  "s2c": "S2C_GET_INSTANCE_LINK"
+ },
+ "gkl": {
+  "s2c": "S2C_GET_KINGSTOWER_LIST"
+ },
+ "gla": {
+  "s2c": "S2C_GENERAL_ASSIGN_LORD"
+ },
+ "gli": {
+  "c2s": "C2SGetLordsInfoVO",
+  "s2c": "S2C_GET_LORDS_INFO"
+ },
+ "gll": {
+  "s2c": "S2C_LABORATORY_LIST_EVENT"
+ },
+ "glp": {
+  "c2s": "C2SGetLaboratoryProgressVO",
+  "s2c": "S2C_LABORITORY_PROGRESS_EVENT"
+ },
+ "gls": {
+  "s2c": "S2C_GET_LOOT_BOXES_STATUS"
+ },
+ "glt": {
+  "c2s": "C2SGetTemporaryServerLoginTokenVO",
+  "s2c": "S2C_GET_TEMPORARY_SERVER_LOGIN_TOKEN"
+ },
+ "glu": {
+  "s2c": "S2C_LEVEL_UP"
+ },
+ "gml": {
+  "s2c": "S2C_GET_MONUMENT_LIST"
+ },
+ "gmp": {
+  "s2c": "S2C_GET_MONUMENT_PROGRESS"
+ },
+ "gms": {
+  "s2c": "S2C_GET_MAX_SPYS"
+ },
+ "gmu": {
+  "s2c": "S2C_GET_MIGHTPOINT_UPDATE"
+ },
+ "gnci": {
+  "s2c": "S2C_GET_PLAYER_NAME_CHANGE_INFO_EVENT"
+ },
+ "gnr": {
+  "c2s": "C2SGetNewRelicsEventVO",
+  "s2c": "S2C_GET_NEW_RELICS_EVENT"
+ },
+ "gpa": {
+  "c2s": "C2SGetCastleProductionDataVO",
+  "s2c": "S2C_GET_CASTLE_PRODUCTION_DATA"
+ },
+ "gpc": {
+  "s2c": "S2C_GET_PERMANENT_CASTLE_DATA"
+ },
+ "gpe": {
+  "c2s": "C2SGetPlayerPerformanceVO",
+  "s2c": "S2C_GET_PLAYER_EVENT_STATISTICS"
+ },
+ "gpf": {
+  "s2c": "S2C_PREMIUM_FLAG_INFO"
+ },
+ "gpg": {
+  "s2c": "S2C_GRANT_PLAYERGIFT"
+ },
+ "gpi": {
+  "s2c": "S2C_GET_PLAYER_IDENTITY"
+ },
+ "gpn": {
+  "c2s": "C2SGetPatchNoteRewardsVO",
+  "s2c": "S2C_GET_PATCH_NOTE_REWARDS"
+ },
+ "gpp": {
+  "s2c": "S2C_GET_PACKAGE_PRICE"
+ },
+ "gpr": {
+  "c2s": "C2SGlobalServerPreviousRunInfoVO",
+  "s2c": "S2C_GLOBAL_SERVER_PREVIOUS_RUN_INFO"
+ },
+ "grc": {
+  "c2s": "C2SGetCastleResourcesVO",
+  "s2c": "S2C_GET_CASTLE_RESOURCES"
+ },
+ "grf": {
+  "c2s": "C2SGeneralResetFlagsVO",
+  "s2c": "S2C_GENERAL_RESET_FLAGS"
+ },
+ "gri": {
+  "s2c": "S2C_GET_RELOCATION_INFO"
+ },
+ "grs": {
+  "s2c": "S2C_GENERAL_RESET_SKILLS"
+ },
+ "gsm": {
+  "s2c": "S2C_GET_STATUS_MINES"
+ },
+ "gsue": {
+  "c2s": "C2SGeneralStarUpgradeVO"
+ },
+ "gtd": {
+  "c2s": "C2SGetTargetDecosInAreaEventVO",
+  "s2c": "S2C_GET_TARGET_DECOS_IN_AREA"
+ },
+ "gti": {
+  "c2s": "C2SGetAttackABGTowerInfosVO",
+  "s2c": "S2C_GET_TREASURE_INFO"
+ },
+ "gtp": {
+  "c2s": "C2SGetTrainingProgramInfoVO",
+  "s2c": "S2C_GET_TRAINING_PROGRAM_INFO"
+ },
+ "gtr": {
+  "c2s": "C2SGetAllianceTopicRepliesVO",
+  "s2c": "S2C_GET_ALLIANCE_TOPIC_REPLIES"
+ },
+ "gtwara": {
+  "s2c": "S2C_GO_TO_WORLD_MAP_AFTER_REMOVE_AREA"
+ },
+ "gue": {
+  "c2s": "C2SGeneralUnlockVO"
+ },
+ "gui": {
+  "c2s": "C2SGetUnitInventoryVO",
+  "s2c": "S2C_GET_UNIT_INVENTORY"
+ },
+ "gus": {
+  "s2c": "S2C_GET_UNLOCKED_SYMBOL"
+ },
+ "guse": {
+  "c2s": "C2SGeneralUnlockSkillVO",
+  "s2c": "S2C_GENERAL_UNLOCK_SKILL"
+ },
+ "gwh": {
+  "c2s": "C2SGetWeeklyHonorRankVO",
+  "s2c": "S2C_GET_WEEKLY_HONOR_SCORE"
+ },
+ "gxp": {
+  "s2c": "S2C_GET_XP"
+ },
+ "hac": {
+  "s2c": "S2C_HIDE_ALIEN_CAMP"
+ },
+ "hcs": {
+  "s2c": "S2C_CANCEL_HOSPITAL_SLOT"
+ },
+ "hdc": {
+  "s2c": "S2C_HERO_DECISION_COMMAND"
+ },
+ "hdu": {
+  "s2c": "S2C_DISMISS_HOSPITAL_UNITS"
+ },
+ "hfl": {
+  "c2s": "C2SHospitalFlagsVO",
+  "s2c": "S2C_HOSPITAL_FLAGS"
+ },
+ "hgh": {
+  "c2s": "C2SGetHighscoreVO",
+  "s2c": "S2C_GET_HIGHSCORE"
+ },
+ "hin": {
+  "c2s": "C2SHunterInfoVO",
+  "s2c": "S2C_HUNTER_INFO"
+ },
+ "hra": {
+  "s2c": "S2C_REVIVE_ALL_HOSPITAL_UNITS"
+ },
+ "hru": {
+  "c2s": "C2SReviveUnitPackageVO",
+  "s2c": "S2C_REVIVE_HOSPITAL_UNITS"
+ },
+ "hss": {
+  "s2c": "S2C_SKIP_HOSPITAL_SLOT"
+ },
+ "iatb": {
+  "c2s": "C2SIncreaseAllianceTowerBuffVO",
+  "s2c": "S2C_INCREASE_ALLIANCE_TOWER_BUFF"
+ },
+ "ibt": {
+  "c2s": "C2SDefenceInstantBuyToolVO",
+  "s2c": "S2C_INSTANT_BUY_TOOL"
+ },
+ "ikr": {
+  "s2c": "S2C_ISLAND_KINGDOM_RESET"
+ },
+ "ili": {
+  "c2s": "C2SGetIgnoredPlayersVO",
+  "s2c": "S2C_GET_IGNORED_PLAYERS"
+ },
+ "iot": {
+  "s2c": "S2C_INFO_ON_TITLES"
+ },
+ "ipl": {
+  "c2s": "C2SIgnorePlayerVO",
+  "s2c": "S2C_IGNORE_PLAYER"
+ },
+ "ira": {
+  "c2s": "C2SIsoRepairAllVO",
+  "s2c": "S2C_REPAIR_ALL"
+ },
+ "irc": {
+  "c2s": "C2SIsoResourceCitizenVO",
+  "s2c": "S2C_RESOURCE_CITIZEN"
+ },
+ "jaa": {
+  "c2s": "C2SJoinAreaVO",
+  "s2c": "S2C_JOIN_AREA"
+ },
+ "jca": {
+  "c2s": "C2SJoinCastleVO",
+  "s2c": "S2C_JOIN_CASTLE"
+ },
+ "jci": {
+  "c2s": "C2SGetJadeCitadelInfoVO",
+  "s2c": "S2C_GET_JADE_CITADEL_INFO"
+ },
+ "jea": {
+  "c2s": "C2SJoinCampVO",
+  "s2c": "S2C_JOIN_CAMP"
+ },
+ "jjc": {
+  "c2s": "C2SJudgeJudgementCitizenVO",
+  "s2c": "S2C_JUDGE_JUDGEMENT_CITIZEN"
+ },
+ "joa": {
+  "c2s": "C2SJoinOpenAllianceVO",
+  "s2c": "S2C_JOIN_OPEN_ALLIANCE"
+ },
+ "jtci": {
+  "c2s": "C2SGetTradingCampInfoVO",
+  "s2c": "S2C_GET_TRADE_CAMP_INFO"
+ },
+ "jtr": {
+  "c2s": "C2SCreateTradeMovementVO",
+  "s2c": "S2C_TRADE_MOVEMENT"
+ },
+ "kbp": {
+  "c2s": "C2SBuySeasonPassEventVO",
+  "s2c": "S2C_BUY_SEASON_PASS"
+ },
+ "kgt": {
+  "c2s": "C2SKingdomGoodsTransferVO",
+  "s2c": "S2C_KINGDOM_GOODS_TRANSFER"
+ },
+ "kgv": {
+  "c2s": "C2SKingdomGetVillageListVO",
+  "s2c": "S2C_KINGDOM_GET_VILLAGE_LIST"
+ },
+ "kik": {
+  "s2c": "S2C_KIKERIKI"
+ },
+ "klh": {
+  "c2s": "C2SGetSeasonLeagueHighscoreEventVO",
+  "s2c": "S2C_GET_SEASON_HIGHSCORE_RANK"
+ },
+ "kli": {
+  "c2s": "C2SGetSeasonInfoEventVO",
+  "s2c": "S2C_GET_SEASON_INFO"
+ },
+ "kpi": {
+  "c2s": "C2SKingdomPayInfoVO",
+  "s2c": "S2C_KINGDOM_INFO"
+ },
+ "ksc": {
+  "c2s": "C2SSelectKingdomCastleVO",
+  "s2c": "S2C_SELECT_PREBUILT_CASTLE_ID"
+ },
+ "kss": {
+  "c2s": "C2SSetSeasonEventStartSeenEventVO",
+  "s2c": "S2C_SET_SEASON_EVENT_START_SEEN"
+ },
+ "kst": {
+  "c2s": "C2SKingdomSkipTransferVO",
+  "s2c": "S2C_KINGDOM_SKIP_TRANSFER"
+ },
+ "kut": {
+  "c2s": "C2SKingdomUnitTransferVO",
+  "s2c": "S2C_KINGDOM_UNIT_TRANSFER"
+ },
+ "laa": {
+  "c2s": "C2SLeaveAreaVO",
+  "s2c": "S2C_LEAVE_AREA"
+ },
+ "lca": {
+  "s2c": "S2C_CREATE_AVATAR"
+ },
+ "lcb": {
+  "s2c": "S2C_COMEBACK_POPUP"
+ },
+ "ldt": {
+  "c2s": "C2SLaunchDaimyoTauntAttackVO",
+  "s2c": "S2C_LAUNCH_DAIMYO_TAUNT_ATTACK"
+ },
+ "lfe": {
+  "c2s": "C2SGetLostAndFoundListVO",
+  "s2c": "S2C_LOST_AND_FOUND_LIST"
+ },
+ "lli": {
+  "c2s": "C2SLoginVO",
+  "s2c": "S2C_LOGIN"
+ },
+ "llsp": {
+  "c2s": "C2SListLeaderboardScoresPageVO",
+  "s2c": "S2C_LIST_LEADERBOARD_SCORE_PAGE"
+ },
+ "llsw": {
+  "c2s": "C2SListLeaderboardScoresWindowVO",
+  "s2c": "S2C_LIST_LEADERBOARD_SCORE_WINDOW"
+ },
+ "lpl": {
+  "s2c": "S2C_GET_LOGIN_POPUP_LIST"
+ },
+ "lre": {
+  "c2s": "C2SRegisterWithNameVO",
+  "s2c": "S2C_REGISTER"
+ },
+ "lri": {
+  "s2c": "S2C_LOOP_RECRUITMENT_INFO"
+ },
+ "lrr": {
+  "s2c": "S2C_LABORATORIES_RESET_EVENT"
+ },
+ "lta": {
+  "c2s": "C2SLaunchTauntAttackVO",
+  "s2c": "S2C_LAUNCH_TAUNT_ATTACK"
+ },
+ "lts": {
+  "s2c": "S2C_LIFETIME_SPEND_C2"
+ },
+ "lvb": {
+  "s2c": "S2C_EMAIL_VERIFIED_POPUP"
+ },
+ "lwc": {
+  "s2c": "S2C_LUCKY_WHEEL_INCREASE_PRIZE_CLASS"
+ },
+ "lwj": {
+  "c2s": "C2SLuckyWheelBuyJackpotVO",
+  "s2c": "S2C_LUCKY_WHEEL_BUY_JACKPOT"
+ },
+ "lwm": {
+  "c2s": "C2SLuckyWheelChangeModeVO",
+  "s2c": "S2C_LUCKY_WHEEL_CHANGE_MODE"
+ },
+ "lws": {
+  "c2s": "C2SLuckyWheelSpinVO",
+  "s2c": "S2C_LUCKY_WHEEL_SPIN"
+ },
+ "lwta": {
+  "c2s": "C2SLaunchWolfkingTauntAttackVO"
+ },
+ "mac": {
+  "c2s": "C2SAbandonOutpostCancelVO",
+  "s2c": "S2C_ABANDON_OUTPOST_CANCEL"
+ },
+ "mas": {
+  "c2s": "C2SAbandonOutpostStartVO",
+  "s2c": "S2C_ABANDON_OUTPOST_START"
+ },
+ "mbs": {
+  "c2s": "C2SMarkBuildingInStorageVO",
+  "s2c": "S2C_MARK_BUILDING_IN_STORAGE"
+ },
+ "mcd": {
+  "s2c": "S2C_MESSAGE_RESTRICTION"
+ },
+ "mci": {
+  "c2s": "C2SMoveConstructionItemVO",
+  "s2c": "S2C_MOVE_CONSTRUCTION_ITEM"
+ },
+ "mcm": {
+  "c2s": "C2SCancelMovementVO",
+  "s2c": "S2C_CANCEL_MOVEMENT"
+ },
+ "mcu": {
+  "c2s": "C2SCancelUnitPackageVO",
+  "s2c": "S2C_CANCEL_UNIT_PACKAGE"
+ },
+ "mde": {
+  "c2s": "C2SMoveToDistrictVO",
+  "s2c": "S2C_MOVE_TO_DISTRICT"
+ },
+ "mec": {
+  "c2s": "C2SMarkExpiredConstructionItemVO",
+  "s2c": "S2C_MARK_EXPIRED_CONSTRUCTION_ITEM_EVENT"
+ },
+ "mfb": {
+  "c2s": "C2SForwardBattleLogVO",
+  "s2c": "S2C_FORWARD_BATTLE_LOG"
+ },
+ "mfc": {
+  "s2c": "S2C_MOVEMENT_FORCECANCELABLE"
+ },
+ "mfs": {
+  "c2s": "C2SForwardSpyLogVO",
+  "s2c": "S2C_FORWARD_SPY_LOG"
+ },
+ "mir": {
+  "s2c": "S2C_RENAME_CASTLE_INVITATION"
+ },
+ "mmn": {
+  "c2s": "C2SMarketCarriageNotifyVO",
+  "s2c": "S2C_MARKET_CARRIAGE_NOTIFY"
+ },
+ "mmr": {
+  "c2s": "C2SMarkMessageReadVO"
+ },
+ "mns": {
+  "c2s": "C2SGetNewsletterSubscriptionStatusVO",
+  "s2c": "S2C_MAIL_NEWSLETTER_STATUS"
+ },
+ "mos": {
+  "c2s": "C2SOpenGateStartVO",
+  "s2c": "S2C_OPEN_GATE_START"
+ },
+ "mot": {
+  "s2c": "S2C_ABG_MINE_OUT_OF_TIME"
+ },
+ "mpe": {
+  "c2s": "C2SMercenaryPackageVO",
+  "s2c": "S2C_MERCENARY_PACKAGE"
+ },
+ "mps": {
+  "c2s": "C2SPeaceModeStartVO",
+  "s2c": "S2C_PEACE_MODE_START"
+ },
+ "mre": {
+  "s2c": "S2C_MONUMENT_RESET"
+ },
+ "mrm": {
+  "s2c": "S2C_REMOVE_MOVEMENT"
+ },
+ "msb": {
+  "c2s": "C2SMinuteSkipBuildingVO",
+  "s2c": "S2C_MINUTE_SKIP_BUILDING"
+ },
+ "msd": {
+  "c2s": "C2SMinuteSkipDungeonVO",
+  "s2c": "S2C_MINUTE_SKIP_DUNGEON"
+ },
+ "msk": {
+  "c2s": "C2SMinuteSkipKingdomTransferVO",
+  "s2c": "S2C_MINUTE_SKIP_KINGDOM_TRANSFER"
+ },
+ "msm": {
+  "c2s": "C2SMinuteSkipMapTransferVO",
+  "s2c": "S2C_MINUTE_SKIP_MAP_TRANSFER"
+ },
+ "msp": {
+  "s2c": "S2C_SHOW_POPUP"
+ },
+ "msr": {
+  "c2s": "C2SMinuteSkipResearchVO",
+  "s2c": "S2C_MINUTE_SKIP_RESEARCH"
+ },
+ "mup": {
+  "c2s": "C2SMoveUnitPackageVO",
+  "s2c": "S2C_MOVE_UNIT_PACKAGE"
+ },
+ "mvf": {
+  "s2c": "S2C_MOVEMENT_FILTER_OPTION_EVENT"
+ },
+ "nec": {
+  "c2s": "C2SGetNextExpiringConstructionItemVO",
+  "s2c": "S2C_GET_NEXT_EXPIRING_CONSTRUCTION_ITEM_EVENT"
+ },
+ "nmg": {
+  "s2c": "S2C_NEW_MESSAGE"
+ },
+ "nrf": {
+  "s2c": "S2C_NEW_RELIC_FLAG_EVENT"
+ },
+ "nse": {
+  "c2s": "C2SNewsletterSubscriptionVO"
+ },
+ "odc": {
+  "c2s": "C2SOfferDurationCheckVO",
+  "s2c": "S2C_OFFER_DURATION_CHECK"
+ },
+ "ole": {
+  "c2s": "C2SOpenLootBoxVO",
+  "s2c": "S2C_OPEN_LOOT_BOX"
+ },
+ "oop": {
+  "c2s": "C2SOfferOfferPayVO",
+  "s2c": "S2C_OFFER_OFFER_PAY"
+ },
+ "opt": {
+  "s2c": "S2C_OPTION_EVENT"
+ },
+ "oqa": {
+  "c2s": "C2SOfferQuestAcceptVO"
+ },
+ "ovs": {
+  "c2s": "C2SOverseerStartVO",
+  "s2c": "S2C_OVERSEER_START"
+ },
+ "par": {
+  "s2c": "S2C_PAYMENT_REWARD"
+ },
+ "pcc": {
+  "c2s": "C2SGetPlayerCollectorCurrencyVO",
+  "s2c": "S2C_GET_PLAYER_COLLECTOR_CURRENCY"
+ },
+ "pep": {
+  "c2s": "C2SPointEventGetPointsVO",
+  "s2c": "S2C_POINT_EVENT_POINTS"
+ },
+ "pgl": {
+  "s2c": "S2C_GET_PLAYERGIFT_LIST"
+ },
+ "pio": {
+  "c2s": "C2SIsoPlaceCustomInventoryObjectVO",
+  "s2c": "S2C_PLACE_CUSTOM_INVENTORY_OBJECT"
+ },
+ "ppt": {
+  "s2c": "S2C_PRIME_TIME_OFFER"
+ },
+ "pre": {
+  "s2c": "S2C_PENDING_REWARDS"
+ },
+ "prl": {
+  "s2c": "S2C_PAYMENT_REWARD_LOTTERY_EVENT"
+ },
+ "psd": {
+  "s2c": "S2C_PLAYER_SCHEDULED_DELETION"
+ },
+ "ptp": {
+  "c2s": "C2SProlongTrainingProgramVO",
+  "s2c": "S2C_PROLONG_TRAINING_PROGRAM"
+ },
+ "qdc": {
+  "c2s": "C2SQuestDonateCurrencyVO",
+  "s2c": "S2C_QUEST_DONATE_CURRENCY"
+ },
+ "qdr": {
+  "c2s": "C2SQuestDonateRessourcesVO",
+  "s2c": "S2C_QUEST_DONATE_RESOURCES"
+ },
+ "qfi": {
+  "s2c": "S2C_QUEST_FINISHED"
+ },
+ "qli": {
+  "s2c": "S2C_QUEST_LIST"
+ },
+ "qpg": {
+  "s2c": "S2C_QUEST_PROGRES"
+ },
+ "qsc": {
+  "c2s": "C2SQuestStarterClickVO"
+ },
+ "qst": {
+  "s2c": "S2C_QUEST_START"
+ },
+ "rae": {
+  "c2s": "C2SReplaceAlienCampVO",
+  "s2c": "S2C_REPLACE_ALIEN_CAMP"
+ },
+ "raq": {
+  "c2s": "C2SRerollAllianceQuestVO",
+  "s2c": "S2C_REROLL_ALLIANCE_QUEST"
+ },
+ "rbu": {
+  "c2s": "C2SIsoRepairBuildingVO",
+  "s2c": "S2C_REPAIR_BUILDING"
+ },
+ "rca": {
+  "s2c": "S2C_ROYAL_CAPITAL_ALLIANCE"
+ },
+ "rcc": {
+  "c2s": "C2SIsoResourceCartCollectVO",
+  "s2c": "S2C_RESOURCE_CART_COLLECT"
+ },
+ "rce": {
+  "s2c": "S2C_GET_ALIEN_REPLACE_COUNT"
+ },
+ "rci": {
+  "s2c": "S2C_RESOURCE_CART_INFO"
+ },
+ "rde": {
+  "c2s": "C2SRemoveFromDistrictVO",
+  "s2c": "S2C_REMOVE_FROM_DISTRICT"
+ },
+ "rei": {
+  "c2s": "C2SResearchInfoVO",
+  "s2c": "S2C_RESEARCH_INFO"
+ },
+ "res": {
+  "c2s": "C2SResearchStartVO",
+  "s2c": "S2C_RESEARCH_START"
+ },
+ "rfi": {
+  "c2s": "C2SResearchFinishInstantVO",
+  "s2c": "S2C_RESEARCH_FINISH_INSTANT"
+ },
+ "rgg": {
+  "s2c": "S2C_RECIEVE_GOODGAMES_GIFT"
+ },
+ "rmb": {
+  "c2s": "C2SRememberRuinVO",
+  "s2c": "S2C_REMEMBER_RUIN"
+ },
+ "rmc": {
+  "s2c": "S2C_REQUEST_MAIL_CHANGE"
+ },
+ "rmm": {
+  "c2s": "C2SRefreshMercenaryMissionVO",
+  "s2c": "S2C_REFRESH_MERCENARY_MISSION"
+ },
+ "rms": {
+  "c2s": "C2SReadMessagesVO",
+  "s2c": "S2C_READ_MESSAGES"
+ },
+ "rpc": {
+  "c2s": "C2SReplaceConstructionItemVO",
+  "s2c": "S2C_CONSTRUCTION_ITEM_REPLACE"
+ },
+ "rpr": {
+  "s2c": "S2C_RAGE_POINTS_RECEIVED"
+ },
+ "rpv": {
+  "c2s": "C2SRemovePrivateResourceVillageVO",
+  "s2c": "S2C_REMOVE_PRIVATE_RESOURCE_VILLAGE"
+ },
+ "rsm": {
+  "s2c": "S2C_RESEND_MAIL"
+ },
+ "rst": {
+  "c2s": "C2SStartRelocationVO",
+  "s2c": "S2C_START_RELOCATION"
+ },
+ "rtp": {
+  "c2s": "C2SRerollTrainingProgramsVO",
+  "s2c": "S2C_REROLL_TRAINING_PROGRAM"
+ },
+ "rue": {
+  "s2c": "S2C_RECEIVED_UNIT"
+ },
+ "rui": {
+  "c2s": "C2SRuinInfoVO",
+  "s2c": "S2C_RUIN_INFO"
+ },
+ "rus": {
+  "c2s": "C2SReportUserSurveyVO"
+ },
+ "rve": {
+  "c2s": "C2SRedeemVoucherVO",
+  "s2c": "S2C_REDEEM_VOUCHER"
+ },
+ "rwb": {
+  "s2c": "S2C_REDEEM_WEEKLY_HONOR_BONUS"
+ },
+ "rww": {
+  "c2s": "C2SWishingWellCommandVO",
+  "s2c": "S2C_RUBY_WISHING_WELL"
+ },
+ "saa": {
+  "c2s": "C2SAllianceSendApplicationVO",
+  "s2c": "S2C_ALLIANCE_SEND_APPLICATION"
+ },
+ "sae": {
+  "c2s": "C2SSetAllianceEmblemVO",
+  "s2c": "S2C_SET_ALLIANCE_EMBLEM"
+ },
+ "saf": {
+  "s2c": "S2C_ARTIFACT_FOUND"
+ },
+ "sal": {
+  "s2c": "S2C_ALLIANCE_SEARCH_ALLIANCE_LIST"
+ },
+ "sap": {
+  "c2s": "C2SBuyArtifactPieceVO",
+  "s2c": "S2C_BUY_ARTIFACT_PIECE"
+ },
+ "saq": {
+  "c2s": "C2SStartAllianceQuestVO",
+  "s2c": "S2C_START_ALLIANCE_QUEST"
+ },
+ "sas": {
+  "c2s": "C2SUpdatePreDefinedAttackSetupVO",
+  "s2c": "S2C_UPDATE_PREDEFINED_ATTACK_SETUP"
+ },
+ "saw": {
+  "s2c": "S2C_ALLIANCE_SET_AUTO_WAR"
+ },
+ "sbd": {
+  "s2c": "S2C_SELL_BUILDING_DECO"
+ },
+ "sbp": {
+  "c2s": "C2SBuyEventPackageVO",
+  "s2c": "S2C_BUY_EVENTPACKAGE"
+ },
+ "scd": {
+  "s2c": "S2C_SET_CREDENTIALS"
+ },
+ "sce": {
+  "s2c": "S2C_GET_SPECIAL_CURRENCY"
+ },
+ "sci": {
+  "c2s": "C2SMinuteSkipCraftingVO",
+  "s2c": "S2C_MINUTE_SKIP_CRAFTING"
+ },
+ "scl": {
+  "c2s": "C2SShowConstructionListVO",
+  "s2c": "S2C_SHOW_CONSTRUCTION_LIST"
+ },
+ "scp": {
+  "c2s": "C2SChangePasswordVO",
+  "s2c": "S2C_CHANGE_PASSWORD"
+ },
+ "scq": {
+  "c2s": "C2SSkipCooldownAllianceQuestVO",
+  "s2c": "S2C_SKIP_COOLDOWN_ALLIANCE_QUEST"
+ },
+ "sct": {
+  "c2s": "C2SSpinCharacterTombolaVO",
+  "s2c": "S2C_SPIN_CHARACTER_TOMBOLA"
+ },
+ "sdc": {
+  "c2s": "C2SSkipDungeonCooldownVO",
+  "s2c": "S2C_SKIP_DUNGEON_COOLDOWN"
+ },
+ "sde": {
+  "s2c": "S2C_SHUTTING_DOWN_EVENT"
+ },
+ "sdi": {
+  "c2s": "C2SSupportDefenceInfoVO",
+  "s2c": "S2C_SUPPORT_DEFENCE_INFO"
+ },
+ "sds": {
+  "s2c": "S2C_SELL_STORED_DECO"
+ },
+ "sea": {
+  "s2c": "S2C_SEASON_EVENT"
+ },
+ "sede": {
+  "c2s": "C2SSelectEventDifficultyVO",
+  "s2c": "S2C_SELECT_EVENT_AUTO_SCALING_DIFFICULTY_EVENT"
+ },
+ "see": {
+  "s2c": "S2C_SPECIAL_EVENT_END"
+ },
+ "sei": {
+  "c2s": "C2SSpecialEventInfoVO",
+  "s2c": "S2C_SPECIAL_EVENT_INFO"
+ },
+ "seq": {
+  "c2s": "C2SSellEquipmentVO",
+  "s2c": "S2C_SELL_EQUIPMENT"
+ },
+ "sge": {
+  "c2s": "C2SSellGemVO",
+  "s2c": "S2C_SELL_GEM"
+ },
+ "sgi": {
+  "c2s": "C2SSkipGeneralsIntroductionVO"
+ },
+ "sie": {
+  "c2s": "C2SGetSubscriptionInfoEventVO",
+  "s2c": "S2C_GET_SUBSCRIPTION_PACKAGES"
+ },
+ "sii": {
+  "c2s": "C2SStormIslandsInfoVO",
+  "s2c": "S2C_STORM_ISLANDS_INFO"
+ },
+ "sin": {
+  "c2s": "C2SShowInventoryVO",
+  "s2c": "S2C_SHOW_INVENTORY"
+ },
+ "sio": {
+  "s2c": "S2C_SPECIAL_INGAME_OFFEREVENT"
+ },
+ "sip": {
+  "s2c": "S2C_INVITE_BUDDY"
+ },
+ "sjc": {
+  "s2c": "S2C_START_JUDGEMENT_CITIZEN"
+ },
+ "sje": {
+  "c2s": "C2SSeasonJoinEventVO"
+ },
+ "skl": {
+  "c2s": "C2SGetSkillListVO",
+  "s2c": "S2C_GET_SKILLS_LIST"
+ },
+ "skp": {
+  "c2s": "C2SAddSkillPointVO",
+  "s2c": "S2C_ADD_SKILLS_POINT"
+ },
+ "skr": {
+  "c2s": "C2SSkillsResetVO",
+  "s2c": "S2C_SKILLS_RESET"
+ },
+ "slc": {
+  "c2s": "C2SStartupLoginBonusCollectVO",
+  "s2c": "S2C_STARTUP_LOGINBONUS_COLLECT"
+ },
+ "sli": {
+  "s2c": "S2C_STARTUP_LOGINBONUS_INFO"
+ },
+ "sll": {
+  "s2c": "S2C_SEND_ALLIANCE_LABORATORY_LIST"
+ },
+ "slms": {
+  "s2c": "S2C_SOCIAL_LOGIN_MIGRATION_STATUS"
+ },
+ "slse": {
+  "c2s": "C2SSearchLeaderboardScoresEventVO",
+  "s2c": "S2C_SEARCH_LEADERBOARD_SCORE_EVENT"
+ },
+ "slt": {
+  "s2c": "S2C_SEND_LOGIN_TOKEN"
+ },
+ "smd": {
+  "s2c": "S2C_MUTE_DIALOGS"
+ },
+ "smg": {
+  "s2c": "S2C_SERVER_MESSAGE"
+ },
+ "sml": {
+  "c2s": "C2SAllianceSearchMemberListVO",
+  "s2c": "S2C_ALLIANCE_SEARCH_MEMBER_LIST"
+ },
+ "sms": {
+  "c2s": "C2SSendMessageVO",
+  "s2c": "S2C_SEND_MESSAGE"
+ },
+ "sne": {
+  "s2c": "S2C_SHOW_MESSAGES"
+ },
+ "sob": {
+  "c2s": "C2SIsoStoreObjectVO",
+  "s2c": "S2C_STORE_OBJECT"
+ },
+ "sop": {
+  "s2c": "S2C_START_OBJECT_PROGRESS"
+ },
+ "sou": {
+  "c2s": "C2SSkipUnitPackageVO",
+  "s2c": "S2C_SKIP_UNIT_PRODUCTION"
+ },
+ "spl": {
+  "c2s": "C2SShowPackageListVO",
+  "s2c": "S2C_SHOW_PACKAGE_LIST"
+ },
+ "spo": {
+  "s2c": "S2C_SHOW_POPOVER"
+ },
+ "spp": {
+  "c2s": "C2SGetSeasonPassPriceInfoEventVO",
+  "s2c": "S2C_GET_SEASON_PASS_PRICES"
+ },
+ "spr": {
+  "s2c": "S2C_SHOPPING_CART_REWARD"
+ },
+ "spslms": {
+  "c2s": "C2SSetPasswordForSocialLoginMigrationVO",
+  "s2c": "S2C_SET_PASSWORD_FOR_SOCIAL_LOGIN_MIGRATION"
+ },
+ "srb": {
+  "s2c": "S2C_SELECT_RAID_BOSS_EVENT"
+ },
+ "srm": {
+  "c2s": "C2SSetRecruitmentModeVO",
+  "s2c": "S2C_SET_RECRUITMENT_MODE"
+ },
+ "ssa": {
+  "c2s": "C2SSkipSceatSkillActivationVO",
+  "s2c": "S2C_SKIP_SCEAT_SKILL_ACTIVATION"
+ },
+ "ssc": {
+  "c2s": "C2SSaveShoppingCartVO",
+  "s2c": "S2C_SAVE_SHOPPING_CART"
+ },
+ "ssd": {
+  "s2c": "S2C_SERVER_SHUTDOWN"
+ },
+ "ssi": {
+  "s2c": "S2C_GET_SPY_INFO"
+ },
+ "ssp": {
+  "c2s": "C2SGetSocialPIDVO",
+  "s2c": "S2C_GET_SOCIAL_PID"
+ },
+ "ssu": {
+  "s2c": "S2C_SPY_SPY_UNITS"
+ },
+ "ste": {
+  "c2s": "C2SSelectTitleVO",
+  "s2c": "S2C_SELECT_TITLE_EVENT"
+ },
+ "sti": {
+  "c2s": "C2STroopSupportInfoVO",
+  "s2c": "S2C_TROOP_SUPPORT_INFO"
+ },
+ "sts": {
+  "c2s": "C2SStoreSoldiersVO",
+  "s2c": "S2C_STORE_SOLDIERS"
+ },
+ "sub": {
+  "c2s": "C2SShowMeUpgradeBuildingsVO",
+  "s2c": "S2C_SHOW_ME_UPGRADABLE_BUILDINGS"
+ },
+ "sur": {
+  "c2s": "C2SGetSurveyInfoVO",
+  "s2c": "S2C_GET_SURVEY_INFO"
+ },
+ "tai": {
+  "c2s": "C2SAttackInfoTreasureDungeonVO",
+  "s2c": "S2C_ATTACK_INFO_TREASUREDUNGEON"
+ },
+ "tas": {
+  "c2s": "C2STakeSoldiersVO",
+  "s2c": "S2C_TAKE_SOLDIERS"
+ },
+ "tbi": {
+  "c2s": "C2SGetAllianceTowerBuffInfoVO",
+  "s2c": "S2C_GET_ALLIANCE_TOWER_BUFF_INFO"
+ },
+ "tbm": {
+  "c2s": "C2SBuyTreasureMapPieceVO",
+  "s2c": "S2C_BUY_TREASUREMAP_PIECE"
+ },
+ "tcc": {
+  "s2c": "S2C_SET_BOUGHT_SPECIAL_SERVER_CASTLES"
+ },
+ "tcn": {
+  "s2c": "S2C_CLICK_NODE"
+ },
+ "tde": {
+  "c2s": "C2SCreateAllianceTowerSupportMovementVO",
+  "s2c": "S2C_CREATE_ALLIANCE_TOWER_SUPPORT_MOVEMENT"
+ },
+ "tee": {
+  "s2c": "S2C_TRIGGER_EVENT_END"
+ },
+ "tei": {
+  "s2c": "S2C_TRIGGER_EVENT_INFO"
+ },
+ "tfm": {
+  "s2c": "S2C_TREASURE_FINISH_MAP"
+ },
+ "tgt": {
+  "c2s": "C2STreasuremapGoodsTransferVO",
+  "s2c": "S2C_TREASUREMAP_GOODS_TRANSFER"
+ },
+ "thi": {
+  "s2c": "S2C_TREASUREHUNT_INFO"
+ },
+ "thm": {
+  "c2s": "C2SCreateTreasureHuntMovementVO",
+  "s2c": "S2C_CREATE_TREASUREHUNT_MOVEMENT"
+ },
+ "tie": {
+  "c2s": "C2SAllianceBattleGroundGetTowerInfoVO",
+  "s2c": "S2C_ALLIANCE_TOWER_INFO"
+ },
+ "tkt": {
+  "c2s": "C2STreasuremapSkipTransferVO",
+  "s2c": "S2C_TREASUREMAP_SKIP_TRANSFER"
+ },
+ "tlep": {
+  "c2s": "C2STemporaryServerLoginVO",
+  "s2c": "S2C_GLOBAL_SERVER_REGISTER_OR_LOGIN_EP"
+ },
+ "tmp": {
+  "c2s": "C2STreasureMapsVO",
+  "s2c": "S2C_TREASUREMAPS"
+ },
+ "tpc": {
+  "c2s": "C2SGetPlayerTempServerCollectorCurrencyVO",
+  "s2c": "S2C_GET_PLAYER_TEMP_SERVER_COLLECTOR_CURRENCY"
+ },
+ "tpi": {
+  "c2s": "C2SAllianceBattleGroundGetTowerCastlesInfoVO",
+  "s2c": "S2C_ALLIANCE_TOWER_CASTLES_INFO"
+ },
+ "trt": {
+  "c2s": "C2SAllianceBattleGroundGetTimersVO",
+  "s2c": "S2C_GET_ABG_TIMERS"
+ },
+ "tsc": {
+  "c2s": "C2STempServerSelectCastleVO",
+  "s2c": "S2C_TEMPORARY_SERVER_SELECT_CASTLE_COMPLETE"
+ },
+ "tse": {
+  "s2c": "S2C_IS_TEMPORARY_SERVER"
+ },
+ "tsh": {
+  "c2s": "C2STemporaryServerHighscoreVO",
+  "s2c": "S2C_TEMPORARY_SERVER_HIGHSCORE"
+ },
+ "ttp": {
+  "s2c": "S2C_TRACK_TUTORIAL_PROGRESS"
+ },
+ "tut": {
+  "c2s": "C2STreasuremapUnitTransferVO",
+  "s2c": "S2C_TREASUREMAP_UNIT_TRANSFER"
+ },
+ "txc": {
+  "c2s": "C2SCollectTaxVO",
+  "s2c": "S2C_COLLECT_TAX"
+ },
+ "txi": {
+  "c2s": "C2SGetTaxInfoVO",
+  "s2c": "S2C_TAX_INFO"
+ },
+ "txs": {
+  "c2s": "C2SStartCollectTaxVO",
+  "s2c": "S2C_START_COLLECT_TAX"
+ },
+ "uac": {
+  "s2c": "S2C_ACTIVITY_CHEST_INFO"
+ },
+ "uap": {
+  "c2s": "C2SUserAttackProtectionVO",
+  "s2c": "S2C_USER_ATTACK_PROTECTION"
+ },
+ "uar": {
+  "c2s": "C2SUserAchievedRanksVO",
+  "s2c": "S2C_USER_ACHIEVED_RANKS"
+ },
+ "uas": {
+  "c2s": "C2SUnlockPreDefinedAttackSetupVO",
+  "s2c": "S2C_UNLOCK_PREDEFINED_ATTACK_SETUP"
+ },
+ "ubc": {
+  "c2s": "C2SUseBoosterConsumableOnConstructionItemVO",
+  "s2c": "S2C_USE_BOOSTER_CONSUMABLE_ON_CONSTRUCTION_ITEM_EVENT"
+ },
+ "ufa": {
+  "s2c": "S2C_GET_FAME"
+ },
+ "ufp": {
+  "s2c": "S2C_USER_FACTION_POINTS"
+ },
+ "uht": {
+  "s2c": "S2C_GET_HIGHEST_FAME_TITLE_INFO"
+ },
+ "ujc": {
+  "c2s": "C2SUpgradeJadeCitadelVO",
+  "s2c": "S2C_UPGRADE_JADE_CITADE"
+ },
+ "ule": {
+  "c2s": "C2SUnlockEventVO"
+ },
+ "uoa": {
+  "s2c": "S2C_OPEN_ACTIVITY_CHEST"
+ },
+ "upan": {
+  "c2s": "C2SUpdatePresetNameVO",
+  "s2c": "S2C_UPDATE_PRESET_NAME"
+ },
+ "upi": {
+  "s2c": "S2C_GET_PAYMENT_INFO"
+ },
+ "ups": {
+  "c2s": "C2SUnlockPackageSlotVO",
+  "s2c": "S2C_UNLOCK_PACKAGE_SLOT"
+ },
+ "upt": {
+  "c2s": "C2SGetUnsentPriceTrackingVO",
+  "s2c": "S2C_GET_UNSENT_PRICE_TRACKING"
+ },
+ "upv": {
+  "c2s": "C2SUpgradePrivateResourceVillageVO",
+  "s2c": "S2C_UPGRADE_PRIVATE_RESOURCE_VILLAGE"
+ },
+ "url": {
+  "c2s": "C2SUpdateRecruitmentLoopVO",
+  "s2c": "S2C_UPDATE_RECRUITMENT_LOOP"
+ },
+ "usg": {
+  "c2s": "C2SGlobalEffectsSeenVO",
+  "s2c": "S2C_SEEN_GLOBAL_EFFECTS"
+ },
+ "utc": {
+  "s2c": "S2C_GET_ALLIANCE_UNREAD_TOPICS_COUNT"
+ },
+ "vck": {
+  "s2c": "S2C_VERSION_CHECK"
+ },
+ "vfi": {
+  "s2c": "S2C_ACHIEVEMENT_FINISHED"
+ },
+ "vip": {
+  "s2c": "S2C_VIP_INFO_EVENT"
+ },
+ "vli": {
+  "c2s": "C2SAchievementListVO",
+  "s2c": "S2C_ACHIEVEMENT_LIST"
+ },
+ "vln": {
+  "s2c": "S2C_VALIDATE_LOGIN_NAME"
+ },
+ "vpn": {
+  "c2s": "C2SValidateNewPlayerNameVO",
+  "s2c": "S2C_VALIDATE_NEW_PLAYER_NAME"
+ },
+ "vsh": {
+  "c2s": "C2SVisitedShopVO"
+ },
+ "vwc": {
+  "c2s": "C2SVoteWorldCupVO",
+  "s2c": "S2C_VOTE_WORLD_CUP"
+ },
+ "wcl": {
+  "s2c": "S2C_WORLD_CHAT_LOG"
+ },
+ "wcm": {
+  "s2c": "S2C_WORLD_CHAT"
+ },
+ "wsp": {
+  "c2s": "C2SSearchPlayerVO",
+  "s2c": "S2C_SEARCH_PLAYER"
+ }
+}
