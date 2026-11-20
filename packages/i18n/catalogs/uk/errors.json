@@ -105,9 +105,9 @@
   "zod.invalid_key": "Містить недійсний ключ.",
   "zod.invalid_element": "Містить недійсний елемент.",
   "zod.custom": "Недійсне значення.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}}: це не дійсне налаштування армії",
+  "VIRTUAL_PRESET_NOT_FOUND": "Такого пресета не існує",
+  "VIRTUAL_PRESET_DUPLICATE": "Цей акаунт уже має пресет із такою назвою",
+  "VIRTUAL_PRESET_IN_USE": "Модуль цього акаунта досі надсилає цей пресет. Спершу обери там інший план.",
+  "VIRTUAL_PRESET_LIMIT": "Акаунт може мати щонайбільше {{max}} пресетів. Видали один, щоб додати інший."
 }
