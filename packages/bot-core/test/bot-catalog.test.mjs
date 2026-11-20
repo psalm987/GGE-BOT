@@ -133,3 +133,10 @@ describe("every other locale is a subset of en.json", () => {
         expect(localeCodes().sort()).toEqual(fs.readdirSync(localesDir).filter(f => f.endsWith(".json")).map(f => f.slice(0, -5)).sort())
     })
 })
+
+// Log parts are joined with no separator, so a text that a value follows must end in its own space.
+describe("a text that ends in a colon leaves a space for the value after it", () => {
+    test.each(localeCodes())("%s", code => {
+        expect(Object.entries(readCatalog(code)).filter(([, text]) => /[:：]$/.test(text)).map(([key]) => key)).toEqual([])
+    })
+})
