@@ -802,7 +802,6 @@
     "statusCampTargetOtherEvent": "The camp at {{x}}:{{y}} belongs to another event. Enter the coordinates of a camp of this event.",
     "statusCampCastleFallback": "The saved source castle is gone, so attacks leave from the main castle, {{castle}}. Pick a castle again in the settings.",
     "statusCampRunLimit": "Stopped after {{limit}} attacks, the attacks per run you set. This starts again when the event or the bot restarts.",
-    "statusCampDailyCap": "Stopped: the account's daily cap of {{limit}} attacks is reached. Restart the bot once the cap has room again.",
     "statusCampNoTroops": "{{castle}} holds fewer than {{floor}} attack troops. Waiting for troops to come home.",
     "statusCampPlanShort": "{{castle}} lacks troops or tools the wave plan names. Waiting for troops to come home."
 }

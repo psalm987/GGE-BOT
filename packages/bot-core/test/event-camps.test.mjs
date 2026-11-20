@@ -245,6 +245,30 @@ describe.each([["Nomads", nomads, 27, "attackNomads"], ["Samurai", samurai, 29, 
         expect(statuses.at(-1)).toMatchObject({ state: "stopped", reasonKey: "statusCampRunLimit", params: { limit: 1 } })
     })
 
+    test("the account's daily cap makes the plugin wait with the status, and the next attack goes once there is room", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        let full = true
+        const waits = []
+        const waitToAttack = async job => {
+            if (full)
+                throw "ATTACK_LIMIT_REACHED"
+            return job()
+        }
+        const slept = { "pacing.js": { pause: async () => {}, sleep: async ms => { waits.push(ms); await new Promise(resolve => setTimeout(resolve, 2)) }, boxMullerRandom: () => 0 } }
+        const game = run({}, { areas: one(), sends: 50, wait: 15, waitToAttack, extra: slept })
+        const { sent, statuses } = await game
+        expect(sent).toEqual([])
+        expect(waits.length).toBeGreaterThan(1)
+        expect(waits[0]).toBe(5 * 60_000)
+        expect(statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusTowersLimitAccount", params: { minutes: 5 } })
+        expect(statuses.map(s => s.state)).not.toContain("stopped")
+        full = false
+        for (let i = 0; i < 100 && !sent.length; i++)
+            await new Promise(resolve => setTimeout(resolve, 1))
+        expect(sent.length).toBeGreaterThan(0)
+        expect(statuses.at(-1).state).not.toBe("stopped")
+    })
+
     test("difficulty: keeping the game's own sets none, and waits while the event has none", async () => {
         vi.spyOn(console, "warn").mockImplementation(() => {})
         const unset = await run({ eventDifficulty: 12 }, { areas: one(), start: { EDID: -1 }, wait: 10 })
