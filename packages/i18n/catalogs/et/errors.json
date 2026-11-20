@@ -95,9 +95,9 @@
   "zod.invalid_key": "See sisaldab kehtetut võtit.",
   "zod.invalid_element": "See sisaldab kehtetut üksust.",
   "zod.custom": "See ei kehti.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} ei ole kehtiv armee seade",
+  "VIRTUAL_PRESET_NOT_FOUND": "Seda eelseadistust pole olemas",
+  "VIRTUAL_PRESET_DUPLICATE": "Sellel kontol on juba sama nimega eelseadistus",
+  "VIRTUAL_PRESET_IN_USE": "Selle konto moodul saadab seda eelseadistust endiselt. Vali seal kõigepealt teine plaan.",
+  "VIRTUAL_PRESET_LIMIT": "Kontol võib olla eelseadistusi kuni {{max}}. Uue lisamiseks kustuta üks."
 }
