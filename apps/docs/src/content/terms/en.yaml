@@ -1,5 +1,6 @@
 terms:
   - id: plugin
+    image: gear-hammer
     term: Plugin
     category: bot
     short: One job your bot does, such as collecting taxes or sending attacks. You switch each plugin on or off.
@@ -8,6 +9,7 @@ terms:
       Think of it like apps on a phone. The phone does nothing special until you open one, and each app does a single thing.
     seeAlso: [attack-cap]
   - id: log
+    image: all-seeing-eye
     term: Log
     category: bot
     short: A running list of what your bot did and when. It is the first place to look when something seems off.
@@ -16,6 +18,7 @@ terms:
       Think of it like a ship's log. If you want to know what happened while you were away, you read it.
     seeAlso: [run]
   - id: game-account
+    image: castle
     term: Game account
     aliases: [Goodgame Empire account]
     category: account
@@ -25,6 +28,7 @@ terms:
       Think of it like a key and a lock. Your GGE Command account holds the key, and the game account is the lock it opens.
     seeAlso: [server]
   - id: server
+    image: magic-portal
     term: Server
     aliases: [world]
     category: game
@@ -34,6 +38,7 @@ terms:
       Think of it like a city with the same name in many countries. You need to say which country.
     seeAlso: [game-account]
   - id: attack-cap
+    image: battle-gear
     term: Attack cap
     aliases: [attack plugin limit]
     category: bot
@@ -43,6 +48,7 @@ terms:
       Think of it like seats at a table. Everyone is welcome, but only so many can sit down at once.
     seeAlso: [plugin]
   - id: proxy
+    image: cloaked-figure-on-horseback
     term: Proxy
     aliases: [proxies]
     category: tech
@@ -52,6 +58,7 @@ terms:
       Think of it like a post office box. Letters go through it and the sender's address is the box.
     seeAlso: [run]
   - id: run
+    image: trumpet-flag
     term: Bot run
     category: bot
     short: One stretch of your bot working, from the moment you press Start until it stops.
@@ -60,6 +67,7 @@ terms:
       Think of it like a shift at work. It starts when you clock in, and it ends when you clock out or the day is done.
     seeAlso: [log, crash-loop]
   - id: crash-loop
+    image: siren
     term: Crash loop
     category: bot
     short: When your bot fails again and again in a row, so it stops trying and waits for you.
@@ -68,6 +76,7 @@ terms:
       Think of it like a car that will not start. After a few tries you stop and look under the hood.
     seeAlso: [run, log]
   - id: two-factor
+    image: locked-fortress
     term: Two-factor sign-in
     aliases: [2FA, TOTP, authenticator code, two-factor]
     category: tech
@@ -77,6 +86,7 @@ terms:
       Think of it like a door with two locks. A thief needs both keys.
     seeAlso: []
   - id: trial
+    image: calendar
     term: Free trial
     aliases: [trial]
     category: account
@@ -86,6 +96,7 @@ terms:
       Think of it like a test drive. You get the keys for a short while, and then you decide.
     seeAlso: [game-account]
   - id: khan-camp
+    image: wolf-head
     term: Khan camp
     category: game
     short: An event camp of Khan's army on the map. Your bot can attack it for event points and loot.
@@ -94,6 +105,7 @@ terms:
       Think of it like a boss room in a dungeon. You bring your best troops, and the reward is worth the trip.
     seeAlso: [commander-game, attack-cap]
   - id: commander-game
+    image: overlord-helm
     term: Commander
     category: game
     short: A named hero in the game who leads your army in attacks. This is not the Commander plugin.
@@ -102,6 +114,7 @@ terms:
       Think of it like a team captain. The captain leads the team on the field.
     seeAlso: [commander-plugin, khan-camp]
   - id: commander-plugin
+    image: cog
     term: Commander plugin
     category: bot
     short: The GGE Command job that decides which commanders lead your bot's attacks. It is not a hero in the game.

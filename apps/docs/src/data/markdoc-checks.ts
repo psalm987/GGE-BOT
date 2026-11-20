@@ -1,5 +1,6 @@
 // Build-time checks for the docs tags, so a wrong id, key or plugin fails the build instead of printing a blank.
 import type { Config, Node, ValidationError } from "@markdoc/markdoc"
+import { isIcon } from "./icons.ts"
 import { readGenerated, readTerms } from "./registry-files.ts"
 
 type Check = (node: Node, config: Config) => ValidationError[]
@@ -26,4 +27,9 @@ export const knownPlugin: Check = node => {
     pluginKeys ??= new Set(readGenerated.plugins().map(p => p.key))
     const key = String(node.attributes.plugin)
     return pluginKeys.has(key) ? [] : fail(`plugin "${key}" is not in the plugin registry`, node)
+}
+
+export const knownIcon: Check = node => {
+    const id = String(node.attributes.id)
+    return isIcon(id) ? [] : fail(`icon id "${id}" is not in packages/ui/src/icons/credits.json`, node)
 }

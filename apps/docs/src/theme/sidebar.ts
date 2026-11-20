@@ -4,6 +4,7 @@ type Group = { label: string; translations: Record<string, string>; items: { slu
 export const sidebar: Group[] = [
     { label: "Start here", translations: { de: "Hier starten", ar: "ابدأ من هنا" }, items: [{ slug: "quick-start" }, { slug: "glossary" }] },
     { label: "Plugins", translations: { de: "Plugins", ar: "الإضافات" }, items: [{ slug: "plugins/attack-khan" }] },
+    { label: "Legal", translations: { de: "Rechtliches", ar: "قانوني" }, items: [{ slug: "credits" }] },
     { label: "Help", translations: { de: "Hilfe", ar: "مساعدة" }, items: [{ slug: "errors" }, { slug: "alerts" }] },
 ]
 

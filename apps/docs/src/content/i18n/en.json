@@ -61,5 +61,7 @@
   "gge.settings.catalog.supportTools": "support tools",
   "gge.notFound.home": "Back to the docs home",
   "gge.langbar.prompt": "Read this page in {language}?",
-  "gge.langbar.close": "Dismiss"
+  "gge.langbar.close": "Dismiss",
+  "gge.credits.by": "by {{author}}",
+  "gge.footer.credits": "Credits"
 }

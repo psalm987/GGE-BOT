@@ -872,3 +872,77 @@ site-search button {
     outline: 2px solid var(--gge-accent);
     outline-offset: 2px;
 }
+
+/* House icons beside labels and in term popovers. They are decorative: a label always sits next to them. */
+.gge-icon {
+    display: inline-block;
+    flex: none;
+    vertical-align: -0.35em;
+    margin-inline-end: 0.25em;
+}
+
+.gge-term__image,
+.gge-gloss__image {
+    display: block;
+    margin-inline-end: 0;
+}
+
+.gge-credits {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+.gge-credits__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-block-size: 3.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gge-rule);
+    border-radius: 0.375rem;
+    background: var(--gge-surface);
+}
+
+.gge-credits__item .gge-icon {
+    margin: 0;
+}
+
+.gge-credits__text {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+}
+
+.gge-credits__name {
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.gge-credits__by,
+.gge-credits__licence {
+    color: var(--gge-muted);
+    font-size: 0.875rem;
+}
+
+.gge-credits__set {
+    color: var(--gge-muted);
+    font-size: 0.875rem;
+}
+
+.gge-footer-links {
+    display: flex;
+    justify-content: center;
+    margin-block-start: 0.5rem;
+}
+
+.gge-footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 2.75rem;
+    padding-inline: 0.5rem;
+    color: var(--gge-muted);
+}

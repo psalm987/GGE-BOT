@@ -10,7 +10,11 @@ export default defineConfig({
     site: "https://docs.neisesolutions.com",
     // Moved pages go here as "/old/": "/new/". Phase 8 turns each entry into a Caddy 301.
     redirects: {},
-    vite: { ssr: { external: ["canvaskit-wasm"] } },
+    vite: {
+        ssr: { external: ["canvaskit-wasm"] },
+        // A house icon is used on many pages. As a file it is cached once; inlined it would be repeated in every page.
+        build: { assetsInlineLimit: file => (file.endsWith(".svg") ? false : undefined) },
+    },
     integrations: [
         starlight({
             title: "GGE Command",

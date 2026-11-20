@@ -1,5 +1,6 @@
 ---
 import { getCollection } from "astro:content"
+import Icon from "./Icon.astro"
 import { pageHref, routeLocale, termsFor } from "../data/runtime.ts"
 import { termTags } from "../data/term-usage.ts"
 import { TERM_CATEGORIES, type TermEntry } from "../data/terms.ts"
@@ -51,7 +52,7 @@ const categories = TERM_CATEGORIES.filter(category => terms.some(term => term.ca
                         {term.aliases.length > 0 && <span class="gge-gloss__aliases"> · {t("gge.glossary.alsoCalled")}: <span data-pagefind-weight="8">{term.aliases.join(", ")}</span></span>}
                     </p>
                     <p class="gge-gloss__short" data-pagefind-weight="5">{term.short}</p>
-                    {term.image && <img class="gge-gloss__image" src={term.image} alt="" loading="lazy" />}
+                    {term.image && <Icon class="gge-gloss__image" id={term.image} size={64} />}
                     <p>{term.long}</p>
                     {term.seeAlso.some(id => byId.has(id)) && (
                         <p class="gge-gloss__see">{t("gge.glossary.seeAlso")}: {term.seeAlso.flatMap(id => byId.get(id) ?? []).map((other, i) => <>{i > 0 && ", "}<a href={`#${other.id}`}>{other.term}</a></>)}</p>

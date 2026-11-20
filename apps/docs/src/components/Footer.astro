@@ -1,12 +1,15 @@
 ---
 import Default from "@astrojs/starlight/components/Footer.astro"
 import { langOptions } from "../seo/langbar.ts"
+import { pageHref, routeLocale } from "../data/runtime.ts"
 
 const route = Astro.locals.starlightRoute
 const options = await langOptions(route)
+const t = Astro.locals.t
 ---
 
 <Default><slot /></Default>
+<div class="gge-footer-links not-content"><a href={pageHref(routeLocale(Astro), "credits")}>{t("gge.footer.credits")}</a></div>
 <div class="sr-only" role="status" aria-live="polite" data-gge-live></div>
 {Object.keys(options).length > 0 && <div class="gge-langbar not-content" role="status" aria-live="polite" data-gge-langbar data-current={route.lang} data-options={JSON.stringify(options)}></div>}
 <script>

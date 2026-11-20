@@ -61,5 +61,7 @@
   "gge.settings.catalog.supportTools": "أدوات الدعم",
   "gge.notFound.home": "العودة إلى الصفحة الرئيسية للدليل",
   "gge.langbar.prompt": "هل تريد قراءة هذه الصفحة بلغة {language}؟",
-  "gge.langbar.close": "إغلاق"
+  "gge.langbar.close": "إغلاق",
+  "gge.credits.by": "من تصميم {{author}}",
+  "gge.footer.credits": "الاعتمادات"
 }

@@ -1,7 +1,7 @@
 import { defineMarkdocConfig, component } from "@astrojs/markdoc/config"
 import Markdoc from "@markdoc/markdoc"
 import starlightMarkdoc from "@astrojs/starlight-markdoc"
-import { knownPlugin, knownTerm, knownUiKey } from "./src/data/markdoc-checks.ts"
+import { knownIcon, knownPlugin, knownTerm, knownUiKey } from "./src/data/markdoc-checks.ts"
 
 const anchorId = /^[a-z][a-z0-9-]*$/
 const termId = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -60,6 +60,20 @@ export default defineMarkdocConfig({
             render: component("./src/components/Ui.astro"),
             attributes: { key: { type: String, required: true, matches: /^(client|common|ui):.+$/ } },
             validate: knownUiKey,
+        },
+        icon: {
+            inline: true,
+            selfClosing: true,
+            render: component("./src/components/Icon.astro"),
+            attributes: {
+                id: { type: String, required: true, matches: termId },
+                size: { type: Number },
+            },
+            validate: knownIcon,
+        },
+        credits: {
+            selfClosing: true,
+            render: component("./src/components/Credits.astro"),
         },
         settings: {
             selfClosing: true,

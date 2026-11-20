@@ -1,4 +1,5 @@
 ---
+import Icon from "./Icon.astro"
 import { nextOccurrence, pageHref, routeLocale, termsFor } from "../data/runtime.ts"
 
 interface Props {
@@ -14,4 +15,4 @@ const popId = `term-${id}-${nextOccurrence(Astro.request, id)}`
 const nameId = `${popId}-name`
 ---
 
-<span class="gge-term"><button type="button" class="gge-term__btn" popovertarget={popId} aria-expanded="false" aria-controls={popId}><slot /></button><span popover="auto" id={popId} class="gge-term__pop" role="group" aria-labelledby={nameId} data-pagefind-ignore><span class="gge-term__name" id={nameId}>{entry.term}</span><span class="gge-term__short">{entry.short}</span>{entry.image && <img class="gge-term__image" src={entry.image} alt="" loading="lazy" />}<span class="gge-term__actions"><a class="gge-term__more" href={pageHref(locale, "glossary", id)}>{t("gge.term.readMore")}</a><button type="button" class="gge-term__close" popovertarget={popId} popovertargetaction="hide">{t("gge.term.close")}</button></span></span></span>
+<span class="gge-term"><button type="button" class="gge-term__btn" popovertarget={popId} aria-expanded="false" aria-controls={popId}><slot /></button><span popover="auto" id={popId} class="gge-term__pop" role="group" aria-labelledby={nameId} data-pagefind-ignore><span class="gge-term__name" id={nameId}>{entry.term}</span><span class="gge-term__short">{entry.short}</span>{entry.image && <Icon class="gge-term__image" id={entry.image} size={48} />}<span class="gge-term__actions"><a class="gge-term__more" href={pageHref(locale, "glossary", id)}>{t("gge.term.readMore")}</a><button type="button" class="gge-term__close" popovertarget={popId} popovertargetaction="hide">{t("gge.term.close")}</button></span></span></span>

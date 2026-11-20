@@ -1,0 +1,23 @@
+---
+import { ICONS, ICON_SET } from "../data/icons.ts"
+import Icon from "./Icon.astro"
+
+const t = Astro.locals.t
+const collator = new Intl.Collator("en")
+const icons = [...ICONS].sort((a, b) => collator.compare(a.id, b.id))
+const nameOf = (id: string) => id.replace(/-/g, " ")
+---
+
+<ul class="gge-credits not-content" data-count={icons.length}>
+    {icons.map(icon => (
+        <li class="gge-credits__item" data-icon={icon.id}>
+            <Icon id={icon.id} size={40} />
+            <span class="gge-credits__text">
+                <a class="gge-credits__name" href={icon.source} rel="noopener" lang="en" dir="ltr">{nameOf(icon.id)}</a>
+                <span class="gge-credits__by">{t("gge.credits.by", { author: icon.author })}</span>
+                <a class="gge-credits__licence" href={icon.licenceUrl} rel="noopener" lang="en" dir="ltr">{icon.licence}</a>
+            </span>
+        </li>
+    ))}
+</ul>
+<p class="gge-credits__set"><a href={ICON_SET.setUrl} rel="noopener" lang="en" dir="ltr">{ICON_SET.set}</a> · {ICON_SET.setAuthors} · <a href={ICON_SET.licenceUrl} rel="noopener" lang="en" dir="ltr">{ICON_SET.licence}</a></p>

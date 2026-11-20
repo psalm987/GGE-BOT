@@ -61,5 +61,7 @@
   "gge.settings.catalog.supportTools": "Unterstützungswerkzeugen",
   "gge.notFound.home": "Zurück zur Startseite der Doku",
   "gge.langbar.prompt": "Diese Seite auf {language} lesen?",
-  "gge.langbar.close": "Schließen"
+  "gge.langbar.close": "Schließen",
+  "gge.credits.by": "von {{author}}",
+  "gge.footer.credits": "Bildnachweise"
 }
