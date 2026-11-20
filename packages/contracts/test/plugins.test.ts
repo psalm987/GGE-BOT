@@ -196,7 +196,7 @@ describe("options a Select replaced", () => {
             { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather"], default: 1, legacy: { from: { useFeather: false, useCoin: true }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 } },
             { type: "Select", key: "waves", selection: ["All", "1", "2"], default: 2, legacy: { from: { waves: "" }, cases: [[{ waves: "1" }, 1], [{ waves: "2" }, 2]], otherwise: 0 } },
             { type: "CastlePicker", key: "source", kingdom: 2 },
-            { type: "Number", key: "radius", min: 10, max: 100, unit: "tiles", display: "slider", default: 50 },
+            { type: "Number", key: "radius", min: 10, max: 100, unit: "clicks", display: "slider", default: 50 },
         ],
     }]
     const defs = towers[0]!.options

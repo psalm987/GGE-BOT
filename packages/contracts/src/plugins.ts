@@ -17,7 +17,7 @@ export const ItemCatalog = z.enum(["banners", "tools", "troops", "supportTools"]
 export type ItemCatalog = z.infer<typeof ItemCatalog>
 
 /** What a Number option counts, shown after its value. */
-export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins", "tiles", "tools"])
+export const NumberUnit = z.enum(["seconds", "minutes", "hours", "percent", "attacks", "troops", "rubies", "coins", "clicks", "tools"])
 export type NumberUnit = z.infer<typeof NumberUnit>
 
 /** The game's kingdoms by id: Great Empire, Burning Sands, Everwinter Glacier, Fire Peaks, Storm Islands and Berimond. */

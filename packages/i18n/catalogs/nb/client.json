@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Bruk for alle kongeriker",
   "plugins.copiedToAll": "{{label}} ble kopiert til alle kongeriker. Lagre for å beholde det.",
   "plugins.castle.main": "Hovedslott",
-  "plugins.unit.tiles": "felt",
+  "plugins.unit.clicks": "klikk",
   "plugins.unit.tools": "verktøy",
   "plugins.kingdomShort.0": "Grønn",
   "plugins.kingdomShort.1": "Sand",

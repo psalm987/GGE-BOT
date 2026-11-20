@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Εφαρμογή σε όλα τα βασίλεια",
   "plugins.copiedToAll": "{{label}}: αντιγράφηκε σε όλα τα βασίλεια. Αποθηκεύστε για να μείνει.",
   "plugins.castle.main": "Κύριο κάστρο",
-  "plugins.unit.tiles": "τετράγωνα",
+  "plugins.unit.clicks": "κλικ",
   "plugins.unit.tools": "εργαλεία",
   "plugins.kingdomShort.0": "Πράσινο",
   "plugins.kingdomShort.1": "Άμμος",

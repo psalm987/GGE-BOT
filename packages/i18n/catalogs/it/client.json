@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Applica a tutti i regni",
   "plugins.copiedToAll": "{{label}} copiato in ogni regno. Salva per mantenerlo.",
   "plugins.castle.main": "Castello principale",
-  "plugins.unit.tiles": "caselle",
+  "plugins.unit.clicks": "clic",
   "plugins.unit.tools": "strumenti",
   "plugins.kingdomShort.0": "Verde",
   "plugins.kingdomShort.1": "Sabbie",

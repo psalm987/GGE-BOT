@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Použiť na všetky kráľovstvá",
   "plugins.copiedToAll": "{{label}} skopírované do každého kráľovstva. Ak to chceš zachovať, ulož.",
   "plugins.castle.main": "Hlavný hrad",
-  "plugins.unit.tiles": "polí",
+  "plugins.unit.clicks": "klikov",
   "plugins.unit.tools": "nástrojov",
   "plugins.kingdomShort.0": "Zelené",
   "plugins.kingdomShort.1": "Piesky",

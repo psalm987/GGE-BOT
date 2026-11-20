@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Käytä kaikissa kuningaskunnissa",
   "plugins.copiedToAll": "{{label}} kopioitu kaikkiin kuningaskuntiin. Tallenna säilyttääksesi sen.",
   "plugins.castle.main": "Päälinna",
-  "plugins.unit.tiles": "ruutua",
+  "plugins.unit.clicks": "klikkausta",
   "plugins.unit.tools": "työkalua",
   "plugins.kingdomShort.0": "Vihreä",
   "plugins.kingdomShort.1": "Hiekat",

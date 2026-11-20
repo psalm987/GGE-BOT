@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Zastosuj we wszystkich królestwach",
   "plugins.copiedToAll": "Skopiowano do każdego królestwa: {{label}}. Zapisz, aby to zachować.",
   "plugins.castle.main": "Zamek główny",
-  "plugins.unit.tiles": "pól",
+  "plugins.unit.clicks": "kliknięć",
   "plugins.unit.tools": "narzędzi",
   "plugins.kingdomShort.0": "Cesarstwo",
   "plugins.kingdomShort.1": "Piaski",

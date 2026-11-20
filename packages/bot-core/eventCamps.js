@@ -55,7 +55,7 @@ const eventCampOptions = profile => [
         type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 0, copyToAll: true,
         legacy: { from: { useFeather: false, useCoin: false }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 },
     },
-    { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "tiles", default: 15, showWhen: { key: "horse", in: [CAMP_HORSES.indexOf("distance")] } },
+    { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "clicks", default: 15, showWhen: { key: "horse", in: [CAMP_HORSES.indexOf("distance")] } },
     { type: "Text", key: "commanderWhiteList", default: "1-50" },
     { type: "SkipTypes", key: "skipTypes", default: null, showWhen: { key: "targetMode", in: SKIPPING } },
     ...armyOptions(AUTOFILL),

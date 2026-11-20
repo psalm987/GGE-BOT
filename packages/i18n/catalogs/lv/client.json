@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Piemērot visām karaļvalstīm",
   "plugins.copiedToAll": "{{label}} nokopēts uz visām karaļvalstīm. Saglabā, lai to paturētu.",
   "plugins.castle.main": "Galvenā pils",
-  "plugins.unit.tiles": "lauciņi",
+  "plugins.unit.clicks": "klikšķi",
   "plugins.unit.tools": "rīki",
   "plugins.kingdomShort.0": "Zaļā",
   "plugins.kingdomShort.1": "Tuksneši",

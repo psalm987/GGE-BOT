@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Appliquer à tous les royaumes",
   "plugins.copiedToAll": "{{label}} copié dans chaque royaume. Enregistrez pour le garder.",
   "plugins.castle.main": "Château principal",
-  "plugins.unit.tiles": "cases",
+  "plugins.unit.clicks": "clics",
   "plugins.unit.tools": "engins",
   "plugins.kingdomShort.0": "Vert",
   "plugins.kingdomShort.1": "Sables",

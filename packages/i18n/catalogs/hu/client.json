@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Alkalmazás minden királyságra",
   "plugins.copiedToAll": "{{label}} átmásolva minden királyságba. A megtartáshoz ments.",
   "plugins.castle.main": "Főkastély",
-  "plugins.unit.tiles": "mező",
+  "plugins.unit.clicks": "kattintás",
   "plugins.unit.tools": "eszköz",
   "plugins.kingdomShort.0": "Zöld",
   "plugins.kingdomShort.1": "Homok",

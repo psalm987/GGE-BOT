@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Aplică la toate regatele",
   "plugins.copiedToAll": "S-a copiat {{label}} în fiecare regat. Salvează ca să păstrezi modificarea.",
   "plugins.castle.main": "Castelul principal",
-  "plugins.unit.tiles": "pătrățele",
+  "plugins.unit.clicks": "clickuri",
   "plugins.unit.tools": "unelte",
   "plugins.kingdomShort.0": "Verde",
   "plugins.kingdomShort.1": "Nisipuri",

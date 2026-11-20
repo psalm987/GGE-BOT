@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Uporabi za vsa kraljestva",
   "plugins.copiedToAll": "Nastavitev {{label}} je kopirana v vsa kraljestva. Shrani, da jo obdržiš.",
   "plugins.castle.main": "Glavni grad",
-  "plugins.unit.tiles": "polj",
+  "plugins.unit.clicks": "klikov",
   "plugins.unit.tools": "orodij",
   "plugins.kingdomShort.0": "Zelena",
   "plugins.kingdomShort.1": "Puščave",

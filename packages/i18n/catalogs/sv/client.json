@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Använd för alla kungadömen",
   "plugins.copiedToAll": "{{label}} kopierades till alla kungadömen. Spara för att behålla det.",
   "plugins.castle.main": "Huvudslott",
-  "plugins.unit.tiles": "rutor",
+  "plugins.unit.clicks": "klick",
   "plugins.unit.tools": "verktyg",
   "plugins.kingdomShort.0": "Grön",
   "plugins.kingdomShort.1": "Öken",

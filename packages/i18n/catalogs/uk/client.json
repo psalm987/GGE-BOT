@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Застосувати до всіх королівств",
   "plugins.copiedToAll": "{{label}}: скопійовано в усі королівства. Збережи, щоб не втратити.",
   "plugins.castle.main": "Основний замок",
-  "plugins.unit.tiles": "клітинок",
+  "plugins.unit.clicks": "кліків",
   "plugins.unit.tools": "знарядь",
   "plugins.kingdomShort.0": "Зелене",
   "plugins.kingdomShort.1": "Піски",

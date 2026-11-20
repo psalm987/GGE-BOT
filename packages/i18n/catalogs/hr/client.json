@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Primijeni na sva kraljevstva",
   "plugins.copiedToAll": "{{label}}: kopirano u svako kraljevstvo. Spremi da zadržiš.",
   "plugins.castle.main": "Glavni dvorac",
-  "plugins.unit.tiles": "polja",
+  "plugins.unit.clicks": "klikova",
   "plugins.unit.tools": "alata",
   "plugins.kingdomShort.0": "Zeleno",
   "plugins.kingdomShort.1": "Pijesak",

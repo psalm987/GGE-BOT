@@ -753,7 +753,7 @@
   "plugins.copyToAll": "Cuir i bhfeidhm ar gach ríocht",
   "plugins.copiedToAll": "Cóipeáladh {{label}} chuig gach ríocht. Sábháil chun é a choinneáil.",
   "plugins.castle.main": "Príomhchaisleán",
-  "plugins.unit.tiles": "tíleanna",
+  "plugins.unit.clicks": "cliceanna",
   "plugins.unit.tools": "uirlisí",
   "plugins.kingdomShort.0": "Glas",
   "plugins.kingdomShort.1": "Gaineamh",

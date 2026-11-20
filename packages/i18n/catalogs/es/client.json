@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Aplicar a todos los reinos",
   "plugins.copiedToAll": "{{label}} copiado a todos los reinos. Guarda para conservarlo.",
   "plugins.castle.main": "Castillo principal",
-  "plugins.unit.tiles": "casillas",
+  "plugins.unit.clicks": "clics",
   "plugins.unit.tools": "herramientas",
   "plugins.kingdomShort.0": "Verde",
   "plugins.kingdomShort.1": "Arenas",

@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Прилагане за всички кралства",
   "plugins.copiedToAll": "{{label}} е копирано във всички кралства. Запазете, за да остане.",
   "plugins.castle.main": "Основен замък",
-  "plugins.unit.tiles": "полета",
+  "plugins.unit.clicks": "клика",
   "plugins.unit.tools": "инструмента",
   "plugins.kingdomShort.0": "Зелено",
   "plugins.kingdomShort.1": "Пясъци",

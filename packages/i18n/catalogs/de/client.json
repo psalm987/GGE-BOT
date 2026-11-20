@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Auf alle Königreiche anwenden",
   "plugins.copiedToAll": "{{label}} in jedes Königreich kopiert. Speichert, um es zu behalten.",
   "plugins.castle.main": "Hauptburg",
-  "plugins.unit.tiles": "Felder",
+  "plugins.unit.clicks": "Klicks",
   "plugins.unit.tools": "Werkzeuge",
   "plugins.kingdomShort.0": "Grün",
   "plugins.kingdomShort.1": "Sande",

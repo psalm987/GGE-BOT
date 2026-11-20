@@ -667,7 +667,7 @@
   "plugins.copyToAll": "Apply to all kingdoms",
   "plugins.copiedToAll": "{{label}} copied to every kingdom. Save to keep it.",
   "plugins.castle.main": "Main castle",
-  "plugins.unit.tiles": "tiles",
+  "plugins.unit.clicks": "clicks",
   "plugins.unit.tools": "tools",
   "plugins.kingdomShort.0": "Green",
   "plugins.kingdomShort.1": "Sands",

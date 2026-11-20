@@ -693,7 +693,7 @@
   "plugins.copyToAll": "Aplicar a todos os reinos",
   "plugins.copiedToAll": "{{label}}: copiado para todos os reinos. Salve para manter.",
   "plugins.castle.main": "Castelo principal",
-  "plugins.unit.tiles": "campos",
+  "plugins.unit.clicks": "cliques",
   "plugins.unit.tools": "ferramentas",
   "plugins.kingdomShort.0": "Verde",
   "plugins.kingdomShort.1": "Areias",

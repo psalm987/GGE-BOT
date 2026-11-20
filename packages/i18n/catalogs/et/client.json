@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Rakenda kõigile kuningriikidele",
   "plugins.copiedToAll": "{{label}} kopeeriti igasse kuningriiki. Salvesta, et see jääks alles.",
   "plugins.castle.main": "Põhiloss",
-  "plugins.unit.tiles": "ruutu",
+  "plugins.unit.clicks": "klõpsu",
   "plugins.unit.tools": "tööriista",
   "plugins.kingdomShort.0": "Roheline",
   "plugins.kingdomShort.1": "Liivad",

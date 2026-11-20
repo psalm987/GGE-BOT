@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Tüm krallıklara uygula",
   "plugins.copiedToAll": "{{label}} her krallığa kopyalandı. Korumak için kaydet.",
   "plugins.castle.main": "Ana kale",
-  "plugins.unit.tiles": "kare",
+  "plugins.unit.clicks": "tık",
   "plugins.unit.tools": "alet",
   "plugins.kingdomShort.0": "Yeşil",
   "plugins.kingdomShort.1": "Kumlar",

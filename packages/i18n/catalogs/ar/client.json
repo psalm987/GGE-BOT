@@ -783,7 +783,7 @@
   "plugins.copyToAll": "تطبيق على كل الممالك",
   "plugins.copiedToAll": "نُسخ {{label}} إلى كل الممالك. احفظ للإبقاء عليه.",
   "plugins.castle.main": "القلعة الرئيسية",
-  "plugins.unit.tiles": "مربعات",
+  "plugins.unit.clicks": "نقرات",
   "plugins.unit.tools": "أدوات",
   "plugins.kingdomShort.0": "الخضراء",
   "plugins.kingdomShort.1": "الرمال",

@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Taikyti visoms karalystėms",
   "plugins.copiedToAll": "{{label}} nukopijuota į visas karalystes. Išsaugokite, kad liktų.",
   "plugins.castle.main": "Pagrindinė pilis",
-  "plugins.unit.tiles": "langeliai",
+  "plugins.unit.clicks": "paspaudimai",
   "plugins.unit.tools": "įrankiai",
   "plugins.kingdomShort.0": "Žalioji",
   "plugins.kingdomShort.1": "Smėlynai",

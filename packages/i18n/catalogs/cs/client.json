@@ -723,7 +723,7 @@
   "plugins.copyToAll": "Použít na všechna království",
   "plugins.copiedToAll": "{{label}} zkopírováno do všech království. Uložte, aby zůstalo.",
   "plugins.castle.main": "Hlavní hrad",
-  "plugins.unit.tiles": "polí",
+  "plugins.unit.clicks": "kliků",
   "plugins.unit.tools": "nástrojů",
   "plugins.kingdomShort.0": "Zelené",
   "plugins.kingdomShort.1": "Písky",

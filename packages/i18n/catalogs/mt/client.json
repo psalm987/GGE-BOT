@@ -753,7 +753,7 @@
   "plugins.copyToAll": "Applika għar-renji kollha",
   "plugins.copiedToAll": "{{label}} ġie kkupjat f'kull renju. Issejvja biex iżżommu.",
   "plugins.castle.main": "Kastell prinċipali",
-  "plugins.unit.tiles": "kwadri",
+  "plugins.unit.clicks": "klikks",
   "plugins.unit.tools": "għodda",
   "plugins.kingdomShort.0": "Aħdar",
   "plugins.kingdomShort.1": "Ramel",

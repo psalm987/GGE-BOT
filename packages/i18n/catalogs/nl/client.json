@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Op alle koninkrijken toepassen",
   "plugins.copiedToAll": "{{label}} naar elk koninkrijk gekopieerd. Sla op om het te bewaren.",
   "plugins.castle.main": "Hoofdkasteel",
-  "plugins.unit.tiles": "velden",
+  "plugins.unit.clicks": "klikken",
   "plugins.unit.tools": "tuigen",
   "plugins.kingdomShort.0": "Groen",
   "plugins.kingdomShort.1": "Zand",

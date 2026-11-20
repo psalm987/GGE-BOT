@@ -663,7 +663,7 @@
   "plugins.copyToAll": "Anvend på alle kongeriger",
   "plugins.copiedToAll": "{{label}} kopieret til alle kongeriger. Gem for at beholde det.",
   "plugins.castle.main": "Hovedborg",
-  "plugins.unit.tiles": "felter",
+  "plugins.unit.clicks": "klik",
   "plugins.unit.tools": "redskaber",
   "plugins.kingdomShort.0": "Grøn",
   "plugins.kingdomShort.1": "Sand",
