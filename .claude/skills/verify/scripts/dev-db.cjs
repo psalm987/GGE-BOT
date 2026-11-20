@@ -20,6 +20,17 @@ function databaseUrl() {
     return match[1]
 }
 
+/** Runs `work` against the dev database on one connection, with no transaction of its own. */
+async function withDatabase(work) {
+    const db = new Client({ connectionString: databaseUrl() })
+    await db.connect()
+    try {
+        return await work(db)
+    } finally {
+        await db.end()
+    }
+}
+
 /** Runs `work` in one transaction against the account named `accountName`. */
 async function withAccount(accountName, work) {
     const db = new Client({ connectionString: databaseUrl() })
@@ -108,7 +119,7 @@ function storePluginSettings({ accountName, plugin, enabled, options }) {
         [accountName, plugin, enabled, JSON.stringify(options)]))
 }
 
-module.exports = { insertLogLine, insertNotification, insertResources, storePluginSettings }
+module.exports = { withDatabase, insertLogLine, insertNotification, insertResources, storePluginSettings }
 
 if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)

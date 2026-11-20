@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "generate": "node scripts/generate.ts",
+    "capture": "node scripts/capture.ts",
     "dev": "node scripts/generate.ts && astro dev",
     "build": "node scripts/generate.ts && astro build",
     "preview": "astro preview",

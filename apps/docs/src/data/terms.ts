@@ -1,4 +1,5 @@
 import { z } from "astro/zod"
+import { isIcon } from "./icons.ts"
 
 export const TERM_CATEGORIES = ["game", "bot", "account", "tech"] as const
 export type TermCategory = (typeof TERM_CATEGORIES)[number]
@@ -16,8 +17,8 @@ export const TermEntry = z.object({
     category: z.enum(TERM_CATEGORIES),
     short: z.string().min(1).refine(text => words(text) <= SHORT_MAX_WORDS, `short is at most ${SHORT_MAX_WORDS} words`).refine(markdocSafe, "no tags or placeholders"),
     long: z.string().min(1).refine(markdocSafe, "no tags or placeholders"),
-    /** A picture for the popover and the glossary. Unused until the art pipeline lands. */
-    image: z.string().optional(),
+    /** The id of a house icon (packages/ui/src/icons) shown in the popover and the glossary. */
+    image: z.string().refine(isIcon, "not an icon id in packages/ui/src/icons/credits.json").optional(),
     seeAlso: z.array(kebab).default([]),
     /** The key in the game's own language file, so each locale shows the name the game shows. */
     gameKey: z.string().optional(),

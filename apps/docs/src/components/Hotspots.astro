@@ -1,0 +1,36 @@
+---
+import { nextOccurrence } from "../data/runtime.ts"
+import { parsePoints } from "../data/screens.ts"
+import Screenshot from "./Screenshot.astro"
+
+interface Props {
+    id: string
+    alt: string
+    at: string
+    narrow: string
+}
+
+const { id, alt, at, narrow } = Astro.props
+const t = Astro.locals.t
+const wide = parsePoints(at) ?? []
+const phone = parsePoints(narrow) ?? []
+const legendHtml = await Astro.slots.render("default")
+const items = [...legendHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(match => match[1]!)
+const base = `${id}-${nextOccurrence(Astro.request, `spots:${id}`)}`
+const spot = (n: number) => `${base}-spot-${n}`
+const pct = (value: number) => `${value}%`
+---
+
+<div class="gge-hotspots" data-hotspots>
+    <Screenshot id={id} alt={alt}>
+        <div slot="overlay" class="gge-spots">
+            {items.map((_, i) => (
+                <button type="button" class="gge-spot" data-spot={i + 1} aria-controls={spot(i + 1)} aria-describedby={spot(i + 1)} aria-label={t("gge.hotspot.marker", { n: i + 1 })}
+                    style={`--x:${pct(wide[i]!.x)};--y:${pct(wide[i]!.y)};--nx:${pct(phone[i]!.x)};--ny:${pct(phone[i]!.y)}`}><span aria-hidden="true">{i + 1}</span></button>
+            ))}
+        </div>
+    </Screenshot>
+    <ol class="gge-legend" aria-label={t("gge.hotspot.legend")}>
+        {items.map((html, i) => <li id={spot(i + 1)} data-spot={i + 1} tabindex="-1"><span class="gge-legend__text" set:html={html} /></li>)}
+    </ol>
+</div>

@@ -15,7 +15,7 @@ const assert = (ok, what) => { if (!ok) throw new Error("FAILED: " + what); cons
 const WIDE = { width: 1440, height: 900 }
 const NARROW = { width: 1100, height: 900 }
 const PHONE = { width: 390, height: 844 }
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".woff2": "font/woff2", ".woff": "font/woff", ".xml": "application/xml", ".txt": "text/plain", ".jpeg": "image/jpeg" }
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".woff2": "font/woff2", ".woff": "font/woff", ".xml": "application/xml", ".txt": "text/plain", ".jpeg": "image/jpeg", ".webp": "image/webp", ".avif": "image/avif" }
 
 function serve() {
     const server = http.createServer((req, res) => {
@@ -282,11 +282,171 @@ async function seoLanes(browser, base) {
 
 }
 
+/** Screenshots, hotspots, house icons and the Credits page. */
+async function shotLanes(browser, base) {
+    const icons = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../../packages/ui/src/icons/credits.json"), "utf8")).icons
+    const svgCount = fs.readdirSync(path.join(__dirname, "../../../../packages/ui/src/icons")).filter(f => f.endsWith(".svg")).length
+
+    const quick = await open(browser, base, "/quick-start/")
+    const opener = quick.locator(".gge-shot__open").first()
+    await opener.scrollIntoViewIfNeeded()
+    const label = await opener.getAttribute("aria-label")
+    assert(/^Enlarge screenshot: .{10,}/.test(label), `the screenshot opener says what it opens (${label})`)
+    const sizes = await quick.locator(".gge-shot__open img").evaluateAll(imgs => imgs.map(i => [i.getAttribute("width"), i.getAttribute("height"), i.getAttribute("alt").length > 0]))
+    assert(sizes.length > 0 && sizes.every(([w, h, alt]) => Number(w) > 0 && Number(h) > 0 && alt), "each screenshot image has width, height and alt")
+    const sources = await quick.locator(".gge-shot__open picture").first().evaluate(p => [...p.querySelectorAll("source")].map(s => `${s.type} ${s.media || "default"}`))
+    assert(sources.length === 3 && sources.some(x => x.startsWith("image/avif (max-width")) && sources.some(x => x.startsWith("image/webp (max-width")), `the picture has AVIF and WebP crops for phones and desktops (${sources.join("; ")})`)
+    await opener.focus()
+    await quick.keyboard.press("Enter")
+    const dialog = quick.locator("dialog.gge-shot__dialog[open]")
+    await dialog.waitFor()
+    assert(await dialog.evaluate(d => d.matches(":modal")), "Enter on the screenshot opens a modal dialog")
+    assert(await dialog.getAttribute("aria-label") !== null, "the lightbox is named by the alt text")
+    await quick.waitForTimeout(300)
+    await quick.screenshot({ path: `${out}/lightbox-1440.png` })
+    await axe(quick, "the open lightbox")
+    await quick.keyboard.press("Escape")
+    assert(await quick.locator("dialog.gge-shot__dialog[open]").count() === 0, "Esc closes the lightbox")
+    assert(await opener.evaluate(el => el === document.activeElement), "focus returns to the screenshot that opened it")
+    await opener.click()
+    await dialog.waitFor()
+    await quick.locator("dialog[open] [data-close]").click()
+    assert(await opener.evaluate(el => el === document.activeElement), "the Close button also returns focus")
+    await quick.context().close()
+
+    const phone = await open(browser, base, "/quick-start/", { viewport: PHONE })
+    const phoneSrc = await phone.locator(".gge-shot__open img").first().evaluate(img => img.currentSrc)
+    assert(/-390|390/.test(phoneSrc) || (await phone.locator(".gge-shot__open picture source").first().getAttribute("width")) === "390", `a phone gets the 390 crop (${phoneSrc.split("/").pop()})`)
+    await phone.locator(".gge-shot__open").first().click()
+    await phone.locator("dialog[open]").waitFor()
+    await phone.keyboard.press("Escape")
+    assert(await phone.locator("dialog[open]").count() === 0, "Esc closes the lightbox on a phone")
+    assert(await overflow(phone) <= 0, "no horizontal scroll with a screenshot on a phone")
+    await phone.context().close()
+
+    let englishX
+    for (const [url, lang] of [["/quick-start/", "en"], ["/ar/quick-start/", "ar"]]) {
+        const page = await open(browser, base, url)
+        const group = page.locator("[data-hotspots]").first()
+        await group.scrollIntoViewIfNeeded()
+        const spots = group.locator(".gge-spot")
+        const legend = group.locator(".gge-legend > li")
+        const n = await spots.count()
+        assert(n >= 3 && n === await legend.count(), `${lang}: ${n} markers match ${await legend.count()} legend items`)
+        assert(await spots.evaluateAll(els => els.every(el => el.tagName === "BUTTON" && el.getAttribute("aria-label")?.length > 0 && el.getAttribute("aria-controls") && document.getElementById(el.getAttribute("aria-controls"))?.closest(".gge-legend"))), `${lang}: each marker is a labelled button linked to its legend item`)
+        const names = await spots.evaluateAll(els => els.map(el => el.getAttribute("aria-label")))
+        assert(lang === "en" ? names[0] === "Marker 1" : names[0] !== "Marker 1" && /\d/.test(names[0]), `${lang}: marker labels come from the page's language (${names[0]})`)
+        assert(await spots.evaluateAll(els => els.every(el => { const r = el.getBoundingClientRect(); return r.width >= 44 && r.height >= 44 })), `${lang}: markers are at least 44px`)
+        await page.evaluate(() => document.querySelector(".gge-shot__open").focus())
+        let reached = -1
+        for (let i = 0; i < 4 && reached < 0; i++) {
+            await page.keyboard.press("Tab")
+            reached = await spots.evaluateAll(els => els.indexOf(document.activeElement))
+        }
+        assert(reached === 0, `${lang}: Tab from the screenshot reaches the first marker`)
+        await page.keyboard.press("Tab")
+        assert(await spots.nth(1).evaluate(el => el === document.activeElement), `${lang}: Tab walks the markers in order`)
+        await spots.nth(1).focus()
+        await page.keyboard.press("Enter")
+        assert(await legend.nth(1).evaluate(el => el === document.activeElement), `${lang}: Enter on a marker moves focus to its legend item`)
+        assert(await legend.nth(1).evaluate(el => el.classList.contains("is-target")), `${lang}: the legend item is highlighted`)
+        await spots.nth(0).hover()
+        assert(await legend.nth(0).evaluate(el => el.classList.contains("is-paired")), `${lang}: hovering a marker tints its legend item`)
+        const geometry = await page.evaluate(() => {
+            const frame = document.querySelector(".gge-shot__frame").getBoundingClientRect()
+            const spot = document.querySelector(".gge-spot").getBoundingClientRect()
+            const li = document.querySelector(".gge-legend > li")
+            const lr = li.getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(li)
+            const text = range.getBoundingClientRect()
+            return { x: ((spot.left + spot.width / 2 - frame.left) / frame.width) * 100, dir: getComputedStyle(li).direction, textFromStart: getComputedStyle(li).direction === "rtl" ? lr.right - text.right : text.left - lr.left }
+        })
+        assert(lang === "en" ? geometry.dir === "ltr" : geometry.dir === "rtl", `${lang}: the legend reads ${geometry.dir}`)
+        assert(geometry.textFromStart > 20, `${lang}: the legend number badge sits on the inline-start side (${Math.round(geometry.textFromStart)}px before the text)`)
+        if (lang === "en") englishX = geometry.x
+        else assert(Math.abs(geometry.x - englishX) < 0.5, `ar: the marker stays on the same spot of the screenshot (${geometry.x.toFixed(1)}% vs ${englishX.toFixed(1)}%), because the capture is the unmirrored English one`)
+        await page.screenshot({ path: `${out}/hotspots-${lang}-1440.png`, fullPage: false })
+        await page.context().close()
+    }
+
+    const still = await open(browser, base, "/quick-start/", { reducedMotion: "reduce" })
+    await still.locator("[data-hotspots]").first().scrollIntoViewIfNeeded()
+    await still.waitForTimeout(500)
+    assert(await still.locator(".gge-spot span").first().evaluate(el => getComputedStyle(el, "::after").animationName === "none"), "under reduced motion the markers do not pulse")
+    await still.context().close()
+    const moving = await open(browser, base, "/quick-start/")
+    await moving.locator("[data-hotspots]").first().scrollIntoViewIfNeeded()
+    await moving.waitForFunction(() => document.querySelector(".gge-spots[data-seen]"))
+    const pulse = await moving.locator(".gge-spot span").first().evaluate(el => { const a = el.getAnimations({ subtree: true }).find(x => x.animationName === "gge-spot-pulse"); return a && a.effect.getComputedTiming().iterations })
+    assert(pulse === 2, `the markers pulse twice on first view (${pulse} iterations)`)
+    await moving.context().close()
+
+    const khan = await open(browser, base, "/plugins/attack-khan/")
+    const icon = khan.locator("img.gge-icon").first()
+    assert(await icon.evaluate(img => img.alt === "" && img.complete && img.naturalWidth > 0 && img.width === 32), "the icon tag renders a loaded, decorative image at its size")
+    await khan.context().close()
+    const term = await open(browser, base, "/quick-start/")
+    await term.locator(".gge-term__btn", { hasText: "plugins" }).first().click()
+    await term.locator(".gge-term__pop:popover-open .gge-term__image").waitFor()
+    assert(await term.locator(".gge-term__pop:popover-open .gge-term__image").evaluate(img => img.alt === "" && img.naturalWidth > 0), "a term popover shows its house icon")
+    await term.context().close()
+    const gloss = await open(browser, base, "/glossary/")
+    assert(await gloss.locator("img.gge-gloss__image").count() >= 10, "the glossary shows a house icon for each term that names one")
+    await gloss.context().close()
+
+    const credits = await open(browser, base, "/credits/")
+    const items = credits.locator(".gge-credits__item")
+    assert(await items.count() === svgCount && svgCount === icons.length, `the Credits page lists all ${svgCount} icons`)
+    for (const icon of icons) {
+        const row = credits.locator(`.gge-credits__item[data-icon="${icon.id}"]`)
+        const text = await row.innerText()
+        assert(text.includes(icon.author) && await row.locator(`a[href="${icon.source}"]`).count() === 1 && await row.locator(`a[href="${icon.licenceUrl}"]`).count() === 1 && text.includes(icon.licence), `credits: ${icon.id} names ${icon.author} and links its source and licence`)
+    }
+    const body = await credits.locator("main").innerText()
+    assert(/not affiliated with, endorsed by or sponsored by Goodgame Studios/.test(body), "the Credits page says GGE Command is not affiliated with Goodgame Studios")
+    const footer = await credits.locator(".gge-footer-links a[href='/credits/']").count()
+    assert(footer === 1, "the footer links to the Credits page")
+    await credits.context().close()
+    const qs = await open(browser, base, "/quick-start/")
+    await qs.locator(".gge-footer-links a", { hasText: "Credits" }).click()
+    await qs.waitForURL(/\/credits\/$/)
+    assert(true, "the footer link opens the Credits page")
+    await qs.context().close()
+    for (const [url, lang, dir] of [["/de/credits/", "de", "ltr"], ["/ar/credits/", "ar", "rtl"]]) {
+        const page = await open(browser, base, url)
+        assert(await page.evaluate(([l, d]) => document.documentElement.lang === l && document.documentElement.dir === d, [lang, dir]), `/${lang}/credits/ is lang=${lang} dir=${dir}`)
+        assert(await page.locator(".gge-credits__item").count() === svgCount, `/${lang}/credits/ lists every icon`)
+        await page.context().close()
+    }
+
+    for (const [url, name] of [["/quick-start/", "quick start"], ["/ar/quick-start/", "ar quick start"], ["/de/quick-start/", "de quick start"], ["/plugins/attack-khan/", "attack khan"], ["/credits/", "credits"], ["/ar/credits/", "ar credits"], ["/de/credits/", "de credits"], ["/glossary/", "glossary"]]) {
+        for (const theme of ["dark", "light"]) {
+            const page = await open(browser, base, url, { theme })
+            await axe(page, `${name} ${theme} 1440 (new tags)`)
+            assert(await overflow(page) <= 0, `no horizontal scroll on ${name} ${theme} at 1440`)
+            if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-1440.png`, fullPage: true })
+            await page.setViewportSize(PHONE)
+            await page.waitForTimeout(300)
+            await axe(page, `${name} ${theme} 390 (new tags)`)
+            assert(await overflow(page) <= 0, `no horizontal scroll on ${name} ${theme} at 390`)
+            if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-390.png`, fullPage: true })
+            assert(page.errors.length === 0, `no console errors on ${name} ${theme}${page.errors.length ? ": " + page.errors.join("; ") : ""}`)
+            await page.context().close()
+        }
+    }
+}
+
 ;(async () => {
     const { server, base } = await serve()
     const browser = await chromium.launch()
     try {
         assert(fs.existsSync(path.join(DIST, "quick-start/index.html")), "apps/docs/dist is built (pnpm --filter @gge/docs build)")
+        if (process.env.DOCS_DRIVE_ONLY === "shots") {
+            await shotLanes(browser, base)
+            console.log("ALL OK (shot lanes only)")
+            return
+        }
         if (process.env.DOCS_DRIVE_ONLY === "seo") {
             await seoLanes(browser, base)
             console.log("ALL OK (seo lanes only)")
@@ -632,6 +792,7 @@ async function seoLanes(browser, base) {
         await gate.context().close()
 
 
+        await shotLanes(browser, base)
         await seoLanes(browser, base)
 
         console.log("ALL OK")

@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./icon-credits": "./src/icon-credits.ts",
     "./log-filter": "./src/log-filter.ts",
     "./palette": "./src/palette.ts",
     "./styles.css": "./src/styles.css"

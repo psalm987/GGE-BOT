@@ -18,5 +18,7 @@ export const GGE_KEYS = [
     "gge.planGate.off",
     "gge.notFound.home",
     "gge.langbar.prompt", "gge.langbar.close",
+    "gge.credits.by", "gge.footer.credits",
+    "gge.shot.enlarge", "gge.shot.close", "gge.hotspot.marker", "gge.hotspot.legend",
 ] as const
 export type GgeKey = (typeof GGE_KEYS)[number]

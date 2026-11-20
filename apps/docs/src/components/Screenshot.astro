@@ -1,0 +1,50 @@
+---
+import { getImage } from "astro:assets"
+import type { ImageMetadata } from "astro"
+import { LOCALES, type Locale } from "@gge/i18n/locales"
+import { nextOccurrence, routeLocale } from "../data/runtime.ts"
+
+interface Props {
+    id: string
+    alt: string
+}
+
+const captures = import.meta.glob<{ default: ImageMetadata }>("../assets/screens/*/*.webp", { eager: true })
+const { id, alt } = Astro.props
+const t = Astro.locals.t
+const page = routeLocale(Astro)
+const capture = (locale: string, width: 1440 | 390) => captures[`../assets/screens/${locale}/${id}-${width}.webp`]?.default
+const locale = capture(page, 1440) && capture(page, 390) ? page : "en"
+const wide = capture(locale, 1440)
+const narrow = capture(locale, 390)
+if (!wide || !narrow) throw new Error(`The screenshot "${id}" has no capture in src/assets/screens/en`)
+const captureDir = LOCALES[locale as Locale]?.dir ?? "ltr"
+
+const avif = async (meta: ImageMetadata) => (await getImage({ src: meta, format: "avif" })).src
+const [wideAvif, narrowAvif] = await Promise.all([avif(wide), avif(narrow)])
+const openLabel = `${t("gge.shot.enlarge")}: ${alt}`
+const dialogId = `shot-${id}-${nextOccurrence(Astro.request, `shot:${id}`)}`
+---
+
+<figure class="gge-shot not-content" data-capture-dir={captureDir}>
+    <div class="gge-shot__frame" dir={captureDir} style={`--shot-ratio:${wide.width} / ${wide.height};--shot-ratio-narrow:${narrow.width} / ${narrow.height}`}>
+        <button type="button" class="gge-shot__open" aria-haspopup="dialog" aria-label={openLabel} data-dialog={dialogId}>
+            <picture>
+                <source type="image/avif" media="(max-width: 40rem)" srcset={narrowAvif} width={narrow.width} height={narrow.height} />
+                <source type="image/webp" media="(max-width: 40rem)" srcset={narrow.src} width={narrow.width} height={narrow.height} />
+                <source type="image/avif" srcset={wideAvif} width={wide.width} height={wide.height} />
+                <img src={wide.src} width={wide.width} height={wide.height} alt={alt} loading="lazy" decoding="async" />
+            </picture>
+        </button>
+        <slot name="overlay" />
+    </div>
+    <dialog class="gge-shot__dialog" id={dialogId} aria-label={alt}>
+        <button type="button" class="gge-shot__close" data-close>{t("gge.shot.close")}</button>
+        <picture>
+            <source type="image/avif" media="(max-width: 40rem)" srcset={narrowAvif} width={narrow.width} height={narrow.height} />
+            <source type="image/webp" media="(max-width: 40rem)" srcset={narrow.src} width={narrow.width} height={narrow.height} />
+            <source type="image/avif" srcset={wideAvif} width={wide.width} height={wide.height} />
+            <img src={wide.src} width={wide.width} height={wide.height} alt={alt} loading="lazy" decoding="async" />
+        </picture>
+    </dialog>
+</figure>
