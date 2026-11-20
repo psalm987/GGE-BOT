@@ -248,7 +248,7 @@
   "announcements.col.severity": "Ważność",
   "announcements.col.shown": "Wyświetlone",
   "announcements.col.closed": "Zamknięte",
-  "announcements.severity.info": "Info",
+  "announcements.severity.info": "Informacja",
   "announcements.severity.warning": "Ostrzeżenie",
   "announcements.severity.critical": "Krytyczne",
   "announcements.state.live": "Aktywne",
