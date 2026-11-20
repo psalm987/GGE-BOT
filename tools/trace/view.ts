@@ -10,7 +10,7 @@ const esc = (s: unknown) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 
 const json = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v, null, 1))
-const body = (v: unknown) => `<pre>${esc(json(v))}</pre>`
+const body = (v: unknown) => (v === "" || v == null ? "" : `<pre>${esc(json(v))}</pre>`)
 
 /** gbd bundles several commands in one frame, so show its keys. */
 function rxName(rx: RxEvent): string {
@@ -72,18 +72,18 @@ function row(step: Step): string {
 }
 
 const CSS = `
-:root{--bg:#fafafa;--fg:#1c1c1e;--mut:#6b6b73;--card:#fff;--line:#dcdce0;--ok:#1a7f37;--err:#c62828;--accent:#2457c5;--code:#f1f1f4}
-@media(prefers-color-scheme:dark){:root{--bg:#141416;--fg:#e8e8ec;--mut:#9a9aa5;--card:#1d1d21;--line:#34343b;--ok:#4cc26a;--err:#ff7b72;--accent:#7aa2ff;--code:#26262b}}
+:root{--bg:#fafafa;--fg:#1c1c1e;--mut:#6b6b73;--card:#fff;--line:#dcdce0;--ok:#1a7f37;--err:#c62828;--accent:#2457c5;--on:#fff;--code:#f1f1f4}
+@media(prefers-color-scheme:dark){:root{--bg:#141416;--fg:#e8e8ec;--mut:#9a9aa5;--card:#1d1d21;--line:#34343b;--ok:#4cc26a;--err:#ff7b72;--accent:#7aa2ff;--on:#0d1b3a;--code:#26262b}}
 *{box-sizing:border-box}body{margin:0;padding:0 16px 48px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
 main{max-width:1100px;margin:0 auto}h1{font-size:18px;margin:16px 0 4px}.meta{color:var(--mut);margin:0 0 12px}
 .bar{position:sticky;top:0;background:var(--bg);padding:8px 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center;z-index:2;border-bottom:1px solid var(--line)}
 .bar input[type=search]{flex:1 1 180px;min-width:0;padding:6px 8px;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px}
-h2.task{margin:24px 0 8px;font-size:15px;padding:6px 10px;background:var(--accent);color:#fff;border-radius:6px}
+h2.task{margin:24px 0 8px;font-size:15px;padding:6px 10px;background:var(--accent);color:var(--on);border-radius:6px}
 .step{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0}
 .step.bg{opacity:.6}.step.bg header .in{font-style:italic}
 body.hide-bg .step.bg{display:none}.step.filtered{display:none}
 header{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px}.idx{font-weight:700}.in{font-weight:600}.t{color:var(--mut);margin-left:auto;font-size:12px}
-.shots{display:flex;gap:8px;margin-bottom:8px}.shot{flex:1 1 0;min-width:0;margin:0}.shot img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;cursor:zoom-in}
+.shots{display:flex;gap:8px;margin-bottom:8px;max-width:760px}.shot{flex:1 1 0;min-width:0;margin:0}.shot img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:4px;cursor:zoom-in}
 .shot figcaption{font-size:11px;color:var(--mut)}.shot.empty{display:flex;align-items:center;justify-content:center;min-height:60px;border:1px dashed var(--line);border-radius:4px;color:var(--mut);font-size:12px}
 .call{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--line);padding:6px 0}
 @media(max-width:640px){.call{grid-template-columns:1fr}.t{margin-left:0}}
