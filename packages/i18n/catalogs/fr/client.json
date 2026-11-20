@@ -547,7 +547,7 @@
   "modules.berimond.name": "Berimond",
   "modules.berimond.description": "Participe aux batailles de Berimond du côté que vous choisissez, en reconstituant troupes et engins au fur et à mesure.",
   "modules.towers.name": "Tours",
-  "modules.towers.description": "Attacks Robber Baron castles in every kingdom, with the commanders you allow. Each kingdom has its own tab.",
+  "modules.towers.description": "Attaque les châteaux de fieffés coquins dans chaque royaume, avec les commandants que vous autorisez. Chaque royaume a son propre interrupteur et ses propres réglages.",
   "modules.leveller.name": "Montée de niveau",
   "modules.leveller.description": "Fait monter le niveau d'un compte en attaquant une liste de cibles que vous lui donnez, puis s'arrête quand la liste est épuisée.",
   "modules.armourer.name": "Armurier",

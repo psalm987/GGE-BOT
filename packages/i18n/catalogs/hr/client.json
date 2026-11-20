@@ -547,7 +547,7 @@
   "modules.berimond.name": "Berimond",
   "modules.berimond.description": "Sudjeluje u bitkama u Berimondu na strani koju odabereš i usput nadopunjuje trupe i alate.",
   "modules.towers.name": "Tornjevi",
-  "modules.towers.description": "Attacks Robber Baron castles in every kingdom, with the commanders you allow. Each kingdom has its own tab.",
+  "modules.towers.description": "Napada dvorce baruna razbojnika u svakom kraljevstvu, sa zapovjednicima koje dopustiš. Svako kraljevstvo ima svoj prekidač i postavke.",
   "modules.leveller.name": "Podizač razine",
   "modules.leveller.description": "Podiže razinu računa napadajući popis meta koji mu daš, a staje kad se popis iscrpi.",
   "modules.armourer.name": "Oklopnik",
