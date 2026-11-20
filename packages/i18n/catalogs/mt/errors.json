@@ -110,9 +110,9 @@
   "zod.invalid_key": "Dan fih ċavetta invalida.",
   "zod.invalid_element": "Dan fih element invalidu.",
   "zod.custom": "Dan mhuwiex validu.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} mhuwiex issettjar validu tal-armata",
+  "VIRTUAL_PRESET_NOT_FOUND": "Dan il-preset ma jeżistix",
+  "VIRTUAL_PRESET_DUPLICATE": "Dan il-kont diġà għandu preset b'dak l-isem",
+  "VIRTUAL_PRESET_IN_USE": "Modulu ta' dan il-kont għadu jibgħat dan il-preset. L-ewwel agħżel pjan ieħor hemm.",
+  "VIRTUAL_PRESET_LIMIT": "L-akbar numru ta' presets għal kont huwa {{max}}. Ħassar wieħed biex iżżid ieħor."
 }
