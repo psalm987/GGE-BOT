@@ -642,6 +642,7 @@
   "presets.new": "Yeni ön ayar",
   "presets.empty": "Henüz sanal ön ayar yok. Ön ayar, bir adla kaydedilmiş bir dalga setidir ve bu hesabın her saldırı modülü onu gönderebilir.",
   "presets.limit": "Bir hesap en çok {{max}} sanal ön ayar tutar.",
+  "presets.count": "Ön ayarlar: {{max}} içinden {{used}}",
   "presets.name": "Ad",
   "presets.namePlaceholder": "Örneğin Kuleler, önce menzilli",
   "presets.nameMissing": "Ön ayara bir ad ver.",

@@ -702,6 +702,7 @@
   "presets.new": "Naujas šablonas",
   "presets.empty": "Virtualių šablonų dar nėra. Šablonas yra bangų rinkinys su pavadinimu, kurį gali siųsti bet kuris šios paskyros puolimo modulis.",
   "presets.limit": "Virtualių šablonų riba paskyroje: {{max}}.",
+  "presets.count": "Šablonai: {{used}} iš {{max}}",
   "presets.name": "Pavadinimas",
   "presets.namePlaceholder": "Pavyzdžiui, Bokštai, pirma šauliai",
   "presets.nameMissing": "Suteikite šablonui pavadinimą.",

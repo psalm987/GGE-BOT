@@ -672,6 +672,7 @@
   "presets.new": "Nova predefinição",
   "presets.empty": "Ainda não há predefinições virtuais. Uma predefinição é um conjunto de ondas com um nome, que qualquer módulo de ataque desta conta pode enviar.",
   "presets.limit": "Uma conta guarda até {{max}} predefinições virtuais.",
+  "presets.count": "Predefinições: {{used}} de {{max}}",
   "presets.name": "Nome",
   "presets.namePlaceholder": "Por exemplo, Torres, à distância primeiro",
   "presets.nameMissing": "Dê um nome à predefinição.",

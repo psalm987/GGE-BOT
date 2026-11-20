@@ -672,6 +672,7 @@
   "presets.new": "Presetare nouă",
   "presets.empty": "Încă nu există presetări virtuale. O presetare este un set de valuri sub un nume, pe care orice modul de atac al acestui cont îl poate trimite.",
   "presets.limit": "Un cont păstrează un număr limitat de presetări virtuale: {{max}}.",
+  "presets.count": "Presetări: {{used}} din {{max}}",
   "presets.name": "Nume",
   "presets.namePlaceholder": "De exemplu Turnuri, întâi trupele de la distanță",
   "presets.nameMissing": "Dă un nume presetării.",

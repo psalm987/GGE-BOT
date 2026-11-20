@@ -672,6 +672,7 @@
   "presets.new": "Nueva plantilla",
   "presets.empty": "Aún no hay plantillas virtuales. Una plantilla es un conjunto de oleadas con un nombre, que cualquier módulo de ataque de esta cuenta puede enviar.",
   "presets.limit": "Una cuenta guarda hasta {{max}} plantillas virtuales.",
+  "presets.count": "Plantillas: {{used}} de {{max}}",
   "presets.name": "Nombre",
   "presets.namePlaceholder": "Por ejemplo: Torres, primero a distancia",
   "presets.nameMissing": "Ponle un nombre a la plantilla.",

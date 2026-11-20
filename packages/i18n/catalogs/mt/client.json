@@ -732,6 +732,7 @@
   "presets.new": "Preset ġdid",
   "presets.empty": "Għad m'hemm ebda preset virtwali. Preset huwa sett ta' mewġ taħt isem, li kull modulu tal-attakk ta' dan il-kont jista' jibgħat.",
   "presets.limit": "L-akbar numru ta' presets virtwali għal kont: {{max}}.",
+  "presets.count": "Presets: {{used}} minn {{max}}",
   "presets.name": "Isem",
   "presets.namePlaceholder": "Bħal Torrijiet, l-ewwel truppi mill-bogħod",
   "presets.nameMissing": "Agħti isem lill-preset.",

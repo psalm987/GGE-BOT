@@ -702,6 +702,7 @@
   "presets.new": "Nova prednastavitev",
   "presets.empty": "Še ni navideznih prednastavitev. Prednastavitev je niz valov pod imenom, ki ga lahko pošlje kateri koli modul za napad tega računa.",
   "presets.limit": "Največje število navideznih prednastavitev na račun: {{max}}.",
+  "presets.count": "Prednastavitve: {{used}} od {{max}}",
   "presets.name": "Ime",
   "presets.namePlaceholder": "Na primer Stolpi, najprej strelci",
   "presets.nameMissing": "Poimenuj prednastavitev.",

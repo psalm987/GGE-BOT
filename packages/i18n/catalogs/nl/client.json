@@ -642,6 +642,7 @@
   "presets.new": "Nieuwe preset",
   "presets.empty": "Nog geen virtuele presets. Een preset is een set golven onder een naam, die elke aanvalsmodule van dit account kan sturen.",
   "presets.limit": "Een account bewaart maximaal {{max}} virtuele presets.",
+  "presets.count": "Presets: {{used}} van {{max}}",
   "presets.name": "Naam",
   "presets.namePlaceholder": "Bijvoorbeeld Torens, afstand eerst",
   "presets.nameMissing": "Geef de preset een naam.",

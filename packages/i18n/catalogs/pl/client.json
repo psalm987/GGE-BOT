@@ -702,6 +702,7 @@
   "presets.new": "Nowy szablon",
   "presets.empty": "Brak jeszcze wirtualnych szablonów. Szablon to zestaw fal zapisany pod nazwą, który może wysłać każdy moduł ataku tego konta.",
   "presets.limit": "Konto może mieć najwyżej tyle wirtualnych szablonów: {{max}}.",
+  "presets.count": "Szablony: {{used}} z {{max}}",
   "presets.name": "Nazwa",
   "presets.namePlaceholder": "Na przykład Wieże, najpierw strzelcy",
   "presets.nameMissing": "Nadaj szablonowi nazwę.",

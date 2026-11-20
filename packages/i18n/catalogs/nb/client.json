@@ -642,6 +642,7 @@
   "presets.new": "Ny forhåndsinnstilling",
   "presets.empty": "Ingen virtuelle forhåndsinnstillinger ennå. En forhåndsinnstilling er et sett bølger under et navn, som alle angrepsmoduler på denne kontoen kan sende.",
   "presets.limit": "En konto kan ha opptil {{max}} virtuelle forhåndsinnstillinger.",
+  "presets.count": "Forhåndsinnstillinger: {{used}} av {{max}}",
   "presets.name": "Navn",
   "presets.namePlaceholder": "For eksempel Tårn, avstandstropper først",
   "presets.nameMissing": "Gi forhåndsinnstillingen et navn.",

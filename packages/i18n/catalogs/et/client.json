@@ -642,6 +642,7 @@
   "presets.new": "Uus eelseadistus",
   "presets.empty": "Virtuaalseid eelseadistusi veel pole. Eelseadistus on nimega lainete komplekt, mida võib saata selle konto mis tahes rünnakumoodul.",
   "presets.limit": "Kontol võib olla virtuaalseid eelseadistusi kuni {{max}}.",
+  "presets.count": "Eelseadistused: {{used}} / {{max}}",
   "presets.name": "Nimi",
   "presets.namePlaceholder": "Näiteks Tornid, kaugvõitlejad ees",
   "presets.nameMissing": "Anna eelseadistusele nimi.",

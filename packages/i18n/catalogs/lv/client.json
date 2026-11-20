@@ -672,6 +672,7 @@
   "presets.new": "Jauna sagatave",
   "presets.empty": "Virtuālo sagatavju vēl nav. Sagatave ir viļņu kopa ar nosaukumu, ko var sūtīt jebkurš šī konta uzbrukuma modulis.",
   "presets.limit": "Virtuālo sagatavju maksimums vienā kontā: {{max}}.",
+  "presets.count": "Sagataves: {{used}} no {{max}}",
   "presets.name": "Vārds",
   "presets.namePlaceholder": "Piemēram, Torņi, vispirms tālcīņas karavīri",
   "presets.nameMissing": "Piešķir sagatavei nosaukumu.",

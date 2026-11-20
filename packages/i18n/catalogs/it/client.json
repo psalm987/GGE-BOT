@@ -672,6 +672,7 @@
   "presets.new": "Nuovo set predefinito",
   "presets.empty": "Ancora nessun set predefinito virtuale. Un set è un gruppo di ondate con un nome, che qualsiasi modulo di attacco di questo account può inviare.",
   "presets.limit": "Un account può tenere fino a {{max}} set predefiniti virtuali.",
+  "presets.count": "Set predefiniti: {{used}} su {{max}}",
   "presets.name": "Nome",
   "presets.namePlaceholder": "Ad esempio Torri, prima le truppe a distanza",
   "presets.nameMissing": "Dai un nome al set predefinito.",

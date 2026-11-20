@@ -732,6 +732,7 @@
   "presets.new": "Réamhshocrú nua",
   "presets.empty": "Níl aon réamhshocrú fíorúil fós. Is éard is réamhshocrú ann tacar tonnta faoi ainm, ar féidir le haon mhodúl ionsaithe den chuntas seo é a sheoladh.",
   "presets.limit": "Líon uasta na réamhshocruithe fíorúla do chuntas: {{max}}.",
+  "presets.count": "Réamhshocruithe: {{used}} as {{max}}",
   "presets.name": "Ainm",
   "presets.namePlaceholder": "Mar shampla Túir, trúpaí raoin ar dtús",
   "presets.nameMissing": "Tabhair ainm don réamhshocrú.",

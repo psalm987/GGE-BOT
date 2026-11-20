@@ -642,6 +642,7 @@
   "presets.new": "Uusi esiasetus",
   "presets.empty": "Ei vielä virtuaalisia esiasetuksia. Esiasetus on nimetty joukko aaltoja, jonka mikä tahansa tämän tilin hyökkäysmoduuli voi lähettää.",
   "presets.limit": "Tilillä voi olla virtuaalisia esiasetuksia enintään {{max}}.",
+  "presets.count": "Esiasetukset: {{used}} / {{max}}",
   "presets.name": "Nimi",
   "presets.namePlaceholder": "Esimerkiksi Tornit, jousimiehet ensin",
   "presets.nameMissing": "Anna esiasetukselle nimi.",

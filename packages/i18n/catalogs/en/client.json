@@ -646,6 +646,7 @@
   "presets.new": "New preset",
   "presets.empty": "No virtual presets yet. A preset is a set of waves under a name, which any attack module of this account can send.",
   "presets.limit": "An account keeps up to {{max}} virtual presets.",
+  "presets.count": "{{used}} of {{max}} presets",
   "presets.name": "Name",
   "presets.namePlaceholder": "Such as Towers, ranged first",
   "presets.nameMissing": "Give the preset a name.",

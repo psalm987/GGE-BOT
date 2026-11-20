@@ -642,6 +642,7 @@
   "presets.new": "Ny förinställning",
   "presets.empty": "Inga virtuella förinställningar än. En förinställning är en uppsättning vågor under ett namn, som alla anfallsmoduler på det här kontot kan skicka.",
   "presets.limit": "Ett konto kan ha upp till {{max}} virtuella förinställningar.",
+  "presets.count": "Förinställningar: {{used}} av {{max}}",
   "presets.name": "Namn",
   "presets.namePlaceholder": "Till exempel Torn, avståndstrupper först",
   "presets.nameMissing": "Ge förinställningen ett namn.",

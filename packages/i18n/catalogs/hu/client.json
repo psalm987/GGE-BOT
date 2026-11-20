@@ -642,6 +642,7 @@
   "presets.new": "Új előbeállítás",
   "presets.empty": "Még nincs virtuális előbeállítás. Az előbeállítás név alatt mentett hullámok sora, amelyet a fiók bármelyik támadómodulja elküldhet.",
   "presets.limit": "Egy fiók legfeljebb {{max}} virtuális előbeállítást tárolhat.",
+  "presets.count": "Előbeállítások: {{used}} / {{max}}",
   "presets.name": "Név",
   "presets.namePlaceholder": "Például: Tornyok, távolságiak elöl",
   "presets.nameMissing": "Adj nevet az előbeállításnak.",

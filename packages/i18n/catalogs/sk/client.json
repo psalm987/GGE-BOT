@@ -702,6 +702,7 @@
   "presets.new": "Nová predvoľba",
   "presets.empty": "Zatiaľ žiadne virtuálne predvoľby. Predvoľba je sada vĺn pod názvom, ktorú môže poslať ktorýkoľvek útočný modul tohto účtu.",
   "presets.limit": "Účet môže mať najviac {{max}} virtuálnych predvolieb.",
+  "presets.count": "Predvoľby: {{used}} z {{max}}",
   "presets.name": "Názov",
   "presets.namePlaceholder": "Napríklad Veže, najprv na diaľku",
   "presets.nameMissing": "Daj predvoľbe názov.",

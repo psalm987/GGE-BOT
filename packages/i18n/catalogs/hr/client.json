@@ -672,6 +672,7 @@
   "presets.new": "Novi predložak",
   "presets.empty": "Još nema virtualnih predložaka. Predložak je skup valova pod imenom, koji može slati svaki modul za napad ovog računa.",
   "presets.limit": "Najviše virtualnih predložaka po računu: {{max}}.",
+  "presets.count": "Predlošci: {{used}} od {{max}}",
   "presets.name": "Ime",
   "presets.namePlaceholder": "Npr. Tornjevi, prvo strijelci",
   "presets.nameMissing": "Daj predlošku ime.",

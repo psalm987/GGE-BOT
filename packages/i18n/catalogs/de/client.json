@@ -642,6 +642,7 @@
   "presets.new": "Neue Vorlage",
   "presets.empty": "Noch keine virtuellen Vorlagen. Eine Vorlage ist ein Satz Wellen unter einem Namen, den jedes Angriffsmodul dieses Kontos schicken kann.",
   "presets.limit": "Ein Konto hat bis zu {{max}} virtuelle Vorlagen.",
+  "presets.count": "Vorlagen: {{used}} von {{max}}",
   "presets.name": "Name",
   "presets.namePlaceholder": "Etwa Türme, Fernkämpfer zuerst",
   "presets.nameMissing": "Gebt der Vorlage einen Namen.",

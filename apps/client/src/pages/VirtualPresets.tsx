@@ -89,8 +89,10 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
             {account && (
                 <ParchmentCard title={t("presets.title", { name: account.name })}>
                     <div className="gge-preset-actions">
-                        <Button type="primary" icon={<PlusOutlined />} disabled={full} className="gge-press"
+                        <Button type="primary" icon={<PlusOutlined />} disabled={full} className="gge-press" aria-describedby={full ? "preset-limit" : undefined}
                             onClick={() => guarded(() => setDraft({ name: "", plan: emptyPlan() }))}>{t("presets.new")}</Button>
+                        <Typography.Text type="secondary" data-testid="preset-count">{t("presets.count", { used: list.length, max: MAX_VIRTUAL_PRESETS })}</Typography.Text>
+                        {full && <Typography.Text id="preset-limit" type="secondary">{t("presets.limit", { max: MAX_VIRTUAL_PRESETS })}</Typography.Text>}
                     </div>
                     {presets.isPending ? <Skeleton active paragraph={{ rows: 2 }} />
                         : list.length === 0 ? <Typography.Paragraph type="secondary" style={{ margin: 0 }}>{t("presets.empty")}</Typography.Paragraph>
@@ -111,7 +113,6 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
                                 </li>
                             ))}
                         </ul>}
-                    {full && <Typography.Paragraph type="secondary" style={{ margin: "12px 0 0" }}>{t("presets.limit", { max: MAX_VIRTUAL_PRESETS })}</Typography.Paragraph>}
                 </ParchmentCard>
             )}
             {draft && (

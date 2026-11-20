@@ -672,6 +672,7 @@
   "presets.new": "Nouvelle présélection",
   "presets.empty": "Aucune présélection virtuelle pour l'instant. Une présélection est un ensemble de vagues enregistré sous un nom, que n'importe quel module d'attaque de ce compte peut envoyer.",
   "presets.limit": "Un compte garde au plus {{max}} présélections virtuelles.",
+  "presets.count": "Présélections : {{used}} sur {{max}}",
   "presets.name": "Nom",
   "presets.namePlaceholder": "Par exemple Tours, distance d'abord",
   "presets.nameMissing": "Donnez un nom à la présélection.",
