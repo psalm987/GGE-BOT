@@ -248,7 +248,7 @@
   "announcements.col.severity": "Závažnosť",
   "announcements.col.shown": "Zobrazené",
   "announcements.col.closed": "Zatvorené",
-  "announcements.severity.info": "Info",
+  "announcements.severity.info": "Informácia",
   "announcements.severity.warning": "Varovanie",
   "announcements.severity.critical": "Kritické",
   "announcements.state.live": "Aktívne",
