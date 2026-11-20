@@ -1,8 +1,22 @@
 const fs = require("fs")
+/** How the forts are queued, by the choice of the `fortOrder` Select. "level" is what the plugin always did. */
+const FORT_ORDERS = ["level", "nearest"]
+/** The decoration the `decoration` Select buys from Luna's trade boat, as its package and its price in aquamarine. */
+const DECORATIONS = [undefined, { PID: 3116, cost: 75000 }, { PID: 3118, cost: 75000 }, { PID: 3117, cost: 100000 }]
+/** The attack tools kept in stock on the Storm Islands, as [option key, wodID]. */
+const STORM_TOOLS = [["stockLadders", 614], ["stockRams", 611], ["stockMantlets", 620]]
+/** `decoration` replaced the checkbox `buyDecoration`, which bought the Whale Lagoon. */
+const decorationOption = () => ({
+    type: "Select", key: "decoration", selection: ["No decoration", "Crab Rock", "Tide Garden", "Whale Lagoon"], default: 0,
+    legacy: { from: { buyDecoration: false }, cases: [[{ buyDecoration: true }, 3]], otherwise: 0 },
+})
 if (require('node:worker_threads').isMainThread) {
+    const { armyOptions, unitOrderOption, supplyOption } = require("../../army.js")
+    const { stockOptions, spendOptions } = require("../../stockOptions.js")
     module.exports = {
         checks: [{ type: "commanders", option: "commanderWhiteList" }, { type: "dailyAttacks" }],
         pluginOptions: [
+            { type: "Select", key: "fortOrder", selection: ["Highest level first", "Nearest first"], default: 0 },
             { type: "Label", key: "easyForts", md: 2 },
             { type: "Checkbox", key: "allowLvl60Easy", default: true },
             { type: "Checkbox", key: "allowLvl70Easy", default: true },
@@ -16,10 +30,24 @@ if (require('node:worker_threads').isMainThread) {
             { type: "Checkbox", key: "allowLvl70Hard", default: false },
             { type: "Checkbox", key: "allowLvl80Hard", default: false },
 
-            { type: "Label", key: "other" },
+            ...armyOptions({ sides: { left: true, right: true }, waves: 3, tools: [], unitOrder: "unitOrder", supply: "supply" }),
+            unitOrderOption(),
+            supplyOption(),
+
+            { type: "Label", key: "aquaShop" },
             { type: "Checkbox", key: "buyCoins", default: true },
-            { type: "Checkbox", key: "buyDecoration", default: false },
+            decorationOption(),
+            { type: "Checkbox", key: "buySkips5h", default: false },
+            { type: "Checkbox", key: "buySkips24h", default: false },
             { type: "Checkbox", key: "buyXP", default: false },
+            { type: "Checkbox", key: "buyDummyPeasants", default: false },
+            { type: "Number", key: "aquaKeep", min: 0, max: 100_000_000, step: 1000, default: 0 },
+
+            { type: "Label", key: "toolStock" },
+            ...stockOptions(STORM_TOOLS),
+            ...spendOptions(),
+
+            { type: "Label", key: "other" },
             {
                 type: "Checkbox",
                 key: "useFeather",
@@ -44,15 +72,17 @@ if (require('node:worker_threads').isMainThread) {
         type: "Text",
         key: "commanderWhiteList",
         default: "1-50"
-    })
+    }, { type: "Checkbox", key: "dryRun", default: false, advanced: true })
 }
 
 
 const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles } = require("../../protocols.js")
 const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, sendAttack } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
-const { sendXT, waitForResult, botConfig, events, xtHandler } = require("../../ggeBot.js")
+const { sendXT, waitForResult, botConfig, events, xtHandler, playerInfo } = require("../../ggeBot.js")
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
+const { readLegacy } = require("../../legacyOptions.js")
 
 const err = require("../../err.json")
 const pretty = require('pretty-time')
@@ -60,7 +90,11 @@ const pretty = require('pretty-time')
 const minTroopCount = 100
 
 const pluginOptions =
-    botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+    readLegacy([decorationOption()], botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
+const autofill = parseAutofill(pluginOptions)
+const fortOrder = choice(FORT_ORDERS, pluginOptions.fortOrder, "level")
+const decoration = choice(DECORATIONS, pluginOptions.decoration, undefined)
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 
 if (pluginOptions.upgradeStormForts) {
     try {
@@ -91,13 +125,20 @@ const { pause } = require("../../pacing.js")
 const kingdomID = KingdomID.stormIslands
 const type = AreaType.stormTower
 
+require("../../armourer.js").keepStocked("stormArmourer", STORM_TOOLS, kingdomID, pluginOptions, ["stormToolsBought", "stormToolsCoins"])
+
 events.once("load", async () => {
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.externalKingdom)
+    // `stock` is how many of a package the shop sells. The plugin never asks for more of one in a session.
     const purchases = [
-        { option: "buyCoins", PID: 2798, cost: 75000, log: "broughtCoins" },
-        { option: "buyDecoration", PID: 3117, cost: 100000, log: "broughtDeco" },
-        { option: "buyXP", PID: 3114, cost: 10000, log: "broughtXP" },
-    ]
+        { on: pluginOptions.buyCoins, PID: 2798, cost: 75000, log: "broughtCoins" },
+        { on: Boolean(decoration), ...decoration, log: "broughtDeco" },
+        { on: pluginOptions.buySkips5h, PID: 3122, cost: 40000, stock: 10, log: "boughtAquaSkips" },
+        { on: pluginOptions.buySkips24h, PID: 3123, cost: 40000, stock: 30, log: "boughtAquaSkips" },
+        { on: pluginOptions.buyXP, PID: 3114, cost: 10000, log: "broughtXP" },
+        { on: pluginOptions.buyDummyPeasants, PID: 248, cost: 1570, log: "boughtDummyPeasants" },
+    ].filter(purchase => purchase.on).map(purchase => ({ ...purchase, left: purchase.stock ?? Infinity }))
+    const aquaKeep = Math.max(0, Number(pluginOptions.aquaKeep) || 0)
     let buying = false
     async function onResourceUpdate() {
         if (buying)
@@ -109,19 +150,20 @@ events.once("load", async () => {
         buying = true
         let bought = 0
         try {
-            let aqua = castle.aqua
-            for (const { option, PID, cost, log } of purchases) {
-                if (!pluginOptions[option])
-                    continue
-                const count = Math.floor(aqua / cost)
+            let aqua = Math.max(0, castle.aqua - aquaKeep)
+            for (const purchase of purchases) {
+                const { PID, cost, log } = purchase
+                const count = Math.min(Math.floor(aqua / cost), purchase.left)
                 aqua -= count * cost
+                purchase.left -= count
                 for (let i = 0; i < count; i++) {
                     if (bought > 0)
                         await pause(2000, 6000)
-                    await sendXT("sbp", JSON.stringify({
-                        PID, BT: 3, TID: -1, AMT: 1,
-                        KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1
-                    }))
+                    const order = { PID, BT: 3, TID: -1, AMT: 1, KID: 4, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 }
+                    if (pluginOptions.dryRun)
+                        console.log("dryRunSbp", JSON.stringify(order))
+                    else
+                        await sendXT("sbp", JSON.stringify(order))
                     castle.aqua -= cost
                     bought++
                     console.info(log)
@@ -157,6 +199,10 @@ events.once("load", async () => {
 
     if (allowedLevels.length === 0)
         allowedLevels.push(7, 8, 9, 13, 14)
+
+    const army = readArmy(pluginOptions, reportStatus)
+    if (!army)
+        return
 
     let areas = []
 
@@ -208,6 +254,18 @@ events.once("load", async () => {
                     14: 80,
                 }[areaInfo.extraData[2]]
 
+                if (army.mode == "waves") {
+                    const effects = commander.getEffects()
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    planned.LP = 3
+                    fillFromPlan(planned, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                    })
+                    return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, { dryRun: pluginOptions.dryRun })
+                }
+
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
                 const attackerWallTools = []
@@ -228,6 +286,8 @@ events.once("load", async () => {
                             attackerWallTools.push(unit)
                     }
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
+                        if (!eats(autofill.supply, unit.unitInfo))
+                            continue
                         if (unit.unitInfo.role == "melee")
                             attackerMeleeTroops.push(unit)
                         else if (unit.unitInfo.role == "ranged")
@@ -242,6 +302,9 @@ events.once("load", async () => {
 
                 if (allTroopCount < minTroopCount)
                     throw "NO_MORE_TROOPS"
+
+                orderUnits(attackerMeleeTroops, autofill.unitOrder)
+                orderUnits(attackerRangeTroops, autofill.unitOrder)
 
                 const commanderStats = commander.getEffects()
                 const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, 3, pluginOptions, commanderStats.additionalWaves)
@@ -267,10 +330,10 @@ events.once("load", async () => {
                             attackerRangeTroops : attackerMeleeTroops, maxTroops))
                 })
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y)
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { dryRun: pluginOptions.dryRun })
             })
 
-            if (!attackInfo) {
+            if (!attackInfo || attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 return false
             }
@@ -306,6 +369,8 @@ events.once("load", async () => {
     const byDistance = (a, b) =>
         (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
         (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))
+    /** Puts the forts in the order they are tried: nearest first, or by level and hits left with the nearest first among equals. */
+    const queueForts = () => fortOrder == "nearest" ? areas.sort(byDistance) : areas.sort(byLevelThenHitsLeft)
     const byLevelThenHitsLeft = (a, b) => {
         if ((a.extraData[2] % 10) > (b.extraData[2] % 10))
             return -1
@@ -322,7 +387,7 @@ events.once("load", async () => {
 
     if (mapGrid) {
         areas.push(...(await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort(byDistance))
-        areas.sort(byLevelThenHitsLeft)
+        queueForts()
         while (await sendHit());
     }
     if (areas.length == 0) {
@@ -333,7 +398,7 @@ events.once("load", async () => {
             if (areas.every(ai => ![7, 8, 9].includes(ai.extraData[2]))) //Find and hit a good one before continuing scanning
                 continue
 
-            areas.sort(byLevelThenHitsLeft)
+            queueForts()
             while (await sendHit());
         }
     }

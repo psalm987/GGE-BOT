@@ -21,20 +21,25 @@ if (require('node:worker_threads').isMainThread)
                 ],
                 default: "4"
             },
+            ...require("../../eventCamps.js").campTargetOptions(),
+            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
                 key: "eventWallToolsFirst",
+                army: "autofill",
                 advanced: true
             },
             {
                 type: "Checkbox",
                 key: "lowValueChests",
+                army: "autofill",
                 default: false,
                 advanced: true
             },
             {
                 type: "Checkbox",
                 key: "noChests",
+                army: "autofill",
                 default: false,
                 advanced: true
             },
@@ -51,12 +56,14 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Checkbox",
                 key: "useFood",
+                army: "autofill",
                 default: true,
                 advanced: true
             },
             {
                 type: "Checkbox",
                 key: "foodTroopsOnly",
+                army: "autofill",
                 default: false,
                 advanced: true
             },
@@ -70,6 +77,8 @@ if (require('node:worker_threads').isMainThread)
                 type: "Text",
                 key: "scoreShutoff"
             },
+            require("../../army.js").unitOrderOption(),
+            require("../../army.js").supplyOption(),
             {
                 type: "Checkbox",
                 key: "dryRun",
@@ -83,10 +92,12 @@ if (require('node:worker_threads').isMainThread)
 const pretty = require('pretty-time')
 const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
-const { movementEvents, AreaType, KingdomID, castles, ClientCommands } = require("../../protocols.js")
+const { movementEvents, movements, AreaType, KingdomID, castles, ClientCommands } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
-const { areasAround } = require("../../mapScan.js")
+const { areasAround, gridBoxes } = require("../../mapScan.js")
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
+const { parseTarget, campQueue, campAt } = require("../../eventCamps.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 
 const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
@@ -102,9 +113,12 @@ const eventID = 72
 let nomadsPoints = 0
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 reportStatus("waiting", "statusEventClosed")
+const target = parseTarget(pluginOptions)
+const autofill = parseAutofill(pluginOptions)
+const queue = campQueue(target)
 
 const skipTarget = async areaInfo => {
-    while (areaInfo.extraData[2] > 0) {
+    while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
         let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
 
         if (skip == undefined)
@@ -114,8 +128,11 @@ const skipTarget = async areaInfo => {
 
         if (result != 0)
             break
+        queue.skipped()
     }
 }
+/** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
+const IDLE_MS = [5_000, 60_000]
 
 movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     if (movement.targetOwner.ownerID != playerInfo.playerID)
@@ -124,7 +141,9 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
     if (movement.sourceAttack.type != type)
         return
 
-    skipTarget(movement.sourceAttack)
+    queue.update(movement.sourceAttack)
+    if (!pluginOptions.dryRun)
+        skipTarget(movement.sourceAttack)
 })
 
 let quit = false
@@ -176,30 +195,66 @@ events.on("eventStart", async eventInfo => {
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
-    const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
-        .sort((a, b) =>
-            (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
-            (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
-        .sort((a, b) => a.extraData[6] - b.extraData[6])
+    const army = readArmy(pluginOptions, reportStatus)
+    if (!army)
+        return
+    queue.areas.length = 0
+    if (target.mode == "single") {
+        if (!target.at) {
+            console.error("campTargetNotSet")
+            return reportStatus("error", "statusCampTargetNotSet")
+        }
+        const camp = await campAt(ClientCommands.getAreaInfo, gridBoxes, kingdomID, target.at, type)
+        if (!camp) {
+            console.error("campTargetNotFound", `${target.at.x}:${target.at.y}`)
+            return reportStatus("error", "statusCampTargetNotFound", target.at)
+        }
+        queue.areas.push(camp)
+    }
+    else
+        queue.areas.push(...(await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
+            .sort((a, b) =>
+                (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
+                (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
+            .sort((a, b) => a.extraData[6] - b.extraData[6]))
+    if (queue.areas.length == 0) {
+        console.error("campsNoneFound")
+        return reportStatus("stopped", "statusCampsNoneFound")
+    }
 
     quit = false
     reportStatus("running")
+
 
     while (!quit) {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
         try {
             const attackInfo = await waitToAttack(async () => {
-                const areaInfo = areas.shift()
-
-                areas.push(areaInfo)
+                const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
+                if (!areaInfo)
+                    return
 
                 if (!pluginOptions.dryRun)
                     await skipTarget(areaInfo)
+                if (areaInfo.extraData[2] > 0 && !queue.maySkip())
+                    return
 
                 const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
 
                 const level = Number(classic ? (80 + campInfo.countVictory) : campInfo.camplevel)
+                const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun }
+
+                if (army.mode == "waves") {
+                    const effects = commander.getEffects()
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    fillFromPlan(planned, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                    })
+                    return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
+                }
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
@@ -241,6 +296,8 @@ events.on("eventStart", async eventInfo => {
                             attackerShieldTools.push(unit)
                     }
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
+                        if (!eats(autofill.supply, unit.unitInfo))
+                            continue
                         if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
                             continue
                         if (unit.unitInfo.foodSupply && !pluginOptions.useFood)
@@ -259,6 +316,9 @@ events.on("eventStart", async eventInfo => {
 
                 if (allTroopCount < minTroopCount)
                     throw "NO_MORE_TROOPS"
+
+                orderUnits(attackerMeleeTroops, autofill.unitOrder)
+                orderUnits(attackerRangeTroops, autofill.unitOrder)
 
                 attackerNomadTools.sort((a, b) =>
                     Number(b.unitInfo.khanTabletBooster) - Number(a.unitInfo.khanTabletBooster))
@@ -323,8 +383,10 @@ events.on("eventStart", async eventInfo => {
                         wave.M.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                 attackerMeleeTroops : attackerRangeTroops, maxTroops))
-                        attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
-                        attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        if (autofill.unitOrder == "castle") {
+                            attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
+                            attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        }
                         return
                     }
                     else if (!pluginOptions.noChests) {
@@ -389,10 +451,13 @@ events.on("eventStart", async eventInfo => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun })
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
             })
             if (!attackInfo) {
                 freeCommander(commander.lordID)
+                const wait = Math.min(Math.max(queue.nextReadyAt() - Date.now(), IDLE_MS[0]), IDLE_MS[1])
+                reportStatus("waiting", "statusCampsCooling", { minutes: Math.max(1, Math.ceil((queue.nextReadyAt() - Date.now()) / 60_000)) })
+                await new Promise(resolve => setTimeout(resolve, wait).unref())
                 continue
             }
             if (attackInfo.dryRun) {
@@ -400,6 +465,7 @@ events.on("eventStart", async eventInfo => {
                 continue
             }
 
+            reportStatus("running")
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
             freeCommander(commander.lordID)

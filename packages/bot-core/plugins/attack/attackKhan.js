@@ -27,21 +27,20 @@ if (require('node:worker_threads').isMainThread)
                 default: "1-50"
             },
             { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
+            ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
                 key: "eventWallToolsFirst",
-                default: false
+                default: false,
+                army: "autofill"
             },
             {
                 type: "Checkbox",
                 key: "lowValueChests",
-                default: false
+                default: false,
+                army: "autofill"
             },
-            {
-                type: "Text",
-                key: "wavesTillChests",
-                default: "4"
-            },
+            ...require("../../khan.js").khanWaveOptions(),
             {
                 type: "Checkbox",
                 key: "useFeather",
@@ -55,22 +54,34 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Checkbox",
                 key: "noChests",
+                army: "autofill",
                 default: false
             },
             {
                 type: "Checkbox",
                 key: "useFood",
+                army: "autofill",
                 default: true
             },
             {
                 type: "Checkbox",
                 key: "foodTroopsOnly",
+                army: "autofill",
                 default: false
             },
+            require("../../army.js").unitOrderOption(),
+            require("../../army.js").supplyOption(),
             {
                 type: "Text",
                 key: "scoreShutoff",
                 default: "881100"
+            },
+            ...require("../../khan.js").khanChainOptions(),
+            {
+                type: "Checkbox",
+                key: "dryRun",
+                default: false,
+                advanced: true
             }
         ]
 
@@ -78,7 +89,7 @@ if (require('node:worker_threads').isMainThread)
 
 const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
-const { movementEvents, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
+const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
@@ -87,7 +98,14 @@ const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingD
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 const ggeConfig = require("../../config.js")
 
-const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
+const { readLegacy } = require("../../legacyOptions.js")
+const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS } = require("../../khan.js")
+const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
+const khan = parseKhan(pluginOptions)
+const autofill = parseAutofill(pluginOptions)
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
+reportStatus("waiting", "statusEventClosed")
 const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
 const pretty = require('pretty-time')
 
@@ -112,6 +130,8 @@ const skipTarget = async areaInfo => {
             break
     }
 }
+/** While hits are paused for incoming taunts, the count is looked at again after this long, in milliseconds. */
+const TAUNT_RECHECK_MS = 20_000
 
 movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     if (movement.owner?.ownerID != playerInfo.playerID)
@@ -144,6 +164,8 @@ xtHandler.on("rpr", ({ EID, PCRP: rage }) => {
         if (rage > campRageNeeded)
             console.warn("rageTooHigh")
 
+        if (khan.tabletsOnly || pluginOptions.dryRun)
+            return
         console.info("rageTrigger")
         sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
     }
@@ -165,6 +187,7 @@ xtHandler.on("pep", ({ EID, OP }) => {
 
     if (nomadsPoints >= pluginOptions.scoreShutoff) {
         console.log("shuttingDownEvent", "scoreReached")
+        reportStatus("stopped", "statusScoreReached", { score: nomadsPoints })
         quit = true
     }
 })
@@ -176,6 +199,7 @@ events.on("eventStop", ({ EID }) => {
         return
 
     console.log("shuttingDownEvent", "eventEnded")
+    reportStatus("waiting", "statusEventClosed")
     quit = true
 })
 events.on("eventStart", async ({ EID, EDID }) => {
@@ -200,20 +224,45 @@ events.on("eventStart", async ({ EID, EDID }) => {
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
+    const army = readArmy(pluginOptions, reportStatus)
+    if (!army)
+        return
+
     quit = false
+    reportStatus("running")
 
     const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
 
     while (!quit) {
+        const taunts = incomingTaunts(movements, playerInfo.playerID, type)
+        if (khan.pauseAtTaunts > 0 && taunts >= khan.pauseAtTaunts) {
+            reportStatus("waiting", "statusKhanTauntsPaused", { taunts, limit: khan.pauseAtTaunts })
+            await new Promise(resolve => setTimeout(resolve, TAUNT_RECHECK_MS).unref())
+            continue
+        }
+        reportStatus("running")
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
         try {
             const attackInfo = await waitToAttack(async () => {
-                await skipTarget(areaInfo)
+                if (!pluginOptions.dryRun)
+                    await skipTarget(areaInfo)
 
                 const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[6] == obj.eventAutoScalingCampID)
 
                 const level = Number(classic ? (80 + campInfo.countVictory) : campInfo.camplevel)
+                const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun }
+
+                if (army.mode == "waves") {
+                    const effects = commander.getEffects()
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    fillFromPlan(planned, army.waves, castle.unitInventory, {
+                        flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+                        flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                    })
+                    return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
+                }
 
                 const attackerMeleeTroops = []
                 const attackerRangeTroops = []
@@ -255,6 +304,8 @@ events.on("eventStart", async ({ EID, EDID }) => {
                             attackerShieldTools.push(unit)
                     }
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
+                        if (!eats(autofill.supply, unit.unitInfo))
+                            continue
                         if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
                             continue
                         if (troopBlackList.includes(unit.unitInfo.wodID))
@@ -276,6 +327,9 @@ events.on("eventStart", async ({ EID, EDID }) => {
 
                 if (allTroopCount < minTroopCount)
                     throw "NO_MORE_TROOPS"
+
+                orderUnits(attackerMeleeTroops, autofill.unitOrder)
+                orderUnits(attackerRangeTroops, autofill.unitOrder)
 
                 attackerBannerKhanTools.sort((a, b) =>
                     Number(b.unitInfo.ragePointBonus + Number(b.unitInfo.khanTabletBooster ?? 0)) -
@@ -345,11 +399,17 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         wave.M.U.forEach(unitSlot =>
                             maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                 attackerMeleeTroops : attackerRangeTroops, maxTroops))
-                        attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
-                        attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        if (autofill.unitOrder == "castle") {
+                            attackerMeleeTroops.sort((a, b) => Number(a.unitInfo.meleeAttack) - Number(b.unitInfo.meleeAttack))
+                            attackerRangeTroops.sort((a, b) => Number(a.unitInfo.rangeAttack) - Number(b.unitInfo.rangeAttack))
+                        }
                         return
                     }
-                    else if (!pluginOptions.noChests && pluginOptions.wavesTillChests <= index) {
+                    const kind = pluginOptions.noChests ? "troops" : waveKind(khan, index)
+                    const room = { flank: maxToolsFlank, front: maxToolsFront }
+                    if (kind == "booster" && khan.tabletChests.length > 0)
+                        fillEventTools([wave], castle.unitInventory.filter(unit => unit.unitInfo.ragePointBonus == undefined), { maxTools: room, bonusField: "khanTabletBooster", list: khan.tabletChests })
+                    else if (kind == "booster") {
                         const selectTool = i => {
                             let tools = attackerNomadTools
                             if (tools.length == 0 || (!tools[0]?.unitInfo?.khanTabletBooster && !tools[0]?.unitInfo?.ragePointBonus)) {
@@ -385,8 +445,8 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         wave.M.T.forEach(unitSlot =>
                             maxTools -= assignUnit(unitSlot, selectTool(2), maxTools))
                     }
-                    else if (!pluginOptions.noChests && !pluginOptions.eventWallToolsFirst)
-                        fillEventTools([wave], attackerBannerKhanTools, { maxTools: { flank: maxToolsFlank, front: maxToolsFront }, bonusField: "ragePointBonus" })
+                    else if (kind == "rage" && !pluginOptions.eventWallToolsFirst)
+                        fillEventTools([wave], attackerBannerKhanTools, { maxTools: room, bonusField: "ragePointBonus", list: khan.rageTools.length > 0 ? khan.rageTools : undefined })
                     let maxTroops = maxTroopFlank
 
                     wave.L.U.forEach(unitSlot =>
@@ -411,9 +471,9 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
-                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id })
+                return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
             })
-            if (!attackInfo) {
+            if (!attackInfo || attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 continue
             }
@@ -447,3 +507,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
         }
     }
 })
+
+
+// The Khan's counter-attacks use up defence tools, so the main castle's stock is topped up from the armourer.
+require("../../armourer.js").keepStocked("khanArmourer", DEFENCE_TOOLS, kingdomID, pluginOptions, ["khanDefenceToolsBought", "khanDefenceToolsCoins"])
