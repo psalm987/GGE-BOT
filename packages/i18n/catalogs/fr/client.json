@@ -749,5 +749,9 @@
   "module.global.commandersValue": "{{configured, number}} configured · {{max, number}} maximum · {{remaining, number}} remaining",
   "module.global.commandersUnknown": "{{configured, number}} configured at most. Start the bot once to count this account's commanders.",
   "plugins.check.commandersOf": "{{count, number}} of your {{max, number}} commanders can be sent. {{remaining, number}} stay free.",
-  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other."
+  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other.",
+  "plugins.commanders.one": "Vous avez 1 commandant (position 1).",
+  "plugins.commanders.owned": "Vous avez {{count, number}} commandants (positions 1–{{count, number}}).",
+  "plugins.commanders.none": "Le bot n'a compté aucun commandant sur ce compte.",
+  "plugins.commanders.unknown": "Démarrez le bot une fois pour qu'il puisse compter les commandants de ce compte."
 }

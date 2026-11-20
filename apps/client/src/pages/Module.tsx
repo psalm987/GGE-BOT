@@ -303,7 +303,7 @@ function PluginSection({ entry, state, view, disabled, castles, accountId, plugi
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
                 <Form name={entry.key} form={form} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
-                    <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} accountId={accountId} />
+                    <PluginFields entry={entry} castles={castles} showAdvanced={showAdvanced} accountId={accountId} commanders={commanders} />
                 </Form>
             </div>
             {!phone && checks}
@@ -311,7 +311,7 @@ function PluginSection({ entry, state, view, disabled, castles, accountId, plugi
     )
 }
 
-function PluginFields({ entry, castles, showAdvanced, accountId }: { entry: PluginCatalogEntry; castles: AccountCastle[]; showAdvanced: boolean; accountId: string | undefined }) {
+function PluginFields({ entry, castles, showAdvanced, accountId, commanders }: { entry: PluginCatalogEntry; castles: AccountCastle[]; showAdvanced: boolean; accountId: string | undefined; commanders: number | null }) {
     // An option tagged with an army mode shows only while the plugin's Army switch is on that mode.
     const modeKey = entry.options.find(def => def.type === "ArmyMode")?.key
     const mode = (Form.useWatch(["options", modeKey ?? ""]) as ArmyMode | undefined) ?? "autofill"
@@ -321,7 +321,7 @@ function PluginFields({ entry, castles, showAdvanced, accountId }: { entry: Plug
     const unwanted = (def: PluginOptionDef) => def.type === "Number" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
     return (
         <Row>
-            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId}
+            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId} commanders={commanders}
                 hidden={(Boolean(def.advanced) && !showAdvanced) || otherMode(def) || unwanted(def)} />)}
         </Row>
     )

@@ -5,15 +5,15 @@ if (require('node:worker_threads').isMainThread) {
             {
                 type: "Text",
                 key: "attackDelaySeconds",
-                default: "20",
-                min: 15,
+                default: "4.5",
+                min: 3,
                 max: 600
             },
             {
                 type: "Text",
                 key: "attackDelayRandomizationSeconds",
-                default: "15",
-                min: 10,
+                default: "2.5",
+                min: 1,
                 max: 600
             },
             {
@@ -270,7 +270,9 @@ xtHandler.on("gai", obj => {
 })
 let announced = false
 
-const SHARED_HOURLY_ATTACKS = 120
+/** Every attack plugin of an account shares this hourly limit. It sits above the pace the default delay gives (one attack about
+ * every 6 seconds), so the delay sets the pace and the game's own limits (50 attacks out, 4,000 a day) bound the rest. */
+const SHARED_HOURLY_ATTACKS = 600
 const limiter = new RateLimiter({ tokensPerInterval: SHARED_HOURLY_ATTACKS, interval: "hour" })
 
 /**
