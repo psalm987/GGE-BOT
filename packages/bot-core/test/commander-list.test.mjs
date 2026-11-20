@@ -25,6 +25,18 @@ describe("a commander list", () => {
         const { takeFreeCommander } = pool()
         expect([takeFreeCommander("2;5"), takeFreeCommander("2;5"), takeFreeCommander("2;5")].map(lord => lord?.lordID)).toEqual([101, 104, undefined])
     })
+    test("the written order is the order commanders are taken in, for a plugin that asks for it", async () => {
+        const { waitForCommanderAvailable, inWrittenOrder } = pool()
+        const taken = []
+        for (let i = 0; i < 3; i++)
+            taken.push((await waitForCommanderAvailable("5;2;9", undefined, inWrittenOrder("5;2;9"))).lordPosition + 1)
+        expect(taken).toEqual([5, 2, 9])
+        expect(inWrittenOrder("")).toBeUndefined()
+    })
+    test("without it the first free commander of the game's own list is taken, whatever the list's order", async () => {
+        const { waitForCommanderAvailable } = pool()
+        expect((await waitForCommanderAvailable("5;2;9")).lordPosition + 1).toBe(2)
+    })
     test("a range written backwards picks nothing instead of stopping the plugin", () => {
         const { parseWhitelist, takeFreeCommander } = pool()
         expect(parseWhitelist("9-3")).toEqual([])

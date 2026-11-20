@@ -1,10 +1,11 @@
 import { createRequire } from "node:module"
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
-const { melee, ranged, tool } = require("./harness/army-bots.cjs")
+const { melee, ranged, tool, unit } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
-const { parseTarget, campQueue, campTargetOptions } = require("../eventCamps.js")
+const { parseTarget, campQueue, eventCampOptions, EVENT_PROFILES } = require("../eventCamps.js")
+const { campAttackLine } = require("../attackLog.js")
 
 const camp = (x, y, wait = 0, type = 27) => ({ type, x, y, extraData: [0, 0, wait, 0, 0, 5, 0], timeSinceRequest: Date.now() })
 const items = { eventAutoScalingCamps: [{ eventAutoScalingCampID: 5, camplevel: "50" }] }
@@ -22,7 +23,7 @@ const soldiers = cra => new Set([...cra.A.flatMap(wave => [...wave.L.U, ...wave.
 describe("a camp plugin's target", () => {
     test("a record stored before the target options cycles the camps with skips and no budget", () => {
         expect(parseTarget({})).toEqual({ mode: "cycleSkips", skips: true, at: undefined, skipBudget: 0 })
-        expect(campTargetOptions().find(option => option.key == "targetMode").default).toBe(0)
+        expect(eventCampOptions(EVENT_PROFILES.nomad).find(option => option.key == "targetMode").default).toBe(0)
     })
     test("one camp needs both coordinates, on the map", () => {
         expect(parseTarget({ targetMode: 2, targetX: 640, targetY: 12 }).at).toEqual({ x: 640, y: 12 })
@@ -131,5 +132,162 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         expect([...soldiers(mead.cra)]).toEqual([602])
         const strongest = await run({ unitOrder: 2 }, { areas: [camp(110, 105, 0, type)] })
         expect(strongest.cra.A[1].L.U[0][0]).toBe(602)
+    })
+})
+
+const toolsOf = wave => [...wave.L.T, ...wave.M.T, ...wave.R.T].filter(([wodID]) => wodID != -1)
+const troopsOf = side => side.U.filter(([wodID]) => wodID != -1)
+const reasons = statuses => statuses.map(status => status.reasonKey)
+const boosters = { attackNomads: "khanTabletBooster", attackSamurai: "samuraiTokenBooster" }
+
+describe.each([["Nomads", nomads, 27, "attackNomads"], ["Samurai", samurai, 29, "attackSamurai"]])("%s, the Event Camp options", (_, run, type, plugin) => {
+    const one = () => [camp(110, 105, 0, type)]
+    /** A castle with wall tools, an event wall tool and an event booster, so every tools choice has something to send. */
+    const stocked = () => [...inventory(), unit(740, 40, { fightType: 0, typ: "Attack", usageEventID: "5,72", slotTypes: "1,2,9", [boosters[plugin]]: "3", wallBonus: "25" }),
+        unit(162, 60, { fightType: 0, typ: "Attack", usageEventID: "5,72", slotTypes: "1,2,9", [boosters[plugin]]: "4" })]
+    afterEach(() => vi.restoreAllMocks())
+
+    test("a record with none of the new options sends what the same record sent before, and the old keys read as the new choices", async () => {
+        const game = () => ({ areas: one(), inventory: stocked() })
+        const old = await run({ noChests: true, useFeather: true }, game())
+        const now = await run({ tools: 1, horse: 2 }, game())
+        expect(now.cra).toEqual(old.cra)
+        const everySide = await run({ attackLeft: true, attackMiddle: true, attackRight: true, attackCourtyard: true, attackWaves: 0, minTroops: 0, tools: 2, horse: 0, attacksPerRun: 0 }, game())
+        expect(everySide.cra).toEqual((await run({}, game())).cra)
+    })
+
+    test("source castle: attacks leave from the castle that was picked", async () => {
+        const outpost = { id: 55, kingdomID: 0, areaInfo: { type: 4, x: 200, y: 200, extraData: [] }, unlockedHorses: [1, 2], unitInventory: inventory() }
+        const { cra, statuses } = await run({ sourceCastle: { kingdom: 0, id: 55 } }, { areas: one(), castles: [outpost] })
+        expect([cra.SX, cra.SY]).toEqual([200, 200])
+        expect(statuses.find(status => status.reasonKey == "statusCampsAttacking").params.castle).toBe("200:200")
+        expect(cra).toMatchSnapshot()
+    })
+
+    test("source castle: a castle that is gone falls back to the main castle and says so", async () => {
+        const { cra, statuses } = await run({ sourceCastle: { kingdom: 0, id: 999 } }, { areas: one() })
+        expect([cra.SX, cra.SY]).toEqual([100, 100])
+        expect(statuses).toContainEqual(expect.objectContaining({ state: "waiting", reasonKey: "statusCampCastleFallback", params: { castle: "100:100" } }))
+    })
+
+    test("waves: the attack sends as many as were chosen", async () => {
+        expect((await run({ attackWaves: 2 }, { areas: one() })).cra.A).toHaveLength(2)
+        expect((await run({ attackWaves: 1 }, { areas: one() })).cra.A).toHaveLength(1)
+        expect((await run({}, { areas: one() })).cra.A.length).toBeGreaterThan(2)
+    })
+
+    test("sides: only the ticked sides are filled, and all three off fills every side", async () => {
+        const { cra } = await run({ attackLeft: true, attackMiddle: false, attackRight: false, attackCourtyard: false }, { areas: one(), inventory: stocked() })
+        for (const wave of cra.A) {
+            expect(troopsOf(wave.L).length).toBeGreaterThan(0)
+            expect([...troopsOf(wave.M), ...troopsOf(wave.R), ...wave.M.T.filter(([wodID]) => wodID != -1), ...wave.R.T.filter(([wodID]) => wodID != -1)]).toEqual([])
+        }
+        expect(cra.RW.every(([wodID]) => wodID == -1)).toBe(true)
+        expect(cra).toMatchSnapshot()
+        const front = await run({ attackMiddle: true, attackCourtyard: true }, { areas: one() })
+        expect(troopsOf(front.cra.A[0].L)).toEqual([])
+        expect(front.cra.RW.some(([wodID]) => wodID != -1)).toBe(true)
+        const allOff = await run({ attackLeft: false, attackMiddle: false, attackRight: false, attackCourtyard: false }, { areas: one() })
+        expect(allOff.cra).toEqual((await run({}, { areas: one() })).cra)
+    })
+
+    test("tools: No tools sends troops only, and Wave 1 tools only keeps the boosters at home", async () => {
+        const none = await run({ tools: 0 }, { areas: one(), inventory: stocked() })
+        expect(none.cra.A.flatMap(toolsOf)).toEqual([])
+        expect(none.cra).toMatchSnapshot()
+        const firstWave = await run({ tools: 1 }, { areas: one(), inventory: stocked() })
+        expect(toolsOf(firstWave.cra.A[0]).length).toBeGreaterThan(0)
+        expect(firstWave.cra.A.slice(1).flatMap(toolsOf)).toEqual([])
+        const all = await run({ tools: 2 }, { areas: one(), inventory: stocked() })
+        expect(all.cra.A.slice(1).flatMap(toolsOf).map(([wodID]) => wodID)).toContain(162)
+    })
+
+    test("minimum troops: below it the plugin waits and names the floor, and it never lowers the built-in floor", async () => {
+        const high = await run({ minTroops: 5000 }, { areas: one(), wait: 10 })
+        expect(high.sent).toEqual([])
+        expect(high.statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusCampNoTroops", params: { castle: "100:100", floor: 5000 } })
+        const few = [melee(601, 90, { meleeAttack: "90" })]
+        const low = await run({ minTroops: 50 }, { areas: one(), inventory: few, wait: 10 })
+        expect(low.sent).toEqual([])
+        expect(low.statuses.at(-1)).toMatchObject({ reasonKey: "statusCampNoTroops", params: { floor: 100 } })
+        expect((await run({ minTroops: 2000 }, { areas: one() })).sent).toHaveLength(1)
+    })
+
+    test("horse by distance: the coin horse to a near camp, a feather to a far one, and the coin horse again with no feathers", async () => {
+        const near = await run({ horse: 3, horseDistance: 50 }, { areas: one() })
+        expect([near.cra.HBW, near.cra.PTT]).toEqual([2, 0])
+        const far = await run({ horse: 3, horseDistance: 5 }, { areas: one() })
+        expect([far.cra.HBW, far.cra.PTT]).toEqual([-1, 1])
+        expect(far.cra).toMatchSnapshot()
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const none = await run({ horse: 3, horseDistance: 5 }, { areas: one(), resources: { pegasusTicket: 0 } })
+        expect([none.cra.HBW, none.cra.PTT]).toEqual([2, 0])
+        expect(warn).toHaveBeenCalledWith("campNoFeathers")
+    })
+
+    test("horse: the Select's coin horse and feather ride as the old checkboxes did", async () => {
+        expect((await run({ horse: 1 }, { areas: one() })).cra).toEqual((await run({ useCoin: true }, { areas: one() })).cra)
+        expect((await run({ horse: 2 }, { areas: one() })).cra.PTT).toBe(1)
+        expect((await run({ horse: 0 }, { areas: one() })).cra).toMatchObject({ HBW: -1, PTT: 0 })
+    })
+
+    test("attacks per run: the plugin stops after that many and says why", async () => {
+        const areas = [camp(110, 105, 0, type), camp(120, 100, 0, type), camp(130, 100, 0, type)]
+        const { sent, statuses } = await run({ attacksPerRun: 2 }, { areas, sends: 5, wait: 20 })
+        expect(sent).toHaveLength(2)
+        expect(statuses.at(-1)).toMatchObject({ state: "stopped", reasonKey: "statusCampRunLimit", params: { limit: 2 } })
+        expect(statuses).toContainEqual(expect.objectContaining({ reasonKey: "statusCampsAttacking", params: { found: 3, castle: "100:100", attacks: "1/2" } }))
+    })
+
+    test("attacks per run counts the attacks Log only builds", async () => {
+        const { sent, statuses } = await run({ attacksPerRun: 1, dryRun: true }, { areas: one(), sends: 3, wait: 10 })
+        expect(sent).toEqual([])
+        expect(statuses.at(-1)).toMatchObject({ state: "stopped", reasonKey: "statusCampRunLimit", params: { limit: 1 } })
+    })
+
+    test("difficulty: keeping the game's own sets none, and waits while the event has none", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const unset = await run({ eventDifficulty: 12 }, { areas: one(), start: { EDID: -1 }, wait: 10 })
+        expect([unset.sent, unset.frames, unset.requests]).toEqual([[], [], []])
+        expect(unset.statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusCampDifficultyNotSet" })
+        const set = await run({ eventDifficulty: 12 }, { areas: one() })
+        expect(set.sent).toHaveLength(1)
+        expect(set.frames.map(([command]) => command)).not.toContain("sede")
+    })
+
+    test("Skip mode: a tile that holds the other event's camp is named as such and nothing is attacked", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const other = type == 27 ? 29 : 27
+        const { sent, statuses } = await run({ targetMode: 2, targetX: 110, targetY: 105 }, { areas: [camp(110, 105, 0, other)], wait: 10 })
+        expect(sent).toEqual([])
+        expect(statuses.at(-1)).toMatchObject({ state: "error", reasonKey: "statusCampTargetOtherEvent", params: { x: 110, y: 105 } })
+    })
+
+    test("status: it names the mode's target and the attacks of this run", async () => {
+        const cycle = await run({}, { areas: [camp(110, 105, 0, type), camp(120, 100, 0, type)], sends: 2 })
+        expect(cycle.statuses.filter(status => status.reasonKey == "statusCampsAttacking").map(status => status.params.attacks)).toEqual(["0", "1"])
+        const single = await run({ targetMode: 2, targetX: 110, targetY: 105 }, { areas: one(), sends: 2 })
+        expect(single.statuses).toContainEqual(expect.objectContaining({ state: "running", reasonKey: "statusCampAttackingOne", params: { x: 110, y: 105, castle: "100:100", attacks: "1" } }))
+        expect(reasons(cycle.statuses).at(-1)).toBe("statusEventClosed")
+    })
+
+    test("log: one line for each attack, with the camp, the commander, the horse and the skips spent", async () => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        await run({ horse: 2 }, { areas: [camp(110, 105, 300, type)] })
+        const line = info.mock.calls.find(([key]) => key == "hittingTargetAttack")
+        expect(line).toEqual(["hittingTargetAttack", plugin == "attackNomads" ? "campOfNomads" : "campOfSamurai", " ", "C", 1, " ", 110, ":", 105, " ", "1m 0s", "tillImpactAttack", " · ", "horseFeather", " · ", "skipsSpentOnCamp", "10m"])
+    })
+})
+
+describe("the log line of a camp attack", () => {
+    test("names each skip spent, or says none was", () => {
+        expect(campAttackLine("campOfNomads", 3, 610, 600, "4m", { skips: ["MS3", "MS5"], horse: "coin" }).slice(-5)).toEqual([" · ", "horseCoin", " · ", "skipsSpentOnCamp", "10m+1h"])
+        expect(campAttackLine("campOfNomads", 3, 610, 600, "4m", { skips: [], horse: "none" }).slice(-4)).toEqual([" · ", "horseNone", " · ", "noSkipsSpentOnCamp"])
+    })
+    test("every part a line can hold is in the catalog", () => {
+        const en = require("../locales/en.json")
+        const keys = ["campOfNomads", "campOfSamurai", "horseNone", "horseCoin", "horseFeather", "skipsSpentOnCamp", "noSkipsSpentOnCamp"]
+        expect(keys.filter(key => !(key in en))).toEqual([])
+        expect(Object.values(EVENT_PROFILES).map(profile => profile.logName)).toEqual(["campOfNomads", "campOfSamurai"])
     })
 })

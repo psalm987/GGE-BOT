@@ -720,5 +720,14 @@
   "plugins.commanders.one": "Έχετε 1 διοικητή (θέση 1).",
   "plugins.commanders.owned": "Έχετε {{count, number}} διοικητές (θέσεις 1–{{count, number}}).",
   "plugins.commanders.none": "Το bot δεν μέτρησε διοικητές σε αυτόν τον λογαριασμό.",
-  "plugins.commanders.unknown": "Ξεκινήστε το bot μία φορά ώστε να μετρήσει τους διοικητές αυτού του λογαριασμού."
+  "plugins.commanders.unknown": "Ξεκινήστε το bot μία φορά ώστε να μετρήσει τους διοικητές αυτού του λογαριασμού.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

@@ -720,5 +720,14 @@
   "plugins.commanders.one": "Ihr habt 1 Feldherrn (Position 1).",
   "plugins.commanders.owned": "Ihr habt {{count, number}} Feldherren (Positionen 1–{{count, number}}).",
   "plugins.commanders.none": "Der Bot hat auf diesem Konto keine Feldherren gezählt.",
-  "plugins.commanders.unknown": "Startet den Bot einmal, damit er die Feldherren dieses Kontos zählen kann."
+  "plugins.commanders.unknown": "Startet den Bot einmal, damit er die Feldherren dieses Kontos zählen kann.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

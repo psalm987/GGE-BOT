@@ -171,8 +171,15 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
             forms.current.get(entry.key)?.setFieldValue(["options", key], value)
             dispatch({ type: "options", plugin: entry.key, options: { ...state.values[entry.key]?.options, [key]: value as OptionValues[string] } })
         }
-        message.success(t("plugins.copiedToAll", { label: tb(key, { defaultValue: key }) }))
+        message.success(t(each === "events" ? "plugins.copiedToAllEvents" : "plugins.copiedToAll", { label: tb(key, { defaultValue: key }) }))
     }
+    const each = module.global?.each ?? "kingdoms"
+    const tabbed = module.tabs === "per-plugin" && entries.length > 1 && (
+        <Tabs items={entries.map((entry, i) => ({
+            key: entry.key, forceRender: true, children: sections[i],
+            label: <span>{tb(entry.key, { defaultValue: entry.key })}{changed.has(entry.key) && <Tag color="gold" style={{ marginInlineStart: 8 }}>{t("module.changed")}</Tag>}</span>,
+        }))} />
+    )
 
     return (
         <>
@@ -202,7 +209,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
             )}
 
             {byKingdom
-                ? <CopyToAll value={copyToAll}>
+                ? <CopyToAll value={{ copy: copyToAll, each }}>
                     <div className="gge-kingdoms">
                         {entries.map((entry, i) => {
                             const kingdom = module.kingdoms![module.plugins.indexOf(entry.key)]!
@@ -216,11 +223,8 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                         })}
                     </div>
                 </CopyToAll>
-                : module.tabs === "per-plugin" && entries.length > 1
-                ? <Tabs items={entries.map((entry, i) => ({
-                    key: entry.key, forceRender: true, children: sections[i],
-                    label: <span>{tb(entry.key, { defaultValue: entry.key })}{changed.has(entry.key) && <Tag color="gold" style={{ marginInlineStart: 8 }}>{t("module.changed")}</Tag>}</span>,
-                }))} />
+                : tabbed
+                ? module.global ? <CopyToAll value={{ copy: copyToAll, each }}>{tabbed}</CopyToAll> : tabbed
                 : entries.map((entry, i) => entries.length > 1
                     ? <Card key={entry.key} title={<span className="gge-display">{tb(entry.key, { defaultValue: entry.key })}</span>} className="gge-gilded">{sections[i]}</Card>
                     : <ParchmentCard key={entry.key}>{sections[i]}</ParchmentCard>)}
@@ -318,7 +322,7 @@ function PluginFields({ entry, castles, showAdvanced, accountId, commanders }: {
     const otherMode = (def: PluginOptionDef) => "army" in def && def.army !== undefined && def.army !== mode
     // An option with showWhen shows only while the option it names holds one of the listed choices.
     const values = (Form.useWatch(["options"]) as Record<string, unknown> | undefined) ?? {}
-    const unwanted = (def: PluginOptionDef) => def.type === "Number" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
+    const unwanted = (def: PluginOptionDef) => def.type !== "" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
     return (
         <Row>
             {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId} commanders={commanders}

@@ -54,3 +54,55 @@ describe("options stored before the horse, tool and wave Selects", () => {
         expect(config.barons).toMatchObject({ horse: 2, attackWaves: 0 })
     })
 })
+
+const nomads = plugin("attackNomads")
+const samurai = plugin("attackSamurai")
+
+/** Records as the event camp options were stored before the horse and tools Selects and the numeric score, with what each one reads as. */
+const STORED_CAMPS = [
+    [{}, {}],
+    [{ noChests: true }, { tools: 1 }],
+    [{ noChests: false }, { tools: 2 }],
+    [{ tools: 0, noChests: true }, { tools: 0 }],
+    [{ useFeather: true }, { horse: 2 }],
+    [{ useCoin: true }, { horse: 1 }],
+    [{ useCoin: true, useFeather: true }, { horse: 2 }],
+    [{ useCoin: false }, { horse: 0 }],
+    [{ horse: 3, useCoin: true }, { horse: 3 }],
+    [{ scoreShutoff: "" }, {}],
+    [{ scoreShutoff: "  " }, {}],
+    [{ scoreShutoff: "5000" }, { scoreShutoff: 5000 }],
+    [{ scoreShutoff: "five thousand" }, {}],
+    [{ scoreShutoff: "-5" }, { scoreShutoff: 0 }],
+    [{ scoreShutoff: "99999999999" }, { scoreShutoff: 999_999_999 }],
+    [{ scoreShutoff: 700 }, { scoreShutoff: 700 }],
+    [{ lowValueChests: true, foodTroopsOnly: true, noChests: true, useCoin: true, scoreShutoff: "120000" }, { lowValueChests: true, foodTroopsOnly: true, tools: 1, horse: 1, scoreShutoff: 120000 }],
+]
+
+describe("event camp options stored before the horse and tools Selects and the numeric score", () => {
+    test.each(STORED_CAMPS)("%j reads as %j", (stored, read) => {
+        expect(readLegacy(nomads, stored)).toEqual(read)
+        expect(readLegacy(samurai, stored)).toEqual(read)
+    })
+    test.each(STORED_CAMPS)("the bot and the contracts read %j alike", stored => {
+        expect(readLegacy(nomads, stored)).toEqual(contractsRead(nomads, stored))
+        expect(readLegacy(samurai, stored)).toEqual(contractsRead(samurai, stored))
+    })
+    test("a record with none of the replaced options gets defaults that mean what the old defaults did", () => {
+        const entry = options => [{ key: "camps", force: false, hidden: false, options }]
+        const read = (options, stored) => effectivePluginConfig(entry(options), { camps: { enabled: true, options: stored } }).camps
+        for (const options of [nomads, samurai]) {
+            const fromOld = read(options, { noChests: false, useFeather: false, useCoin: false, scoreShutoff: "" })
+            expect(read(options, {})).toEqual(fromOld)
+            expect(fromOld).toMatchObject({
+                targetMode: 0, eventDifficulty: "4", horse: 0, tools: 2, attackWaves: 0, minTroops: 0, attacksPerRun: 0, scoreShutoff: 0,
+                attackLeft: true, attackMiddle: true, attackRight: true, attackCourtyard: true, sourceCastle: null,
+            })
+            expect(Object.keys(fromOld).filter(key => ["noChests", "useFeather", "useCoin"].includes(key))).toEqual([])
+        }
+    })
+    test("an old choice beats the new default on the way to the bot", () => {
+        const config = effectivePluginConfig([{ key: "camps", force: false, hidden: false, options: nomads }], { camps: { enabled: true, options: { noChests: true, useFeather: true, scoreShutoff: "2500" } } })
+        expect(config.camps).toMatchObject({ tools: 1, horse: 2, scoreShutoff: 2500 })
+    })
+})

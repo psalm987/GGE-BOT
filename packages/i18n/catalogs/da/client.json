@@ -720,5 +720,14 @@
   "plugins.commanders.one": "Du har 1 kommandør (position 1).",
   "plugins.commanders.owned": "Du har {{count, number}} kommandører (positioner 1–{{count, number}}).",
   "plugins.commanders.none": "Botten fandt ingen kommandører på denne konto.",
-  "plugins.commanders.unknown": "Start botten én gang, så den kan tælle denne kontos kommandører."
+  "plugins.commanders.unknown": "Start botten én gang, så den kan tælle denne kontos kommandører.",
+  "plugins.copyToAllEvents": "Apply to all events",
+  "plugins.copiedToAllEvents": "{{label}} copied to every event. Save to keep it.",
+  "module.global.titleEvents": "All events",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
+  "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
+  "modules.nom-sam-daimyo.soon.vipCommanders.name": "VIP commanders",
+  "modules.nom-sam-daimyo.soon.vipCommanders.description": "Send the free VIP commanders when your own are all out.",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
 }

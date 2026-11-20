@@ -34,4 +34,16 @@ function readTowerAttack(parts) {
     return { plugin, tools: Number.isFinite(tools) ? tools : 0 }
 }
 
-module.exports = { TOWER_LOG_TAG, TOWER_PLUGINS, towerAttackLine, readTowerAttack }
+/** How a log line names the horse of an attack, and each time skip spent on its target. */
+const HORSE_KEYS = { none: "horseNone", coin: "horseCoin", feather: "horseFeather" }
+const SKIP_NAMES = { MS1: "1m", MS2: "5m", MS3: "10m", MS4: "30m", MS5: "1h", MS6: "5h", MS7: "24h" }
+
+/**
+ * The parts an event camp plugin logs, at info level, after an attack: "Attacking Nomad camp C3 610:600 4m until it
+ * lands · feather · time skips: 10m+10m". `campKey` is the bot-catalog key of the event's camp.
+ */
+const campAttackLine = (campKey, commander, x, y, travel, { skips, horse }) =>
+    [SENT, campKey, " ", "C", commander, " ", x, ":", y, " ", travel, "tillImpactAttack", " · ", HORSE_KEYS[horse], " · ",
+        ...(skips.length ? ["skipsSpentOnCamp", skips.map(skip => SKIP_NAMES[skip] ?? skip).join("+")] : ["noSkipsSpentOnCamp"])]
+
+module.exports = { TOWER_LOG_TAG, TOWER_PLUGINS, towerAttackLine, readTowerAttack, campAttackLine }
