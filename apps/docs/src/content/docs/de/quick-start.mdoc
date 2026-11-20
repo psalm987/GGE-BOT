@@ -19,6 +19,14 @@ Deine E-Mail-Adresse gehört nur zu deinem GGE-Command-Konto. Sie ist nicht dein
 
 Wähle {% ui key="client:account.add" /%}. Gib den Namen deines {% term id="game-account" %}Spielkontos{% /term %} ein, wähle den {% term id="server" %}Server{% /term %} und gib dein Spielpasswort ein. Wähle denselben Server, auf dem du spielst, denn ein Bot, der sich auf einer falschen Welt anmeldet, kann nur scheitern.{% sidenote id="server-match" %}Du weißt nicht, auf welchem Server du bist? Öffne das Spiel und sieh dir den Servernamen auf dem Anmeldebildschirm an.{% /sidenote %} Wenn die App einen Anmeldefehler zeigt, prüfe zuerst Namen und Server. Das Ergebnis siehst du in deinen {% term id="log" %}Logs{% /term %}.
 
+{% hotspots id="add-account" alt="Die Schublade Spielkonto hinzufügen: die Felder für Kontoname, Server und Spielpasswort, die Liste der Schalter und die Schaltfläche Konto hinzufügen." at="92,14.7 92,25.1 90,35.4 63,70 95,96.9" narrow="88,15.8 88,26.8 85,37.8 12,75.5 83,96.7" %}
+1. Gib den Namen deines Spielkontos genau so ein, wie das Spiel ihn zeigt.
+2. Wähle den Server, auf dem du spielst.
+3. Gib dein Spielpasswort ein. Die App speichert es verschlüsselt.
+4. Schalte die Aufgaben ein, die du willst. Du kannst sie später ändern.
+5. Wähle **Konto hinzufügen**, um zu speichern.
+{% /hotspots %}
+
 {% aside type="caution" id="one-bot-each" %}
 Jedes Spielkonto startet einen Bot.
 
@@ -31,6 +39,8 @@ Dein Tarif legt fest, wie viele Bots du starten kannst.
 
 Wähle die {% term id="plugin" %}Plugins{% /term %} aus und tippe auf der Kontokarte auf {% ui key="common:action.start" /%}. Dein Bot meldet sich an und legt los.{% sidenote id="plugin-def" %}Ein Plugin ist eine Aufgabe des Bots, zum Beispiel Steuern einsammeln oder Angriffe senden.{% /sidenote %}
 
+{% screenshot id="sidebar" alt="Die Seitenleiste von GGE Command mit geöffneter Gruppe Angriffe und Ausrüstung. Jedes Modul ist eine eigene Seite, und ein Tag Bald markiert ein Modul, das noch nicht fertig ist." /%}
+
 {% aside type="tip" id="start-small" %}
 Starte mit ein oder zwei Plugins. Füge mehr hinzu, wenn du die Logs einen Tag lang beobachtet hast.
 {% /aside %}
@@ -38,6 +48,8 @@ Starte mit ein oder zwei Plugins. Füge mehr hinzu, wenn du die Logs einen Tag l
 ## Logs ansehen {% #watch-logs %}
 
 Öffne die Seite {% ui key="client:nav.logs" /%}. Jede Aktion deines Bots erscheint dort live.
+
+{% screenshot id="logs" alt="Die Seite Logs: eine Live-Liste der Aktionen des Bots mit Zeit, Stufe, Tag, Konto und Nachricht jeder Zeile." /%}
 
 {% aside type="danger" id="account-risk" %}
 Spielkonten können gesperrt werden. Ein Bot verstößt gegen die Spielregeln, und das Risiko trägst du.

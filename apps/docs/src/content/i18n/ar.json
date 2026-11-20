@@ -63,5 +63,9 @@
   "gge.langbar.prompt": "هل تريد قراءة هذه الصفحة بلغة {language}؟",
   "gge.langbar.close": "إغلاق",
   "gge.credits.by": "من تصميم {{author}}",
-  "gge.footer.credits": "الاعتمادات"
+  "gge.footer.credits": "الاعتمادات",
+  "gge.shot.enlarge": "تكبير لقطة الشاشة",
+  "gge.shot.close": "إغلاق",
+  "gge.hotspot.marker": "العلامة {{n}}",
+  "gge.hotspot.legend": "ما تشير إليه كل علامة"
 }

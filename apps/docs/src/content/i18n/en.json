@@ -63,5 +63,9 @@
   "gge.langbar.prompt": "Read this page in {language}?",
   "gge.langbar.close": "Dismiss",
   "gge.credits.by": "by {{author}}",
-  "gge.footer.credits": "Credits"
+  "gge.footer.credits": "Credits",
+  "gge.shot.enlarge": "Enlarge screenshot",
+  "gge.shot.close": "Close",
+  "gge.hotspot.marker": "Marker {{n}}",
+  "gge.hotspot.legend": "What each marker shows"
 }

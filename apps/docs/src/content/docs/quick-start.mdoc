@@ -19,6 +19,14 @@ Your email address is only for your GGE Command account. It is not your game log
 
 Choose {% ui key="client:account.add" /%}. Fill in your {% term id="game-account" %}game account{% /term %} name, pick the {% term id="server" %}server{% /term %}, and enter your game password. The app stores the password encrypted, and it only uses it to sign in to the game for you. Pick the same server you play on, because a bot that signs in to the wrong world can only fail, and that failure shows up in your {% term id="log" %}logs{% /term %} as a login error that looks scary but only means the world does not match.{% sidenote id="server-match" %}Not sure which server you are on? Open the game and check the server name on the login screen.{% /sidenote %} If the app shows a login error, check the name and the server first.
 
+{% hotspots id="add-account" alt="The Add game account drawer: the fields for the account name, the server and the game password, the list of switches, and the Add account button." at="92,14.7 92,25.1 90,35.4 63,70 95,96.9" narrow="88,15.8 88,26.8 85,37.8 12,75.5 83,96.7" %}
+1. Type your game account name, exactly as the game shows it.
+2. Choose the server you play on.
+3. Type your game password. The app stores it encrypted.
+4. Switch on the jobs you want. You can change them later.
+5. Select **Add account** to save.
+{% /hotspots %}
+
 {% aside type="caution" id="one-bot-each" %}
 Each game account runs one bot.
 
@@ -31,6 +39,8 @@ Your plan decides how many bots you can run.
 
 Pick the {% term id="plugin" %}plugins{% /term %} you want, then hit {% ui key="common:action.start" /%} on the account card. Your bot signs in and gets going.{% sidenote id="plugin-def" %}A plugin is one job the bot does, such as collecting taxes or sending attacks.{% /sidenote %}
 
+{% screenshot id="sidebar" alt="The sidebar of GGE Command with the Attacks and gear group open. Each module is one page, and a Soon tag marks a module that is not built yet." /%}
+
 {% aside type="tip" id="start-small" %}
 Start with one or two plugins. Add more once you have watched the logs for a day.
 {% /aside %}
@@ -38,6 +48,8 @@ Start with one or two plugins. Add more once you have watched the logs for a day
 ## Watch the logs {% #watch-logs %}
 
 Open the {% ui key="client:nav.logs" /%} page. Each move your bot makes shows up there live.
+
+{% screenshot id="logs" alt="The Logs page: a live list of the bot's moves with the time, level, tag, account and message of each line." /%}
 
 {% aside type="danger" id="account-risk" %}
 Game accounts can be banned. Using a bot is against the game's rules, and you take that risk.

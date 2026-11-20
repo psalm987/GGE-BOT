@@ -63,5 +63,9 @@
   "gge.langbar.prompt": "Diese Seite auf {language} lesen?",
   "gge.langbar.close": "Schließen",
   "gge.credits.by": "von {{author}}",
-  "gge.footer.credits": "Bildnachweise"
+  "gge.footer.credits": "Bildnachweise",
+  "gge.shot.enlarge": "Screenshot vergrößern",
+  "gge.shot.close": "Schließen",
+  "gge.hotspot.marker": "Markierung {{n}}",
+  "gge.hotspot.legend": "Was jede Markierung zeigt"
 }
