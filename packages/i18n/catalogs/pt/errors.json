@@ -100,9 +100,9 @@
   "zod.invalid_key": "Isto contém uma chave inválida.",
   "zod.invalid_element": "Isto contém um item inválido.",
   "zod.custom": "Isto não é válido.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} não é uma configuração de exército válida",
+  "VIRTUAL_PRESET_NOT_FOUND": "Esta predefinição não existe",
+  "VIRTUAL_PRESET_DUPLICATE": "Esta conta já tem uma predefinição com esse nome",
+  "VIRTUAL_PRESET_IN_USE": "Um módulo desta conta ainda envia esta predefinição. Escolha outro plano lá primeiro.",
+  "VIRTUAL_PRESET_LIMIT": "Uma conta pode ter até {{max}} predefinições. Exclua uma para adicionar outra."
 }
