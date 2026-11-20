@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GGE Recorder</title>
+<style>
+  :root { color-scheme: light dark; --ink: #1c1b1a; --soft: #6b6862; --line: #dcd8d0; --paper: #faf8f4; --panel: #fff; --rec: #c8321f; --warn-bg: #fdf1d6; --warn-ink: #5c4300; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #ece9e3; --soft: #a19d95; --line: #3a3835; --paper: #1b1a19; --panel: #252422; --rec: #ef5a45; --warn-bg: #3b3115; --warn-ink: #f3dfa3; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; width: 340px; padding: 14px; background: var(--paper); color: var(--ink); font: 13px/1.45 system-ui, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  h1 { font-size: 14px; margin: 0; flex: 1; }
+  #version { color: var(--soft); font-variant-numeric: tabular-nums; }
+  #state { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  #dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none; }
+  [data-phase="recording"] #dot { background: var(--rec); animation: pulse 1.4s ease-in-out infinite; }
+  [data-phase="paused"] #dot { background: none; border: 2px solid var(--rec); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { [data-phase="recording"] #dot { animation: none; } }
+  #tab { color: var(--soft); margin: 2px 0 10px 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row { display: flex; gap: 6px; margin: 8px 0; }
+  button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--soft); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--rec); border-color: var(--rec); color: #fff; font-weight: 600; flex: 1; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--rec); outline-offset: 1px; }
+  input { font: inherit; flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+  #hint, #error { padding: 8px 10px; border-radius: 6px; margin: 8px 0; background: var(--warn-bg); color: var(--warn-ink); }
+  #hint button { margin-top: 6px; }
+  dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+  dl div { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  dt { color: var(--soft); font-size: 11px; }
+  dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--soft); margin: 14px 0 6px; }
+  ul { list-style: none; margin: 0; padding: 0; max-height: 190px; overflow-y: auto; }
+  li { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line); }
+  li .what { flex: 1; min-width: 0; }
+  li .meta { color: var(--soft); font-size: 11px; font-variant-numeric: tabular-nums; }
+  li button { padding: 3px 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body data-phase="idle">
+  <header><h1>GGE Recorder</h1><span id="version"></span></header>
+  <div id="state"><span id="dot"></span><span id="phase">Not recording</span></div>
+  <div id="tab"></div>
+  <div id="error" role="alert" hidden></div>
+  <div id="hint" hidden>
+    This recording has not seen the game log in, so it lacks the client build. Reload the game tab to capture its connection from the start.
+    <div><button id="reload" type="button">Reload the game tab</button></div>
+  </div>
+  <div class="row">
+    <button id="record" class="primary" type="button">Record this tab</button>
+    <button id="pause" type="button" hidden>Pause</button>
+    <button id="resume" type="button" hidden>Resume</button>
+    <button id="stop" type="button" hidden>Stop</button>
+  </div>
+  <form id="marker" class="row" hidden>
+    <input id="note" maxlength="200" placeholder="Marker: what are you about to do?" aria-label="Marker label" autocomplete="off">
+    <button type="submit">Mark</button>
+  </form>
+  <dl id="counters" hidden>
+    <div><dt>Events</dt><dd id="events">0</dd></div>
+    <div><dt>Screenshots</dt><dd id="shots">0</dd></div>
+    <div><dt>Size</dt><dd id="size">0.00 MB</dd></div>
+  </dl>
+  <h2 id="sessions-title" hidden>Recordings</h2>
+  <ul id="sessions"></ul>
+  <script src="popup.js"></script>
+</body>
+</html>
