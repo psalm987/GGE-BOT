@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "join": "node trace.ts join",
+    "view": "node trace.ts view",
+    "fixture": "node trace.ts fixture",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
