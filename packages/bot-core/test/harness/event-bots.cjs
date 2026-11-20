@@ -31,7 +31,7 @@ const horses = [
  */
 async function runEvent(plugin, options, {
     areas, inventory, start = {}, items = {}, effects = {}, playerLevel = 70, sends = 1, movements = [], resources = {},
-    castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50,
+    castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50, waitToAttack = async job => job(),
 }) {
     const { path, eventID, kingdomID } = PLUGINS[plugin]
     const bot = fakeBot()
@@ -70,7 +70,7 @@ async function runEvent(plugin, options, {
     let handedOut = 0
     const attack = {
         ...engine,
-        waitToAttack: async job => job(),
+        waitToAttack,
         sendAttack: async (attackInfo, kid, x, y, context = {}) => {
             if (context.dryRun)
                 return { dryRun: true }
