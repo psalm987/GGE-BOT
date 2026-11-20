@@ -15,6 +15,7 @@ export function join(_session: Session, events: readonly TraceEvent[]): Joined {
   const open = new Map<string, Call[]>()
   const lastActive = new Map<Step, number>()
   let current: Step | undefined
+  let anchor: Step | undefined
   let openDown: Step | undefined
   let label: string | undefined
 
@@ -56,12 +57,13 @@ export function join(_session: Session, events: readonly TraceEvent[]): Joined {
           break
         }
         const step = begin(e.t, e)
+        anchor = step
         openDown = e.type === "down" ? step : undefined
         break
       }
       case "tx": {
-        const anchored = current?.input && e.t - (lastActive.get(current) ?? 0) <= WINDOW_MS
-        const step = anchored && current ? current : backgroundStep(e.t, false)
+        const anchored = anchor && e.t - (lastActive.get(anchor) ?? 0) <= WINDOW_MS
+        const step = anchored && anchor ? anchor : backgroundStep(e.t, false)
         const call: Call = { tx: e }
         step.calls.push(call)
         const key = `${e.sock}\0${e.cmd}`
@@ -112,7 +114,8 @@ function attachShots(steps: Step[], shots: ShotEvent[]) {
   anchors.forEach((step, n) => {
     const next = anchors[n + 1]?.t ?? Infinity
     for (const shot of shots) {
-      if (shot.why === "pre" && shot.t <= step.t && step.t - shot.t <= PRE_MS) step.pre = shot.id
+      // The recorder stamps a pre shot when it handles the click, so it can land a few ms after the input.
+      if (shot.why === "pre" && !step.pre && step.t - shot.t <= PRE_MS && shot.t < next) step.pre = shot.id
       if (shot.why === "post" && shot.t > step.t && shot.t < next) step.post = shot.id
     }
   })

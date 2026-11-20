@@ -126,6 +126,16 @@ describe("join", () => {
     expect(steps.map((s) => [s.pre, s.post])).toEqual([["p1", "q1"], ["p2", "q2"]])
   })
 
+  it("keeps a click's command in its step when a system frame lands in between", () => {
+    const { steps } = run(down(T0), sys(T0 + 200, "<msg t='sys'><body action='roundTripRes' r='1'></body></msg>", "rx"), tx(T0 + 600, "sbp"), rx(T0 + 700, "sbp"))
+    expect(steps.map((s) => [s.input?.type ?? null, s.calls.map((c) => c.tx.cmd)])).toEqual([["down", ["sbp"]], [null, []]])
+  })
+
+  it("attaches a pre shot stamped just after the click", () => {
+    const { steps } = run(down(T0), shot(T0 + 8, "p", "pre"), shot(T0 + 500, "q", "post"), down(T0 + 3000), shot(T0 + 3005, "p2", "pre"))
+    expect(steps.map((s) => s.pre)).toEqual(["p", "p2"])
+  })
+
   it("ignores a pre shot more than 100 ms before the click", () => {
     expect(run(shot(T0 - 500, "p", "pre"), down(T0)).steps[0]?.pre).toBeUndefined()
   })
