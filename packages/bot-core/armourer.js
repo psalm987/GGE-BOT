@@ -104,7 +104,7 @@ function keepStocked(name, stocks, kingdom, options, logKeys) {
             coinFloor: Number(options.armourerCoinFloor) || 0, spendCap: Number(options.armourerSpendCap) || 0,
         })
         if (bought > 0)
-            console.info(logKeys[0], bought, logKeys[1], spent)
+            console.info(logKeys[0], bought, " ", logKeys[1], spent)
         return boxMullerRandom(25 * 60_000, 35 * 60_000)
     }, boxMullerRandom(3 * 60_000, 8 * 60_000)))
 }
