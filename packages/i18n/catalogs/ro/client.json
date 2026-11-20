@@ -750,8 +750,8 @@
   "module.global.commandersUnknown": "{{configured, number}} configured at most. Start the bot once to count this account's commanders.",
   "plugins.check.commandersOf": "{{count, number}} of your {{max, number}} commanders can be sent. {{remaining, number}} stay free.",
   "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other.",
-  "plugins.commanders.one": "You have 1 commander (position 1).",
-  "plugins.commanders.owned": "You have {{count, number}} commanders (positions 1–{{count, number}}).",
-  "plugins.commanders.none": "The bot counted no commanders on this account.",
-  "plugins.commanders.unknown": "Start the bot once so it can count this account’s commanders."
+  "plugins.commanders.one": "Ai 1 comandant (poziția 1).",
+  "plugins.commanders.owned": "Numărul comandanților tăi: {{count, number}} (pozițiile 1–{{count, number}}).",
+  "plugins.commanders.none": "Botul nu a numărat niciun comandant pe acest cont.",
+  "plugins.commanders.unknown": "Pornește botul o dată ca să poată număra comandanții acestui cont."
 }

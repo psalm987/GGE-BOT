@@ -717,8 +717,8 @@
   "module.global.commandersUnknown": "{{configured, number}} configured at most. Start the bot once to count this account's commanders.",
   "plugins.check.commandersOf": "{{count, number}} of your {{max, number}} commanders can be sent. {{remaining, number}} stay free.",
   "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other.",
-  "plugins.commanders.one": "You have 1 commander (position 1).",
-  "plugins.commanders.owned": "You have {{count, number}} commanders (positions 1–{{count, number}}).",
-  "plugins.commanders.none": "The bot counted no commanders on this account.",
-  "plugins.commanders.unknown": "Start the bot once so it can count this account’s commanders."
+  "plugins.commanders.one": "Je hebt 1 commandant (positie 1).",
+  "plugins.commanders.owned": "Je hebt {{count, number}} commandanten (posities 1–{{count, number}}).",
+  "plugins.commanders.none": "De bot heeft op dit account geen commandanten geteld.",
+  "plugins.commanders.unknown": "Start de bot één keer, zodat hij de commandanten van dit account kan tellen."
 }
