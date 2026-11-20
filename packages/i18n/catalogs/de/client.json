@@ -716,5 +716,9 @@
   "module.global.commandersValue": "{{configured, number}} configured · {{max, number}} maximum · {{remaining, number}} remaining",
   "module.global.commandersUnknown": "{{configured, number}} configured at most. Start the bot once to count this account's commanders.",
   "plugins.check.commandersOf": "{{count, number}} of your {{max, number}} commanders can be sent. {{remaining, number}} stay free.",
-  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other."
+  "plugins.check.commandersShared": "Commanders also on the list of another kingdom that is on: {{count, number}}. Kingdoms that share commanders wait for each other.",
+  "plugins.commanders.one": "Ihr habt 1 Feldherrn (Position 1).",
+  "plugins.commanders.owned": "Ihr habt {{count, number}} Feldherren (Positionen 1–{{count, number}}).",
+  "plugins.commanders.none": "Der Bot hat auf diesem Konto keine Feldherren gezählt.",
+  "plugins.commanders.unknown": "Startet den Bot einmal, damit er die Feldherren dieses Kontos zählen kann."
 }

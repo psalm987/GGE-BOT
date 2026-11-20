@@ -26,7 +26,7 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Text",
                 key: "commanderWhiteList",
-                default: "1-99"
+                default: "1-50"
             },
             { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
             {

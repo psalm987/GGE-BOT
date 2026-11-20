@@ -29,7 +29,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Label", key: "limitSettings" },
     { type: "Number", key: "maxPerDay", min: 0, max: 4000, unit: "attacks", display: "slider", default: 0 },
     { type: "Number", key: "toolBudgetPerDay", min: 0, max: 10000, unit: "tools", display: "slider", default: 0 },
-    { type: "Number", key: "attacksPerHour", min: 0, max: 120, unit: "attacks", default: 0 },
+    { type: "Number", key: "attacksPerHour", min: 0, max: 600, unit: "attacks", default: 0 },
     { type: "Label", key: "horseSettings" },
     {
         type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather", "By distance"], default: 1, copyToAll: true,
@@ -38,7 +38,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "tiles", default: 15, showWhen: { key: "horse", in: [3] } },
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
-    { type: "Text", key: "commanderWhiteList", default: "1-99" },
+    { type: "Text", key: "commanderWhiteList", default: "1-50" },
     { type: "SkipTypes", key: "skipTypes", default: null, advanced: true },
     ...armyOptions(AUTOFILL),
     { type: "Label", key: "attackSettings", army: "autofill" },

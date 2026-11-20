@@ -71,7 +71,7 @@ if (require('node:worker_threads').isMainThread) {
     return module.exports.pluginOptions.push({
         type: "Text",
         key: "commanderWhiteList",
-        default: "1-99"
+        default: "1-50"
     }, { type: "Checkbox", key: "dryRun", default: false, advanced: true })
 }
 
