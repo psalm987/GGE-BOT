@@ -100,9 +100,9 @@
   "zod.invalid_key": "Aceasta conține o cheie nevalidă.",
   "zod.invalid_element": "Aceasta conține un element nevalid.",
   "zod.custom": "Aceasta nu este valid.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} nu este o setare de armată validă",
+  "VIRTUAL_PRESET_NOT_FOUND": "Această presetare nu există",
+  "VIRTUAL_PRESET_DUPLICATE": "Acest cont are deja o presetare cu acest nume",
+  "VIRTUAL_PRESET_IN_USE": "Un modul al acestui cont încă trimite această presetare. Alege mai întâi alt plan acolo.",
+  "VIRTUAL_PRESET_LIMIT": "Un cont poate păstra un număr limitat de presetări: {{max}}. Șterge una ca să adaugi alta."
 }
