@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "GGE Recorder",
+  "description": "Records your clicks, the game's websocket traffic and before/after screenshots while you play, for export as a trace zip.",
+  "minimum_chrome_version": "125",
+  "permissions": ["debugger", "scripting", "storage", "unlimitedStorage"],
+  "host_permissions": ["*://*.goodgamestudios.com/*"],
+  "background": { "service_worker": "sw.js" },
+  "content_scripts": [
+    { "matches": ["*://*.goodgamestudios.com/*"], "js": ["content.js"], "all_frames": true, "run_at": "document_start" }
+  ],
+  "action": {
+    "default_title": "GGE Recorder",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png" }
+  },
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+M" }, "description": "Open the recorder to add a marker" }
+  }
+}
