@@ -1,0 +1,8 @@
+{
+  "name": "@gge/recorder",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./format": "./src/format.ts"
+  }
+}
