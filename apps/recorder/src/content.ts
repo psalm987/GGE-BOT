@@ -3,6 +3,7 @@ import type { FrameMsg, PageMsg, Viewport } from "./messages.ts"
 
 const WHEEL_EVERY_MS = 500
 const TEXT_KEY = "<text>"
+const CHAR_KEY = "<char>"
 
 function main() {
   const scope = globalThis as { ggeRecorderAlive?: () => boolean }
@@ -45,7 +46,8 @@ function main() {
   })
   listen("keydown", ev => {
     if (ev.repeat) return
-    input("key", { key: isTextField(ev.target) ? TEXT_KEY : ev.key })
+    // The game may draw its own text boxes on the canvas, so a printable key is never recorded by value anywhere.
+    input("key", { key: isTextField(ev.target) ? TEXT_KEY : ev.key.length === 1 ? CHAR_KEY : ev.key })
   })
   let lastWheel = -Infinity
   listen("wheel", ev => {

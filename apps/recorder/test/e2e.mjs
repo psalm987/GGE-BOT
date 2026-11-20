@@ -197,6 +197,7 @@ for (let i = 0; i < 3; i++) {
   await sleep(1300)
 }
 await game.keyboard.press("m")
+await game.keyboard.press("Escape")
 await gameFrame.click("#chat")
 await game.keyboard.type("pw9")
 await sleep(900)
@@ -278,7 +279,7 @@ downs.forEach((down, i) => {
 check(of("rx", e => e.cmd === "gcu").length === 1, "the unsolicited gcu push is recorded")
 
 const keys = of("in", e => e.type === "key").map(e => e.key)
-check(keys.join() === "m,<text>,<text>,<text>", `a key on the canvas keeps its name, keys in a text field do not (${keys.join()})`)
+check(keys.join() === "<char>,Escape,<text>,<text>,<text>", `a printable key is never recorded by value, a named key keeps its name (${keys.join()})`)
 
 const marks = of("life", e => e.what === "mark")
 check(marks.length === 1 && marks[0].note === "start: buy 10 rams", "the marker is a life: mark with its note")
