@@ -95,9 +95,9 @@
   "zod.invalid_key": "Dette inneholder en ugyldig nøkkel.",
   "zod.invalid_element": "Dette inneholder et ugyldig element.",
   "zod.custom": "Dette er ikke gyldig.",
-  "PLUGIN_OPTION_ARMY": "{{where}} isn't a valid army setting",
-  "VIRTUAL_PRESET_NOT_FOUND": "This preset doesn't exist",
-  "VIRTUAL_PRESET_DUPLICATE": "This account already has a preset with that name",
-  "VIRTUAL_PRESET_IN_USE": "A module of this account still sends this preset. Pick another plan there first.",
-  "VIRTUAL_PRESET_LIMIT": "An account can keep up to {{max}} presets. Delete one to add another."
+  "PLUGIN_OPTION_ARMY": "{{where}} er ikke en gyldig hærinnstilling",
+  "VIRTUAL_PRESET_NOT_FOUND": "Denne forhåndsinnstillingen finnes ikke",
+  "VIRTUAL_PRESET_DUPLICATE": "Denne kontoen har allerede en forhåndsinnstilling med det navnet",
+  "VIRTUAL_PRESET_IN_USE": "En modul på denne kontoen sender fortsatt denne forhåndsinnstillingen. Velg en annen plan der først.",
+  "VIRTUAL_PRESET_LIMIT": "En konto kan ha opptil {{max}} forhåndsinnstillinger. Slett en for å legge til en ny."
 }
