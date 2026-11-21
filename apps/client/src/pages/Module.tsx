@@ -4,11 +4,12 @@ import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
 import { MODULES, commanderUsage, type AccountCastle, type ArmyMode, type ModuleDef, type PluginCatalogEntry, type PluginOptionDef, type PublicAccount } from "@gge/contracts"
-import { Icon, messageOf, ParchmentCard, SigilStatus } from "@gge/ui"
+import { Icon, messageOf, ParchmentCard } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
 import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
+import { StartStop, StartStopDetail } from "../components/StartStop.tsx"
 import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
 import { CopyToAll, PluginOptionField } from "../components/PluginOptionField.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "../components/PluginPanels.tsx"
@@ -177,7 +178,8 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
 
     return (
         <>
-            <ParchmentCard title={t("module.status")} extra={account?.entitled && <SigilStatus state={account.status?.actualState} detail={account.status?.lastError} sleepingUntil={account.sleepingUntil} />}>
+            <ParchmentCard title={t("module.status")} extra={<StartStop account={account} />}>
+                <StartStopDetail account={account} />
                 {attackEntries.length > 0 && (
                     <div className="gge-module-cap">
                         <Typography.Text type={attackLimit !== null && on > attackLimit ? "danger" : "secondary"}>

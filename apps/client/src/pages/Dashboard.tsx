@@ -6,8 +6,9 @@ import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useSearchParams } from "react-router"
-import { moduleOfPlugin, planRunsMessage, type PublicAccount } from "@gge/contracts"
+import { moduleOfPlugin, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, messageOf, palette, ParchmentCard, SigilStatus } from "@gge/ui"
+import { usePlanHint, useSetDesiredState } from "../account-state.ts"
 import { orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
 import { AccountDrawer } from "../components/AccountDrawer.tsx"
@@ -69,20 +70,7 @@ export function Dashboard() {
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()
 
-    const setState = useMutation(orpc.accounts.setDesiredState.mutationOptions({
-        // Flip the switch at once; roll back if the server refuses.
-        onMutate: async ({ ids, state }) => {
-            await queryClient.cancelQueries({ queryKey: listKey })
-            const previous = queryClient.getQueryData<PublicAccount[]>(listKey)
-            queryClient.setQueryData<PublicAccount[]>(listKey, list => list?.map(a => ids.includes(a.id) ? { ...a, desiredState: state, ...(state === "stopped" && { sleepingUntil: null }) } : a))
-            return { previous }
-        },
-        onError: (error, _vars, context) => {
-            queryClient.setQueryData(listKey, (context as { previous?: PublicAccount[] })?.previous)
-            message.error(messageOf(error))
-        },
-        onSettled: () => queryClient.invalidateQueries({ queryKey: listKey }),
-    }))
+    const setState = useSetDesiredState()
     const remove = useMutation(orpc.accounts.remove.mutationOptions({
         onSuccess: (_, { ids }) => {
             message.success(t("dashboard.removed", { count: ids.length }))
@@ -100,8 +88,7 @@ export function Dashboard() {
     const limit = me?.role === "admin" ? undefined : me?.accountLimit
     const atLimit = limit !== undefined && counted >= limit
     const overLimit = list.filter(a => !a.entitled).length
-    const runs = limit === undefined ? undefined : planRunsMessage(limit)
-    const planHint = runs && t(runs.key, { ns: "errors", ...runs.params })
+    const planHint = usePlanHint()
     const limitHint = overLimit
         ? t("dashboard.overLimit", { count: overLimit, hint: planHint })
         : atLimit ? t("dashboard.planAllows", { count: limit }) : undefined

@@ -1,6 +1,5 @@
 import { CaretRightFilled, ClockCircleFilled, CloseCircleFilled, CoffeeOutlined, DollarOutlined, ExperimentOutlined, GoldOutlined, SketchOutlined, ThunderboltOutlined, WarningFilled } from "@ant-design/icons"
-import { useMutation } from "@tanstack/react-query"
-import { App, Button, Skeleton, Typography } from "antd"
+import { Button, Skeleton, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import type { ReactNode } from "react"
@@ -8,8 +7,8 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import type { AccountResources, PublicAccount } from "@gge/contracts"
-import { CrestEmpty, messageOf } from "@gge/ui"
-import { orpc, queryClient } from "../api.ts"
+import { CrestEmpty } from "@gge/ui"
+import { useSetDesiredState } from "../account-state.ts"
 import { topErrors, type ErrorClass } from "../game-errors.ts"
 import { useLogFeed } from "../log-feed.ts"
 
@@ -87,13 +86,9 @@ function TopErrors({ accountId }: { accountId: string }) {
 
 /** The account at a glance: what the bot last read from the game, and how old that is. Empty until the bot has run. */
 export function AccountOverview({ account }: { account: PublicAccount }) {
-    const { message } = App.useApp()
     const { t, i18n } = useTranslation("client")
     const number = new Intl.NumberFormat(i18n.language)
-    const start = useMutation(orpc.accounts.setDesiredState.mutationOptions({
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() }),
-        onError: error => message.error(messageOf(error)),
-    }))
+    const start = useSetDesiredState()
     const resources = account.status?.resources ?? null
 
     if (!resources) {
