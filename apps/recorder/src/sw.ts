@@ -71,10 +71,14 @@ function learn(l: Live, frame: Frame, sock: string) {
 type Target = chrome.debugger.DebuggerSession
 const cdp = (target: Target, method: string, params?: object) => chrome.debugger.sendCommand(target, method, params)
 
-/** Watches one target's websockets, and its child targets, so a socket inside a cross-origin iframe or a worker is seen too. */
+/**
+ * Watches one target's websockets, and its child iframes, so a socket inside a cross-origin iframe is seen too.
+ * Workers stay unattached: a worker started while chrome.debugger is auto-attached never runs, which hung the game's
+ * login and crashed the tab on reload. The game's socket lives in its page, not in a worker.
+ */
 async function observe(target: Target) {
   await cdp(target, "Network.enable")
-  await cdp(target, "Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true })
+  await cdp(target, "Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true, filter: [{ type: "iframe" }] })
 }
 const startScreencast = (tabId: number) => cdp({ tabId }, "Page.startScreencast", { format: "jpeg", quality: 60, maxWidth: 960 })
 const stopScreencast = (tabId: number) => cdp({ tabId }, "Page.stopScreencast").catch(noop)
