@@ -29,7 +29,11 @@ export const RULES: Record<Dir, Record<string, Rule>> = {
   rx: {
     glt: { mask: ["TLT"] },
     gpi: GPI,
-    gbd: { mask: [], inner: { gpi: GPI } },
+    // Castle and commander names are typed by the player and often repeat parts of the login name the scrub misses.
+    gbd: { mask: ["N"], inner: { gpi: GPI } },
+    gli: { mask: ["N"] },
+    // A ranking page lists other players: their names, alliances, ids and where their castles stand.
+    hgh: { mask: ["N", "AN", "AP"], hash: ["OID", "AID"] },
     ...CHAT_CMDS,
   },
 }

@@ -94,6 +94,23 @@ describe("redact", () => {
     expect(out.raw).not.toMatch(/424242|777/)
   })
 
+  it("masks castle and commander names in gbd and gli, which often carry parts of the login name", async () => {
+    const redact = redactWith()
+    const gbd = await redact("rx", `%xt%gbd%1%0%{"gcl":{"C":[{"KID":0,"AI":[{"AID":5,"N":"Castle Fakename"}]}]},"gli":{"C":[{"ID":0,"N":"Sir Fake","VIS":0}]}}%`)
+    const gli = await redact("rx", `%xt%gli%1%0%{"C":[{"ID":3,"N":"Sir Fake","VIS":3}]}%`)
+    for (const out of [gbd, gli]) expect(JSON.stringify(out)).not.toMatch(/Fakename|Sir Fake/)
+    expect(gli).toMatchObject({ payload: { C: [{ ID: 3, N: "<redacted>", VIS: 3 }] } })
+  })
+
+  it("removes other players' names, alliances and castle positions from a ranking page and hashes their ids", async () => {
+    const out = await redactWith()("rx", `%xt%hgh%1%0%{"LT":6,"L":[[605,701691,{"OID":2177046,"N":"Otherplayer","L":70,"AID":545,"AN":"Other Alliance","AP":[[0,1899616,662,644,1]],"MP":701691}]]}%`) as { payload: { L: [number, number, Record<string, unknown>][] } }
+    const row = out.payload.L[0]!
+    expect(row.slice(0, 2)).toEqual([605, 701691])
+    expect(row[2]).toMatchObject({ N: "<redacted>", AN: "<redacted>", AP: "<redacted>", L: 70, MP: 701691 })
+    expect(row[2].OID).toMatch(/^#[0-9a-f]{16}$/)
+    expect(JSON.stringify(out)).not.toMatch(/Otherplayer|Other Alliance|2177046|1899616/)
+  })
+
   it("scrubs the login name out of every later frame, since the game shows it as the player's name", async () => {
     const redact = redactWith()
     await redact("tx", lli)

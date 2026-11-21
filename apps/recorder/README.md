@@ -21,6 +21,8 @@ The recorder removes these things before it saves anything to disk:
 - Your email address, and any other email address in any message.
 - The text of chat and private messages. Only the length of the message is kept.
 - Your player ids in the player info message, including the copy the game sends at login. A scrambled value that is different in every recording replaces them.
+- The names you gave your castles and commanders, since they often contain part of your login name.
+- Other players' names, alliance names and castle positions on ranking pages. Their ids are replaced by scrambled values, as yours are.
 
 Screenshots are not edited. They show your screen as you saw it, with other players' names, alliance names, and chat bubbles. If you do not want something in a recording, pause the recorder before it appears on screen.
 
