@@ -483,7 +483,7 @@
   "modules.offer-buyer.name": "Erbjudandeköp",
   "modules.offer-buyer.description": "Bevakar butiken efter erbjudanden du väljer och köper dem när de dyker upp.",
   "modules.wheel-spin.name": "Lyckohjul",
-  "modules.wheel-spin.description": "Snurrar lyckohjulet med de biljetter du har, inom gränser du anger.",
+  "modules.wheel-spin.description": "Snurrar Lyckohjulet och Den ofattbara rikedomens hjul med de biljetter du har. Den behåller biljetterna du lägger undan och stannar vid din dagliga gräns.",
   "modules.overseers.name": "Förmän",
   "modules.overseers.description": "Hanterar dina förmän så att deras bonusar fortsätter gälla.",
   "modules.food-manager.name": "Mathantering",

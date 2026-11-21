@@ -483,7 +483,7 @@
   "modules.offer-buyer.name": "Teklif alıcı",
   "modules.offer-buyer.description": "Seçtiğin teklifler için mağazayı izler ve göründüklerinde satın alır.",
   "modules.wheel-spin.name": "Çark çevirme",
-  "modules.wheel-spin.description": "Belirlediğin sınırlara uyarak elindeki biletlerle şans çarkını çevirir.",
+  "modules.wheel-spin.description": "Şans Çarkı'nı ve Akıl Almaz Zenginlik Çarkı'nı elindeki biletlerle çevirir. Ayırdığın biletleri tutar ve günlük sınırında durur.",
   "modules.overseers.name": "Kahyalar",
   "modules.overseers.description": "Bonusları çalışmaya devam etsin diye kahyalarını yönetir.",
   "modules.food-manager.name": "Yiyecek yöneticisi",

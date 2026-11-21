@@ -502,7 +502,7 @@
   "modules.offer-buyer.name": "Offer buyer",
   "modules.offer-buyer.description": "Watches the shop for offers you pick and buys them when they appear.",
   "modules.wheel-spin.name": "Wheel spin",
-  "modules.wheel-spin.description": "Spins the lucky wheel with the tickets you hold, following limits you set.",
+  "modules.wheel-spin.description": "Spins the Wheel of Fortune and the Wheel of Unimaginable Affluence with the tickets you hold. It keeps the tickets you set aside and stops at your daily limit.",
   "modules.overseers.name": "Overseers",
   "modules.overseers.description": "Manages your overseers so their bonuses stay running.",
   "modules.food-manager.name": "Food manager",

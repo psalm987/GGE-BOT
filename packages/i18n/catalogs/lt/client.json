@@ -543,7 +543,7 @@
   "modules.offer-buyer.name": "Pasiūlymų pirkėjas",
   "modules.offer-buyer.description": "Stebi parduotuvę, ar nėra jūsų pasirinktų pasiūlymų, ir juos perka, kai jie atsiranda.",
   "modules.wheel-spin.name": "Sėkmės rato sukimas",
-  "modules.wheel-spin.description": "Suka sėkmės ratą jūsų turimais bilietais pagal jūsų nustatytas ribas.",
+  "modules.wheel-spin.description": "Suka Laimės ratą ir Neįsivaizduojamų turtų ratą turimais bilietais. Palieka atidėtus bilietus ir sustoja pasiekęs jūsų dienos ribą.",
   "modules.overseers.name": "Prižiūrėtojai",
   "modules.overseers.description": "Tvarko jūsų prižiūrėtojus, kad jų bonusai nenutrūktų.",
   "modules.food-manager.name": "Maisto tvarkyklė",

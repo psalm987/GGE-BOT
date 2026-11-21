@@ -543,7 +543,7 @@
   "modules.offer-buyer.name": "Nákup ponúk",
   "modules.offer-buyer.description": "Sleduje v obchode ponuky, ktoré vyberieš, a kúpi ich, keď sa objavia.",
   "modules.wheel-spin.name": "Točenie kolesa",
-  "modules.wheel-spin.description": "Točí koleso šťastia lístkami, ktoré máš, podľa limitov, ktoré nastavíš.",
+  "modules.wheel-spin.description": "Točí Koleso šťastia a Koleso nepredstaviteľného bohatstva lístkami, ktoré máš. Ponechá lístky, ktoré si odložíš, a zastaví sa na tvojom dennom limite.",
   "modules.overseers.name": "Dozorcovia",
   "modules.overseers.description": "Spravuje tvojich dozorcov, aby ich bonusy stále bežali.",
   "modules.food-manager.name": "Správa jedla",

@@ -513,7 +513,7 @@
   "modules.offer-buyer.name": "Comprador de ofertas",
   "modules.offer-buyer.description": "Vigia a loja atrás das ofertas que você escolher e as compra quando aparecem.",
   "modules.wheel-spin.name": "Giro da roda",
-  "modules.wheel-spin.description": "Gira a roda da sorte com os bilhetes que você tem, seguindo os limites que você definir.",
+  "modules.wheel-spin.description": "Gira a Roda da Sorte e a Roda da Riqueza Inimaginável com os bilhetes que você tem. Mantém os bilhetes que você reservou e para no seu limite diário.",
   "modules.overseers.name": "Capatazes",
   "modules.overseers.description": "Gerencia seus capatazes para que os bônus deles continuem ativos.",
   "modules.food-manager.name": "Gerenciador de comida",

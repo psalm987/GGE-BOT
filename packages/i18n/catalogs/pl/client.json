@@ -543,7 +543,7 @@
   "modules.offer-buyer.name": "Kupowanie ofert",
   "modules.offer-buyer.description": "Obserwuje sklep pod kątem wybranych ofert i kupuje je, gdy się pojawią.",
   "modules.wheel-spin.name": "Koło fortuny",
-  "modules.wheel-spin.description": "Kręci kołem fortuny za posiadane bilety, w ustawionych przez Ciebie limitach.",
+  "modules.wheel-spin.description": "Kręci Kołem Fortuny i Kołem Niewyobrażalnego Bogactwa za posiadane bilety. Zachowuje odłożone przez Ciebie bilety i zatrzymuje się po osiągnięciu dziennego limitu.",
   "modules.overseers.name": "Nadzorcy",
   "modules.overseers.description": "Zarządza Twoimi nadzorcami, żeby ich premie stale działały.",
   "modules.food-manager.name": "Zarządca żywności",

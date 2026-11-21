@@ -603,7 +603,7 @@
   "modules.offer-buyer.name": "مشتري العروض",
   "modules.offer-buyer.description": "يراقب المتجر بحثًا عن العروض التي تختارها ويشتريها عند ظهورها.",
   "modules.wheel-spin.name": "عجلة الحظ",
-  "modules.wheel-spin.description": "يدير عجلة الحظ بالتذاكر التي لديك، ضمن الحدود التي تضعها.",
+  "modules.wheel-spin.description": "تدير عجلة الحظ وعجلة الثروة الخيالية بالتذاكر التي لديك. تحتفظ بالتذاكر التي خصصتها وتتوقف عند حدك اليومي.",
   "modules.overseers.name": "المراقبون",
   "modules.overseers.description": "يدير مراقبيك لتبقى مكافآتهم فعّالة.",
   "modules.food-manager.name": "إدارة الطعام",

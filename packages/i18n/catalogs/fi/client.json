@@ -483,7 +483,7 @@
   "modules.offer-buyer.name": "Tarjousten ostaja",
   "modules.offer-buyer.description": "Seuraa kaupasta valitsemiasi tarjouksia ja ostaa ne, kun ne ilmestyvät.",
   "modules.wheel-spin.name": "Onnenpyörä",
-  "modules.wheel-spin.description": "Pyörittää onnenpyörää lipuillasi asettamissasi rajoissa.",
+  "modules.wheel-spin.description": "Pyörittää Onnenpyörää ja Käsittämättömän vaurauden pyörää lipuillasi. Se säästää sivuun jättämäsi liput ja lopettaa, kun päiväraja täyttyy.",
   "modules.overseers.name": "Voudit",
   "modules.overseers.description": "Hallitsee vouteja, jotta niiden bonukset pysyvät käynnissä.",
   "modules.food-manager.name": "Ruoan hallinta",

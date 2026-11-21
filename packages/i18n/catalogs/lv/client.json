@@ -513,7 +513,7 @@
   "modules.offer-buyer.name": "Piedāvājumu pircējs",
   "modules.offer-buyer.description": "Vēro veikalā tevis izvēlētos piedāvājumus un nopērk tos, kad tie parādās.",
   "modules.wheel-spin.name": "Laimes rats",
-  "modules.wheel-spin.description": "Griež laimes ratu ar tev esošajām biļetēm, ievērojot tevis iestatītos ierobežojumus.",
+  "modules.wheel-spin.description": "Griež Laimes ratu un Neiedomājamas bagātības ratu ar tavām biļetēm. Patur biļetes, ko esi atlicis, un apstājas pie tava dienas ierobežojuma.",
   "modules.overseers.name": "Pārraugi",
   "modules.overseers.description": "Pārvalda tavus pārraugus, lai to bonusi nebeigtos.",
   "modules.food-manager.name": "Pārtikas pārvaldnieks",

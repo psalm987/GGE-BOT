@@ -483,7 +483,7 @@
   "modules.offer-buyer.name": "Ajánlatvásárló",
   "modules.offer-buyer.description": "Figyeli a boltban az általad választott ajánlatokat, és megveszi őket, amint megjelennek.",
   "modules.wheel-spin.name": "Szerencsekerék",
-  "modules.wheel-spin.description": "A meglévő jegyeiddel pörgeti a szerencsekereket, az általad megadott korlátok szerint.",
+  "modules.wheel-spin.description": "Megpörgeti a Szerencsekereket és az Elképzelhetetlen Gazdagság Kerekét a meglévő jegyeiddel. Megtartja a félretett jegyeidet, és megáll a napi korlátodnál.",
   "modules.overseers.name": "Felügyelők",
   "modules.overseers.description": "Kezeli a felügyelőidet, hogy a bónuszaik folyamatosan érvényben maradjanak.",
   "modules.food-manager.name": "Élelemkezelő",

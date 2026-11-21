@@ -483,7 +483,7 @@
   "modules.offer-buyer.name": "Pakkumiste ostja",
   "modules.offer-buyer.description": "Jälgib poes sinu valitud pakkumisi ja ostab need, kui need ilmuvad.",
   "modules.wheel-spin.name": "Õnneratas",
-  "modules.wheel-spin.description": "Keerutab õnneratast sinu piletitega sinu seatud piirides.",
+  "modules.wheel-spin.description": "Keerutab Õnneratast ja Kujuteldamatu jõukuse ratast sinu piletitega. See hoiab alles kõrvale pandud piletid ja peatub sinu päevapiiril.",
   "modules.overseers.name": "Ülevaatajad",
   "modules.overseers.description": "Haldab sinu ülevaatajaid, et nende boonused kestaksid.",
   "modules.food-manager.name": "Toiduhaldur",

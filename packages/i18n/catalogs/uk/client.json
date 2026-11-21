@@ -543,7 +543,7 @@
   "modules.offer-buyer.name": "Купівля пропозицій",
   "modules.offer-buyer.description": "Стежить за крамницею й купує обрані тобою пропозиції, щойно вони з'являються.",
   "modules.wheel-spin.name": "Колесо фортуни",
-  "modules.wheel-spin.description": "Крутить колесо фортуни квитками, які в тебе є, у заданих тобою межах.",
+  "modules.wheel-spin.description": "Крутить Колесо фортуни й Колесо неймовірного багатства квитками, які в тебе є. Залишає відкладені тобою квитки й зупиняється на твоєму денному ліміті.",
   "modules.overseers.name": "Наглядачі",
   "modules.overseers.description": "Керує твоїми наглядачами, щоб їхні бонуси не припинялися.",
   "modules.food-manager.name": "Керування їжею",

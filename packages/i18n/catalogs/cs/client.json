@@ -543,7 +543,7 @@
   "modules.offer-buyer.name": "Nákup nabídek",
   "modules.offer-buyer.description": "Hlídá obchod kvůli nabídkám, které vyberete, a koupí je, jakmile se objeví.",
   "modules.wheel-spin.name": "Kolo štěstěny",
-  "modules.wheel-spin.description": "Točí kolem štěstěny s lístky, které máte, v mezích, které nastavíte.",
+  "modules.wheel-spin.description": "Roztáčí Kolo štěstí a Kolo nepředstavitelného bohatství lístky, které máte. Ponechá lístky, které si odložíte, a zastaví se na vašem denním limitu.",
   "modules.overseers.name": "Dozorci",
   "modules.overseers.description": "Spravuje vaše dozorce, aby jejich bonusy stále běžely.",
   "modules.food-manager.name": "Správa jídla",
