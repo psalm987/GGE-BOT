@@ -243,3 +243,27 @@ describe("options a Select replaced", () => {
         expect(effectivePluginConfig(towers, { towers: { enabled: true, options: { useCoin: false, waves: "1" } } }).towers).toMatchObject({ horse: 0, waves: 1 })
     })
 })
+
+describe("a Rows castle column that replaced a kingdom column", () => {
+    const options: PluginCatalogEntry["options"] = [{
+        type: "Rows", key: "targets", default: [],
+        columns: [{ key: "castle", type: "castle", legacyKingdom: "kingdom" }, { key: "tool", type: "tool" }, { key: "stock", type: "number", min: 0, max: 100, default: 0 }],
+    }]
+    const catalog = [{ key: "buyTools", force: false, hidden: false, options }]
+
+    test("a stored kingdom row reads as the kingdom's main castle and saves back with a castle", () => {
+        const stored = { targets: [{ kingdom: 1, tool: 614, stock: 5 }] }
+        const read = readLegacy(options, stored)
+        expect(read).toEqual({ targets: [{ tool: 614, stock: 5, castle: { kingdom: 1, id: -1 } }] })
+        expect(normalizePluginSettings(catalog, { buyTools: { enabled: true, options: read } }).buyTools!.options).toEqual(read)
+    })
+
+    test("a kingdom row sent to the API is saved as the castle it reads as", () => {
+        const out = normalizePluginSettings(catalog, { buyTools: { enabled: true, options: { targets: [{ kingdom: 1, tool: 614, stock: 5 }] } } })
+        expect(out.buyTools!.options).toEqual({ targets: [{ tool: 614, stock: 5, castle: { kingdom: 1, id: -1 } }] })
+    })
+
+    test("a stock of 0 is allowed", () => {
+        expect(() => normalizePluginSettings(catalog, { buyTools: { enabled: true, options: { targets: [{ castle: { kingdom: 0, id: 4 }, tool: 614, stock: 0 }] } } })).not.toThrow()
+    })
+})

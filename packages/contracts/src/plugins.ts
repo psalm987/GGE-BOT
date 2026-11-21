@@ -11,6 +11,10 @@ const showWhen = z.object({ key, in: z.array(z.number().int()).min(1) }).optiona
 /** One of the player's castles, as a bot reports it: the castle's object id within its kingdom. */
 export const CastleRef = z.object({ kingdom: z.number().int().min(0), id: z.number().int() })
 export type CastleRef = z.infer<typeof CastleRef>
+/** A castle ref with this id stands for the kingdom's main castle, whichever castle that is. Old kingdom rows read as it. */
+export const MAIN_CASTLE = -1
+/** The game's area types of a kingdom's main castle: the main castle, an external kingdom's castle and Berimond's. */
+export const MAIN_CASTLE_AREA_TYPES: readonly number[] = [1, 12, 15]
 
 /** The game items an OrderedList picks from. */
 export const ItemCatalog = z.enum(["banners", "tools", "troops", "supportTools"])
@@ -39,7 +43,8 @@ export type LegacyChoice = z.infer<typeof LegacyChoice>
 
 /** A column of a Rows option: a castle, a kingdom, a game item, or a bounded number. */
 export const RowColumn = z.discriminatedUnion("type", [
-    z.object({ key, type: z.literal("castle") }),
+    /** `legacyKingdom` names the kingdom column this one replaced: a stored row that has only that reads as the kingdom's main castle. */
+    z.object({ key, type: z.literal("castle"), legacyKingdom: key.optional() }),
     z.object({ key, type: z.literal("kingdom") }),
     z.object({ key, type: z.literal("tool") }),
     z.object({ key, type: z.literal("troop") }),
@@ -155,6 +160,19 @@ export function readLegacy<T extends Record<string, OptionValue | undefined>>(de
     const out: Record<string, OptionValue | undefined> = { ...stored }
     const current = new Set(defs.map(def => def.key))
     for (const def of defs) {
+        if (def.type === "Rows" && Array.isArray(stored[def.key])) {
+            const column = def.columns.find(c => c.type === "castle" && c.legacyKingdom)
+            if (column?.type === "castle" && column.legacyKingdom) {
+                const old = column.legacyKingdom
+                out[def.key] = (stored[def.key] as RowValue[]).map(row => {
+                    if (row[column.key] !== undefined || typeof row[old] !== "number")
+                        return row
+                    const { [old]: kingdom, ...rest } = row
+                    return { ...rest, [column.key]: { kingdom: kingdom as number, id: MAIN_CASTLE } }
+                })
+            }
+            continue
+        }
         if (def.type === "Number" && def.legacy === "text" && typeof stored[def.key] === "string") {
             const text = (stored[def.key] as string).trim()
             if (text === "" || !Number.isFinite(Number(text)))

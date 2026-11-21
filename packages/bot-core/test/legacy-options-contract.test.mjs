@@ -106,3 +106,23 @@ describe("event camp options stored before the horse and tools Selects and the n
         expect(config.camps).toMatchObject({ tools: 1, horse: 2, scoreShutoff: 2500 })
     })
 })
+
+const armourer = loadModule("plugins/buyTools.js", { mainThread: true }).mod.pluginOptions
+
+/** Armourer rows stored when a row named a kingdom, with what each reads as. */
+const STORED_ROWS = [
+    [{ targets: [{ kingdom: 0, tool: 614, stock: 5000 }] }, { targets: [{ tool: 614, stock: 5000, castle: { kingdom: 0, id: -1 } }] }],
+    [{ targets: [{ kingdom: 3, tool: 611, stock: 10 }, { castle: { kingdom: 1, id: 20 }, tool: 614, stock: 7 }] }, { targets: [{ tool: 611, stock: 10, castle: { kingdom: 3, id: -1 } }, { castle: { kingdom: 1, id: 20 }, tool: 614, stock: 7 }] }],
+    [{ targets: [] }, { targets: [] }],
+    [{ margin: 100 }, { margin: 100 }],
+    [{ targets: [{ tool: 614, stock: 7 }] }, { targets: [{ tool: 614, stock: 7 }] }],
+]
+
+describe("Armourer rows stored with a kingdom", () => {
+    test.each(STORED_ROWS)("%j reads as %j", (stored, read) => {
+        expect(readLegacy(armourer, stored)).toEqual(read)
+    })
+    test.each(STORED_ROWS)("the bot and the contracts read %j alike", stored => {
+        expect(readLegacy(armourer, stored)).toEqual(contractsRead(armourer, stored))
+    })
+})

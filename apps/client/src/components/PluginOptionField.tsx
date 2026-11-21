@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
 import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { KINGDOM_IDS, MAX_COMMANDERS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
+import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, MAX_COMMANDERS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
@@ -40,9 +40,11 @@ function CastleSelect({ castles, value, onChange, placeholder, ...aria }: {
     castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; placeholder?: string; "aria-label"?: string; id?: string
 }) {
     const options = useCastleOptions(castles)
-    const listed = value && castles.some(c => c.kingdom === value.kingdom && c.id === value.id)
-    return <Select {...aria} allowClear disabled={!castles.length} options={options} value={listed ? castleKey(value) : undefined} placeholder={placeholder}
-        status={value && castles.length && !listed ? "warning" : undefined} onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
+    const found = value && (value.id === MAIN_CASTLE
+        ? castles.find(c => c.kingdom === value.kingdom && MAIN_CASTLE_AREA_TYPES.includes(c.type))
+        : castles.find(c => c.kingdom === value.kingdom && c.id === value.id))
+    return <Select {...aria} allowClear disabled={!castles.length} options={options} value={found ? castleKey(found) : undefined} placeholder={placeholder}
+        status={value && castles.length && !found ? "warning" : undefined} onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
 }
 
 /** A number as a slider with its exact value in a field beside it. */
@@ -160,10 +162,11 @@ function KingdomSelect({ value, onChange, label }: { value?: number; onChange: (
 }
 
 /** A table the player adds rows to: per castle, kingdom, tool or troop, with a number. */
-function Rows({ columns, castles, value = [], onChange, id }: { columns: RowColumn[]; castles: AccountCastle[]; value?: RowValue[]; onChange?: (v: RowValue[]) => void; id?: string }) {
+function Rows({ columns, castles, scope, value = [], onChange, id }: { columns: RowColumn[]; castles: AccountCastle[]; scope: string; value?: RowValue[]; onChange?: (v: RowValue[]) => void; id?: string }) {
     const { t } = useTranslation("client")
     const { t: tb } = useTranslation("bot")
-    const header = (c: RowColumn) => tb(c.key, { defaultValue: c.key })
+    /** A plugin may name a column in its own words with `<plugin>.<option>.<column>.column`. */
+    const header = (c: RowColumn) => tb(`${scope}.${c.key}.column`, { defaultValue: tb(c.key, { defaultValue: c.key }) })
     const set = (index: number, key: string, cell: RowValue[string] | null | undefined) =>
         onChange?.(value.map((row, i) => {
             if (i !== index)
@@ -296,7 +299,7 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId, comm
             return (
                 <Col {...full}>
                     <Form.Item name={name} label={label} extra={extraOf(help)} rules={[{ validator: (_, rows?: RowValue[]) => rowsComplete(def.columns, rows) ? Promise.resolve() : Promise.reject(new Error(tc("plugins.rows.incomplete"))) }]}>
-                        <Rows columns={def.columns} castles={castles} />
+                        <Rows columns={def.columns} castles={castles} scope={`${plugin}.${def.key}`} />
                     </Form.Item>
                 </Col>
             )

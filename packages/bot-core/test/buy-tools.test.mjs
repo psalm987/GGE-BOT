@@ -27,7 +27,7 @@ const LADDER_PRICE = 220
 
 /**
  * The plugin against a game with `coins`, whose armourer lists `live` package ids and whose castles hold `castles`
- * (`[kingdom, id, { tool: amount }]`). `refuse` maps a purchase to an error code.
+ * (`[kingdom, id, { tool: amount }, area type?]`, the type defaulting to the kingdom's main castle). `refuse` maps a purchase to an error code.
  */
 function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles = [[0, 10, {}]], movements = [], refuse = () => 0 } = {}) {
     vi.useFakeTimers()
@@ -54,6 +54,7 @@ function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles =
     vi.spyOn(console, "warn").mockImplementation(() => {})
     loadModule("plugins/buyTools.js", { bot, parentPort, items: { units, packages } })
     bot.events.emit("load")
+    bot.xtHandler.emit("gcl", { C: [...new Set(castles.map(([kingdom]) => kingdom))].map(KID => ({ KID, AI: castles.filter(([k]) => k == KID).map(([, id, , type = KID == 0 ? 1 : 12]) => ({ AI: [type, 100 + id, 100, id, 0, 0, 0, 0, 0, 0, "Castle"] })) })) }, 0)
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)
     bot.xtHandler.emit("sei", { E: [{ EID: 27, PIDS: live }, { EID: 72 }] }, 0)
     for (const movement of movements)
@@ -63,7 +64,8 @@ function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles =
 }
 
 const order = (PID, AMT, KID = 0) => ({ PID, BT: 0, TID: 27, AMT, KID, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 })
-const ladders = (stock, kingdom = 0) => [{ kingdom, tool: 614, stock }]
+const castleRow = (tool, stock, id = 10, kingdom = 0) => ({ castle: { kingdom, id }, tool, stock })
+const ladders = (stock, id = 10, kingdom = 0) => [castleRow(614, stock, id, kingdom)]
 
 describe("the catalog entry", () => {
     test("is accepted by the API", () => {
@@ -71,6 +73,7 @@ describe("the catalog entry", () => {
         const entry = { key: "buyTools", force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions, checks: mod.checks }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(mod.pluginOptions.map(o => o.key)).toEqual(["targets", "margin", "coinFloor", "spendCap", "burnOverflow", "overflowThreshold", "dryRunOrders"])
+        expect(mod.pluginOptions[0].columns.map(c => c.key)).toEqual(["castle", "tool", "stock"])
     })
 
     test("the overflow burn is off by default and the margin is 4,000", () => {
@@ -81,12 +84,12 @@ describe("the catalog entry", () => {
         expect(byKey.overflowThreshold.default).toBeLessThan(2_147_483_647)
     })
 
-    test.each(["buyTools", "kingdom", "margin", "coinFloor", "spendCap", "burnOverflow", "overflowThreshold", "dryRunSbp", "buyToolsRefused", "coinsBurned"])("en.json names %s", key => {
+    test.each(["buyTools", "castle", "stock", "margin", "coinFloor", "spendCap", "burnOverflow", "overflowThreshold", "dryRunSbp", "buyToolsRefused", "buyToolsNotArrived", "coinsBurned", "buyTools.targets.stock.column"])("en.json names %s", key => {
         expect(en[key]).toEqual(expect.any(String))
     })
 
     test("every status key it reports is in en.json", () => {
-        for (const key of ["Starting", "NoTargets", "NoAnswer", "NoOffer", "CoinFloor", "CapReached", "StorageFull", "Refused", "TargetsMet", "Bought"])
+        for (const key of ["Starting", "NoTargets", "NoAnswer", "NoCastle", "NotArrived", "NoOffer", "CoinFloor", "CapReached", "StorageFull", "Refused", "TargetsMet", "Bought"])
             expect(en[`statusBuyTools${key}`]).toEqual(expect.any(String))
     })
 })
@@ -121,13 +124,32 @@ describe("buying the deficit", () => {
         expect(bot.sent.map(([cmd]) => cmd)).toContain("dcl")
     })
 
-    test("each target counts only its own kingdom's stock", async () => {
+    test("buys nothing above the minimum either", async () => {
+        const { buys } = run({ options: { targets: ladders(1000) }, castles: [[0, 10, { 614: 5000 }]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+    })
+
+    test("each row counts only its own castle's stock, though two castles share a kingdom", async () => {
         const { buys } = run({
-            options: { targets: [...ladders(100, 0), { kingdom: 1, tool: 614, stock: 100 }], margin: 0 },
-            castles: [[0, 10, { 614: 100 }], [1, 20, { 614: 30 }]],
+            options: { targets: [...ladders(100, 10), ...ladders(100, 11), ...ladders(100, 20, 1)], margin: 0 },
+            castles: [[0, 10, { 614: 100 }], [0, 11, { 614: 30 }, 4], [1, 20, { 614: 30 }]],
         })
         await vi.advanceTimersByTimeAsync(15 * MINUTE)
-        expect(buys()).toEqual([order(LADDER, 70, 1)])
+        expect(buys()).toEqual([order(LADDER, 70, 0), order(LADDER, 70, 1)])
+    })
+
+    test("a castle in another kingdom's stock does not fill this castle's minimum", async () => {
+        const { buys } = run({ options: { targets: ladders(100), margin: 0 }, castles: [[0, 10, { 614: 10 }], [1, 20, { 614: 5000 }]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 90, 0)])
+    })
+
+    test("sends the kingdom and leaves the castle field at -1, as the client does for tools", async () => {
+        const { buys } = run({ options: { targets: ladders(100, 20, 1), margin: 0 }, castles: [[1, 20, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 100, 1)])
+        expect(buys()[0].AID).toBe(-1)
     })
 
     test("checks again about an hour after the last check", async () => {
@@ -281,4 +303,97 @@ test("unload stops it", async () => {
     bot.events.emit("unload")
     await vi.advanceTimersByTimeAsync(5 * 60 * MINUTE)
     expect(buys()).toHaveLength(1)
+})
+
+describe("a row with no stock", () => {
+    test.each([[0], [undefined], [-5]])("a stock of %s buys nothing and the status says no targets", async stock => {
+        const { buys, status } = run({ options: { targets: [castleRow(614, stock)] }, castles: [[0, 10, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsNoTargets" })
+    })
+
+    test("a row without a stock is skipped while the next row buys", async () => {
+        const { buys } = run({ options: { targets: [castleRow(614, 0), castleRow(611, 50)], margin: 0 }, castles: [[0, 10, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(RAM, 50)])
+    })
+
+    test("with dry run it logs nothing for it either", async () => {
+        const { buys, logs } = run({ options: { targets: [castleRow(614, 0)], dryRunOrders: true }, castles: [[0, 10, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+        expect(logs.some(([key]) => key == "dryRunSbp")).toBe(false)
+    })
+})
+
+describe("with dry run, per castle", () => {
+    test("logs the shortfall of the castle below its minimum, sends nothing, and leaves a met castle alone", async () => {
+        const { buys, logs } = run({
+            options: { targets: [...ladders(1000, 10), ...ladders(1000, 11)], margin: 0, dryRunOrders: true },
+            castles: [[0, 10, { 614: 1000 }], [0, 11, { 614: 400 }, 4]],
+        })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+        expect(logs.map(([key, json]) => [key, JSON.parse(json)])).toEqual([["dryRunSbp", order(LADDER, 600)]])
+    })
+})
+
+describe("rows stored before castles", () => {
+    test("a kingdom row reads as that kingdom's main castle", async () => {
+        const { buys } = run({
+            options: { targets: [{ kingdom: 1, tool: 614, stock: 100 }], margin: 0 },
+            castles: [[0, 10, { 614: 0 }], [1, 20, { 614: 0 }, 4], [1, 21, { 614: 30 }]],
+        })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 70, 1)])
+    })
+
+    test("the main castle marker finds the main castle in its kingdom", async () => {
+        const { buys } = run({ options: { targets: [{ castle: { kingdom: 0, id: -1 }, tool: 614, stock: 100 }], margin: 0 }, castles: [[0, 10, { 614: 40 }]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 60, 0)])
+    })
+
+    test("a stored row with neither castle nor kingdom buys nothing", async () => {
+        const { buys } = run({ options: { targets: [{ tool: 614, stock: 100 }] }, castles: [[0, 10, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+    })
+})
+
+describe("a castle the game may not deliver to", () => {
+    test("a castle that is not on the account is reported and not bought for", async () => {
+        const { buys, status } = run({ options: { targets: ladders(100, 99) }, castles: [[0, 10, {}]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsNoCastle" })
+    })
+
+    test("an outpost whose purchase never shows up there is bought for once, then left", async () => {
+        const { buys, status, logs } = run({ options: { targets: ladders(1000, 11), margin: 0 }, castles: [[0, 10, {}], [0, 11, { 614: 600 }, 4]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 400)])
+        await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
+        expect(buys()).toHaveLength(1)
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsNotArrived" })
+    })
+
+    test("the main castle is bought for again on the next check while it is still short", async () => {
+        const { buys } = run({ options: { targets: ladders(1000), margin: 0 }, castles: [[0, 10, { 614: 600 }]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
+        expect(buys().length).toBeGreaterThan(1)
+    })
+
+    test("an outpost keeps being bought for when its stock does rise", async () => {
+        const castles = [[0, 10, {}], [0, 11, { 614: 600 }, 4]]
+        const { buys } = run({ options: { targets: ladders(1000, 11), margin: 0 }, castles })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toHaveLength(1)
+        castles[1][2][614] = 800
+        await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
+        expect(buys()).toHaveLength(2)
+        expect(buys()[1]).toEqual(order(LADDER, 200, 0))
+    })
 })

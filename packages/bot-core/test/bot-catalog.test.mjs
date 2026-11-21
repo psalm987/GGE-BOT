@@ -77,6 +77,10 @@ describe("plugin descriptions and option help", () => {
         const real = new Set(plugins.flatMap(p => p.options.filter(d => d.key).map(d => `${p.key}.${d.key}.help`)))
         expect(Object.keys(en).filter(key => key.endsWith(".help") && !real.has(key))).toEqual([])
     })
+    test("a column name belongs to a real column of a Rows option", () => {
+        const real = new Set(plugins.flatMap(p => p.options.filter(d => d.type == "Rows").flatMap(d => d.columns.map(c => `${p.key}.${d.key}.${c.key}.column`))))
+        expect(Object.keys(en).filter(key => key.endsWith(".column") && !real.has(key))).toEqual([])
+    })
     test("a description belongs to a visible plugin", () => {
         const real = new Set(visible.map(p => `${p.key}.description`))
         expect(Object.keys(en).filter(key => key.endsWith(".description") && !real.has(key))).toEqual([])
@@ -101,7 +105,7 @@ describe("en.json holds nothing nobody uses", () => {
         ])
         const unused = Object.keys(en).filter(key => {
             const stem = key.replace(/_(zero|one|two|few|many|other)$/, "")
-            if (key.endsWith(".description") || key.endsWith(".help"))
+            if (key.endsWith(".description") || key.endsWith(".help") || key.endsWith(".column"))
                 return false
             return !named.has(stem) && !(key in UNUSED_ALLOWED)
         })

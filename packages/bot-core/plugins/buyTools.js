@@ -1,90 +1,107 @@
-if (require('node:worker_threads').isMainThread)
-    return module.exports = {
-        pluginOptions: [
-            {
-                type: "Rows",
-                key: "targets",
-                columns: [
-                    { key: "kingdom", type: "number", min: 0, max: 10, default: 0 },
-                    { key: "tool", type: "tool" },
-                    { key: "stock", type: "number", min: 1, max: 2_000_000_000, default: 10_000 },
-                ],
-                default: []
-            },
-            {
-                type: "Number",
-                key: "margin",
-                min: 0,
-                max: 1_000_000,
-                step: 100,
-                default: 4000
-            },
-            {
-                type: "Number",
-                key: "coinFloor",
-                min: 0,
-                max: 2_147_483_647,
-                step: 1000,
-                unit: "coins",
-                default: 0
-            },
-            {
-                type: "Number",
-                key: "spendCap",
-                min: 1000,
-                max: 2_147_483_647,
-                step: 1000,
-                unit: "coins",
-                default: 500_000
-            },
-            {
-                type: "Checkbox",
-                key: "burnOverflow",
-                default: false
-            },
-            {
-                type: "Number",
-                key: "overflowThreshold",
-                min: 1_000_000,
-                max: 2_147_483_647,
-                step: 1_000_000,
-                unit: "coins",
-                default: 2_000_000_000
-            },
-            {
-                type: "Checkbox",
-                key: "dryRunOrders",
-                default: false
-            }
-        ]
+const optionDefs = [
+    {
+        type: "Rows",
+        key: "targets",
+        columns: [
+            { key: "castle", type: "castle", legacyKingdom: "kingdom" },
+            { key: "tool", type: "tool" },
+            { key: "stock", type: "number", min: 0, max: 2_000_000_000, default: 0 },
+        ],
+        default: []
+    },
+    {
+        type: "Number",
+        key: "margin",
+        min: 0,
+        max: 1_000_000,
+        step: 100,
+        default: 4000
+    },
+    {
+        type: "Number",
+        key: "coinFloor",
+        min: 0,
+        max: 2_147_483_647,
+        step: 1000,
+        unit: "coins",
+        default: 0
+    },
+    {
+        type: "Number",
+        key: "spendCap",
+        min: 1000,
+        max: 2_147_483_647,
+        step: 1000,
+        unit: "coins",
+        default: 500_000
+    },
+    {
+        type: "Checkbox",
+        key: "burnOverflow",
+        default: false
+    },
+    {
+        type: "Number",
+        key: "overflowThreshold",
+        min: 1_000_000,
+        max: 2_147_483_647,
+        step: 1_000_000,
+        unit: "coins",
+        default: 2_000_000_000
+    },
+    {
+        type: "Checkbox",
+        key: "dryRunOrders",
+        default: false
     }
 
+]
+
+if (require('node:worker_threads').isMainThread)
+    return module.exports = { pluginOptions: optionDefs }
+
 const { events, botConfig } = require("../ggeBot.js")
-const { resources } = require("../protocols.js")
+const { resources, castles, AreaType } = require("../protocols.js")
+const { readLegacy, MAIN_CASTLE } = require("../legacyOptions.js")
 const { chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
 const { units, liveOffers, buy } = require("../armourer.js")
 const stock = require("./stock.js")
 
-const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const pluginOptions = readLegacy(optionDefs, botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
 reportStatus("waiting", "statusBuyToolsStarting")
 
 const NOT_ENOUGH_COINS = 10
 const STORAGE_FULL = 154
+/**
+ * A buy names the kingdom, and the game picks the castle (docs/protocol/tools.md). For a castle that is not the kingdom's
+ * main one, the count the row had when the bot last bought for it, so a row whose purchases never show up stops buying.
+ */
+const sentAt = new Map()
 /** The most packages the overflow burn buys in one run, so a refusal it can't read ends it. */
 const MAX_BURN_ORDERS = 20
 
 const option = (key, fallback) => Number.isFinite(Number(pluginOptions[key])) && pluginOptions[key] !== "" && pluginOptions[key] !== null ? Number(pluginOptions[key]) : fallback
 
+const MAIN_TYPES = [AreaType.mainCastle, AreaType.externalKingdom, AreaType.beriCastle]
+
+/** The account's castle a row names, with its kingdom and whether it is that kingdom's main castle. A row of the main castle marker finds it by area type. */
+function castleOf(ref) {
+    const own = castles.filter(castle => castle.kingdomID == ref.kingdom && castle.areaInfo)
+    const castle = ref.id == MAIN_CASTLE ? own.find(c => MAIN_TYPES.includes(c.areaInfo.type)) : own.find(c => c.id == ref.id)
+    return castle && { id: castle.id, kingdom: castle.kingdomID, main: MAIN_TYPES.includes(castle.areaInfo.type) }
+}
+
+/** The rows with a castle, a known tool and a stock above 0. A row with no stock, or a stock of 0, never buys. */
 const targetRows = () => (Array.isArray(pluginOptions.targets) ? pluginOptions.targets : [])
-    .map(row => ({ kingdom: Number(row.kingdom), tool: Number(row.tool), stock: Number(row.stock) }))
-    .filter(row => units.has(row.tool) && row.stock > 0 && Number.isInteger(row.kingdom))
+    .map(row => ({ ref: row.castle, tool: Number(row.tool), stock: Number(row.stock) }))
+    .filter(row => units.has(row.tool) && row.stock > 0 && Number.isInteger(row.ref?.kingdom) && Number.isInteger(row.ref?.id))
 
 /** Outcomes of one target, best first. */
-const OUTCOMES = ["bought", "met", "refused", "storageFull", "capReached", "coinFloor", "noOffer"]
-const BLOCKERS = ["noOffer", "coinFloor", "capReached", "storageFull", "refused"]
-const STATUS_KEY = { noOffer: "statusBuyToolsNoOffer", coinFloor: "statusBuyToolsCoinFloor", capReached: "statusBuyToolsCapReached", storageFull: "statusBuyToolsStorageFull", refused: "statusBuyToolsRefused" }
+const OUTCOMES = ["bought", "met", "refused", "storageFull", "capReached", "coinFloor", "noOffer", "noCastle", "notArrived"]
+const BLOCKERS = ["noCastle", "notArrived", "noOffer", "coinFloor", "capReached", "storageFull", "refused"]
+const STATUS_KEY = { noCastle: "statusBuyToolsNoCastle", notArrived: "statusBuyToolsNotArrived", noOffer: "statusBuyToolsNoOffer", coinFloor: "statusBuyToolsCoinFloor", capReached: "statusBuyToolsCapReached", storageFull: "statusBuyToolsStorageFull", refused: "statusBuyToolsRefused" }
 
 /** Spends the coins above the threshold on the targeted tools, in row order, until the next package doesn't fit. */
 async function burnOverflow(rows, offers, coins, dryRun, active) {
@@ -97,7 +114,7 @@ async function burnOverflow(rows, offers, coins, dryRun, active) {
             const count = Math.min(Math.floor(excess / offer.price), offer.maxPerClick)
             if (!(count > 0))
                 break
-            const result = await buy(offer, count, row.kingdom, dryRun)
+            const result = await buy(offer, count, row.castle.kingdom, dryRun)
             orders++
             if (result !== 0)
                 break
@@ -111,7 +128,7 @@ async function burnOverflow(rows, offers, coins, dryRun, active) {
 }
 
 async function cycle(active) {
-    const rows = targetRows()
+    const rows = targetRows().map(row => ({ ...row, castle: castleOf(row.ref) }))
     if (rows.length == 0) {
         reportStatus("waiting", "statusBuyToolsNoTargets")
         return 60 * 60_000
@@ -132,13 +149,23 @@ async function cycle(active) {
     const dryBought = new Map()
 
     for (const [i, row] of rows.entries()) {
+        if (!row.castle) {
+            outcomes[i].add("noCastle")
+            continue
+        }
         const offer = offers.get(row.tool)
         if (!offer) {
             outcomes[i].add("noOffer")
             continue
         }
-        const key = `${row.kingdom}:${row.tool}`
-        const deficit = row.stock - stock.toolStock(row.tool, { kingdom: row.kingdom }).total - (dryBought.get(key) ?? 0)
+        const key = `${row.castle.kingdom}:${row.castle.id}:${row.tool}`
+        const have = stock.toolStock(row.tool, { castle: row.castle }).total
+        if (!row.castle.main && sentAt.has(key) && have <= sentAt.get(key)) {
+            console.warn("buyToolsNotArrived", key)
+            outcomes[i].add("notArrived")
+            continue
+        }
+        const deficit = row.stock - have - (dryBought.get(key) ?? 0)
         if (deficit <= 0) {
             outcomes[i].add("met")
             continue
@@ -153,7 +180,7 @@ async function cycle(active) {
         }
         if (!active())
             return
-        const result = await buy(offer, count, row.kingdom, dryRun)
+        const result = await buy(offer, count, row.castle.kingdom, dryRun)
         if (result !== 0) {
             outcomes[i].add(result == STORAGE_FULL ? "storageFull" : result == NOT_ENOUGH_COINS ? "coinFloor" : "refused")
             continue
@@ -162,6 +189,8 @@ async function cycle(active) {
         spent += cost
         coins = dryRun ? coins - cost : Number.isFinite(resources.coins) ? resources.coins : coins - cost
         bought += count * offer.perPackage
+        if (!dryRun)
+            sentAt.set(key, have)
         dryBought.set(key, (dryBought.get(key) ?? 0) + count * offer.perPackage)
         outcomes[i].add("bought")
         await pause(1500, 4000)
