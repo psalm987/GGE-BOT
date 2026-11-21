@@ -75,7 +75,7 @@ The armourer is a package event, event 27 (`EVENTTYPE_ARMORER`, D@2595230). The 
 | `TID` | 27 |
 | `AMT` | How many packages |
 | `KID` | The kingdom |
-| `AID` | -1 |
+| `AID` | -1 for a tool. A castle's object id only for a package whose reward is a building |
 | `PC2` | -1 |
 | `BA` | 0 |
 | `PWR` | 0 |
@@ -84,6 +84,25 @@ The armourer is a package event, event 27 (`EVENTTYPE_ARMORER`, D@2595230). The 
 `attackStormForts.js` already sends `sbp`, with `BT: 3`.
 
 The reply is `{gcu, gui, grc, cpi, sin, vip, ...}` (`SBPCommand`, G@14367138). The errors are 10 (`NOT_ENOUGH_CURRENCY1`), 154 (`STORAGE_CAPACITY_REACHED`) and 327 (`NOT_ENOUGH_SPECIAL_CURRENCY`).
+
+### Which castle receives a package
+
+Nothing in the client lets a player choose a castle for a tool package. This was read from `Game.bundle.b13ef28e9bb95fa622bd.js` of the public HTML5 client, without logging in.
+
+- `C2SBuyEventPackageVO` takes `(PID, BT, TID, AMT, KID, AID = -1, PC2 = -1, BA, _PO, PWR)`.
+- The shared buy dialog (`AMerchantBuyDialog.onBtnOkClick`) sets `KID` to the active kingdom and starts `AID` at -1. It fills `AID` only when `packageVO.reward.itemType == CollectableEnum.BUILDING`. Then it sends the active castle's object id, or the kingdom's main castle when the active area is not one of the player's castles.
+- Armourer packages reward units, so the client sends `AID` -1 for every tool.
+- The re-buy path of the equipment merchant dialog also sends `AID` -1.
+
+So `KID` picks the kingdom and the server picks the castle. Which castle that is, the active castle, the main castle or one the server chooses, is **not known**. The bot sends what the client sends and does not set `AID` for tools.
+
+How the Armourer module uses this. A row names a castle. The bot counts that castle's tools and compares them with the row's stock, then buys into the castle's kingdom with `AID` -1. For a kingdom's main castle this is the best-supported case. For any other castle, the bot checks that the purchase raised that castle's count, and stops buying for that row if it did not (log key `buyToolsNotArrived`).
+
+| Fact | Confidence | Confirm with |
+|---|---|---|
+| The client sends `AID` -1 for tool packages | high | |
+| `AID` is only a castle id for building rewards | high | |
+| The server delivers a tool package to the kingdom's main castle | low | Buy one package from the second test account while another castle is active, then read both castles' tools. |
 
 ### Coin prices
 
