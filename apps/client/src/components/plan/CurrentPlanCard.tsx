@@ -45,7 +45,7 @@ export function CurrentPlanCard({ plan, admin }: { plan: MyPlan | undefined; adm
                         <strong>{t("plan.current.used", { counted, limit })}</strong>
                     </div>
                     <Progress percent={limit ? Math.min(100, (counted / limit) * 100) : counted ? 100 : 0} showInfo={false}
-                        strokeColor={over ? palette.amber : palette.gold} railColor={palette.raised} aria-labelledby="plan-usage" />
+                        strokeColor={over ? palette.amber : palette.primary} railColor={palette.raised} aria-labelledby="plan-usage" />
                     <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                         {over ? t("plan.current.over", { count: counted - limit }) : t("plan.current.twinsFree")}
                     </Typography.Text>

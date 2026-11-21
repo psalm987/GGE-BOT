@@ -35,16 +35,16 @@ export function PlanReturn() {
 
     let content: ReactNode
     if (!reference)
-        content = screen(<CloseCircleFilled style={{ color: palette.crimsonText }} />, t("planReturn.missingTitle"), t("planReturn.missingBody"), toPlan)
+        content = screen(<CloseCircleFilled style={{ color: palette.crimson }} />, t("planReturn.missingTitle"), t("planReturn.missingBody"), toPlan)
     else if (outcome.isPending)
         content = <div className="gge-return" role="status" aria-busy><Typography.Text>{t("planReturn.checking")}</Typography.Text><Skeleton active paragraph={{ rows: 2 }} /></div>
     else if (outcome.error)
-        content = screen(<CloseCircleFilled style={{ color: palette.crimsonText }} />, t("planReturn.errorTitle"), messageOf(outcome.error), <>{again}{toPlan}</>)
+        content = screen(<CloseCircleFilled style={{ color: palette.crimson }} />, t("planReturn.errorTitle"), messageOf(outcome.error), <>{again}{toPlan}</>)
     else if (state === "delivered") {
         const { period, codes, points } = outcome.data.delivered!
         const days = period && Math.round((period.endsAt.getTime() - period.startsAt.getTime()) / 86_400_000)
         content = screen(
-            <CheckCircleFilled style={{ color: palette.emeraldText }} />,
+            <CheckCircleFilled style={{ color: palette.emerald }} />,
             t("planReturn.paidTitle"),
             <>
                 {period
@@ -59,7 +59,7 @@ export function PlanReturn() {
     else if (state === "refunded")
         content = screen(<CloseCircleFilled style={{ color: palette.muted }} />, t("planReturn.refundedTitle"), t("planReturn.refundedBody"), toPlan)
     else
-        content = screen(<CloseCircleFilled style={{ color: palette.crimsonText }} />, t("planReturn.failedTitle"), t("planReturn.failedBody"), <>{again}{toPlan}</>)
+        content = screen(<CloseCircleFilled style={{ color: palette.crimson }} />, t("planReturn.failedTitle"), t("planReturn.failedBody"), <>{again}{toPlan}</>)
 
     return (
         <AppLayout activeKey="plan" title={t("plan.title")}>

@@ -9,13 +9,13 @@ import { palette } from "@gge/ui"
 export type PillState = PluginRunState | "off" | "botStopped"
 export type PluginPill = { state: PillState; reason: string | null }
 
-const PILLS: Record<PillState, { color: string; text: string; icon: ReactNode }> = {
-    running: { color: palette.emerald, text: palette.emeraldText, icon: <CheckCircleFilled /> },
-    waiting: { color: palette.amber, text: palette.amber, icon: <ClockCircleOutlined /> },
-    stopped: { color: palette.muted, text: palette.muted, icon: <MinusCircleOutlined /> },
-    error: { color: palette.crimson, text: palette.crimsonText, icon: <WarningFilled /> },
-    off: { color: palette.muted, text: palette.muted, icon: <PauseCircleOutlined /> },
-    botStopped: { color: palette.muted, text: palette.muted, icon: <MinusCircleOutlined /> },
+const PILLS: Record<PillState, { color: string; icon: ReactNode }> = {
+    running: { color: palette.emerald, icon: <CheckCircleFilled /> },
+    waiting: { color: palette.amber, icon: <ClockCircleOutlined /> },
+    stopped: { color: palette.muted, icon: <MinusCircleOutlined /> },
+    error: { color: palette.crimson, icon: <WarningFilled /> },
+    off: { color: palette.muted, icon: <PauseCircleOutlined /> },
+    botStopped: { color: palette.muted, icon: <MinusCircleOutlined /> },
 }
 
 /** The pill for a plugin, or null while it runs and hasn't said anything yet. */
@@ -35,8 +35,8 @@ export function PluginStatusPill({ state }: { state: PillState }) {
     const { t } = useTranslation("client")
     const pill = PILLS[state]
     return (
-        <Tag icon={<span style={{ color: pill.color }}>{pill.icon}</span>} variant="outlined"
-            style={{ color: pill.text, borderColor: pill.color, background: "transparent", fontWeight: 500, marginInlineEnd: 0 }}>
+        <Tag icon={pill.icon} variant="outlined"
+            style={{ color: pill.color, borderColor: pill.color, background: "transparent", fontWeight: 500, marginInlineEnd: 0 }}>
             {t(`plugins.state.${state}`)}
         </Tag>
     )
@@ -46,7 +46,7 @@ export function BreaksPeaceTag() {
     const { t } = useTranslation("client")
     return (
         <Tag icon={<WarningFilled style={{ color: palette.crimson }} />} variant="outlined"
-            style={{ color: palette.crimsonText, borderColor: palette.crimson, background: "transparent", fontWeight: 500, marginInlineEnd: 0 }}>
+            style={{ color: palette.crimson, borderColor: palette.crimson, background: "transparent", fontWeight: 500, marginInlineEnd: 0 }}>
             {t("plugins.breaksPeace")}
         </Tag>
     )

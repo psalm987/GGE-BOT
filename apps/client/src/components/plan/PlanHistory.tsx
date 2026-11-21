@@ -99,7 +99,7 @@ export function PlanHistory({ codes, purchases, points, loading }: { codes: Lice
                 { title: t("plan.history.col.reason"), dataIndex: "reason", render: (r: PointsEntry["reason"]) => t(`plan.history.reason.${r}`) },
                 {
                     title: t("plan.history.col.change"), dataIndex: "delta", align: "right",
-                    render: (n: number) => <strong style={{ color: n > 0 ? palette.emeraldText : palette.crimsonText }}>{n > 0 ? `+${n}` : `−${-n}`}</strong>,
+                    render: (n: number) => <strong style={{ color: n > 0 ? palette.emerald : palette.crimson }}>{n > 0 ? `+${n}` : `−${-n}`}</strong>,
                 },
             ]} />
     )

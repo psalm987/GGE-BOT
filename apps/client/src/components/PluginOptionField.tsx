@@ -249,7 +249,7 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
     const half = { xs: 24, sm: 12, style }
     const full = { span: 24, style }
     if (def.type === "Label")
-        return <Col {...full}><Typography.Text strong className="gge-display" style={{ color: palette.gold, fontSize: 13 }}>{label}</Typography.Text></Col>
+        return <Col {...full}><Typography.Text strong className="gge-display" style={{ color: palette.heading, fontSize: 13 }}>{label}</Typography.Text></Col>
     const name = ["options", def.key]
     switch (def.type) {
         case "Checkbox":

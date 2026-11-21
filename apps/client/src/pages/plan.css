@@ -2,14 +2,14 @@
 .gge-plan .ant-card-body { display: grid; gap: 20px; align-content: start; }
 
 .gge-plan-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
-.gge-plan-name { font-size: 28px; font-weight: 700; color: var(--gge-gold); line-height: 1.1; }
+.gge-plan-name { font-size: 28px; font-weight: 700; color: var(--gge-heading); line-height: 1.1; }
 .gge-plan-ends { display: grid; justify-items: end; gap: 2px; text-align: end; }
 .gge-plan-ends strong { font-size: 18px; font-variant-numeric: tabular-nums; }
 .gge-plan-none { display: grid; gap: 4px; }
 
 .gge-plan-usage { display: grid; gap: 2px; }
 .gge-plan-usage-label { display: flex; justify-content: space-between; gap: 12px; color: var(--gge-muted); }
-.gge-plan-usage-label strong { color: var(--gge-parchment); font-variant-numeric: tabular-nums; }
+.gge-plan-usage-label strong { color: var(--gge-text); font-variant-numeric: tabular-nums; }
 
 .gge-plan-queue ol { list-style: none; margin: 8px 0 0; padding: 0; border-inline-start: 2px solid var(--gge-rule); }
 .gge-plan-queue li { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 8px 0 8px 18px; }
@@ -21,10 +21,10 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: var(--gge-ink);
+    background: var(--gge-ground);
     border: 2px solid var(--gge-rule);
 }
-.gge-plan-queue li[data-now]::before { background: var(--gge-gold); border-color: var(--gge-gold); }
+.gge-plan-queue li[data-now]::before { background: var(--gge-fresh); border-color: var(--gge-fresh); }
 .gge-plan-queue-when { color: var(--gge-muted); font-variant-numeric: tabular-nums; }
 
 .gge-packages { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -38,12 +38,12 @@
     background: rgba(243, 231, 201, 0.03);
 }
 .gge-package-name { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.04em; font-weight: 700; font-size: 17px; }
-.gge-package-price { font-size: 26px; font-weight: 700; color: var(--gge-gold); font-variant-numeric: tabular-nums; }
+.gge-package-price { font-size: 26px; font-weight: 700; color: var(--gge-heading); font-variant-numeric: tabular-nums; }
 .gge-package-offline { color: var(--gge-muted); font-size: 14px; line-height: 1.4; }
-.gge-package-offline .anticon { color: var(--gge-gold); margin-inline-end: 4px; }
+.gge-package-offline .anticon { color: var(--gge-accent); margin-inline-end: 4px; }
 .gge-package-days { color: var(--gge-muted); font-size: 14px; }
 .gge-package-gives { flex: 1; display: grid; gap: 6px; align-content: start; margin: 10px 0 14px; padding: 0; list-style: none; }
-.gge-package-gives .anticon { color: var(--gge-gold); margin-inline-end: 4px; }
+.gge-package-gives .anticon { color: var(--gge-accent); margin-inline-end: 4px; }
 
 .gge-code-input input, .gge-code-input { font-family: var(--gge-mono); letter-spacing: 0.06em; }
 .gge-code { font-family: var(--gge-mono); font-size: 14px; letter-spacing: 0.04em; white-space: nowrap; }

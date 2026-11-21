@@ -93,8 +93,8 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
             )}
             {phone && (
                 <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} placement={direction === "rtl" ? "right" : "left"} size={288}
-                    title={<span style={{ display: "flex", alignItems: "center", gap: 10 }}><Crest size={24} /><span className="gge-display" style={{ color: palette.gold }}>{product}</span></span>}
-                    styles={{ body: { padding: 0, display: "flex", flexDirection: "column", background: palette.sider }, header: { background: palette.sider } }}
+                    title={<span style={{ display: "flex", alignItems: "center", gap: 10 }}><Crest size={24} /><span className="gge-display" style={{ color: palette.navText }}>{product}</span></span>}
+                    styles={{ body: { padding: 0, display: "flex", flexDirection: "column", background: palette.nav }, header: { background: palette.nav } }}
                     rootClassName="gge-nav-drawer">
                     {menu(false, () => setDrawerOpen(false))}
                 </Drawer>

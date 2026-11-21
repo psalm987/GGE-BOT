@@ -37,11 +37,11 @@ export function PointsCard({ points, focus }: { points: PointsSummary | undefine
         <ParchmentCard title={t("plan.points.title")} style={{ height: "100%" }}>
             <div id="points" ref={card} className="gge-points">
                 <div className="gge-points-balance">
-                    <StarFilled aria-hidden style={{ color: palette.gold }} />
+                    <StarFilled aria-hidden style={{ color: palette.fresh }} />
                     <span>{t("plan.points.balance", { count: points.balance })}</span>
                 </div>
                 <div>
-                    <Progress percent={(standing.toward / points.cost) * 100} showInfo={false} strokeColor={palette.gold} railColor={palette.raised}
+                    <Progress percent={(standing.toward / points.cost) * 100} showInfo={false} strokeColor={palette.primary} railColor={palette.raised}
                         aria-label={t("plan.points.progressLabel")} />
                     <Typography.Text type="secondary">
                         {standing.canRedeem ? t("plan.points.ready", { reward }) : t("plan.points.toward", { have: standing.toward, cost: points.cost, reward })}

@@ -24,15 +24,23 @@ test.each(["primary", "default", "danger"])("the %s game button's text is readab
         expect(contrast(token(`${variant}-text`), token(`${variant}-${end}`)), `${variant} ${end}`).toBeGreaterThanOrEqual(4.5)
 })
 
-test("the primary button is the palette's gold, and its press edge is darker than its face", () => {
-    expect(token("primary-top")).toBe(palette.gold.toUpperCase())
-    expect(token("primary-bottom")).toBe(palette.goldDeep.toUpperCase())
-    expect(luminance(token("primary-edge"))).toBeLessThan(luminance(token("primary-bottom")))
+test.each(["primary", "default", "danger"])("the %s game button's press edge is darker than its face", variant => {
+    expect(luminance(token(`${variant}-edge`))).toBeLessThan(luminance(token(`${variant}-bottom`)))
 })
 
-test("the gold focus ring is visible on the ground the buttons sit on", () => {
-    for (const ground of [palette.ink, palette.surface, palette.raised])
-        expect(contrast(palette.gold, ground)).toBeGreaterThanOrEqual(3)
+test("the primary button ends on the palette's deep green, and danger on its crimson", () => {
+    expect(token("primary-bottom")).toBe(palette.primaryDeep)
+    expect(token("danger-bottom")).toBe(palette.crimson)
+})
+
+test("a white default button stands out from the white card by its edge", () => {
+    expect(contrast(token("default-edge"), palette.surface)).toBeGreaterThanOrEqual(2)
+    expect(contrast(palette.control, palette.surface)).toBeGreaterThanOrEqual(3)
+})
+
+test("the green focus ring is visible on the grounds the buttons sit on", () => {
+    for (const ground of [palette.ground, palette.surface, palette.raised])
+        expect(contrast(palette.accent, ground)).toBeGreaterThanOrEqual(3)
 })
 
 test("no travel under reduced motion, and only the player app's page opts in", () => {

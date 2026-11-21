@@ -91,7 +91,7 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
                 },
                 {
                     key: "points", label: t("userPlan.points"),
-                    children: <Space><strong style={{ color: points.balance < 0 ? palette.crimsonText : undefined }}>{points.balance}</strong>
+                    children: <Space><strong style={{ color: points.balance < 0 ? palette.crimson : undefined }}>{points.balance}</strong>
                         <Button size="small" onClick={() => setDialog("points")}>{t("userPlan.adjust")}</Button></Space>,
                 },
             ]} />
@@ -121,7 +121,7 @@ export function UserPlanPanel({ userId, username, isAdmin }: { userId: string; u
                 locale={{ emptyText: t("userPlan.pointsEmpty") }}
                 columns={[
                     { title: t("userPlan.col.when"), dataIndex: "createdAt", render: (d: Date) => at(d) },
-                    { title: t("userPlan.col.change"), dataIndex: "delta", render: (n: number) => <strong style={{ color: n > 0 ? palette.emeraldText : palette.crimsonText }}>{n > 0 ? `+${n}` : n}</strong> },
+                    { title: t("userPlan.col.change"), dataIndex: "delta", render: (n: number) => <strong style={{ color: n > 0 ? palette.emerald : palette.crimson }}>{n > 0 ? `+${n}` : n}</strong> },
                     { title: t("userPlan.col.reason"), dataIndex: "reason", render: (r: AdminPointsEntry["reason"], e) => <>{t(`userPlan.reason.${r}`)}{e.createdBy && <Typography.Text type="secondary"> · {e.createdBy}</Typography.Text>}</> },
                     { title: t("userPlan.col.note"), dataIndex: "note", responsive: ["md"], render: (n: string | null) => n ?? "" },
                 ]} />

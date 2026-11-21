@@ -68,7 +68,7 @@ function Redeeming({ code }: { code: string }) {
                     <div className="gge-return" role="status" aria-busy><Typography.Text>{t("redeem.working", { code })}</Typography.Text><Skeleton active paragraph={{ rows: 2 }} /></div>
                 ) : period ? (
                     <div className="gge-return" role="status">
-                        <CheckCircleFilled style={{ color: palette.emeraldText }} />
+                        <CheckCircleFilled style={{ color: palette.emerald }} />
                         <Typography.Title level={3} className="gge-display" style={{ margin: 0 }}>{t("redeem.doneTitle")}</Typography.Title>
                         <Typography.Paragraph style={{ margin: 0 }}>
                             {t("plan.redeem.done", { days: Math.round((period.endsAt.getTime() - period.startsAt.getTime()) / 86_400_000), plan: tc(`plan.${period.planId}`) })}{" "}
@@ -78,7 +78,7 @@ function Redeeming({ code }: { code: string }) {
                     </div>
                 ) : (
                     <div className="gge-return" role="alert">
-                        <CloseCircleFilled style={{ color: palette.crimsonText }} />
+                        <CloseCircleFilled style={{ color: palette.crimson }} />
                         <Typography.Title level={3} className="gge-display" style={{ margin: 0 }}>{t("redeem.failedTitle")}</Typography.Title>
                         <Typography.Paragraph style={{ margin: 0 }}>{notLive ? t("redeem.notLive") : codeError(redeem.error)}</Typography.Paragraph>
                         <code className="gge-code">{code}</code>

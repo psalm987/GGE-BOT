@@ -45,7 +45,7 @@ export function Overview() {
                     <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.users")} value={data.users} /></ParchmentCard></Col>
                     <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.accounts")} value={data.accounts} /></ParchmentCard></Col>
                     <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.runs24h")} value={data.last24h.runs} /></ParchmentCard></Col>
-                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.crashes24h")} value={data.last24h.crashes} styles={{ content: { color: data.last24h.crashes ? palette.crimsonText : undefined } }} /></ParchmentCard></Col>
+                    <Col xs={12} md={6}><ParchmentCard><Statistic title={t("overview.crashes24h")} value={data.last24h.crashes} styles={{ content: { color: data.last24h.crashes ? palette.crimson : undefined } }} /></ParchmentCard></Col>
                     <Col xs={24} md={14}>
                         <ParchmentCard title={t("overview.botsByState")}>
                             <Row gutter={[16, 16]}>
@@ -64,10 +64,10 @@ export function Overview() {
                                 <Row gutter={[16, 16]}>
                                     <Col span={12}><Statistic title={t("overview.version")} value={runner.version} /></Col>
                                     <Col span={12}><Statistic title={t("overview.botsRunning")} value={runner.running} /></Col>
-                                    <Col span={24}><Statistic title={t("overview.lastHeartbeat")} value={t("overview.secondsAgo", { count: age ?? 0 })} styles={{ content: { fontSize: 18, color: stale ? palette.crimsonText : undefined } }} /></Col>
+                                    <Col span={24}><Statistic title={t("overview.lastHeartbeat")} value={t("overview.secondsAgo", { count: age ?? 0 })} styles={{ content: { fontSize: 18, color: stale ? palette.crimson : undefined } }} /></Col>
                                     <Col span={24}><Statistic title={t("overview.started")} value={dayjs(runner.startedAt).format("D MMM YYYY HH:mm")} styles={{ content: { fontSize: 18 } }} /></Col>
                                 </Row>
-                            ) : <Statistic title={tc("field.status")} value={t("overview.notReporting")} styles={{ content: { fontSize: 18, color: palette.crimsonText } }} />}
+                            ) : <Statistic title={tc("field.status")} value={t("overview.notReporting")} styles={{ content: { fontSize: 18, color: palette.crimson } }} />}
                         </ParchmentCard>
                     </Col>
                 </Row>

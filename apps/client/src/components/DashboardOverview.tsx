@@ -65,7 +65,7 @@ export function DashboardOverview({ accounts, counted, limit, online, attention,
                     <Statistic value={counted} suffix={limit !== undefined && `/ ${limit}`} />
                 </Kpi>
                 <Kpi icon={<CheckCircleOutlined aria-hidden />} title={t("dashboard.stats.online")} note={t("dashboard.kpi.ofAccounts", { count: accounts.length })}>
-                    <Statistic value={online} styles={{ content: { color: palette.emeraldText } }} />
+                    <Statistic value={online} styles={{ content: { color: palette.emerald } }} />
                 </Kpi>
                 <Kpi icon={<ThunderboltOutlined aria-hidden />} title={t("dashboard.kpi.attacks")} note={t("dashboard.kpi.attacksWindow", { hours: ACTIVITY_WINDOW.attackHours })}>
                     {counting ? <Skeleton.Input active size="small" /> : failed || !totals ? <span className="gge-kpi-value" data-missing>{"—"}</span> : (
@@ -74,7 +74,7 @@ export function DashboardOverview({ accounts, counted, limit, online, attention,
                 </Kpi>
                 <Kpi icon={<CloseCircleOutlined aria-hidden />} title={t("dashboard.kpi.errors")} note={t("dashboard.kpi.errorsWindow", { days: ACTIVITY_WINDOW.errorDays })}>
                     {counting ? <Skeleton.Input active size="small" /> : failed || !totals ? <span className="gge-kpi-value" data-missing>{"—"}</span> : (
-                        <Statistic value={totals.errors.count} styles={{ content: { color: totals.errors.count ? palette.crimsonText : undefined } }}
+                        <Statistic value={totals.errors.count} styles={{ content: { color: totals.errors.count ? palette.crimson : undefined } }}
                             formatter={() => <CountedValue counted={totals.errors} format={number} />} />
                     )}
                 </Kpi>
@@ -84,7 +84,7 @@ export function DashboardOverview({ accounts, counted, limit, online, attention,
                     </Kpi>
                 ))}
                 <Kpi icon={<WarningOutlined aria-hidden />} title={t("dashboard.stats.attention")}>
-                    <Statistic value={attention} styles={{ content: { color: attention ? palette.crimsonText : undefined } }} />
+                    <Statistic value={attention} styles={{ content: { color: attention ? palette.crimson : undefined } }} />
                 </Kpi>
             </div>
             <Typography.Paragraph type="secondary" className="gge-kpi-footnote">
