@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Progress, Select, Skeleton, Tabs, Tag, Typogr
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
-import { MODULES, commanderUsage, type ModuleDef, type PluginCatalogEntry, type PublicAccount } from "@gge/contracts"
+import { MODULES, type ModuleDef, type PluginCatalogEntry, type PublicAccount } from "@gge/contracts"
 import { Icon, messageOf, ParchmentCard } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
@@ -11,12 +11,13 @@ import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { StartStop, StartStopDetail } from "../components/StartStop.tsx"
 import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
+import { CommanderPicker } from "../components/CommanderPicker.tsx"
 import { CopyToAll } from "../components/PluginOptionField.tsx"
 import { PluginSection } from "../components/PluginSection.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "../components/PluginPanels.tsx"
-import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSave, startModule, type ModuleState } from "../module-values.ts"
+import { attackPluginsOn, changedPlugins, commanderPlugins, commandersDiffer, dailyAsked, moduleReducer, pluginsToSave, sharedCommanders, startModule, type ModuleState } from "../module-values.ts"
 import { moduleKey } from "../nav.ts"
-import type { OptionValues } from "../plugin-values.ts"
+import { pluginFormValues, type OptionValues } from "../plugin-values.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 import { hasUnsaved, setUnsaved } from "../unsaved.ts"
 import "./module.css"
@@ -116,6 +117,8 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const { message } = App.useApp()
     const [state, dispatch] = useReducer(moduleReducer, undefined, () => startModule(entries, account?.plugins))
     const [resetKey, setResetKey] = useState(0)
+    const pickerPlugins = useMemo(() => commanderPlugins(entries), [entries])
+    const [mixed, setMixed] = useState(() => commandersDiffer(entries, pluginFormValues(entries, account?.plugins)))
     const forms = useRef(new Map<string, FormInstance>())
     const dirty = changedPlugins(entries, state).length > 0
     const readOnly = !account
@@ -134,6 +137,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const save = useMutation(orpc.accounts.update.mutationOptions({
         onSuccess: () => {
             dispatch({ type: "saved" })
+            setMixed(false)
             void queryClient.invalidateQueries({ queryKey: orpc.accounts.list.key() })
             message.success(t("module.saved", { name: account?.name }))
         },
@@ -157,13 +161,14 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
 
     const sections = entries.map(entry => (
         <PluginSection key={`${entry.key}-${resetKey}`} entry={entry} state={state} disabled={readOnly || save.isPending}
-            castles={castles} accountId={account?.id} commanders={account?.status?.commanders ?? null}
+            castles={castles} accountId={account?.id}
             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
     ))
     const changed = new Set(changedPlugins(entries, state))
     const byKingdom = module.tabs === "kingdoms"
-    const commanderOption = module.global?.commanderOption
+    const commanders = sharedCommanders(entries, state.values)
+    const vipDef = entries.find(e => e.key === pickerPlugins[0]?.plugin)?.options.find(def => def.key === pickerPlugins[0]?.vip)
     /** One option's value, put into every plugin of the page: the forms that are drawn, and the page's own state. */
     function copyToAll(key: string, value: unknown) {
         for (const entry of entries) {
@@ -197,8 +202,13 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                     onEnabled={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })} readOnly={readOnly || save.isPending} />)}
             </ParchmentCard>
             <GlobalCard module={module} account={account} asked={dailyAsked(entries, state, module.global?.dailyCapOption)}
-                commanders={commanderOption === undefined ? undefined : commanderUsage(entries.filter(e => state.values[e.key]?.enabled).map(e => String(state.values[e.key]?.options[commanderOption] ?? "")), account?.status?.commanders)}
                 attackLimit={(account?.plugins.attack?.options.attackLimit as string | undefined) || catalog.find(e => e.key === "attack")?.options.flatMap(def => def.key === "attackLimit" && def.type === "Text" ? def.default ?? [] : [])[0]} />
+
+            {commanders && (
+                <CommanderPicker list={commanders.list} vip={commanders.vip} vipMax={vipDef?.type === "Number" ? vipDef.max : 0} commanders={account?.status?.commanders ?? null}
+                    disabled={readOnly || save.isPending} shared={pickerPlugins.length > 1} mixed={mixed}
+                    onChange={set => dispatch({ type: "commanders", plugins: pickerPlugins, set })} />
+            )}
 
             {readOnly && <Typography.Text type="secondary" role="status">{t("module.readOnly")}</Typography.Text>}
 

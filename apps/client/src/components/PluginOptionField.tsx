@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
 import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, MAX_COMMANDERS, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
+import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
@@ -230,27 +230,17 @@ const extraOf = (...lines: (ReactNode | undefined)[]) => {
     return shown.length ? <>{shown.map((line, i) => <div key={i}>{line}</div>)}</> : undefined
 }
 
-/** One option of a plugin in its settings dialog, bound to the dialog form's `options.<key>`. */
-/** The commanders the bot last counted on the account, never above the game's limit: the line under a commander list. */
-function useCommanderRoster(commanders: number | null | undefined) {
-    const { t } = useTranslation("client")
-    if (commanders === null || commanders === undefined)
-        return t("plugins.commanders.unknown")
-    const count = Math.min(commanders, MAX_COMMANDERS)
-    return count === 0 ? t("plugins.commanders.none") : count === 1 ? t("plugins.commanders.one") : t("plugins.commanders.owned", { count })
-}
-
-export function PluginOptionField({ entry, def, castles, hidden, accountId, commanders }: {
+/** One option of a plugin in its settings dialog, bound to the dialog form's `options.<key>`. The commander list and VIP cap are left to the module's commander picker. */
+export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
     entry: PluginCatalogEntry; def: PluginOptionDef; castles: AccountCastle[]; hidden: boolean; accountId?: string
-    /** How many commanders the bot last counted on the account; null until it has run. */
-    commanders?: number | null
 }) {
     const plugin = entry.key
     const { t, i18n } = useTranslation("bot")
     const { t: tc } = useTranslation("client")
-    const roster = useCommanderRoster(commanders)
     if (def.type === "")
         return hidden ? null : <Col xs={0} sm={12} />
+    if ((entry.checks ?? []).some(check => check.option === def.key || check.vip === def.key))
+        return null
     const label = t(def.key, { defaultValue: def.key })
     const helpKey = `${plugin}.${def.key}.help`
     const help = def.type !== "Label" && i18n.exists(helpKey, { ns: "bot" }) ? t(helpKey) : undefined
@@ -320,10 +310,9 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId, comm
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
             const hint = def.type === "Channel" ? tc("plugins.channelId")
                 : bounds ? tc("plugins.between", { min: def.min ?? tc("plugins.any"), max: def.max ?? tc("plugins.any") }) : undefined
-            const commanderList = def.type === "Text" && (entry.checks ?? []).some(check => check.type === "commanders" && check.option === def.key)
             return (
                 <Col {...half}>
-                    <Form.Item name={name} label={label} extra={extraOf(hint, commanderList ? roster : undefined, help)}>
+                    <Form.Item name={name} label={label} extra={extraOf(hint, help)}>
                         <Input inputMode={bounds ? "decimal" : undefined} placeholder={def.default ? tc("plugins.default", { value: def.default }) : undefined} />
                     </Form.Item>
                 </Col>

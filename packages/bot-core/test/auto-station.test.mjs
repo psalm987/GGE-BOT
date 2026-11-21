@@ -123,7 +123,7 @@ describe("the catalog entry", () => {
         const entry = { key: "autoStation", force: false, hidden: false, options: mod.pluginOptions, checks: mod.checks, breaksPeace: mod.breaksPeace }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(mod.breaksPeace).toBe(true)
-        expect(mod.checks).toEqual([{ type: "commanders", option: "commanderWhiteList" }])
+        expect(mod.checks).toEqual([{ type: "commanders", option: "commanderWhiteList", vip: "vipCommanders" }])
     })
 
     test("leaves 60 seconds before the attack by default and never less than 20", () => {

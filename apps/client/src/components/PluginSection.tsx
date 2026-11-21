@@ -7,9 +7,9 @@ import type { OptionValues } from "../plugin-values.ts"
 import { PluginOptionField } from "./PluginOptionField.tsx"
 
 /** One plugin's options as a form: the description, the peace warning and every option, with the values kept by the caller. */
-export function PluginSection({ entry, state, disabled, castles, accountId, commanders, register, onOptions, inForm }: {
+export function PluginSection({ entry, state, disabled, castles, accountId, register, onOptions, inForm }: {
     entry: PluginCatalogEntry; state: ModuleState; disabled: boolean; accountId: string | undefined
-    castles: AccountCastle[]; commanders: number | null
+    castles: AccountCastle[]
     register: (form: FormInstance | null) => void; onOptions: (options: OptionValues) => void
     /** Drawn inside another form, so it is a div: a form cannot hold a form. */
     inForm?: boolean
@@ -27,14 +27,14 @@ export function PluginSection({ entry, state, disabled, castles, accountId, comm
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
                 <Form name={entry.key} form={form} component={inForm ? "div" : undefined} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
-                    <PluginFields entry={entry} castles={castles} accountId={accountId} commanders={commanders} />
+                    <PluginFields entry={entry} castles={castles} accountId={accountId} />
                 </Form>
             </div>
         </div>
     )
 }
 
-function PluginFields({ entry, castles, accountId, commanders }: { entry: PluginCatalogEntry; castles: AccountCastle[]; accountId: string | undefined; commanders: number | null }) {
+function PluginFields({ entry, castles, accountId }: { entry: PluginCatalogEntry; castles: AccountCastle[]; accountId: string | undefined }) {
     // An option tagged with an army mode shows only while the plugin's Army switch is on that mode.
     const modeKey = entry.options.find(def => def.type === "ArmyMode")?.key
     const mode = (Form.useWatch(["options", modeKey ?? ""]) as ArmyMode | undefined) ?? "autofill"
@@ -44,7 +44,7 @@ function PluginFields({ entry, castles, accountId, commanders }: { entry: Plugin
     const unwanted = (def: PluginOptionDef) => def.type !== "" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
     return (
         <Row>
-            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId} commanders={commanders}
+            {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId}
                 hidden={otherMode(def) || unwanted(def)} />)}
         </Row>
     )

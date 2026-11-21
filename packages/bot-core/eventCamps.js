@@ -56,7 +56,7 @@ const eventCampOptions = profile => [
         legacy: { from: { useFeather: false, useCoin: false }, cases: [[{ useFeather: true }, 2], [{ useCoin: true }, 1]], otherwise: 0 },
     },
     { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "clicks", default: 15, showWhen: { key: "horse", in: [CAMP_HORSES.indexOf("distance")] } },
-    { type: "Text", key: "commanderWhiteList", default: "1-50" },
+    ...require("./commanderOptions.js").commanderOptions(),
     { type: "SkipTypes", key: "skipTypes", default: null, showWhen: { key: "targetMode", in: SKIPPING } },
     ...armyOptions(AUTOFILL),
     { type: "Label", key: "attackSettings", army: "autofill" },
@@ -77,8 +77,8 @@ const eventCampOptions = profile => [
     supplyOption(),
     { type: "Checkbox", key: "dryRun", default: false },
 ]
-/** Marks the commander list option, for the roster line beside it. */
-const eventCampChecks = [{ type: "commanders", option: "commanderWhiteList" }]
+/** Marks the commander list and VIP cap, which the page draws as its commander picker. */
+const eventCampChecks = require("./commanderOptions.js").commanderChecks
 
 const coordinate = value => Number.isInteger(value) && value >= 0 && value <= MAP_MAX ? value : undefined
 

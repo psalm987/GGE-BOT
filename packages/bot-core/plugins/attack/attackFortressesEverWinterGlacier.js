@@ -1,12 +1,8 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }],
+        checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
-            {
-                type: "Text",
-                key: "commanderWhiteList",
-                default: "1-50"
-            },
+            ...require("../../commanderOptions.js").commanderOptions(),
             ...require("../../army.js").fortressOptions(3)
         ]
     }

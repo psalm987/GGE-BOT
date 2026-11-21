@@ -42,7 +42,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "clicks", default: 15, showWhen: { key: "horse", in: [3] } },
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
-    { type: "Text", key: "commanderWhiteList", default: "1-50" },
+    ...require("../../commanderOptions.js").commanderOptions(),
     { type: "SkipTypes", key: "skipTypes", default: null },
     ...armyOptions(AUTOFILL),
     { type: "Label", key: "attackSettings", army: "autofill" },
@@ -68,7 +68,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Number", key: "autoBuyMin", min: 0, max: 100_000, step: 100, unit: "tools", default: 1000, army: "autofill", showWhen: { key: "autoBuy", in: [1] } },
     ...spendOptions().map(def => ({ ...def, army: "autofill", showWhen: { key: "autoBuy", in: [1] } })),
 ]
-const baronChecks = [{ type: "commanders", option: "commanderWhiteList" }]
+const baronChecks = require("../../commanderOptions.js").commanderChecks
 
 if (require("node:worker_threads").isMainThread)
     return module.exports = { hidden: true, baronOptions, baronChecks }

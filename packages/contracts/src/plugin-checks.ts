@@ -26,56 +26,56 @@ export const AccountCastle = z.object({
 })
 export type AccountCastle = z.infer<typeof AccountCastle>
 
-/** Marks the option that holds a plugin's commander list, so the settings page can show the account's commander roster beside it. */
-export const PluginCheckDef = z.object({ type: z.literal("commanders"), option: z.string().min(1) })
+/**
+ * Marks the option that holds a plugin's commander list, and `vip` the Number option that holds its VIP commander cap. A
+ * module page draws them as one commander picker for all its plugins.
+ */
+export const PluginCheckDef = z.object({ type: z.literal("commanders"), option: z.string().min(1), vip: z.string().min(1).optional() })
 export type PluginCheckDef = z.infer<typeof PluginCheckDef>
 
 /** No account has more commanders than this, so a longer range picks no more. */
 const MAX_COMMANDER_POSITION = 500
 
-/** The game gives an account at most this many commanders. */
+/** The game gives an account at most this many commanders, and the picker has a tile for each. */
 export const MAX_COMMANDERS = 50
 
 /**
- * A commander list like "1-5, 9" or "1;2;3", the way bot-core's commander pool reads it: positions and ranges of
- * positions, set apart by commas or semicolons. `named` holds each position written out and each range's first, which
- * are the ones a player means exactly: a range may run past the last commander ("1-99" is every commander).
+ * The positions a commander list like "1-5, 9" or "36;2;5" names, in its order and each once, the way bot-core's
+ * commander pool reads it: positions and ranges of positions, set apart by commas or semicolons. A part that is
+ * neither, or a range written backwards, names nothing.
  */
-export function readCommanderList(list: string): { positions: Set<number>; named: number[] } {
+export function commanderPositions(list: string): Set<number> {
     const positions = new Set<number>()
-    const named: number[] = []
     for (const part of list.split(/[,;]/)) {
         if (part.trim() === "")
             continue
         const [start, end = start] = part.split("-").map(Number)
         if (!Number.isInteger(start) || !Number.isInteger(end))
             continue
-        if (start! <= end!)
-            named.push(start!)
         for (let p = start!; p <= Math.min(end!, MAX_COMMANDER_POSITION); p++)
             positions.add(p)
     }
-    return { positions, named }
+    return positions
 }
-export const commanderPositions = (list: string): Set<number> => readCommanderList(list).positions
 
-/** The commanders an account can send: what the bot counted, never above the game's limit. Null until the bot has counted. */
-const commanderLimit = (commanders: number | null | undefined) => commanders === null || commanders === undefined ? null : Math.min(commanders, MAX_COMMANDERS)
-
-/** The positions a list sends on an account with `max` commanders. An empty list sends every commander. */
-function sendable(list: string, max: number | null): Set<number> {
-    const last = max ?? MAX_COMMANDERS
-    if (list.trim() === "")
-        return new Set(Array.from({ length: last }, (_, i) => i + 1))
-    return new Set([...readCommanderList(list).positions].filter(p => p >= 1 && p <= last))
-}
+/** The picker's tiles a stored commander list picks, in the order the bot sends them. "1-99" is every tile, 1 to 50. */
+export const commanderPicks = (list: string): number[] => [...commanderPositions(list)].filter(p => p >= 1 && p <= MAX_COMMANDERS)
 
 /**
- * How the commander lists of several plugins use an account's commanders: how many they send between them, how many
- * the account has (null until the bot has counted) and how many are left over.
+ * The commander list that stores picked tiles in their order, as semicolon-separated positions ("36;2;5"). A run of
+ * three or more positions in a row is written as its range, so every tile in order is "1-50", the default.
  */
-export function commanderUsage(lists: string[], commanders: number | null | undefined) {
-    const max = commanderLimit(commanders)
-    const configured = new Set(lists.flatMap(list => [...sendable(list, max)])).size
-    return { configured, max, remaining: max === null ? null : max - configured }
+export function writeCommanderPicks(picks: readonly number[]): string {
+    const parts: string[] = []
+    for (let i = 0; i < picks.length;) {
+        let end = i
+        while (end + 1 < picks.length && picks[end + 1] === picks[end]! + 1)
+            end++
+        if (end - i >= 2) {
+            parts.push(`${picks[i]}-${picks[end]}`)
+            i = end + 1
+        } else
+            parts.push(String(picks[i++]))
+    }
+    return parts.join(";")
 }

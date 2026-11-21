@@ -13,7 +13,7 @@ const waveOptions = () => [{
 
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }],
+        checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             {
                 type: "Checkbox",
@@ -25,11 +25,7 @@ if (require('node:worker_threads').isMainThread)
                 key: "useCoin",
                 default: false
             },
-            {
-                type: "Text",
-                key: "commanderWhiteList",
-                default: "1-50"
-            },
+            ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),

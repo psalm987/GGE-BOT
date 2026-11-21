@@ -22,7 +22,7 @@ const optionDefs = [
             { key: "stationKeep", type: "number", min: 0, max: 10_000_000 },
         ],
     },
-    { type: "Text", key: "commanderWhiteList", default: "1-50" },
+    ...require("../commanderOptions.js").commanderOptions(),
     { type: "Select", key: "stationGateFallback", selection: GATE_CHOICES, default: 0 },
     { type: "Number", key: "stationGateMaxRubies", min: 0, max: 60_000, step: 10, unit: "rubies", default: 700 },
     { type: "Number", key: "stationMinArmy", min: 0, max: 10_000_000, step: 1, unit: "troops", default: 0 },
@@ -36,7 +36,7 @@ const optionDefs = [
 ]
 
 if (require("node:worker_threads").isMainThread)
-    return module.exports = { pluginOptions: optionDefs, checks: [{ type: "commanders", option: "commanderWhiteList" }], breaksPeace: true }
+    return module.exports = { pluginOptions: optionDefs, checks: require("../commanderOptions.js").commanderChecks, breaksPeace: true }
 
 require("./incoming.js")
 const err = require("../err.json")

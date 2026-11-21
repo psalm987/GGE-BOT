@@ -56,10 +56,8 @@ export function KingdomPanel({ kingdom, icon, enabled, onEnabled, blocked, readO
  * still to come. `asked` is what the kingdoms that are on ask for in a day between them, when each of them has a cap
  * of its own.
  */
-export function GlobalCard({ module, account, attackLimit, asked, commanders }: {
+export function GlobalCard({ module, account, attackLimit, asked }: {
     module: ModuleDef; account: PublicAccount | undefined; attackLimit: string | undefined; asked: number
-    /** How the plugins that are on use the account's commanders between them; left out when the module has no commander lists. */
-    commanders?: { configured: number; max: number | null; remaining: number | null }
 }) {
     const { t } = useTranslation("client")
     if (!module.global) return null
@@ -75,15 +73,6 @@ export function GlobalCard({ module, account, attackLimit, asked, commanders }: 
                         {limit !== undefined && asked > limit && <span className="gge-global-warning" role="status">{t("module.global.capOver", { asked, limit })}</span>}
                     </span>
                 </li>
-                {commanders && (
-                    <li data-commanders>
-                        <span className="gge-global-name">{t("module.global.commanders")}</span>
-                        <span className="gge-global-text">
-                            {commanders.max === null ? t("module.global.commandersUnknown", { configured: commanders.configured })
-                                : t("module.global.commandersValue", { configured: commanders.configured, max: commanders.max, remaining: commanders.remaining })}
-                        </span>
-                    </li>
-                )}
                 {module.global.soon.map(item => (
                     <li key={item} data-soon={item}>
                         <span className="gge-global-name">{t(`modules.${module.id}.soon.${item}.name`)}</span>

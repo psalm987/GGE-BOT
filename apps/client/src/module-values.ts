@@ -1,4 +1,4 @@
-import type { PluginCatalogEntry, PluginSettings } from "@gge/contracts"
+import { commanderPicks, writeCommanderPicks, type PluginCatalogEntry, type PluginSettings } from "@gge/contracts"
 import { optionsToSave, pluginFormValues, type OptionValues, type PluginFormValues } from "./plugin-values.ts"
 
 /**
@@ -7,15 +7,62 @@ import { optionsToSave, pluginFormValues, type OptionValues, type PluginFormValu
  */
 export type ModuleState = { baseline: PluginFormValues; values: PluginFormValues }
 
+/** A plugin whose commander list (`list`) and VIP cap (`vip`) the module's one commander picker sets, by option key. */
+export type CommanderPlugin = { plugin: string; list: string; vip: string | undefined }
+
+/** The plugins of a module that send commanders, in the module's order. */
+export const commanderPlugins = (entries: PluginCatalogEntry[]): CommanderPlugin[] => entries.flatMap(entry => {
+    const check = entry.checks?.find(check => check.type === "commanders")
+    return check ? [{ plugin: entry.key, list: check.option, vip: check.vip }] : []
+})
+
+/** One commander list and VIP cap, written to every plugin the picker sets. Left out, a value stays as it is. */
+export type SharedCommanders = { list?: string; vip?: number }
+
 export type ModuleAction =
     | { type: "enabled"; plugin: string; enabled: boolean }
     | { type: "options"; plugin: string; options: OptionValues }
+    | { type: "commanders"; plugins: CommanderPlugin[]; set: SharedCommanders }
     | { type: "discard" }
     | { type: "saved" }
 
+function withCommanders(values: PluginFormValues, plugins: CommanderPlugin[], set: SharedCommanders): PluginFormValues {
+    const out = { ...values }
+    for (const { plugin, list, vip } of plugins) {
+        const options = { ...out[plugin]!.options }
+        if (set.list !== undefined) options[list] = set.list
+        if (set.vip !== undefined && vip) options[vip] = set.vip
+        out[plugin] = { ...out[plugin]!, options }
+    }
+    return out
+}
+
+/** The list and VIP cap the picker shows: the first commander plugin's. */
+export function sharedCommanders(entries: PluginCatalogEntry[], values: PluginFormValues): { list: string; vip: number } | undefined {
+    const first = commanderPlugins(entries)[0]
+    if (!first) return undefined
+    const options = values[first.plugin]?.options ?? {}
+    return { list: String(options[first.list] ?? ""), vip: first.vip ? Number(options[first.vip] ?? 0) : 0 }
+}
+
+/** Whether the module's commander plugins hold different tiles or VIP caps. "1-50" and "1-99" are the same tiles. */
+export function commandersDiffer(entries: PluginCatalogEntry[], values: PluginFormValues): boolean {
+    const tiles = (p: CommanderPlugin) => {
+        const options = values[p.plugin]?.options ?? {}
+        return `${writeCommanderPicks(commanderPicks(String(options[p.list] ?? "")))}|${p.vip ? Number(options[p.vip] ?? 0) : 0}`
+    }
+    return new Set(commanderPlugins(entries).map(tiles)).size > 1
+}
+
+/**
+ * A module's values for one account. Its commander plugins all take the first one's list and VIP cap, which the page's
+ * one picker shows, so a save gives every plugin the list the player sees.
+ */
 export const startModule = (entries: PluginCatalogEntry[], saved: PluginSettings = {}): ModuleState => {
     const values = pluginFormValues(entries, saved)
-    return { baseline: values, values }
+    const shared = sharedCommanders(entries, values)
+    const start = shared ? withCommanders(values, commanderPlugins(entries), shared) : values
+    return { baseline: start, values: start }
 }
 
 export function moduleReducer(state: ModuleState, action: ModuleAction): ModuleState {
@@ -24,6 +71,8 @@ export function moduleReducer(state: ModuleState, action: ModuleAction): ModuleS
             return { ...state, values: { ...state.values, [action.plugin]: { ...state.values[action.plugin]!, enabled: action.enabled } } }
         case "options":
             return { ...state, values: { ...state.values, [action.plugin]: { ...state.values[action.plugin]!, options: action.options } } }
+        case "commanders":
+            return { ...state, values: withCommanders(state.values, action.plugins, action.set) }
         case "discard":
             return { ...state, values: state.baseline }
         case "saved":

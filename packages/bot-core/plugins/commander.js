@@ -51,7 +51,7 @@ const MAX_COMMANDER_POSITION = 500
 /**
  * The 0-based commander positions a whitelist like "1-5,9" or "1;2;3" picks, or the list unchanged when it is empty
  * or parsed already. Positions and ranges are set apart by commas or semicolons, and a part that isn't one is left
- * out, as @gge/contracts' readCommanderList reads the same list for the settings page.
+ * out, as @gge/contracts' commanderPositions reads the same list for the settings page.
  */
 function parseWhitelist(commanderWhitelist) {
     if ([, 0, ""].includes(commanderWhitelist) || Array.isArray(commanderWhitelist))

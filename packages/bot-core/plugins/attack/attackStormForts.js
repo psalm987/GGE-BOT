@@ -14,7 +14,7 @@ if (require('node:worker_threads').isMainThread) {
     const { armyOptions, unitOrderOption, supplyOption } = require("../../army.js")
     const { stockOptions, spendOptions } = require("../../stockOptions.js")
     module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }],
+        checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             { type: "Select", key: "fortOrder", selection: ["Highest level first", "Nearest first"], default: 0 },
             { type: "Label", key: "easyForts", md: 2 },
@@ -68,11 +68,7 @@ if (require('node:worker_threads').isMainThread) {
     catch (e) {
         console.debug(e)
     }
-    return module.exports.pluginOptions.push({
-        type: "Text",
-        key: "commanderWhiteList",
-        default: "1-50"
-    }, { type: "Checkbox", key: "dryRun", default: false })
+    return module.exports.pluginOptions.push(...require("../../commanderOptions.js").commanderOptions(), { type: "Checkbox", key: "dryRun", default: false })
 }
 
 

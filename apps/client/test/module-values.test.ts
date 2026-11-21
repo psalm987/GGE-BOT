@@ -1,6 +1,7 @@
 import { expect, test } from "vitest"
 import type { PluginCatalogEntry } from "@gge/contracts"
-import { attackPluginsOn, changedPlugins, dailyAsked, moduleReducer, pluginsToSave, startModule } from "../src/module-values.ts"
+import { attackPluginsOn, changedPlugins, commanderPlugins, commandersDiffer, dailyAsked, moduleReducer, pluginsToSave, sharedCommanders, startModule } from "../src/module-values.ts"
+import { pluginFormValues } from "../src/plugin-values.ts"
 
 const khan: PluginCatalogEntry = {
     key: "attackKhan", force: false, hidden: false, category: "attack",
@@ -57,4 +58,41 @@ test("the attacks a day a page asks for are those of the plugins that are on, an
     expect(dailyAsked([khan, nomads], state, "score")).toBe(50)
     expect(dailyAsked([khan, nomads], moduleReducer(state, { type: "enabled", plugin: "attackKhan", enabled: false }), "score")).toBe(0)
     expect(dailyAsked([khan, nomads], state, undefined)).toBe(0)
+})
+
+const tower = (key: string): PluginCatalogEntry => ({
+    key, force: false, hidden: false, category: "attack",
+    checks: [{ type: "commanders", option: "commanderWhiteList", vip: "vipCommanders" }],
+    options: [{ type: "Text", key: "commanderWhiteList", default: "1-50" }, { type: "Number", key: "vipCommanders", min: 0, max: 50, default: 0 }],
+})
+const towers = [tower("attackBarronsGreatEmpire"), tower("attackBarronsBurningSands")]
+
+test("the commander picker writes one list and VIP cap to every plugin of the page that sends commanders", () => {
+    const start = startModule([...towers, feast])
+    const picked = moduleReducer(start, { type: "commanders", plugins: commanderPlugins([...towers, feast]), set: { list: "36;2;5", vip: 3 } })
+    expect(towers.map(entry => picked.values[entry.key]!.options)).toEqual([
+        { commanderWhiteList: "36;2;5", vipCommanders: 3 }, { commanderWhiteList: "36;2;5", vipCommanders: 3 },
+    ])
+    expect(picked.values.feast).toEqual(start.values.feast)
+    expect(changedPlugins(towers, picked)).toEqual(["attackBarronsGreatEmpire", "attackBarronsBurningSands"])
+    expect(sharedCommanders(towers, picked.values)).toEqual({ list: "36;2;5", vip: 3 })
+})
+
+test("kingdoms saved with different lists start on the first one's, which a save gives them all", () => {
+    const saved = {
+        attackBarronsGreatEmpire: { enabled: true, options: { commanderWhiteList: "1;2;3" } },
+        attackBarronsBurningSands: { enabled: true, options: { commanderWhiteList: "4-6" } },
+    }
+    const start = startModule(towers, saved)
+    expect(commandersDiffer(towers, pluginFormValues(towers, saved))).toBe(true)
+    expect(changedPlugins(towers, start)).toEqual([])
+    expect(pluginsToSave(saved, towers, start.values)).toEqual({
+        attackBarronsGreatEmpire: { enabled: true, options: { commanderWhiteList: "1;2;3" } },
+        attackBarronsBurningSands: { enabled: true, options: { commanderWhiteList: "1;2;3" } },
+    })
+})
+
+test("an old range and the default are the same tiles, so they are not different lists", () => {
+    const saved = { attackBarronsGreatEmpire: { enabled: true, options: { commanderWhiteList: "1-99" } } }
+    expect(commandersDiffer(towers, pluginFormValues(towers, saved))).toBe(false)
 })

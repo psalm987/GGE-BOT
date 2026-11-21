@@ -1,6 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
-        checks: [{ type: "commanders", option: "commanderWhiteList" }],
+        checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             {
                 type: "Select",
@@ -21,11 +21,7 @@ if (require('node:worker_threads').isMainThread)
                 ],
                 default: "4"
             },
-            {
-                type: "Text",
-                key: "commanderWhiteList",
-                default: "1-50"
-            },
+            ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {

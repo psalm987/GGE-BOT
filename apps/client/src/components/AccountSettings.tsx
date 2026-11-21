@@ -68,7 +68,7 @@ export function AccountSettings({ account, catalog, onDirty }: { account: Public
                         title={<span className="gge-display">{label}</span>}
                         extra={!entry.force && <AttackAwareSwitch label={label} blockTurningOn={false} checked={Boolean(state.values[entry.key]?.enabled)} disabled={save.isPending}
                             onChange={enabled => dispatch({ type: "enabled", plugin: entry.key, enabled })} />}>
-                        <PluginSection entry={entry} state={state} disabled={save.isPending} castles={[]} accountId={account.id} commanders={null} inForm
+                        <PluginSection entry={entry} state={state} disabled={save.isPending} castles={[]} accountId={account.id} inForm
                             register={form => form ? forms.current.set(entry.key, form) : forms.current.delete(entry.key)}
                             onOptions={options => dispatch({ type: "options", plugin: entry.key, options })} />
                     </Card>
