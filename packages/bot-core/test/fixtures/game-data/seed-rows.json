@@ -1,0 +1,148 @@
+{
+  "_label": "Rows of the game's item data (seed copy of items/horses.json and items/eventAutoScalingDifficulties.json): the horses of stables 1 to 3, trimmed to the fields the bot reads, and the Samurai (event 80) difficulties.",
+  "horses": [
+    {
+      "wodID": 1001,
+      "comment1": "Stable1",
+      "comment2": "Horse",
+      "unitBoost": "6",
+      "costFactorC1": "1",
+      "costFactorC2": "0.0"
+    },
+    {
+      "wodID": 1002,
+      "comment1": "Stable1",
+      "comment2": "Warhorse",
+      "unitBoost": "10",
+      "costFactorC1": "0",
+      "costFactorC2": "1.0"
+    },
+    {
+      "wodID": 1003,
+      "comment1": "Stable1",
+      "comment2": "Courser",
+      "unitBoost": "16",
+      "costFactorC1": "0",
+      "costFactorC2": "2.1"
+    },
+    {
+      "wodID": 1004,
+      "comment1": "Stable2",
+      "comment2": "Horse",
+      "unitBoost": "10",
+      "costFactorC1": "1",
+      "costFactorC2": "0.0"
+    },
+    {
+      "wodID": 1005,
+      "comment1": "Stable2",
+      "comment2": "Warhorse",
+      "unitBoost": "16",
+      "costFactorC1": "0",
+      "costFactorC2": "1.0"
+    },
+    {
+      "wodID": 1006,
+      "comment1": "Stable2",
+      "comment2": "Courser",
+      "unitBoost": "27",
+      "costFactorC1": "0",
+      "costFactorC2": "2.1"
+    },
+    {
+      "wodID": 1007,
+      "comment1": "Stable3",
+      "comment2": "Horse",
+      "unitBoost": "13",
+      "costFactorC1": "1",
+      "costFactorC2": "0.0"
+    },
+    {
+      "wodID": 1008,
+      "comment1": "Stable3",
+      "comment2": "Warhorse",
+      "unitBoost": "22",
+      "costFactorC1": "0",
+      "costFactorC2": "1.0"
+    },
+    {
+      "wodID": 1009,
+      "comment1": "Stable3",
+      "comment2": "Courser",
+      "unitBoost": "35",
+      "costFactorC1": "0",
+      "costFactorC2": "2.1"
+    }
+  ],
+  "eventAutoScalingDifficulties": [
+    {
+      "difficultyID": "201",
+      "eventID": "80",
+      "difficultyTypeID": "1"
+    },
+    {
+      "difficultyID": "202",
+      "eventID": "80",
+      "difficultyTypeID": "2"
+    },
+    {
+      "difficultyID": "203",
+      "eventID": "80",
+      "difficultyTypeID": "3"
+    },
+    {
+      "difficultyID": "204",
+      "eventID": "80",
+      "difficultyTypeID": "4"
+    },
+    {
+      "difficultyID": "205",
+      "eventID": "80",
+      "difficultyTypeID": "5",
+      "isLocked": "1",
+      "rentC2Cost": "10000"
+    },
+    {
+      "difficultyID": "206",
+      "eventID": "80",
+      "difficultyTypeID": "6",
+      "isLocked": "1",
+      "rentC2Cost": "17500"
+    },
+    {
+      "difficultyID": "207",
+      "eventID": "80",
+      "difficultyTypeID": "7",
+      "isLocked": "1",
+      "rentC2Cost": "25000"
+    },
+    {
+      "difficultyID": "208",
+      "eventID": "80",
+      "difficultyTypeID": "8",
+      "isLocked": "1",
+      "rentC2Cost": "32500"
+    },
+    {
+      "difficultyID": "209",
+      "eventID": "80",
+      "difficultyTypeID": "9",
+      "isLocked": "1",
+      "rentC2Cost": "40000"
+    },
+    {
+      "difficultyID": "210",
+      "eventID": "80",
+      "difficultyTypeID": "10",
+      "isLocked": "1",
+      "rentC2Cost": "47500"
+    },
+    {
+      "difficultyID": "211",
+      "eventID": "80",
+      "difficultyTypeID": "11",
+      "isLocked": "1",
+      "rentC2Cost": "55000"
+    }
+  ]
+}

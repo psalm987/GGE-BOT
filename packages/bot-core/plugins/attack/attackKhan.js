@@ -95,7 +95,6 @@ const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = requ
 
 const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
-const ggeConfig = require("../../config.js")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
@@ -205,15 +204,16 @@ events.on("eventStart", async ({ EID, EDID }) => {
     if (EID != eventID)
         return
 
-    if (EDID == -1 && !(ggeConfig.classicBug && pluginOptions.eventDifficulty == 0)) {
-        const eventDifficultyID =
-            Number(eventsDifficulties.find(e =>
-                ((pluginOptions.eventDifficulty)) == e.difficultyTypeID &&
-                e.eventID == eventID)
-                .difficultyID)
-
+    // Classic has no difficulty row, so the event stays on EDID -1 and its classic camps.
+    const difficulty = eventsDifficulties.find(e => pluginOptions.eventDifficulty == e.difficultyTypeID && e.eventID == eventID)
+    if (EDID == -1 && difficulty) {
+        const eventDifficultyID = Number(difficulty.difficultyID)
         await sendXT("sede", JSON.stringify({ EID: eventID, EDID: eventDifficultyID, C2U: 0 }))
-        await waitForResult("sede", 1000 * 10)
+        const [, result] = await waitForResult("sede", 1000 * 10)
+        if (result != 0) {
+            console.warn("campDifficultyRefused", err[result] ?? result)
+            return reportStatus("waiting", "statusCampDifficultyRefused")
+        }
         EDID = eventDifficultyID
     }
     let classic = false

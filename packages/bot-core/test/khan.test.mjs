@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { readLegacy as contractsRead, effectivePluginConfig } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
@@ -61,6 +61,34 @@ describe("Khan waves", () => {
         const { cra } = await khan({ armyMode: "waves", waves: { kind: "manual", waves: [first, none, none, none], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] } })
         expect(cra.A[0].L).toEqual({ T: [[106, 5], [-1, 0]], U: [[603, 40], [-1, 0]] })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[], [], []])
+    })
+})
+
+describe("Khan, setting the event difficulty", () => {
+    // The Khan's difficulty rows are not captured; these stand in with the shape of the Samurai's.
+    const eventAutoScalingDifficulties = [{ eventID: 72, difficultyTypeID: 5, difficultyID: 105 }]
+    const game = (reply, more = {}) => ({ start: { EDID: -1 }, items: { ...items, eventAutoScalingDifficulties, ...more }, answer: cmd => cmd == "sede" ? reply : undefined, wait: 10 })
+    afterEach(() => vi.restoreAllMocks())
+
+    test("sets the chosen difficulty, and attacks once the game accepts it", async () => {
+        const { sent, frames } = await khan({ eventDifficulty: 5 }, game(["", 0]))
+        expect(frames).toContainEqual(["sede", { EID: 72, EDID: 105, C2U: 0 }])
+        expect(sent).toHaveLength(1)
+    })
+
+    test("a difficulty the game refuses is not taken as set: nothing is attacked and the status says why", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        // The refusal code is not captured; 437 is the err table's INVALID_EVENT_DIFFICULTY_ID.
+        const { sent, statuses } = await khan({ eventDifficulty: 5 }, game(["", 437]))
+        expect(sent).toEqual([])
+        expect(warn).toHaveBeenCalledWith("campDifficultyRefused", "INVALID_EVENT_DIFFICULTY_ID")
+        expect(statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusCampDifficultyRefused" })
+    })
+
+    test("Classic, which has no difficulty to set, asks nothing of the game and attacks the classic camps", async () => {
+        const { sent, frames } = await khan({ eventDifficulty: 0 }, game(["", 0], { nomadCamps: [{ id: 0, countVictory: "1" }] }))
+        expect(frames.map(([command]) => command)).not.toContain("sede")
+        expect(sent).toHaveLength(1)
     })
 })
 

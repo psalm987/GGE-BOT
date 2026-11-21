@@ -194,7 +194,7 @@ describe("the last 24 hours across a restart", () => {
 })
 
 describe("the horse", () => {
-    const COIN_HORSE = 2
+    const COIN_HORSE = 1
     const map = () => [tower(610, 600, { victories: 300 }), tower(640, 600, { victories: 300 })]
     const rides = game => game.sent.map(cra => [cra.TX, cra.HBW, cra.PTT])
 

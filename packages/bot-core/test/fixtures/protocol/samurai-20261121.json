@@ -1,0 +1,71 @@
+{
+  "_label": "CAPTURED from a live session on 2026-11-21 (recorder trace 20261121-073500-23065c, client 1173012), redacted. Trimmed to the fields the tests read.",
+  "sede_1": {
+    "cmd": "sede",
+    "payload": {
+      "EID": 80,
+      "EDID": 204,
+      "C2U": 0
+    },
+    "reply": {
+      "res": 0,
+      "payload": ""
+    }
+  },
+  "fnm_1": {
+    "cmd": "fnm",
+    "payload": {
+      "T": 29,
+      "KID": 0,
+      "LMIN": -1,
+      "LMAX": -1,
+      "NID": -651
+    },
+    "reply": {
+      "res": 0,
+      "payload": {
+        "X": 641,
+        "Y": 607,
+        "gaa": {
+          "KID": 0,
+          "AI": [
+            [
+              29,
+              641,
+              607,
+              -1,
+              0,
+              -1795247743,
+              0,
+              -651,
+              231,
+              91,
+              98,
+              28
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "gbd_1": {
+    "cmd": "gbd",
+    "note": "Trimmed to gpc.A[0].UH, the main castle's unlocked horses.",
+    "reply": {
+      "res": 0,
+      "payload": {
+        "gpc": {
+          "A": [
+            {
+              "UH": [
+                1001,
+                1002,
+                1003
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

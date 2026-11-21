@@ -24,7 +24,8 @@ const horses = [
  *
  * `areas` is the map: `getAreaInfo` answers with the areas inside the rectangle it is asked for, a scan returns them
  * all, and `fnm` returns the first. A skip the plugin asks for is recorded in `skipped` and ends the area's wait.
- * `movements` are the marches already on the map, and `resources` the player's.
+ * `movements` are the marches already on the map, and `resources` the player's. A skip's reply lands once `skipLands`
+ * resolves. `answer(command, params)` may return the game's reply to a frame the plugin sends, as [payload, result].
  *
  * Returns what the plugin did: `sent` (every `cra`, in order), `statuses`, `skipped`, `frames` (every other frame it
  * sent, as [command, params]), `requests` (the map rectangles it asked for) and the stand-ins a test may drive.
@@ -32,9 +33,17 @@ const horses = [
 async function runEvent(plugin, options, {
     areas, inventory, start = {}, items = {}, effects = {}, playerLevel = 70, sends = 1, movements = [], resources = {},
     castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50, waitToAttack = async job => job(),
+    movementEvents = new EventEmitter(), skipLands = async () => {}, answer = () => undefined,
 }) {
     const { path, eventID, kingdomID } = PLUGINS[plugin]
     const bot = fakeBot()
+    const record = bot.sendXT
+    bot.sendXT = async (cmd, params) => {
+        await record(cmd, params)
+        const reply = answer(cmd, JSON.parse(params))
+        if (reply)
+            setImmediate(() => bot.xtHandler.emit(cmd, ...reply))
+    }
     bot.playerInfo.level = playerLevel
     bot.botConfig.plugins[plugin] = options
     const castle = Object.assign(new EventEmitter(), {
@@ -43,7 +52,6 @@ async function runEvent(plugin, options, {
     })
     const skipped = []
     const requests = []
-    const movementEvents = new EventEmitter()
     const protocols = {
         castles: [castle, ...otherCastles], movements, movementEvents, ClassTypes: {}, AreaType, KingdomID,
         resources: { pegasusTicket: 5, coins: 0, ...resources },
@@ -58,6 +66,7 @@ async function runEvent(plugin, options, {
             },
             skipTarget: async (type, x, y, kid, skip) => {
                 skipped.push(skip)
+                await skipLands()
                 const area = areas.find(area => area.x == x && area.y == y)
                 area.extraData[area.type == AreaType.stormTower ? 3 : 2] = 0
                 return { result: 0, areaInfo: area }

@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events"
 import { createRequire } from "node:module"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
@@ -127,6 +128,30 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         expect(statuses.at(-1)).toMatchObject({ state: "error", reasonKey: "statusArmyNoPlan" })
     })
 
+    test("a march home and the attack loop spend one skip between them on the camp they share", async () => {
+        const movementEvents = new EventEmitter()
+        const home = { targetOwner: { ownerID: 7 }, sourceAttack: camp(120, 100, 300, type) }
+        const waitToAttack = async job => {
+            movementEvents.emit("returning", home)
+            return job()
+        }
+        const { sent, skipped } = await run({ targetMode: 2, targetX: 120, targetY: 100 }, {
+            areas: [camp(120, 100, 300, type)], movementEvents, waitToAttack, skipLands: () => new Promise(resolve => setTimeout(resolve, 2)),
+        })
+        expect(skipped).toEqual(["MS3"])
+        expect(sent).toHaveLength(1)
+    })
+
+    test("a skip that fails after a march home goes to the plugin's log", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const movementEvents = new EventEmitter()
+        await run({}, { areas: [camp(110, 105, 0, type)], movementEvents, spendSkip: () => undefined })
+        movementEvents.emit("returning", { targetOwner: { ownerID: 7 }, sourceAttack: camp(110, 105, 300, type) })
+        await new Promise(resolve => setTimeout(resolve, 5))
+        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        warn.mockRestore()
+    })
+
     test("troop supply and unit order choose the autofill's troops", async () => {
         const mead = await run({ supply: 2 }, { areas: [camp(110, 105, 0, type)] })
         expect([...soldiers(mead.cra)]).toEqual([602])
@@ -215,13 +240,13 @@ describe.each([["Nomads", nomads, 27, "attackNomads"], ["Samurai", samurai, 29, 
 
     test("horse by distance: the coin horse to a near camp, a feather to a far one, and the coin horse again with no feathers", async () => {
         const near = await run({ horse: 3, horseDistance: 50 }, { areas: one() })
-        expect([near.cra.HBW, near.cra.PTT]).toEqual([2, 0])
+        expect([near.cra.HBW, near.cra.PTT]).toEqual([1, 0])
         const far = await run({ horse: 3, horseDistance: 5 }, { areas: one() })
         expect([far.cra.HBW, far.cra.PTT]).toEqual([-1, 1])
         expect(far.cra).toMatchSnapshot()
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         const none = await run({ horse: 3, horseDistance: 5 }, { areas: one(), resources: { pegasusTicket: 0 } })
-        expect([none.cra.HBW, none.cra.PTT]).toEqual([2, 0])
+        expect([none.cra.HBW, none.cra.PTT]).toEqual([1, 0])
         expect(warn).toHaveBeenCalledWith("campNoFeathers")
     })
 
@@ -300,6 +325,36 @@ describe.each([["Nomads", nomads, 27, "attackNomads"], ["Samurai", samurai, 29, 
         await run({ horse: 2 }, { areas: [camp(110, 105, 300, type)] })
         const line = info.mock.calls.find(([key]) => key == "hittingTargetAttack")
         expect(line).toEqual(["hittingTargetAttack", plugin == "attackNomads" ? "campOfNomads" : "campOfSamurai", " ", "C", 1, " ", 110, ":", 105, " ", "1m 0s", "tillImpactAttack", " · ", "horseFeather", " · ", "skipsSpentOnCamp", "10m"])
+    })
+})
+
+describe("Samurai, setting the event difficulty", () => {
+    const { eventAutoScalingDifficulties } = require("./fixtures/game-data/seed-rows.json")
+    const { sede_1: sede } = require("./fixtures/protocol/samurai-20261121.json")
+    const game = (answer, more = {}) => ({ areas: [camp(110, 105, 0, 29)], start: { EDID: -1 }, items: { ...items, eventAutoScalingDifficulties, ...more }, answer, wait: 10 })
+    const replySede = reply => cmd => cmd == "sede" ? [reply.payload, reply.res] : undefined
+    afterEach(() => vi.restoreAllMocks())
+
+    test("sets the chosen difficulty as the player did, and attacks once the game accepts it", async () => {
+        const { sent, frames } = await samurai({ eventDifficulty: 4 }, game(replySede(sede.reply)))
+        expect(frames).toContainEqual(["sede", sede.payload])
+        expect(sent).toHaveLength(1)
+    })
+
+    test("a difficulty the game refuses is not taken as set: nothing is attacked and the status says why", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        // The refusal code is not captured; 437 is the err table's INVALID_EVENT_DIFFICULTY_ID.
+        const { sent, frames, statuses } = await samurai({ eventDifficulty: 5 }, game(replySede({ payload: "", res: 437 })))
+        expect(frames).toContainEqual(["sede", { EID: 80, EDID: 205, C2U: 0 }])
+        expect(sent).toEqual([])
+        expect(warn).toHaveBeenCalledWith("campDifficultyRefused", "INVALID_EVENT_DIFFICULTY_ID")
+        expect(statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusCampDifficultyRefused" })
+    })
+
+    test("Classic, which has no difficulty to set, asks nothing of the game and attacks the classic camps", async () => {
+        const { sent, frames } = await samurai({ eventDifficulty: 0 }, game(replySede(sede.reply), { samuraiCamps: [{ countVictory: "1" }] }))
+        expect(frames.map(([command]) => command)).not.toContain("sede")
+        expect(sent).toHaveLength(1)
     })
 })
 

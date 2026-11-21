@@ -18,7 +18,7 @@ const { sleep } = require("../../pacing.js")
 
 const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
 const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
-const ggeConfig = require("../../config.js")
+const err = require("../../err.json")
 
 const minTroopCount = 100
 /** A count of attacks in a status is rounded down to this step once it passes it, so the status isn't rewritten after every attack. */
@@ -60,7 +60,7 @@ function eventCampAttacks(profile, stored, filename) {
     const queue = campQueue(target)
 
     /** Skips a camp's wait while the budget allows, and returns the skips it spent. */
-    const skipTarget = async areaInfo => {
+    const skipWait = async areaInfo => {
         const spent = []
         while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
             let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
@@ -77,6 +77,17 @@ function eventCampAttacks(profile, stored, filename) {
         }
         return spent
     }
+    /**
+     * The skip of each camp that is in flight. A march home and the attack loop can both want a camp's wait gone before
+     * the game's reply lowers it, so the second one shares the first's skips instead of spending its own.
+     */
+    const skipping = new Map()
+    const skipTarget = areaInfo => {
+        const camp = `${areaInfo.x}:${areaInfo.y}`
+        if (!skipping.has(camp))
+            skipping.set(camp, skipWait(areaInfo).finally(() => skipping.delete(camp)))
+        return skipping.get(camp)
+    }
     movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
         if (movement.targetOwner.ownerID != playerInfo.playerID)
             return
@@ -86,7 +97,7 @@ function eventCampAttacks(profile, stored, filename) {
 
         queue.update(movement.sourceAttack)
         if (!options.dryRun)
-            skipTarget(movement.sourceAttack)
+            skipTarget(movement.sourceAttack).catch(e => console.warn(e))
     })
 
     let quit = false
@@ -127,15 +138,16 @@ function eventCampAttacks(profile, stored, filename) {
             console.warn("campDifficultyNotSet")
             return reportStatus("waiting", "statusCampDifficultyNotSet")
         }
-        if (eventInfo.EDID == -1 && !(ggeConfig.classicBug && options.eventDifficulty == 0)) {
-            const eventDifficultyID =
-                Number(eventsDifficulties.find(e =>
-                    ((options.eventDifficulty)) == e.difficultyTypeID &&
-                    e.eventID == eventID)
-                    .difficultyID)
-
+        // Classic has no difficulty row, so the event stays on EDID -1 and its classic camps.
+        const difficulty = eventsDifficulties.find(e => options.eventDifficulty == e.difficultyTypeID && e.eventID == eventID)
+        if (eventInfo.EDID == -1 && difficulty) {
+            const eventDifficultyID = Number(difficulty.difficultyID)
             await sendXT("sede", JSON.stringify({ EID: eventID, EDID: eventDifficultyID, C2U: 0 }))
-            await waitForResult("sede", 1000 * 10)
+            const [, result] = await waitForResult("sede", 1000 * 10)
+            if (result != 0) {
+                console.warn("campDifficultyRefused", err[result] ?? result)
+                return reportStatus("waiting", "statusCampDifficultyRefused")
+            }
             eventInfo.EDID = eventDifficultyID
         }
         let classic = false

@@ -144,3 +144,62 @@ describe("finding the next map object", () => {
         expect(bot.sent).toEqual([["fnm", { T: 35, KID: 0, LMIN: -1, LMAX: -1, NID: -801 }]])
     })
 })
+
+describe("skipping a camp's wait", () => {
+    const sentTwice = async bot => {
+        while (bot.sent.length < 2)
+            await new Promise(resolve => setImmediate(resolve))
+    }
+    const samuraiRun = require("./fixtures/protocol/samurai-20261120.json")
+    const captured = require("./fixtures/protocol/samurai-20261121.json")
+    /** The captured fnm row of the camp at 641:607, with its wait over as an msd reply would carry it. */
+    const otherCamp = captured.fnm_1.reply.payload.gaa.AI[0].toSpliced(5, 1, 0)
+
+    test("each skip takes the reply about its own camp, not another Samurai camp's", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        const here = mod.ClientCommands.skipTarget(29, 694, 525, 0, "MS5")
+        const there = mod.ClientCommands.skipTarget(29, 641, 607, 0, "MS5")
+        await new Promise(resolve => setImmediate(resolve))
+        expect(bot.sent[0]).toEqual(["msd", samuraiRun.msd_1.payload])
+
+        bot.xtHandler.emit("msd", { AI: otherCamp }, 0)
+        bot.xtHandler.emit("msd", samuraiRun.msd_reply.reply.payload, 0)
+        expect(await here).toMatchObject({ result: 0, areaInfo: { type: 29, x: 694, y: 525 } })
+
+        await sentTwice(bot)
+        bot.xtHandler.emit("msd", { AI: otherCamp }, 0)
+        expect(await there).toMatchObject({ result: 0, areaInfo: { type: 29, x: 641, y: 607 } })
+    })
+
+    test("an error reply settles only the skip it answers, and the next skip is sent after it", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        const here = mod.ClientCommands.skipTarget(29, 694, 525, 0, "MS5")
+        const there = mod.ClientCommands.skipTarget(29, 641, 607, 0, "MS5")
+        await new Promise(resolve => setImmediate(resolve))
+        expect(bot.sent.map(([command]) => command)).toEqual(["msd"])
+
+        // No refusal is captured, so this one names no camp; 437 stands in for any error code.
+        bot.xtHandler.emit("msd", {}, 437)
+        expect(await here).toEqual({ result: 437 })
+
+        await sentTwice(bot)
+        expect(bot.sent[1]).toEqual(["msd", { X: 641, Y: 607, MID: -1, NID: -1, MST: "MS5", KID: "0" }])
+        bot.xtHandler.emit("msd", { AI: otherCamp }, 0)
+        expect(await there).toMatchObject({ result: 0, areaInfo: { type: 29, x: 641, y: 607 } })
+    })
+
+    test("a skip whose reply never comes does not hold up the next one", async () => {
+        const bot = fakeBot()
+        const waitForResult = bot.waitForResult
+        let waits = 0
+        bot.waitForResult = (...args) => waits++ == 0 ? Promise.reject("TIMED_OUT") : waitForResult(...args)
+        const { mod } = loadModule("protocols.js", { bot })
+        const here = mod.ClientCommands.skipTarget(29, 694, 525, 0, "MS5")
+        const there = mod.ClientCommands.skipTarget(29, 641, 607, 0, "MS5")
+        await expect(here).rejects.toBe("TIMED_OUT")
+
+        await sentTwice(bot)
+        bot.xtHandler.emit("msd", { AI: otherCamp }, 0)
+        expect(await there).toMatchObject({ result: 0, areaInfo: { type: 29, x: 641, y: 607 } })
+    })
+})

@@ -206,10 +206,20 @@ async function clientPreSpyInfo(x, y, kingdomID, useCache) {
 
     return { areaInfo: new ServerGetAreaInfo(obj.gaa, result).areaInfo[0], result: 0 }
 }
-async function clientSkipTarget(type, x, y, kingdomID, skip) {
+/**
+ * The last skip asked for. An error reply may not name its camp, so skips go out one at a time, as a player sends them,
+ * and any reply belongs to the one in flight.
+ */
+let lastSkip = Promise.resolve()
+function clientSkipTarget(type, x, y, kingdomID, skip) {
+    const turn = lastSkip.then(() => sendSkip(type, x, y, kingdomID, skip))
+    lastSkip = turn.catch(() => {})
+    return turn
+}
+async function sendSkip(type, x, y, kingdomID, skip) {
     await sendXT("msd", JSON.stringify({ X: x, Y: y, MID: -1, NID: -1, MST: skip, KID: `${kingdomID}` }))
-    let [obj, result] = await waitForResult("msd", 7000, (obj, result) => result != 0 || 
-        obj.AI[0] == type || obj.AI[1] == x || obj.AI[2] == y)
+    let [obj, result] = await waitForResult("msd", 7000, (obj, result) => result != 0 ||
+        obj.AI[0] == type && obj.AI[1] == x && obj.AI[2] == y)
 
     if (result != 0)
         return { result }

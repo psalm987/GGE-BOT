@@ -197,13 +197,13 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
 
     if (options.useCoin && !options.useFeather) {
         let bestHorse = -1
-        let minSpeed = Infinity
+        let maxSpeed = -Infinity
 
         unlockedHorses?.forEach(e => {
             let horse = stables.find(a => e == a.wodID)
             if (horse && Number(horse.costFactorC1) > 0 && Number(horse.costFactorC2) == 0) {
-                 if (Number(horse.unitBoost) < minSpeed) {
-                    minSpeed = Number(horse.unitBoost)
+                 if (Number(horse.unitBoost) > maxSpeed) {
+                    maxSpeed = Number(horse.unitBoost)
                     bestHorse = e
                 }
             }

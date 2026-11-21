@@ -77,7 +77,7 @@ describe("fortress autofill", () => {
 
     test.each([
         ["no horse", 0, { HBW: -1, PTT: 0 }],
-        ["a coin horse", 1, { HBW: 2, PTT: 0 }],
+        ["a coin horse", 1, { HBW: 1, PTT: 0 }],
         ["a feather", 2, { HBW: -1, PTT: 1 }],
         ["a feather when nothing is stored", undefined, { HBW: -1, PTT: 1 }],
     ])("rides %s", async (_, horse, frame) => {

@@ -27,7 +27,7 @@ describe("the cra getAttackInfo builds", () => {
     test("is the same, byte for byte, when no support tools or courtyard are given", () => {
         // Captured from getAttackInfo before it took support tools and a courtyard.
         expect(JSON.stringify(engine({ playerLevel: 30 }).getAttackInfo(0, castle, target, { lordID: 4 }, 40, undefined, { useCoin: true }, undefined)))
-            .toBe('{"SX":100,"SY":200,"TX":110,"TY":210,"KID":0,"LID":4,"WT":0,"HBW":2,"BPC":0,"ATT":0,"AV":0,"LP":0,"FC":0,"PTT":0,"SD":0,"ICA":0,"CD":99,"A":[{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}},{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}},{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}}],"BKS":[],"AST":[-1,-1,-1],"RW":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]],"ASCT":0}')
+            .toBe('{"SX":100,"SY":200,"TX":110,"TY":210,"KID":0,"LID":4,"WT":0,"HBW":1,"BPC":0,"ATT":0,"AV":0,"LP":0,"FC":0,"PTT":0,"SD":0,"ICA":0,"CD":99,"A":[{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}},{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}},{"L":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"R":{"T":[[-1,0],[-1,0]],"U":[[-1,0],[-1,0]]},"M":{"T":[[-1,0],[-1,0],[-1,0]],"U":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]]}}],"BKS":[],"AST":[-1,-1,-1],"RW":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]],"ASCT":0}')
         expect(JSON.stringify(engine({ pegasusTicket: 2 }).getAttackInfo(2, castle, target, { lordID: 5 }, 10, 1, { useFeather: true }, 1)))
             .toBe('{"SX":100,"SY":200,"TX":110,"TY":210,"KID":2,"LID":5,"WT":0,"HBW":-1,"BPC":0,"ATT":0,"AV":0,"LP":0,"FC":0,"PTT":1,"SD":0,"ICA":0,"CD":99,"A":[{"L":{"T":[[-1,0]],"U":[[-1,0]]},"R":{"T":[[-1,0]],"U":[[-1,0]]},"M":{"T":[[-1,0]],"U":[[-1,0],[-1,0]]}}],"BKS":[],"AST":[-1,-1,-1],"RW":[[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0],[-1,0]],"ASCT":0}')
     })
@@ -143,5 +143,22 @@ describe("fillEventTools", () => {
         expect(fillEventTools([glory], [ladder, rage], { maxTools })).toBe(0)
         expect(fillEventTools([khan], [ladder, rage], { maxTools, bonusField: "ragePointBonus" })).toBe(10)
         expect(khan.L.T[0]).toEqual([106, 10])
+    })
+})
+
+describe("the coin horse", () => {
+    const { horses: stables } = require("./fixtures/game-data/seed-rows.json")
+    const samuraiRun = require("./fixtures/protocol/samurai-20261120.json")
+    const captured = require("./fixtures/protocol/samurai-20261121.json")
+    const ride = unlockedHorses => loadModule("plugins/attack/attack.js", { bot: fakeBot(), items: { horses: stables }, extra: { "protocols": { resources: { pegasusTicket: 0 } } } })
+        .mod.getAttackInfo(0, { areaInfo: { x: 693, y: 526 }, unlockedHorses }, { x: 694, y: 525 }, { lordID: 0 }, 50, 1, { useCoin: true }, 0)
+
+    test("is the fastest horse paid in coins that the castle has, the one the player rode to a Samurai camp", () => {
+        const { HBW, PTT } = samuraiRun.cra_1.payload
+        expect(ride(stables.map(horse => horse.wodID))).toMatchObject({ HBW, PTT })
+    })
+
+    test("is the only coin horse of a first stable", () => {
+        expect(ride(captured.gbd_1.reply.payload.gpc.A[0].UH)).toMatchObject({ HBW: 1001, PTT: 0 })
     })
 })

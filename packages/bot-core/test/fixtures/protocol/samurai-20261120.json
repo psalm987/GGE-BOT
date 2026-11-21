@@ -1,0 +1,61 @@
+{
+  "_label": "Tx frames CAPTURED from a live Samurai session on 2026-11-20 (recorder trace 20261120-203944-0cd94e); that export did not decode replies. msd_reply is NOT captured: it is CONSTRUCTED from the AI area row of the fnm reply captured on 2026-11-21 (trace 20261121-073500-23065c), moved to this camp and with its wait (row index 5) set to 0.",
+  "cra_1": {
+    "cmd": "cra",
+    "note": "Trimmed to the source, the target and the horse.",
+    "payload": {
+      "SX": 693,
+      "SY": 526,
+      "TX": 694,
+      "TY": 525,
+      "KID": 0,
+      "HBW": 1007,
+      "PTT": 0
+    }
+  },
+  "msd_1": {
+    "cmd": "msd",
+    "payload": {
+      "X": 694,
+      "Y": 525,
+      "MID": -1,
+      "NID": -1,
+      "MST": "MS5",
+      "KID": "0"
+    }
+  },
+  "msd_2": {
+    "cmd": "msd",
+    "payload": {
+      "X": 694,
+      "Y": 525,
+      "MID": -1,
+      "NID": -1,
+      "MST": "MS4",
+      "KID": "0"
+    }
+  },
+  "msd_reply": {
+    "cmd": "msd",
+    "constructed": true,
+    "reply": {
+      "res": 0,
+      "payload": {
+        "AI": [
+          29,
+          694,
+          525,
+          -1,
+          0,
+          0,
+          0,
+          -651,
+          231,
+          91,
+          98,
+          28
+        ]
+      }
+    }
+  }
+}

@@ -48,7 +48,7 @@ describe("a stored wave plan becomes the cra", () => {
         ])
         expect(cra.AST).toEqual([HORN, -1, -1])
         expect(cra.RW).toEqual([[MELEE, 50], [RANGED, 25], EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY])
-        expect(cra).toMatchObject({ HBW: 2, PTT: 0, KID: 0, LID: 9, TX: 110, TY: 105 })
+        expect(cra).toMatchObject({ HBW: 1, PTT: 0, KID: 0, LID: 9, TX: 110, TY: 105 })
         const held = Object.fromEntries(castle.unitInventory.map(unit => [unit.unitInfo.wodID, unit.amount]))
         expect(held).toEqual({ [MELEE]: 900 - 180, [RANGED]: 800 - 95, [LADDER]: 390, [MANTLET]: 395, [RAM]: 392, [HORN]: 1 })
     })
@@ -97,7 +97,7 @@ describe("a stored wave plan becomes the cra", () => {
         expect(cra.A[3].M.U[0]).toEqual([RANGED, 40])
         expect(cra.AST).toEqual([HORN, -1, -1])
         expect(cra.RW.slice(0, 2)).toEqual([[MELEE, 50], [RANGED, 25]])
-        expect(cra).toMatchObject({ HBW: 2, PTT: 0 })
+        expect(cra).toMatchObject({ HBW: 1, PTT: 0 })
     })
 })
 
