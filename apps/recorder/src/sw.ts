@@ -1,11 +1,11 @@
 import { createClock, type Clock } from "./clock.ts"
 import * as db from "./db.ts"
-import { SCHEMA, type LifeEvent, type Session, type TraceEvent } from "./format.ts"
+import { SCHEMA, type LifeEvent, type TraceEvent } from "./format.ts"
 import { IDLE, transition, type Action, type Active, type Rec } from "./lifecycle.ts"
 import type { ControlMsg, FrameMsg, PageMsg, Status, Viewport } from "./messages.ts"
 import { createRedactor, type Redactor } from "./redact.ts"
 import { createShots, type Shots } from "./shots.ts"
-import { gameInfo, parseFrame, type Dir } from "./wire.ts"
+import { frameText, learnGame, parseFrame, type Dir, type Frame } from "./wire.ts"
 
 const STATE_KEY = "rec"
 const ANCHORS = new Set(["down", "key", "wheel"])
@@ -58,10 +58,10 @@ function makeLive(rec: Active, stored: db.StoredSession): Live {
   return l
 }
 
-function learn(l: Live, info: Session["game"]) {
+function learn(l: Live, frame: Frame, sock: string) {
   const game = l.stored.session.game
-  const known = { ...info, ...game }
-  if (Object.keys(known).length === Object.keys(game).length) return
+  const known = learnGame(game, frame, l.urls.get(sock))
+  if (JSON.stringify(known) === JSON.stringify(game)) return
   l.stored.session.game = known
   db.saveSession(l.stored).catch(console.error)
 }
@@ -98,13 +98,10 @@ function openSocket(l: Live, sock: string, t: number) {
 
 async function socketFrame(l: Live, dir: Dir, { requestId: sock, timestamp, response }: SocketFrame) {
   const t = l.clock.toEpoch(timestamp, Date.now())
-  const text = response.opcode === 1 ? response.payloadData : `<binary ${response.payloadData.length}>`
-  const frame = parseFrame(dir, text)
+  const frame = parseFrame(dir, frameText(response))
   const redacted = await l.redact(frame)
   openSocket(l, sock, t)
-  const info = gameInfo(frame)
-  const url = l.urls.get(sock)
-  learn(l, info.zone && url ? { ...info, host: new URL(url).host } : info)
+  learn(l, frame, sock)
   record(l, { t, sock, ...redacted })
   l.shots.traffic(dir)
 }

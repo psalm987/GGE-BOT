@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createRedactor } from "../src/redact.ts"
-import { gameInfo, parseFrame, type Dir } from "../src/wire.ts"
+import { gameInfo, learnGame, parseFrame, type Dir } from "../src/wire.ts"
 
 const redactWith = (salt = "salt-a") => {
   const redact = createRedactor(salt)
@@ -14,6 +14,15 @@ describe("redact", () => {
     expect(out).toMatchObject({ k: "tx", cmd: "lli", payload: { CONM: 175, LANG: "en", PW: "<redacted>", NOM: "<redacted>", AID: "<redacted>", DID: "<redacted>", KID: "<redacted>" } })
     expect(out.raw).toBe(`%xt%EmpireEx_9%lli%1%${JSON.stringify((out as { payload: unknown }).payload)}%`)
     for (const secret of ["hunter2", "Samuel", "a1", "d1", "k1"]) expect(JSON.stringify(out)).not.toContain(secret)
+  })
+
+  it("masks a token login and scrubs the token from later frames", async () => {
+    const redact = redactWith()
+    const token = "-1234567890:FakeLoginTok-9x"
+    const out = await redact("tx", `%xt%EmpireEx_9%lli%1%${JSON.stringify({ CONM: 294, NOM: "Samuel", LT: token, RCT: "0cFakeCaptcha1", LANG: "en" })}%`)
+    expect(out).toMatchObject({ payload: { CONM: 294, LANG: "en", LT: "<redacted>", RCT: "<redacted>" } })
+    const later = await redact("rx", `%xt%lli%1%0%{"echo":"${token}"}%`)
+    for (const frame of [out, later]) expect(JSON.stringify(frame)).not.toMatch(/FakeLoginTok|0cFakeCaptcha1/)
   })
 
   it("scrubs the login password out of every later frame, in any position", async () => {
@@ -77,6 +86,21 @@ describe("redact", () => {
     expect(first.payload.PID).not.toBe(first.payload.UID)
   })
 
+  it("hashes the player ids and removes the email of the gpi that gbd bundles at login, and leaves the rest of gbd alone", async () => {
+    const out = await redactWith()("rx", `%xt%gbd%1%0%{"gpi":{"UID":424242,"PID":777,"PN":"Bob","E":"x"},"gcl":{"E":{"S1":44},"PID":5}}%`) as { payload: { gpi: Record<string, unknown>; gcl: unknown }; raw: string }
+    expect(out.payload.gpi).toMatchObject({ E: "<redacted>", PN: "Bob" })
+    expect(out.payload.gpi.UID).toMatch(/^#[0-9a-f]{16}$/)
+    expect(out.payload.gcl).toEqual({ E: { S1: 44 }, PID: 5 })
+    expect(out.raw).not.toMatch(/424242|777/)
+  })
+
+  it("scrubs the login name out of every later frame, since the game shows it as the player's name", async () => {
+    const redact = redactWith()
+    await redact("tx", lli)
+    const castle = await redact("rx", `%xt%jaa%1%0%{"gca":{"O":{"OID":1,"N":"Samuel"}}}%`)
+    expect(castle).toMatchObject({ payload: { gca: { O: { OID: 1, N: "<redacted>" } } } })
+  })
+
   it("masks the token fields of tlep, vln and glt", async () => {
     const redact = redactWith()
     expect(await redact("tx", `%xt%EmpireEx_9%tlep%1%{"TLT":"tok-1"}%`)).toMatchObject({ payload: { TLT: "<redacted>" } })
@@ -96,6 +120,21 @@ describe("redact", () => {
     expect(await redact("tx", tx)).toMatchObject({ k: "tx", cmd: "sbp", raw: tx, payload: { PID: 32 } })
     expect(await redact("rx", "%xt%sbp%1%114%{}%")).toEqual({ k: "rx", cmd: "sbp", res: 114, payload: {}, raw: "%xt%sbp%1%114%{}%" })
     expect(await redact("tx", "%xt%EmpireEx_9%pin%1%")).toEqual({ k: "tx", cmd: "pin", payload: "", raw: "%xt%EmpireEx_9%pin%1%" })
+  })
+})
+
+describe("learnGame", () => {
+  const sock = "wss://ep-live-in1-game.goodgamestudios.com/"
+  const start = { zone: "EmpireEx_49", host: "ep-live-world2-game.goodgamestudios.com", clientBuild: "1173012" }
+
+  it("keeps the first zone it sees from ordinary frames", () => {
+    expect(learnGame(start, parseFrame("tx", `%xt%EmpireEx_26%pin%1%<RoundHouseKick>%`), sock)).toEqual(start)
+    expect(learnGame({}, parseFrame("tx", `%xt%EmpireEx_26%pin%1%x%`), sock)).toEqual({ zone: "EmpireEx_26", host: "ep-live-in1-game.goodgamestudios.com" })
+  })
+
+  it("lets the login message replace the world, because the start page first connects to a default one", () => {
+    expect(learnGame(start, parseFrame("tx", `%xt%EmpireEx_26%lli%1%{}%`), sock))
+      .toEqual({ zone: "EmpireEx_26", host: "ep-live-in1-game.goodgamestudios.com", clientBuild: "1173012" })
   })
 })
 

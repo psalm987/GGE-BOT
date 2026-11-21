@@ -50,8 +50,10 @@ const xt = (cmd, payload) => ws.send("%xt%EmpireEx_9%" + cmd + "%1%" + JSON.stri
 // iframe can beat the recorder's Network.enable to that iframe, and then its url is never reported.
 setTimeout(() => {
   ws = new WebSocket("ws://" + location.host + "/game")
+  ws.binaryType = "arraybuffer"
   ws.onopen = () => ws.send("<msg t='sys'><body action='verChk' r='0'><ver v='166' /></body></msg>")
-  ws.onmessage = ({ data }) => {
+  ws.onmessage = ({ data: bytes }) => {
+    const data = new TextDecoder().decode(bytes)
     if (data.includes("apiOK")) ws.send("<msg t='sys'><body action='login' r='0'><login z='EmpireEx_9'><nick><![CDATA[]]></nick><pword><![CDATA[1234.5%en%0]]></pword></login></body></msg>")
     else if (data.includes("joinOK")) xt("lli", { CONM: 175, NOM: "TesterName", PW: "${PASSWORD}", AID: "aid-1", DID: "did-1", KID: "kid-1", LANG: "en" })
     else if (data.startsWith("%xt%lli%")) xt("ech", { note: "my pw is ${PASSWORD} ok" })
@@ -71,8 +73,10 @@ const html = body => (_req, res) => res.writeHead(200, { "content-type": "text/h
 
 const gameServer = createServer(html(GAME_HTML))
 const sockets = new WebSocketServer({ server: gameServer })
-sockets.on("connection", ws => {
-  ws.on("message", data => {
+sockets.on("connection", socket => {
+  // Like the real game server, every reply is UTF-8 text in a binary frame, ended by a NUL.
+  const ws = { send: text => socket.send(Buffer.from(text + "\0")) }
+  socket.on("message", data => {
     const frame = data.toString()
     if (frame.includes("verChk")) ws.send("<msg t='sys'><body action='apiOK' r='0'></body></msg>")
     else if (frame.includes("action='login'")) ws.send("<msg t='sys'><body action='joinOK' r='1'><pid id='0'/></body></msg>")

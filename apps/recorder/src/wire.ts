@@ -12,6 +12,22 @@ export type Frame =
   | { kind: "xt"; dir: Dir; head: string; zone?: string; cmd: string; res: number; body: string; tail: string }
   | { kind: "sys"; dir: Dir; raw: string }
 
+const utf8 = new TextDecoder("utf-8", { fatal: true })
+
+/**
+ * The text of a CDP websocket frame. The game server sends its replies as UTF-8 text in binary frames, which CDP hands
+ * over base64-encoded. A binary frame that is not text keeps only its size.
+ */
+export function frameText({ opcode, payloadData }: { opcode: number; payloadData: string }): string {
+  if (opcode === 1) return payloadData
+  const bytes = Uint8Array.from(atob(payloadData), c => c.charCodeAt(0))
+  try {
+    return utf8.decode(bytes).replace(/\0+$/, "")
+  } catch {
+    return `<binary ${bytes.length} bytes>`
+  }
+}
+
 export function parseFrame(dir: Dir, raw: string): Frame {
   const sys: Frame = { kind: "sys", dir, raw }
   if (!raw.startsWith("%xt%")) return sys
@@ -36,4 +52,14 @@ export function gameInfo(frame: Frame): Pick<Session["game"], "zone" | "clientBu
   if (frame.kind === "xt") return frame.zone ? { zone: frame.zone } : {}
   const build = /action=["']login["'][\s\S]*?<pword><!\[CDATA\[([^%\]]+)/.exec(frame.raw)?.[1]
   return build ? { clientBuild: build } : {}
+}
+
+/**
+ * The session's game info after `frame`. The first value seen for each field stays, except that the login message
+ * replaces the zone and host: the start page connects to a default world before the player picks theirs.
+ */
+export function learnGame(game: Session["game"], frame: Frame, url?: string): Session["game"] {
+  const info = gameInfo(frame)
+  const found = info.zone && url ? { ...info, host: new URL(url).host } : info
+  return frame.kind === "xt" && frame.cmd === "lli" ? { ...game, ...found } : { ...found, ...game }
 }

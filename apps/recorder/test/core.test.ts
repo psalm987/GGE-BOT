@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { createClock } from "../src/clock.ts"
 import { IDLE, transition, type Rec } from "../src/lifecycle.ts"
-import { parseFrame } from "../src/wire.ts"
+import { frameText, parseFrame } from "../src/wire.ts"
 
 describe("lifecycle", () => {
   const start = { type: "start", sessionId: "s1", tabId: 7, salt: "x" } as const
@@ -51,5 +51,27 @@ describe("parseFrame", () => {
   it("treats XML and anything else as a system frame", () => {
     expect(parseFrame("rx", "<msg t='sys'></msg>")).toEqual({ kind: "sys", dir: "rx", raw: "<msg t='sys'></msg>" })
     expect(parseFrame("rx", "%xt%short%")).toMatchObject({ kind: "sys" })
+  })
+})
+
+describe("frameText", () => {
+  const b64 = (text: string) => btoa(String.fromCharCode(...new TextEncoder().encode(text)))
+
+  it("keeps a text frame as it came", () => {
+    expect(frameText({ opcode: 1, payloadData: "%xt%pin%1%0%" })).toBe("%xt%pin%1%0%")
+  })
+
+  it("decodes a binary frame that holds UTF-8 text, so server replies parse as xt frames", () => {
+    const text = frameText({ opcode: 2, payloadData: b64(`%xt%gpi%1%0%{"N":"Bjørn"}%`) })
+    expect(text).toBe(`%xt%gpi%1%0%{"N":"Bjørn"}%`)
+    expect(parseFrame("rx", text)).toMatchObject({ kind: "xt", cmd: "gpi", res: 0, body: `{"N":"Bjørn"}` })
+  })
+
+  it("drops the NUL that ends a SmartFox message", () => {
+    expect(frameText({ opcode: 2, payloadData: b64("%xt%pin%1%0%\0") })).toBe("%xt%pin%1%0%")
+  })
+
+  it("keeps a placeholder with the byte count for a binary frame that is not text", () => {
+    expect(frameText({ opcode: 2, payloadData: btoa("\xff\xfe\x00\x01") })).toBe("<binary 4 bytes>")
   })
 })

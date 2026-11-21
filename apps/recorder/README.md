@@ -17,10 +17,10 @@ The recorder saves three things:
 The recorder removes these things before it saves anything to disk:
 
 - Your password, your login name, and the device and account ids in the login message.
-- Login tokens.
+- Your password, login name and login tokens wherever they appear again later. The game shows your login name as your player name, so it is removed from castle, map and other replies too.
 - Your email address, and any other email address in any message.
 - The text of chat and private messages. Only the length of the message is kept.
-- Your player ids in the player info message. A scrambled value that is different in every recording replaces them.
+- Your player ids in the player info message, including the copy the game sends at login. A scrambled value that is different in every recording replaces them.
 
 Screenshots are not edited. They show your screen as you saw it, with other players' names, alliance names, and chat bubbles. If you do not want something in a recording, pause the recorder before it appears on screen.
 

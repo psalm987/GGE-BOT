@@ -6,24 +6,30 @@ const EMAIL = /[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g
 /** A shorter password would be scrubbed out of unrelated numbers and words in every frame. */
 const MIN_SECRET = 4
 
-type Rule =
-  | { drop: "chat" }
-  | { mask: readonly string[]; hash?: readonly string[]; secret?: string }
+type Fields = { mask: readonly string[]; hash?: readonly string[]; secrets?: readonly string[]; inner?: Readonly<Record<string, Fields>> }
+type Rule = { drop: "chat" } | Fields
 
 const CHAT: Rule = { drop: "chat" }
 const CHAT_CMDS = { acm: CHAT, acl: CHAT, wcm: CHAT, wcl: CHAT, sms: CHAT }
 
-/** `mask` fields become "<redacted>", `hash` fields a per-session hash, and `secret` names the field whose value is scrubbed from every later frame. */
+const GPI: Fields = { mask: ["E"], hash: ["UID", "PID"] }
+
+/**
+ * `mask` fields become "<redacted>", `hash` fields a per-session hash, `secrets` name the fields whose values are
+ * scrubbed from every later frame, and `inner` applies another rule to the object under that key only.
+ */
 export const RULES: Record<Dir, Record<string, Rule>> = {
   tx: {
-    lli: { mask: ["PW", "NOM", "AID", "DID", "KID"], secret: "PW" },
+    // The login name is also the player's name, which the game repeats in castle, map and ranking replies.
+    lli: { mask: ["PW", "LT", "RCT", "NOM", "AID", "DID", "KID"], secrets: ["PW", "LT", "RCT", "NOM"] },
     tlep: { mask: ["TLT"] },
     vln: { mask: ["NOM"] },
     ...CHAT_CMDS,
   },
   rx: {
     glt: { mask: ["TLT"] },
-    gpi: { mask: ["E"], hash: ["UID", "PID"] },
+    gpi: GPI,
+    gbd: { mask: [], inner: { gpi: GPI } },
     ...CHAT_CMDS,
   },
 }
@@ -48,8 +54,8 @@ async function digest(salt: string, value: unknown): Promise<string> {
 }
 
 /**
- * One redactor per recording session. It remembers the login password in
- * memory so it can scrub it from later frames, and `salt` keeps hashed ids
+ * One redactor per recording session. It remembers the login secrets in
+ * memory so it can scrub them from later frames, and `salt` keeps hashed ids
  * stable within the session and unlinkable across sessions.
  */
 export function createRedactor(salt: string): Redactor {
@@ -67,13 +73,14 @@ export function createRedactor(salt: string): Redactor {
     secrets.add(JSON.stringify(value).slice(1, -1))
   }
 
-  async function apply(rule: Extract<Rule, { mask: unknown }>, value: unknown): Promise<unknown> {
+  async function apply(rule: Fields, value: unknown): Promise<unknown> {
     if (Array.isArray(value)) return Promise.all(value.map(item => apply(rule, item)))
     if (value === null || typeof value !== "object") return value
     const out: Record<string, unknown> = {}
     for (const [key, field] of Object.entries(value)) {
       if (rule.mask.includes(key)) out[key] = MASK
       else if (rule.hash?.includes(key)) out[key] = await digest(salt, field)
+      else if (rule.inner?.[key]) out[key] = await apply(rule.inner[key], field)
       else out[key] = await apply(rule, field)
     }
     return out
@@ -87,8 +94,8 @@ export function createRedactor(salt: string): Redactor {
     const parsed = parseJson(frame.body)
     // A rule that cannot find its fields must not let the payload through.
     if (!parsed) return dropped("unparsed")
-    if (rule.secret && parsed.value && typeof parsed.value === "object")
-      remember((parsed.value as Record<string, unknown>)[rule.secret])
+    if (parsed.value && typeof parsed.value === "object")
+      for (const field of rule.secrets ?? []) remember((parsed.value as Record<string, unknown>)[field])
     return JSON.stringify(await apply(rule, parsed.value))
   }
 
