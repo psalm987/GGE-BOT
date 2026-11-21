@@ -108,7 +108,7 @@
     "minimumFoodRate": "Lowest food income to feast",
     "hours": "Hours until the bot stops",
     "commanderWhiteList": "Commanders to use",
-    "vipCommanders": "VIP commanders",
+    "vipCommanders": "VIP commanders per day",
     "attackWaves": "Waves",
     "noEventTools": "Don't use event tools",
     "lowValueChests": "Use the weakest event tools first",

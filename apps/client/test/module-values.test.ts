@@ -63,7 +63,7 @@ test("the attacks a day a page asks for are those of the plugins that are on, an
 const tower = (key: string): PluginCatalogEntry => ({
     key, force: false, hidden: false, category: "attack",
     checks: [{ type: "commanders", option: "commanderWhiteList", vip: "vipCommanders" }],
-    options: [{ type: "Text", key: "commanderWhiteList", default: "1-50" }, { type: "Number", key: "vipCommanders", min: 0, max: 50, default: 0 }],
+    options: [{ type: "Text", key: "commanderWhiteList", default: "1-50" }, { type: "Number", key: "vipCommanders", min: 0, max: 300, default: 0 }],
 })
 const towers = [tower("attackBarronsGreatEmpire"), tower("attackBarronsBurningSands")]
 

@@ -2430,8 +2430,11 @@ async function driveUxCommanders(page) {
         const vipBox = await vip.boundingBox(), tileBox = await tile(1).boundingBox()
         assert(vipBox.width > tileBox.width * 2.5, `the VIP tile spans three columns (${Math.round(vipBox.width)} px against ${Math.round(tileBox.width)} px)`)
         await vip.click()
-        const cap = picker.getByLabel("VIP cap")
-        assert(await vip.getAttribute("aria-pressed") === "true" && await cap.inputValue() === "1", "picking the VIP tile sets the VIP cap to 1")
+        const cap = picker.getByLabel("Daily VIP cap")
+        assert(await vip.getAttribute("aria-pressed") === "true" && await cap.inputValue() === "25", "picking the VIP tile sets the daily VIP cap to 25")
+        await cap.fill("301")
+        await cap.blur()
+        assert(await cap.inputValue() === "300", "the daily VIP cap stops at 300, the level-10 allowance")
         await cap.fill("3")
         await cap.blur()
         await axe(page, "ux-commanders towers 1440")
@@ -2446,7 +2449,7 @@ async function driveUxCommanders(page) {
         assert(saved[TOWERS[0]].enabled && !saved[TOWERS[1]].enabled, "saving the commanders leaves each kingdom's switch as it was")
 
         await open("towers")
-        assert(await order() === "Order: 36, 2, 5" && await picker.getByLabel("VIP cap").inputValue() === "3" && await vip.getAttribute("aria-pressed") === "true", "the order and the VIP cap come back after a reload")
+        assert(await order() === "Order: 36, 2, 5" && await picker.getByLabel("Daily VIP cap").inputValue() === "3" && await vip.getAttribute("aria-pressed") === "true", "the order and the VIP cap come back after a reload")
         assert(await picker.getByText("The attacks on this page had different commander lists.", { exact: false }).count() === 0, "once saved, the kingdoms share one list and the warning is gone")
 
         await page.setViewportSize(PHONE_VIEW)

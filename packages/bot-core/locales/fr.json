@@ -107,7 +107,7 @@
     "minimumFoodRate": "Revenu de nourriture minimal pour un banquet",
     "hours": "Heures avant l'arrêt du bot",
     "commanderWhiteList": "Commandants à utiliser",
-    "vipCommanders": "Commandants VIP",
+    "vipCommanders": "Commandants VIP par jour",
     "attackWaves": "Vagues",
     "noEventTools": "Ne pas utiliser les engins d'événement",
     "lowValueChests": "Utiliser d'abord les engins d'événement les plus faibles",

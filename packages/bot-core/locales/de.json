@@ -108,7 +108,7 @@
     "minimumFoodRate": "Niedrigster Nahrungsertrag für ein Festmahl",
     "hours": "Stunden bis der Bot stoppt",
     "commanderWhiteList": "Zu verwendende Feldherren",
-    "vipCommanders": "VIP-Feldherren",
+    "vipCommanders": "VIP-Feldherren pro Tag",
     "attackWaves": "Wellen",
     "noEventTools": "Keine Event-Werkzeuge verwenden",
     "lowValueChests": "Schwächste Event-Werkzeuge zuerst verwenden",

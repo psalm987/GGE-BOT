@@ -108,7 +108,7 @@
     "minimumFoodRate": "Ελάχιστο εισόδημα τροφής για γιορτή",
     "hours": "Ώρες μέχρι να σταματήσει το bot",
     "commanderWhiteList": "Διοικητές προς χρήση",
-    "vipCommanders": "Διοικητές VIP",
+    "vipCommanders": "Διοικητές VIP ανά ημέρα",
     "attackWaves": "Κύματα",
     "noEventTools": "Να μη χρησιμοποιούνται εργαλεία γεγονότος",
     "lowValueChests": "Πρώτα τα πιο αδύναμα εργαλεία γεγονότος",

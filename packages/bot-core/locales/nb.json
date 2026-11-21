@@ -107,7 +107,7 @@
     "minimumFoodRate": "Laveste matinntekt for fest",
     "hours": "Timer til boten stopper",
     "commanderWhiteList": "Kommandører å bruke",
-    "vipCommanders": "VIP-kommandører",
+    "vipCommanders": "VIP-kommandører per dag",
     "attackWaves": "Bølger",
     "noEventTools": "Ikke bruk eventverktøy",
     "lowValueChests": "Bruk de svakeste eventverktøyene først",

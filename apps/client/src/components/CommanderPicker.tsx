@@ -16,9 +16,13 @@ function useRoster(commanders: number | null) {
     return count === 0 ? t("plugins.commanders.none") : count === 1 ? t("plugins.commanders.one") : t("plugins.commanders.owned", { count })
 }
 
+/** What the VIP tile sets: the free daily allowance at VIP level 5, the lowest level that has one, so any VIP account covers it. */
+const VIP_TILE_DEFAULT = 25
+
 /**
  * The module's one commander picker: tiles 1 to 50 clicked in the order the bot sends them, the VIP tile and the VIP
- * cap, which are saved but not used by the bot yet. `shared` says the list goes to several attacks of the page, and
+ * cap, which are saved but not used by the bot yet. The cap is the most VIP commanders the bot may use each day,
+ * and never more than the free daily allowance of the account's VIP level. `shared` says the list goes to several attacks of the page, and
  * `mixed` that they held different lists before.
  */
 export function CommanderPicker({ list, vip, vipMax, commanders, disabled, shared, mixed, onChange }: {
@@ -47,7 +51,7 @@ export function CommanderPicker({ list, vip, vipMax, commanders, disabled, share
                     </button>
                 ))}
                 <button type="button" className="gge-commander-tile gge-commander-vip" disabled={disabled} aria-pressed={vip > 0}
-                    aria-label={`${t("plugins.commanderPicker.vip")}, ${t("module.soon.tag")}`} onClick={() => onChange({ vip: vip > 0 ? 0 : 1 })}>
+                    aria-label={`${t("plugins.commanderPicker.vip")}, ${t("module.soon.tag")}`} onClick={() => onChange({ vip: vip > 0 ? 0 : VIP_TILE_DEFAULT })}>
                     <strong>{t("plugins.commanderPicker.vipTile")}</strong>{soon}
                 </button>
             </div>

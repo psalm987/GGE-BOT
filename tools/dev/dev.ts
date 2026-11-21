@@ -54,7 +54,7 @@ const DEV_SETTINGS_PREVIEW: Parameters<typeof publishCatalog>[1][number] = {
     checks: [{ type: "commanders", option: "commanderWhiteList", vip: "vipCommanders" }],
     options: [
         { type: "Text", key: "commanderWhiteList", default: "1-99" },
-        { type: "Number", key: "vipCommanders", min: 0, max: 50, default: 0 },
+        { type: "Number", key: "vipCommanders", min: 0, max: 300, default: 0 },
         { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
         { type: "CastlePicker", key: "sourceCastle" },
         { type: "OrderedList", key: "bannerOrder", catalog: "banners", default: [660, 661, 77] },

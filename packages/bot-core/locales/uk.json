@@ -108,7 +108,7 @@
     "minimumFoodRate": "Найменший приріст їжі для бенкету",
     "hours": "Годин до зупинки бота",
     "commanderWhiteList": "Командири для використання",
-    "vipCommanders": "VIP-командири",
+    "vipCommanders": "VIP-командири на день",
     "attackWaves": "Хвилі",
     "noEventTools": "Не використовувати подієві знаряддя",
     "lowValueChests": "Спершу використовувати найслабші подієві знаряддя",

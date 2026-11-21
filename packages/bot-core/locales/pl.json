@@ -108,7 +108,7 @@
     "minimumFoodRate": "Najniższy przychód żywności do uczty",
     "hours": "Godziny do zatrzymania bota",
     "commanderWhiteList": "Dowódcy do użycia",
-    "vipCommanders": "Dowódcy VIP",
+    "vipCommanders": "Dowódcy VIP dziennie",
     "attackWaves": "Fale",
     "noEventTools": "Nie używać narzędzi wydarzenia",
     "lowValueChests": "Najpierw używać najsłabszych narzędzi wydarzenia",

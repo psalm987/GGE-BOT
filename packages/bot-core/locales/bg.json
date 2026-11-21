@@ -108,7 +108,7 @@
     "minimumFoodRate": "Най-нисък приход на храна за пир",
     "hours": "Часове до спиране на бота",
     "commanderWhiteList": "Командири за използване",
-    "vipCommanders": "VIP командири",
+    "vipCommanders": "VIP командири на ден",
     "attackWaves": "Вълни",
     "noEventTools": "Не използвай инструменти от събитието",
     "lowValueChests": "Първо използвай най-слабите инструменти от събитието",

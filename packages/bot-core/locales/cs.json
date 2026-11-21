@@ -107,7 +107,7 @@
     "minimumFoodRate": "Nejnižší příjem jídla pro hostinu",
     "hours": "Hodiny do zastavení bota",
     "commanderWhiteList": "Velitelé k použití",
-    "vipCommanders": "VIP velitelé",
+    "vipCommanders": "VIP velitelé za den",
     "attackWaves": "Vlny",
     "noEventTools": "Nepoužívat nástroje události",
     "lowValueChests": "Nejdřív použít nejslabší nástroje události",

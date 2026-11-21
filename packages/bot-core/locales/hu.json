@@ -107,7 +107,7 @@
     "minimumFoodRate": "Legalacsonyabb élelembevétel a lakomához",
     "hours": "Órák a bot leállásáig",
     "commanderWhiteList": "Használt parancsnokok",
-    "vipCommanders": "VIP-parancsnokok",
+    "vipCommanders": "VIP-parancsnokok naponta",
     "attackWaves": "Hullámok",
     "noEventTools": "Ne használj eseményeszközöket",
     "lowValueChests": "A leggyengébb eseményeszközök előre",

@@ -124,6 +124,7 @@ describe("the catalog entry", () => {
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(mod.breaksPeace).toBe(true)
         expect(mod.checks).toEqual([{ type: "commanders", option: "commanderWhiteList", vip: "vipCommanders" }])
+        expect(byKey.vipCommanders).toMatchObject({ type: "Number", min: 0, max: 300, default: 0 })
     })
 
     test("leaves 60 seconds before the attack by default and never less than 20", () => {

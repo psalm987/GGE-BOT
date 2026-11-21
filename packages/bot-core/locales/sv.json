@@ -108,7 +108,7 @@
     "minimumFoodRate": "Lägsta matinkomst för fest",
     "hours": "Timmar tills botten stoppas",
     "commanderWhiteList": "Anförare att använda",
-    "vipCommanders": "VIP-anförare",
+    "vipCommanders": "VIP-anförare per dag",
     "attackWaves": "Vågor",
     "noEventTools": "Använd inte eventverktyg",
     "lowValueChests": "Använd de svagaste eventverktygen först",

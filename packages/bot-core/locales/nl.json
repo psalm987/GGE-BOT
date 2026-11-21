@@ -108,7 +108,7 @@
     "minimumFoodRate": "Laagste voedselinkomen voor een feestmaal",
     "hours": "Uren tot de bot stopt",
     "commanderWhiteList": "Te gebruiken commandanten",
-    "vipCommanders": "VIP-commandanten",
+    "vipCommanders": "VIP-commandanten per dag",
     "attackWaves": "Golven",
     "noEventTools": "Geen eventtuigen gebruiken",
     "lowValueChests": "Eerst de zwakste eventtuigen gebruiken",
