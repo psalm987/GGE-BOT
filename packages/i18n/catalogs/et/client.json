@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP ehitaja",
   "modules.mp-builder.description": "Ehitab sündmuse serveri võimsa paiga sinu konto kaksikult.",
   "modules.recruit-tools-heal.name": "Värbamine, tööriistad ja ravi",
-  "modules.recruit-tools-heal.description": "Õpetab vägesid, valmistab tööriistu ja ravib haavatuid sinu seatud plaani järgi.",
+  "modules.recruit-tools-heal.description": "Hoiab iga lossi väed ja tööriistad sinu seatud varul ning tellib neid müntide ja ressurssidega kasarmust ja töökodadest. Ravi tuleb peagi.",
   "modules.refinery-toolsmith.name": "Rafineerimistehas ja tööriistasepp",
   "modules.refinery-toolsmith.description": "Ehitab sinu töökodades piiramisvahendeid, kuni igaüks jõuab sinu seatud varuni.",
   "modules.auto-feast.name": "Automaatne pidusöök",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Peatu pärast kaotust",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Peatab sündmuse rünnakud, kui üks kaotatakse, kuni oled selle üle vaadanud.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomaadide nõuandja",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lase mängu nomaadide nõuandjal nomaadide laagreid sinu eest hallata."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lase mängu nomaadide nõuandjal nomaadide laagreid sinu eest hallata.",
+  "modules.recruit-tools-heal.soon.heal.name": "Ravi",
+  "modules.recruit-tools-heal.soon.heal.description": "Ravi oma losside haavatuid enda seatud plaani järgi.",
+  "module.soon.title": "Veel tulekul"
 }

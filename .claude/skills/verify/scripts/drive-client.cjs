@@ -2092,6 +2092,102 @@ async function driveUxArmourer(page) {
 }
 
 /**
+ * The Recruit, tools and heal page: live with its two row tables, the pickers listing only what the plugin may order
+ * (checked against the game's units file: nothing that costs rubies, components or tokens), healing still to come,
+ * rows saved and read back through the API and after a reload, and axe at 1440, 390 and in Arabic. The runner is off,
+ * so nothing is ordered.
+ */
+async function driveRecruitTools(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "recruitTools", enabled: true,
+        options: { troopTargets: [{ castle: { kingdom: 0, id: 1002 }, troop: 308, stock: 500, batch: 50 }], coinFloor: 250000 } })
+    const form = page.locator(".gge-content")
+    const table = title => form.locator(".ant-form-item").filter({ has: page.locator("label", { hasText: title }) })
+    const open = async () => {
+        await page.goto(`${CLIENT_URL}/m/recruit-tools-heal?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+    const shown = async (scope, label) => (await scope.getByLabel(label).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).replace(/\s+/g, " ").trim()
+    const pick = async (scope, label, text, type = false) => {
+        await scope.getByLabel(label).click()
+        if (type)
+            await page.keyboard.type(text)
+        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: text }).first().click()
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    await openModule(page, "Recruit, tools and heal")
+    const troops = table("Troop targets"), tools = table("Tool targets")
+    assert(await page.getByText("Ask for it on Discord").count() === 0 && await page.getByRole("switch", { name: "Recruit and tools" }).isVisible(), "the page is live: a switch for Recruit and tools and no Discord ask")
+    const heal = page.locator("[data-soon=heal]")
+    assert((await heal.innerText()).startsWith("Healing") && (await heal.innerText()).includes("Coming soon"), "healing is listed as coming soon")
+    assert(await page.getByText("Still to come", { exact: true }).isVisible(), "under a Still to come card")
+    assert(/^Ironhold Watch/.test(await shown(troops, "Castle, row 1")) && /halberdier/i.test(await shown(troops, "Troop, row 1")), `the stored troop row shows its castle and troop: ${await shown(troops, "Castle, row 1")} / ${await shown(troops, "Troop, row 1")}`)
+    assert(await troops.getByLabel("Stock, row 1").inputValue() === "500" && await troops.getByLabel("Per order, row 1").inputValue() === "50", "and its stock and per-order amount")
+    assert(await form.getByLabel("Keep at least this many coins").inputValue().then(v => v.replace(/\D/g, "")) === "250000", "the coin floor shows what was stored")
+
+    const items = async kind => rpc(page, "catalog/gameItems", { kind })
+    const orderable = [...await items("troop"), ...await items("tool")].filter(item => item.orderList !== null)
+    const units = require(`${process.env.GGE_DATA_DIR ?? process.env.HOME + "/.cache/gge-bot-verify/seed"}/items/units.json`)
+    const priced = new Set(["costC1", "costWood", "costStone", "costFood", "costCoal", "costOil", "costGlass", "costIron", "costHoney", "costMead", "costAqua"])
+    const bad = orderable.filter(item => Object.entries(units.find(u => Number(u.wodID) === item.id) ?? {}).some(([field, value]) => field.startsWith("cost") && Number(value) > 0 && !priced.has(field)))
+    assert(orderable.length > 100 && bad.length === 0, `${orderable.length} items can be picked and none costs rubies, components or tokens`)
+
+    await tools.getByRole("button", { name: "Add row" }).click()
+    assert(await tools.getByLabel("Per order, row 1").inputValue() === "80" && await tools.getByLabel("Stock, row 1").inputValue() === "1000", "a new tool row starts at 1000 in stock and 80 per order, the most one order holds")
+    await tools.getByLabel("Tool, row 1").click()
+    await page.keyboard.type("Sceat")
+    assert(await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").count() === 0, "the tool picker lists no Sceat tool, which is built from components")
+    await page.keyboard.press("Escape")
+    await pick(tools, "Castle, row 1", "Ironhold Watch")
+    await pick(tools, "Tool, row 1", "Battering ram", true)
+    await tools.getByLabel("Stock, row 1").fill("300")
+    await troops.getByRole("button", { name: "Add row" }).click()
+    await pick(troops, "Castle, row 2", "Frostgate")
+    await troops.getByLabel("Troop, row 2").click()
+    await page.keyboard.type("halberdier")
+    const levels = await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").allInnerTexts()
+    assert(levels.length > 1 && new Set(levels).size === levels.length, `the levels of one troop have names that tell them apart: ${levels.slice(0, 3).join(", ")}`)
+    await page.keyboard.press("Escape")
+    await page.getByText("Only troops paid with coins are listed.", { exact: false }).waitFor()
+    await page.waitForTimeout(500)
+    await axe(page, "recruit and tools rows 1440")
+    await page.screenshot({ path: `${out}/83-recruit-tools-1440.png`, fullPage: true })
+    assert(await form.getByText("Fill in every column", { exact: false }).count() > 0, "an unfinished troop row is refused under its field")
+    await troops.getByRole("button", { name: "Remove row 2" }).click()
+    await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const saved = (await account()).plugins.recruitTools.options
+    assert(require("node:util").isDeepStrictEqual(saved.troopTargets, [{ castle: { kingdom: 0, id: 1002 }, troop: 308, stock: 500, batch: 50 }]), `the troop row is read back: ${JSON.stringify(saved.troopTargets)}`)
+    assert(require("node:util").isDeepStrictEqual(saved.toolStockTargets, [{ castle: { kingdom: 0, id: 1002 }, tool: 611, stock: 300, batch: 80 }]), `the tool row is read back: ${JSON.stringify(saved.toolStockTargets)}`)
+
+    await open()
+    assert((await shown(tools, "Castle, row 1")).includes("Ironhold Watch") && /ram/i.test(await shown(tools, "Tool, row 1")) && await tools.getByLabel("Stock, row 1").inputValue() === "300", "after a reload the tool row shows what was saved")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Recruit and tools page at 390")
+    await axe(page, "recruit and tools rows 390")
+    await page.screenshot({ path: `${out}/83-recruit-tools-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await open()
+    const ar = require("../../../../packages/bot-core/locales/ar.json")
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await form.getByText(ar.batch, { exact: true }).first().isVisible() && await form.getByText(ar.troopTargets, { exact: true }).first().isVisible(), "in Arabic the per-order column and the troop table are translated")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Recruit and tools page in Arabic")
+    await axe(page, "recruit and tools rows Arabic 1440")
+    await page.screenshot({ path: `${out}/83-recruit-tools-ar-1440.png`, fullPage: true })
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+}
+
+/**
  * The Wheel spin page: live, not a coming-soon page. Both wheels are on by default and the keep and daily limit fields
  * start at 0, a change saves and reads back through the API and after a reload, and axe runs at 1440, 390 and in Arabic.
  * The runner is off, so nothing spins.
@@ -2627,6 +2723,17 @@ async function driveUxCommanders(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxArmourer(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "recruit-tools") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveRecruitTools(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -3203,6 +3310,7 @@ async function driveUxCommanders(page) {
     await driveUxWaves(seeded)
     await driveUxArmourer(seeded)
     await driveUxWheel(seeded)
+    await driveRecruitTools(seeded)
     await driveUxCommanders(seeded)
     await drivePluginSettings(seeded)
     await driveDailyChores(seeded)

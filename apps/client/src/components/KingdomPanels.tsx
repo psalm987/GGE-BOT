@@ -73,14 +73,31 @@ export function GlobalCard({ module, account, attackLimit, asked }: {
                         {limit !== undefined && asked > limit && <span className="gge-global-warning" role="status">{t("module.global.capOver", { asked, limit })}</span>}
                     </span>
                 </li>
-                {module.global.soon.map(item => (
-                    <li key={item} data-soon={item}>
-                        <span className="gge-global-name">{t(`modules.${module.id}.soon.${item}.name`)}</span>
-                        <span className="gge-global-text">{t(`modules.${module.id}.soon.${item}.description`)}</span>
-                        <Tag style={{ marginInlineEnd: 0 }}>{t("module.soon.tag")}</Tag>
-                    </li>
-                ))}
+                <SoonItems module={module} items={module.global.soon} />
             </ul>
+        </ParchmentCard>
+    )
+}
+
+/** The rows of what a module will do and doesn't yet. */
+function SoonItems({ module, items }: { module: ModuleDef; items: readonly string[] }) {
+    const { t } = useTranslation("client")
+    return items.map(item => (
+        <li key={item} data-soon={item}>
+            <span className="gge-global-name">{t(`modules.${module.id}.soon.${item}.name`)}</span>
+            <span className="gge-global-text">{t(`modules.${module.id}.soon.${item}.description`)}</span>
+            <Tag style={{ marginInlineEnd: 0 }}>{t("module.soon.tag")}</Tag>
+        </li>
+    ))
+}
+
+/** A live module's own list of what is still to come, for a page that has no kingdoms or events to speak for. */
+export function SoonCard({ module }: { module: ModuleDef }) {
+    const { t } = useTranslation("client")
+    if (!module.soon) return null
+    return (
+        <ParchmentCard title={t("module.soon.title")}>
+            <ul className="gge-global-list"><SoonItems module={module} items={module.soon} /></ul>
         </ParchmentCard>
     )
 }

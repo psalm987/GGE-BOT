@@ -42,7 +42,7 @@ test("a queue is read into per-tool totals, locked and occupied slots are not fr
         { SI: { RUT: 1 } },
         { SI: { RUT: 0 } },
     ] })
-    expect(queue).toEqual({ orders: new Map([[614, 100]]), freeSlots: 1, unknown: false, seconds: 120 })
+    expect(queue).toEqual({ orders: new Map([[614, 100]]), freeSlots: 1, emptySlots: 1, psIdle: true, unknown: false, seconds: 120 })
 })
 
 test("queued tools count for half an hour, then drop out so tools that finished aren't counted twice", () => {
@@ -71,4 +71,29 @@ test("the order in production counts, and an order it can't read makes the queue
     expect(mod.parseQueue({ QS: [{ P: { X: 1 } }] }).unknown).toBe(true)
     expect(mod.parseQueue({}).unknown).toBe(true)
     expect(mod.parseQueue({ QS: [], PS: 3 }).unknown).toBe(false)
+})
+
+const captured = require("./fixtures/protocol/daily-20261121.json")
+
+test("a queue as the game sent it: the order in production is WID and TUA, and a bare slot with RUT -1 is room", () => {
+    const { mod } = account()
+    const queue = mod.parseQueue(captured.bup_2.reply.payload.spl)
+    expect(queue).toEqual({ orders: new Map([[614, 1]]), freeSlots: 2, emptySlots: 2, psIdle: false, unknown: false, seconds: 57 })
+})
+
+test("nothing in production is an empty PS, and a slot with more than its lock state is never counted as room", () => {
+    const { mod } = account()
+    const idle = mod.parseQueue({ PS: {}, QS: [{ SI: { RUT: -1, VIP: 0 } }, { SI: { RUT: 0, VIP: 0 } }], TCT: 0 })
+    expect(idle).toMatchObject({ psIdle: true, emptySlots: 1, unknown: false })
+    const filled = mod.parseQueue({ PS: { WID: 614, TUA: 5 }, QS: [{ SI: { RUT: -1, VIP: 0 }, Z: 1 }] })
+    expect(filled).toMatchObject({ emptySlots: 0, unknown: true })
+    expect(mod.parseQueue({ PS: { WID: 614, TUA: 5 }, QS: [{ SI: { RUT: -1 }, WID: 611, TUA: 9 }] })).toMatchObject({ emptySlots: 0, unknown: false, orders: new Map([[614, 5], [611, 9]]) })
+})
+
+test("a queue read answered by another list's push is dropped, not counted", async () => {
+    const { bot, mod } = account()
+    bot.sendXT = async () => {}
+    const read = mod.readQueue({ kingdomID: 0, id: 10 }, 1)
+    bot.xtHandler.emit("spl", { PS: {}, QS: [], RM: 0, TCT: 0, LID: 0 }, 0)
+    expect(await read).toBeUndefined()
 })

@@ -563,7 +563,7 @@
   "modules.mp-builder.name": "MP būvētājs",
   "modules.mp-builder.description": "Būvē pasākuma servera vareno vietu ar tava konta dvīni.",
   "modules.recruit-tools-heal.name": "Vervēšana, rīki un dziedināšana",
-  "modules.recruit-tools-heal.description": "Apmāca karavīrus, gatavo rīkus un dziedina ievainotos pēc tevis iestatīta plāna.",
+  "modules.recruit-tools-heal.description": "Uztur katras pils karavīrus un rīkus tevis iestatītajā krājumā, pasūtot tos kazarmās un darbnīcās par monētām un resursiem. Dziedināšana būs pieejama drīzumā.",
   "modules.refinery-toolsmith.name": "Rafinētava un rīku kalējs",
   "modules.refinery-toolsmith.description": "Būvē aplenkuma rīkus tavās darbnīcās, līdz katrs sasniedz tevis iestatīto krājumu.",
   "modules.auto-feast.name": "Automātisks mielasts",
@@ -752,5 +752,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Apstāties pēc zaudējuma",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Aptur pasākuma uzbrukumus, kad kāds tiek zaudēts, līdz tu to apskati.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadu padomnieks",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Ļauj spēles Nomadu padomniekam tavā vietā uzbrukt Nomadu nometnēm."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Ļauj spēles Nomadu padomniekam tavā vietā uzbrukt Nomadu nometnēm.",
+  "modules.recruit-tools-heal.soon.heal.name": "Dziedināšana",
+  "modules.recruit-tools-heal.soon.heal.description": "Dziedini ievainotos savās pilīs pēc tevis iestatīta plāna.",
+  "module.soon.title": "Vēl gaidāms"
 }

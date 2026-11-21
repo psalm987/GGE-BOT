@@ -552,7 +552,7 @@
   "modules.mp-builder.name": "MP builder",
   "modules.mp-builder.description": "Builds the event server's mighty place from the twin of your account.",
   "modules.recruit-tools-heal.name": "Recruit, tools and heal",
-  "modules.recruit-tools-heal.description": "Trains troops, makes tools and heals the wounded on a plan you set.",
+  "modules.recruit-tools-heal.description": "Keeps each castle's troops and tools at the stock you set, ordering from the barracks and the workshops with coins and resources. Healing is coming soon.",
   "modules.refinery-toolsmith.name": "Refinery and toolsmith",
   "modules.refinery-toolsmith.description": "Builds siege tools in your workshops until each one reaches the stock you set.",
   "modules.auto-feast.name": "Auto-feast",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop after a defeat",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop an event's attacks when one is lost, until you have looked at it.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomad Advisor",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Let the game's Nomad Advisor run the Nomad camps for you.",
+  "modules.recruit-tools-heal.soon.heal.name": "Healing",
+  "modules.recruit-tools-heal.soon.heal.description": "Heal the wounded in your castles on a plan you set.",
+  "module.soon.title": "Still to come"
 }

@@ -10,7 +10,7 @@ import { ComingSoon } from "./ComingSoon.tsx"
 import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { StartStop, StartStopDetail } from "../components/StartStop.tsx"
-import { GlobalCard, KingdomPanel } from "../components/KingdomPanels.tsx"
+import { GlobalCard, KingdomPanel, SoonCard } from "../components/KingdomPanels.tsx"
 import { CommanderPicker } from "../components/CommanderPicker.tsx"
 import { CopyToAll } from "../components/PluginOptionField.tsx"
 import { PluginSection } from "../components/PluginSection.tsx"
@@ -232,6 +232,8 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
                 : entries.map((entry, i) => entries.length > 1
                     ? <Card key={entry.key} title={<span className="gge-display">{tb(entry.key, { defaultValue: entry.key })}</span>} className="gge-gilded">{sections[i]}</Card>
                     : <ParchmentCard key={entry.key}>{sections[i]}</ParchmentCard>)}
+
+            <SoonCard module={module} />
 
             {dirty && (
                 <div className="gge-savebar" role="region" aria-label={t("module.unsaved")}>

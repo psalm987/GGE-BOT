@@ -20,6 +20,8 @@ export const GameItem = z.object({
     level: z.number().int().nullable(),
     /** The glory bonus in whole percent; null for none. */
     fameBonus: z.number().int().nullable(),
+    /** The production list a plugin orders it from with coins or resources: 0 for the barracks, 1 for the workshops. Null when it costs rubies, tokens or anything else a plugin must not spend. */
+    orderList: z.union([z.literal(0), z.literal(1)]).nullable(),
     image: z.string().nullable(),
 })
 export type GameItem = z.infer<typeof GameItem>

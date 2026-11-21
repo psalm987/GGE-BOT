@@ -5,37 +5,47 @@ const { castles, movements } = require("../protocols.js")
 const { playerInfo } = require("../ggeBot.js")
 const { ask } = require("../chores.js")
 
-/** The production queue shared by both workshops of a castle. */
-const TOOLS_LIST = 1
+const { UNITS_LIST, TOOLS_LIST } = require("../orderable.js")
+const LISTS = [UNITS_LIST, TOOLS_LIST]
 /** A queue read stays in the count this long. Its orders turn into stock at home, which a castle refresh also counts. */
 const QUEUE_TTL_MS = 30 * 60_000
 
 const castleKey = castle => `${castle.kingdomID}:${castle.id}`
+const queueKey = (castle, list) => `${list}:${castleKey(castle)}`
 
 /** @type {Map<String, {readAt: Number, orders: Map<Number, Number>}>} */
 const queues = new Map()
 
 /**
- * An order the queue lists, as `{ wodID, amount }`, or undefined when its shape is unknown. Not captured from the
- * game yet: it takes the names `bup` sends (WID, AMT) or a `[wodID, amount]` pair.
+ * An order the queue lists, as `{ wodID, amount }`, or undefined when its shape is unknown. The order in production
+ * (`PS`) was captured: `{ WID, TUA }` with the seconds left in `RCT`. A filled queue slot was never captured, so a
+ * slot's order is read from its `P` or from the slot itself, as a `[wodID, amount]` pair or with the names `PS` uses
+ * (WID, TUA) or `bup` sends (WID, AMT).
  */
 function orderOf(slot) {
-    const order = slot?.P
+    const order = slot?.P ?? slot
     const wodID = Array.isArray(order) ? order[0] : order?.WID
-    const amount = Array.isArray(order) ? order[1] : order?.AMT
+    const amount = Array.isArray(order) ? order[1] : order?.TUA ?? order?.AMT
     return Number.isFinite(Number(wodID)) && Number.isFinite(Number(amount)) ? { wodID: Number(wodID), amount: Number(amount) } : undefined
 }
+
+/** Whether a slot shows nothing but its lock state: only `SI`, and in it only `RUT` and `VIP`. */
+const isBareSlot = slot => Object.keys(slot).every(key => key == "SI") && Object.keys(slot.SI ?? {}).every(key => key == "RUT" || key == "VIP")
 
 /**
  * What an `spl` reply says about a queue: the orders waiting or in production, the slots that are free to fill
  * (the rule the old barracks plugin used: no order in it and not locked, `SI.RUT` 0), and the seconds left on the
  * order in production. `PS`, the order in production, counts when it parses. The queue is `unknown` when the reply
  * has no `QS` or an occupied slot's order can't be read, since what it holds can't be counted then.
+ *
+ * `psIdle` is true when nothing is in production, which the game shows as an empty `PS`. `emptySlots` counts the
+ * slots that are shown free and nothing else: a bare `SI` with `RUT` not 0, which is how a free slot was captured.
+ * A slot with anything more in it is not counted, so a shape nobody has seen never reads as room.
  */
 function parseQueue(reply) {
     const orders = new Map()
     const add = order => orders.set(order.wodID, (orders.get(order.wodID) ?? 0) + order.amount)
-    let freeSlots = 0
+    let freeSlots = 0, emptySlots = 0
     let unknown = !Array.isArray(reply.QS)
     for (const slot of Array.isArray(reply.QS) ? reply.QS : []) {
         if (slot?.P) {
@@ -44,35 +54,47 @@ function parseQueue(reply) {
                 add(order)
             else
                 unknown = true
-        } else if (slot && slot.SI?.RUT !== 0)
+        } else if (slot && slot.SI?.RUT !== 0) {
             freeSlots++
+            if (isBareSlot(slot))
+                emptySlots++
+            else if (orderOf(slot))
+                add(orderOf(slot))
+            else
+                unknown = true
+        }
     }
-    const producing = reply.PS && typeof reply.PS == "object" ? orderOf({ P: reply.PS }) : undefined
+    const busy = reply.PS && typeof reply.PS == "object" && Object.keys(reply.PS).length > 0
+    const producing = busy ? orderOf({ P: reply.PS }) : undefined
     if (producing)
         add(producing)
-    return { orders, freeSlots, unknown, seconds: Number.isFinite(Number(reply.TCT)) ? Number(reply.TCT) : undefined }
+    else if (busy)
+        unknown = true
+    return { orders, freeSlots, emptySlots, psIdle: !busy, unknown, seconds: Number.isFinite(Number(reply.TCT)) ? Number(reply.TCT) : undefined }
 }
 
 /**
- * Reads `castle`'s tool queue. The queue belongs to the castle the bot is in, so call this from inside setCastle.
- * Resolves to `{ freeSlots, seconds, unknown }`, or undefined when the game doesn't answer.
+ * Reads `castle`'s production queue for `list` (the tools' by default). The queue belongs to the castle the bot is in,
+ * so call this from inside setCastle. Resolves to `{ freeSlots, emptySlots, psIdle, seconds, unknown }`, or undefined
+ * when the game doesn't answer.
  */
-async function readQueue(castle) {
-    const { reply, result } = await ask("spl", { LID: TOOLS_LIST })
-    if (result !== 0)
+async function readQueue(castle, list = TOOLS_LIST) {
+    const { reply, result } = await ask("spl", { LID: list })
+    // The game also pushes an `spl` when a list finishes an order, and `ask` takes the first one it sees.
+    if (result !== 0 || reply.LID !== undefined && Number(reply.LID) != list)
         return
-    const { orders, freeSlots, seconds, unknown } = parseQueue(reply)
+    const { orders, freeSlots, emptySlots, psIdle, seconds, unknown } = parseQueue(reply)
     if (unknown)
         console.warn("stockQueueUnknown", castleKey(castle), JSON.stringify(reply))
-    queues.set(castleKey(castle), { readAt: Date.now(), orders })
-    return { freeSlots, seconds, unknown }
+    queues.set(queueKey(castle, list), { readAt: Date.now(), orders })
+    return { freeSlots, emptySlots, psIdle, seconds, unknown }
 }
 
 /** Counts an order the bot just queued, until the next read of that queue replaces it. */
-function noteQueued(castle, wodID, amount) {
-    const entry = queues.get(castleKey(castle)) ?? { readAt: Date.now(), orders: new Map() }
+function noteQueued(castle, wodID, amount, list = TOOLS_LIST) {
+    const entry = queues.get(queueKey(castle, list)) ?? { readAt: Date.now(), orders: new Map() }
     entry.orders.set(wodID, (entry.orders.get(wodID) ?? 0) + amount)
-    queues.set(castleKey(castle), entry)
+    queues.set(queueKey(castle, list), entry)
 }
 
 /** Fetches the castle list, which carries every castle's units and tools, so the home count is current. */
@@ -89,7 +111,7 @@ const isOurs = movement => movement.owner?.ownerID == playerInfo.playerID
 const homeOf = movement => (movement.targetOwner?.ownerID == movement.owner?.ownerID ? movement.targetAttack : movement.sourceAttack)?.extraData?.[0]
 
 /**
- * How many of tool `wodID` the account holds: `home` in castles, `queued` in the workshops and `travelling` with its
+ * How many of tool or troop `wodID` the account holds: `home` in castles, `queued` in the workshops and `travelling` with its
  * marches. `scope` narrows it to a `kingdom` or to one `castle` ({ kingdom, id }).
  */
 function toolStock(wodID, scope = {}) {
@@ -100,9 +122,11 @@ function toolStock(wodID, scope = {}) {
         for (const unit of castle.unitInventory ?? [])
             if (unit.unitInfo?.wodID == wodID)
                 home += unit.amount
-        const queue = queues.get(castleKey(castle))
-        if (queue && Date.now() - queue.readAt < QUEUE_TTL_MS)
-            queued += queue.orders.get(wodID) ?? 0
+        for (const list of LISTS) {
+            const queue = queues.get(queueKey(castle, list))
+            if (queue && Date.now() - queue.readAt < QUEUE_TTL_MS)
+                queued += queue.orders.get(wodID) ?? 0
+        }
     }
     for (const movement of movements) {
         if (!isOurs(movement) || !inScope(movement.kingdomID, homeOf(movement), scope))
@@ -114,4 +138,4 @@ function toolStock(wodID, scope = {}) {
     return { home, queued, travelling, total: home + queued + travelling }
 }
 
-module.exports = { toolStock, readQueue, noteQueued, refreshHome, parseQueue, TOOLS_LIST, QUEUE_TTL_MS }
+module.exports = { toolStock, readQueue, noteQueued, refreshHome, parseQueue, UNITS_LIST, TOOLS_LIST, QUEUE_TTL_MS }

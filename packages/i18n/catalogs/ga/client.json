@@ -623,7 +623,7 @@
   "modules.mp-builder.name": "Tógálaí MP",
   "modules.mp-builder.description": "Tógann sé an áit chumhachtach ar fhreastalaí na hócáide ó chúpla do chuntais.",
   "modules.recruit-tools-heal.name": "Earcú, uirlisí agus leigheas",
-  "modules.recruit-tools-heal.description": "Traenálann sé trúpaí, déanann sé uirlisí agus leigheasann sé na créachtaigh de réir plean a shocraíonn tú.",
+  "modules.recruit-tools-heal.description": "Coinníonn sé trúpaí agus uirlisí gach caisleáin ag an stoc a shocraíonn tú, á n-ordú ón mbeairic agus ó na ceardlanna le boinn agus acmhainní. Tá leigheas ag teacht go luath.",
   "modules.refinery-toolsmith.name": "Scaglann agus ceardlann uirlisí",
   "modules.refinery-toolsmith.description": "Tógann sé uirlisí léigir i do cheardlanna go dtí go sroicheann gach ceann an stoc a shocraigh tú.",
   "modules.auto-feast.name": "Féasta uathoibríoch",
@@ -812,5 +812,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stop tar éis ionsaí caillte",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop ionsaithe ócáide nuair a chailltear ceann, go dtí go mbreathnaíonn tú air.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Comhairleoir na Nomáideach",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lig do Chomhairleoir na Nomáideach sa chluiche campaí na Nomáideach a reáchtáil duit."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lig do Chomhairleoir na Nomáideach sa chluiche campaí na Nomáideach a reáchtáil duit.",
+  "modules.recruit-tools-heal.soon.heal.name": "Leigheas",
+  "modules.recruit-tools-heal.soon.heal.description": "Leigheas na créachtaigh i do chaisleáin de réir plean a shocraíonn tú.",
+  "module.soon.title": "Le teacht"
 }

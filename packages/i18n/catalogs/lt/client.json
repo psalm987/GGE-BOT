@@ -593,7 +593,7 @@
   "modules.mp-builder.name": "MP statytojas",
   "modules.mp-builder.description": "Stato renginio serverio galios vietą (MP) iš jūsų paskyros dvynio.",
   "modules.recruit-tools-heal.name": "Samdymas, įrankiai ir gydymas",
-  "modules.recruit-tools-heal.description": "Samdo karius, gamina įrankius ir gydo sužeistuosius pagal jūsų nustatytą planą.",
+  "modules.recruit-tools-heal.description": "Palaiko kiekvienos pilies karių ir įrankių atsargas jūsų nustatyto dydžio, užsakydamas juos kareivinėse ir dirbtuvėse už monetas ir išteklius. Gydymas pasirodys netrukus.",
   "modules.refinery-toolsmith.name": "Rafinavimo gamykla ir įrankininkas",
   "modules.refinery-toolsmith.description": "Gamina apgulties įrankius jūsų dirbtuvėse, kol kiekvieno atsargos pasieks jūsų nustatytą kiekį.",
   "modules.auto-feast.name": "Automatinės puotos",
@@ -782,5 +782,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Sustoti po pralaimėjimo",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Sustabdyti renginio puolimus, kai vienas pralaimimas, kol jį peržiūrėsite.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadų patarėjas",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Leisti žaidimo Nomadų patarėjui pulti klajoklių stovyklas už jus."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Leisti žaidimo Nomadų patarėjui pulti klajoklių stovyklas už jus.",
+  "modules.recruit-tools-heal.soon.heal.name": "Gydymas",
+  "modules.recruit-tools-heal.soon.heal.description": "Gydykite sužeistuosius pilyse pagal savo nustatytą planą.",
+  "module.soon.title": "Kas dar laukia"
 }

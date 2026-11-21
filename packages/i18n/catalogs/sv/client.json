@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP-byggare",
   "modules.mp-builder.description": "Bygger eventserverns mäktiga plats från ditt kontos tvilling.",
   "modules.recruit-tools-heal.name": "Rekrytering, verktyg och läkning",
-  "modules.recruit-tools-heal.description": "Tränar trupper, tillverkar verktyg och läker de sårade enligt en plan du anger.",
+  "modules.recruit-tools-heal.description": "Håller varje slotts trupper och verktyg på det lager du anger och beställer från kasernen och verkstäderna med mynt och resurser. Läkning kommer snart.",
   "modules.refinery-toolsmith.name": "Raffinaderi och verktygssmed",
   "modules.refinery-toolsmith.description": "Bygger belägringsverktyg i dina verkstäder tills varje verktyg når det lager du angav.",
   "modules.auto-feast.name": "Autofest",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stoppa efter ett nederlag",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stoppa ett events anfall när ett förloras, tills du har tittat på det.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadrådgivare",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Låt spelets nomadrådgivare sköta nomadlägren åt dig."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Låt spelets nomadrådgivare sköta nomadlägren åt dig.",
+  "modules.recruit-tools-heal.soon.heal.name": "Läkning",
+  "modules.recruit-tools-heal.soon.heal.description": "Läk de sårade i dina slott enligt en plan du anger.",
+  "module.soon.title": "Mer på väg"
 }

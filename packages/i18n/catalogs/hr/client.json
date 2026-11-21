@@ -563,7 +563,7 @@
   "modules.mp-builder.name": "Graditelj MP-a",
   "modules.mp-builder.description": "Gradi moćno mjesto događajnog poslužitelja s blizanca tvog računa.",
   "modules.recruit-tools-heal.name": "Novačenje, alati i liječenje",
-  "modules.recruit-tools-heal.description": "Obučava trupe, izrađuje alate i liječi ranjene po planu koji postaviš.",
+  "modules.recruit-tools-heal.description": "Drži trupe i alate u svakom dvorcu na zalihi koju postaviš, naručujući ih u vojarni i radionicama za novčiće i resurse. Liječenje uskoro dolazi.",
   "modules.refinery-toolsmith.name": "Rafinerija i alatničar",
   "modules.refinery-toolsmith.description": "Gradi opsadne alate u tvojim radionicama dok svaki ne dosegne zalihu koju postaviš.",
   "modules.auto-feast.name": "Automatska gozba",
@@ -752,5 +752,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stani nakon poraza",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Zaustavi napade događaja kad se jedan izgubi, dok ga ne pogledaš.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadski savjetnik",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Neka Nomadski savjetnik iz igre vodi logore Nomada umjesto tebe."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Neka Nomadski savjetnik iz igre vodi logore Nomada umjesto tebe.",
+  "modules.recruit-tools-heal.soon.heal.name": "Liječenje",
+  "modules.recruit-tools-heal.soon.heal.description": "Liječi ranjene u svojim dvorcima po planu koji postaviš.",
+  "module.soon.title": "U pripremi"
 }

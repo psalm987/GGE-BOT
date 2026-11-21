@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP-bouwer",
   "modules.mp-builder.description": "Bouwt de mighty place op de eventserver met de tweeling van je account.",
   "modules.recruit-tools-heal.name": "Rekruteren, tuigen en genezen",
-  "modules.recruit-tools-heal.description": "Traint troepen, maakt tuigen en geneest gewonden volgens een plan dat je instelt.",
+  "modules.recruit-tools-heal.description": "Houdt de troepen en tuigen van elk kasteel op de voorraad die je instelt en bestelt bij de kazerne en de werkplaatsen met munten en grondstoffen. Genezen komt binnenkort.",
   "modules.refinery-toolsmith.name": "Raffinaderij en tuigsmid",
   "modules.refinery-toolsmith.description": "Bouwt belegeringstuigen in je werkplaatsen tot elk de voorraad bereikt die je hebt ingesteld.",
   "modules.auto-feast.name": "Automatisch feestmaal",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stoppen na een nederlaag",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "De aanvallen van een event stoppen als er een verloren gaat, tot je ernaar hebt gekeken.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadenadviseur",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laat de Nomadenadviseur van het spel de Nomadenkampen voor je spelen."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laat de Nomadenadviseur van het spel de Nomadenkampen voor je spelen.",
+  "modules.recruit-tools-heal.soon.heal.name": "Genezen",
+  "modules.recruit-tools-heal.soon.heal.description": "Genees de gewonden in je kastelen volgens een plan dat je instelt.",
+  "module.soon.title": "Wat er nog komt"
 }

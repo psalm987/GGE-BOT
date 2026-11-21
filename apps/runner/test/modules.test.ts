@@ -48,9 +48,13 @@ test("the wheel spin module is live and edits the wheelSpin plugin", () => {
     expect(shown).toContain("wheelSpin")
 })
 
-test("every setting a module says is still to come has its English name and description", () => {
-    for (const module of MODULES) for (const item of module.global?.soon ?? []) for (const part of ["name", "description"])
+test("every setting a module says is still to come, on its global card or its own list, has its English name and description", () => {
+    for (const module of MODULES) for (const item of [...module.global?.soon ?? [], ...module.soon ?? []]) for (const part of ["name", "description"])
         expect(en[`modules.${module.id}.soon.${item}.${part}`], `${module.id} ${item} ${part}`).toBeTruthy()
+})
+
+test("the recruit and tools module is live with its plugin, and says that healing is still to come", () => {
+    expect(MODULES.find(m => m.id === "recruit-tools-heal")).toMatchObject({ status: "live", plugins: ["recruitTools"], soon: ["heal"] })
 })
 
 test("ids and orders are unique, orders ascend and groups follow the sidebar's order", () => {

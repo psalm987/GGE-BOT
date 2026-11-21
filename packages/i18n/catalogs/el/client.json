@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "Χτίστης MP",
   "modules.mp-builder.description": "Χτίζει το ισχυρό μέρος του διακομιστή του γεγονότος από το δίδυμο του λογαριασμού σας.",
   "modules.recruit-tools-heal.name": "Στρατολόγηση, εργαλεία και θεραπεία",
-  "modules.recruit-tools-heal.description": "Εκπαιδεύει στρατεύματα, φτιάχνει εργαλεία και θεραπεύει τους τραυματίες με ένα πλάνο που ορίζετε.",
+  "modules.recruit-tools-heal.description": "Διατηρεί τα στρατεύματα και τα εργαλεία κάθε κάστρου στο απόθεμα που ορίζετε, με παραγγελίες στους στρατώνες και τα εργαστήρια που πληρώνονται με νομίσματα και πόρους. Η θεραπεία έρχεται σύντομα.",
   "modules.refinery-toolsmith.name": "Διυλιστήριο και τεχνίτης εργαλείων",
   "modules.refinery-toolsmith.description": "Φτιάχνει εργαλεία πολιορκίας στα εργαστήριά σας μέχρι το καθένα να φτάσει το απόθεμα που ορίζετε.",
   "modules.auto-feast.name": "Αυτόματη γιορτή",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Διακοπή μετά από ήττα",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Σταματά τις επιθέσεις ενός γεγονότος όταν χαθεί μία, μέχρι να την εξετάσετε.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Σύμβουλος Νομάδων",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Αφήστε τον Σύμβουλο Νομάδων του παιχνιδιού να χειρίζεται τους καταυλισμούς των Νομάδων για εσάς."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Αφήστε τον Σύμβουλο Νομάδων του παιχνιδιού να χειρίζεται τους καταυλισμούς των Νομάδων για εσάς.",
+  "modules.recruit-tools-heal.soon.heal.name": "Θεραπεία",
+  "modules.recruit-tools-heal.soon.heal.description": "Θεραπεύστε τους τραυματίες στα κάστρα σας με ένα πλάνο που ορίζετε.",
+  "module.soon.title": "Ακολουθούν"
 }

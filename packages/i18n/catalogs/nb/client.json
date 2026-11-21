@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP-bygger",
   "modules.mp-builder.description": "Bygger det mektige stedet (MP) på eventserveren med eventtvillingen til kontoen din.",
   "modules.recruit-tools-heal.name": "Rekruttering, verktøy og helbredelse",
-  "modules.recruit-tools-heal.description": "Trener tropper, lager verktøy og helbreder de sårede etter en plan du setter.",
+  "modules.recruit-tools-heal.description": "Holder troppene og verktøyene i hvert slott på lageret du har satt, og bestiller fra kasernen og verkstedene med mynter og ressurser. Helbredelse kommer snart.",
   "modules.refinery-toolsmith.name": "Raffineri og verktøysmed",
   "modules.refinery-toolsmith.description": "Bygger beleiringsverktøy i verkstedene dine til hvert verktøy når lageret du satte.",
   "modules.auto-feast.name": "Autofest",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Stopp etter et nederlag",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stopp angrepene i et event når ett tapes, til du har sett på det.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadrådgiver",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "La spillets Nomadrådgiver ta seg av nomadeleirene for deg."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "La spillets Nomadrådgiver ta seg av nomadeleirene for deg.",
+  "modules.recruit-tools-heal.soon.heal.name": "Helbredelse",
+  "modules.recruit-tools-heal.soon.heal.description": "Helbred de sårede i slottene dine etter en plan du setter.",
+  "module.soon.title": "Kommer senere"
 }

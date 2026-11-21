@@ -46,8 +46,9 @@ export const RowColumn = z.discriminatedUnion("type", [
     /** `legacyKingdom` names the kingdom column this one replaced: a stored row that has only that reads as the kingdom's main castle. */
     z.object({ key, type: z.literal("castle"), legacyKingdom: key.optional() }),
     z.object({ key, type: z.literal("kingdom") }),
-    z.object({ key, type: z.literal("tool") }),
-    z.object({ key, type: z.literal("troop") }),
+    /** `orderable` lists only the items a plugin may order with coins or resources, which `GameItem.orderList` marks. */
+    z.object({ key, type: z.literal("tool"), orderable: z.literal(true).optional() }),
+    z.object({ key, type: z.literal("troop"), orderable: z.literal(true).optional() }),
     z.object({ key, type: z.literal("number"), min: z.number(), max: z.number(), default: z.number().optional() }),
 ])
 export type RowColumn = z.infer<typeof RowColumn>

@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP-építő",
   "modules.mp-builder.description": "Felépíti az eseményszerver MP-jét (mighty place) a fiókod ikrével.",
   "modules.recruit-tools-heal.name": "Toborzás, eszközök és gyógyítás",
-  "modules.recruit-tools-heal.description": "Csapatokat képez, eszközöket készít és gyógyítja a sebesülteket a megadott terv szerint.",
+  "modules.recruit-tools-heal.description": "Minden kastélyban a megadott készleten tartja a csapatokat és az eszközöket, pénzért és erőforrásért rendelve a barakkban és a műhelyekben. A gyógyítás hamarosan érkezik.",
   "modules.refinery-toolsmith.name": "Finomító és eszközkovács",
   "modules.refinery-toolsmith.description": "Ostromeszközöket épít a műhelyeidben, amíg mindegyik el nem éri a megadott készletet.",
   "modules.auto-feast.name": "Automatikus lakoma",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Leállás vereség után",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Leállítja egy esemény támadásait, ha egy elveszik, amíg meg nem nézed.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomád tanácsadó",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "A játék Nomád tanácsadója intézze helyetted a nomádtáborokat."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "A játék Nomád tanácsadója intézze helyetted a nomádtáborokat.",
+  "modules.recruit-tools-heal.soon.heal.name": "Gyógyítás",
+  "modules.recruit-tools-heal.soon.heal.description": "Gyógyítsd a sebesülteket a kastélyaidban a megadott terv szerint.",
+  "module.soon.title": "Ami még jön"
 }

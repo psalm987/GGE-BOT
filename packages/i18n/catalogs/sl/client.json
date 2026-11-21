@@ -593,7 +593,7 @@
   "modules.mp-builder.name": "Graditelj MP",
   "modules.mp-builder.description": "Gradi mogočno mesto (MP) dogodkovnega strežnika z dvojčkom tvojega računa.",
   "modules.recruit-tools-heal.name": "Novačenje, orodja in zdravljenje",
-  "modules.recruit-tools-heal.description": "Uri čete, izdeluje orodja in zdravi ranjene po načrtu, ki ga nastaviš.",
+  "modules.recruit-tools-heal.description": "Ohranja čete in orodja vsakega gradu na zalogi, ki jo nastaviš, in jih s kovanci in viri naroča v vojašnici in delavnicah. Zdravljenje prihaja kmalu.",
   "modules.refinery-toolsmith.name": "Rafinerija in orodjar",
   "modules.refinery-toolsmith.description": "Izdeluje obleganska orodja v tvojih delavnicah, dokler vsako ne doseže nastavljene zaloge.",
   "modules.auto-feast.name": "Samodejna pojedina",
@@ -782,5 +782,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Ustavi po porazu",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Ustavi napade dogodka, ko je eden izgubljen, dokler si ga ne ogledaš.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Svetovalec Nomadov",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Prepusti tabore Nomadov Svetovalcu Nomadov iz igre."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Prepusti tabore Nomadov Svetovalcu Nomadov iz igre.",
+  "modules.recruit-tools-heal.soon.heal.name": "Zdravljenje",
+  "modules.recruit-tools-heal.soon.heal.description": "Zdravi ranjene v svojih gradovih po načrtu, ki ga nastaviš.",
+  "module.soon.title": "Kaj še prihaja"
 }

@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "MP inşaatçısı",
   "modules.mp-builder.description": "Hesabının ikizinden etkinlik sunucusunun kudretli yerini inşa eder.",
   "modules.recruit-tools-heal.name": "Asker, alet ve iyileştirme",
-  "modules.recruit-tools-heal.description": "Belirlediğin plana göre birlik eğitir, alet üretir ve yaralıları iyileştirir.",
+  "modules.recruit-tools-heal.description": "Her kalenin birliklerini ve aletlerini belirlediğin stokta tutar, kışladan ve atölyelerden madeni para ve kaynakla sipariş verir. İyileştirme çok yakında.",
   "modules.refinery-toolsmith.name": "Rafineri ve aletçi",
   "modules.refinery-toolsmith.description": "Her biri belirlediğin stoğa ulaşana kadar atölyelerinde kuşatma aletleri üretir.",
   "modules.auto-feast.name": "Otomatik şenlik",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Yenilgiden sonra dur",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Bir saldırı kaybedildiğinde, sen bakana kadar o etkinliğin saldırılarını durdur.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Göçebe Danışmanı",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Göçebe kamplarını senin yerine oyunun Göçebe Danışmanı yönetsin."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Göçebe kamplarını senin yerine oyunun Göçebe Danışmanı yönetsin.",
+  "modules.recruit-tools-heal.soon.heal.name": "İyileştirme",
+  "modules.recruit-tools-heal.soon.heal.description": "Kalelerindeki yaralıları belirlediğin plana göre iyileştir.",
+  "module.soon.title": "Sırada neler var"
 }

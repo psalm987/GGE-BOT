@@ -232,6 +232,8 @@ export const gameItems = pgTable("game_items", {
     level: integer("level"),
     /** The glory bonus in whole percent. */
     fameBonus: integer("fame_bonus"),
+    /** The production list a plugin orders the item from with coins or resources, 0 or 1; null when it can't be ordered that way. */
+    orderList: integer("order_list"),
     /** The game CDN asset path, without the extension. */
     image: text("image"),
     updatedAt: updatedAt(),

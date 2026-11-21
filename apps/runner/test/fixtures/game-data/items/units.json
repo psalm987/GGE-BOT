@@ -4,7 +4,9 @@
     { "wodID": 359, "group": "Unit", "name": "Workshop", "type": "SceatSuppKillMeleeDef", "level": "1", "typ": "Attack", "slotTypes": "9,10" },
     { "wodID": 660, "group": "Unit", "name": "Banner", "type": "royalBanner", "level": "2", "fameBonus": "15", "typ": "Attack", "slotTypes": "1,9" },
     { "wodID": 77, "group": "Unit", "name": "Banner", "type": "Flag", "fameBonus": "5", "typ": "Attack" },
-    { "wodID": 611, "group": "Unit", "name": "Workshop", "type": "Ram", "typ": "Attack", "slotTypes": "1,9" },
+    { "wodID": 611, "group": "Unit", "name": "Workshop", "type": "Ram", "typ": "Attack", "slotTypes": "1,9", "costWood": "56", "costStone": "24" },
+    { "wodID": 308, "group": "Unit", "name": "Barracks", "type": "Elitehalberd", "role": "melee", "costC1": "180" },
+    { "wodID": 701, "group": "Unit", "name": "Barracks", "type": "Rubyguard", "role": "melee", "costC1": "300", "costC2": "5" },
     { "wodID": 666, "group": "Unit", "name": "Unknown", "type": "Tools", "typ": "Defence", "slotTypes": "1,9" },
     { "wodID": 900, "group": "Building", "name": "Deco", "type": "Fountain" },
     { "group": "Unit", "name": "Broken", "type": "NoId", "role": "melee" }

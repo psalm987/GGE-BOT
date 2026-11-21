@@ -623,7 +623,7 @@
   "modules.mp-builder.name": "Bennej tal-MP",
   "modules.mp-builder.description": "Jibni l-MP tas-server tal-avveniment mill-ġemell tal-kont tiegħek.",
   "modules.recruit-tools-heal.name": "Reklutaġġ, għodda u fejqan",
-  "modules.recruit-tools-heal.description": "Iħarreġ truppi, jagħmel għodda u jfejjaq il-midruba skont pjan li tissettja.",
+  "modules.recruit-tools-heal.description": "Iżomm it-truppi u l-għodda ta' kull kastell fil-maħżen li tissettja, billi jordnahom mill-kwartieri u mill-workshops bil-muniti u r-riżorsi. Il-fejqan ġej dalwaqt.",
   "modules.refinery-toolsmith.name": "Raffinerija u ħaddied tal-għodda",
   "modules.refinery-toolsmith.description": "Jibni għodda tal-assedju fil-workshops tiegħek sakemm kull waħda tilħaq il-maħżen li issettjajt.",
   "modules.auto-feast.name": "Festa awtomatika",
@@ -812,5 +812,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Waqqaf wara telfa",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Waqqaf l-attakki ta' avveniment meta wieħed jintilef, sakemm tkun ħarist lejh.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Konsulent tan-Nomadi",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Ħalli l-Konsulent tan-Nomadi tal-logħba jmexxi l-kampijiet tan-Nomadi għalik."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Ħalli l-Konsulent tan-Nomadi tal-logħba jmexxi l-kampijiet tan-Nomadi għalik.",
+  "modules.recruit-tools-heal.soon.heal.name": "Fejqan",
+  "modules.recruit-tools-heal.soon.heal.description": "Fejjaq il-midruba fil-kasteli tiegħek skont pjan li tissettja.",
+  "module.soon.title": "Għad ġej"
 }

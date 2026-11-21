@@ -593,7 +593,7 @@
   "modules.mp-builder.name": "Budowniczy MP",
   "modules.mp-builder.description": "Rozbudowuje potężne miejsce (MP) serwera wydarzenia z bliźniaka Twojego konta.",
   "modules.recruit-tools-heal.name": "Werbunek, narzędzia i leczenie",
-  "modules.recruit-tools-heal.description": "Szkoli wojska, wytwarza narzędzia i leczy rannych według ustawionego planu.",
+  "modules.recruit-tools-heal.description": "Utrzymuje wojska i narzędzia w każdym zamku na ustawionym przez Ciebie zapasie, zamawiając je w koszarach i warsztatach za monety i zasoby. Leczenie już wkrótce.",
   "modules.refinery-toolsmith.name": "Przetwórnia i wytwórnia narzędzi",
   "modules.refinery-toolsmith.description": "Wytwarza narzędzia oblężnicze w Twoich warsztatach, aż każde osiągnie ustawiony zapas.",
   "modules.auto-feast.name": "Automatyczne uczty",
@@ -782,5 +782,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Zatrzymaj po porażce",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Wstrzymuje ataki w wydarzeniu po przegranym ataku, dopóki tego nie sprawdzisz.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Doradca nomadów",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Pozwala, by Doradca nomadów z gry prowadził za Ciebie obozy nomadów."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Pozwala, by Doradca nomadów z gry prowadził za Ciebie obozy nomadów.",
+  "modules.recruit-tools-heal.soon.heal.name": "Leczenie",
+  "modules.recruit-tools-heal.soon.heal.description": "Lecz rannych w Twoich zamkach według ustawionego przez Ciebie planu.",
+  "module.soon.title": "W przygotowaniu"
 }

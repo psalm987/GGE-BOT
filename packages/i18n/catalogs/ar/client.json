@@ -653,7 +653,7 @@
   "modules.mp-builder.name": "باني MP",
   "modules.mp-builder.description": "يبني المكان العظيم لخادم الحدث من توأم حسابك.",
   "modules.recruit-tools-heal.name": "التجنيد والأدوات والعلاج",
-  "modules.recruit-tools-heal.description": "يدرّب الجنود ويصنع الأدوات ويعالج الجرحى وفق خطة تحددها.",
+  "modules.recruit-tools-heal.description": "يُبقي جنود كل قلعة وأدواتها عند المخزون الذي تحدده، ويطلبها من الثكنات والورش بالعملات والموارد. العلاج قادم قريبًا.",
   "modules.refinery-toolsmith.name": "المصفاة وصانع الأدوات",
   "modules.refinery-toolsmith.description": "يصنع أدوات الحصار في ورشك حتى يبلغ كل منها المخزون الذي تحدده.",
   "modules.auto-feast.name": "الوليمة التلقائية",
@@ -842,5 +842,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "التوقف بعد الهزيمة",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "يوقف هجمات الحدث عند خسارة إحداها، حتى تراجعها.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "مستشار البدوي",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "دع مستشار البدوي في اللعبة يدير معسكرات البدو نيابةً عنك."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "دع مستشار البدوي في اللعبة يدير معسكرات البدو نيابةً عنك.",
+  "modules.recruit-tools-heal.soon.heal.name": "العلاج",
+  "modules.recruit-tools-heal.soon.heal.description": "عالج الجرحى في قلاعك وفق خطة تحددها.",
+  "module.soon.title": "قادم لاحقًا"
 }

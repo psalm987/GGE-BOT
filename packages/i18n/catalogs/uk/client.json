@@ -593,7 +593,7 @@
   "modules.mp-builder.name": "Будівник MP",
   "modules.mp-builder.description": "Будує могутнє місце подієвого сервера з двійника твого акаунта.",
   "modules.recruit-tools-heal.name": "Вербування, знаряддя й лікування",
-  "modules.recruit-tools-heal.description": "Навчає війська, виготовляє знаряддя й лікує поранених за планом, який ти задаєш.",
+  "modules.recruit-tools-heal.description": "Тримає війська й знаряддя кожного замку на заданому тобою запасі, замовляючи їх у казармі та майстернях за монети й ресурси. Лікування незабаром.",
   "modules.refinery-toolsmith.name": "Переробка й майстер знарядь",
   "modules.refinery-toolsmith.description": "Будує облогові знаряддя у твоїх майстернях, доки кожне не досягне заданого тобою запасу.",
   "modules.auto-feast.name": "Автобенкет",
@@ -782,5 +782,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Зупинка після поразки",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Зупиняє атаки події, коли одну з них програно, доки ти її не переглянеш.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Радник кочівників",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Дозволити ігровому раднику кочівників проходити табори кочівників за тебе."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Дозволити ігровому раднику кочівників проходити табори кочівників за тебе.",
+  "modules.recruit-tools-heal.soon.heal.name": "Лікування",
+  "modules.recruit-tools-heal.soon.heal.description": "Лікуй поранених у своїх замках за планом, який ти задаєш.",
+  "module.soon.title": "Що ще буде"
 }

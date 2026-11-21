@@ -533,7 +533,7 @@
   "modules.mp-builder.name": "Строител на MP",
   "modules.mp-builder.description": "Строи могъщото място на сървъра на събитието от двойника на акаунта Ви.",
   "modules.recruit-tools-heal.name": "Вербуване, инструменти и лечение",
-  "modules.recruit-tools-heal.description": "Обучава войски, прави инструменти и лекува ранените по зададен от Вас план.",
+  "modules.recruit-tools-heal.description": "Поддържа войските и инструментите на всеки замък на зададения от Вас запас, като поръчва от казармите и работилниците с монети и ресурси. Лечението идва скоро.",
   "modules.refinery-toolsmith.name": "Рафинерия и майстор на инструменти",
   "modules.refinery-toolsmith.description": "Строи обсадни инструменти в работилниците Ви, докато всеки достигне зададения от Вас запас.",
   "modules.auto-feast.name": "Автоматичен пир",
@@ -722,5 +722,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Спиране след поражение",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Спира атаките на събитие, когато една бъде загубена, докато не я прегледате.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Номадски съветник",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Оставете Номадския съветник на играта да води лагерите на номадите вместо Вас."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Оставете Номадския съветник на играта да води лагерите на номадите вместо Вас.",
+  "modules.recruit-tools-heal.soon.heal.name": "Лечение",
+  "modules.recruit-tools-heal.soon.heal.description": "Лекувайте ранените в замъците си по зададен от Вас план.",
+  "module.soon.title": "Още предстои"
 }

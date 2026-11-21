@@ -43,6 +43,7 @@ const { ask, chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
 const stock = require("./stock.js")
 const loadItem = require("../paths.js").loadItem
+const { CASTLE_COSTS } = require("../orderable.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
@@ -69,8 +70,7 @@ const skills = (() => {
     }
 })()
 
-/** A unit's `cost<Name>` fields, as items files carry them. Wood, stone and the rest come out of the castle. */
-const CASTLE_COSTS = { costWood: "wood", costStone: "stone", costFood: "food", costCoal: "coal", costOil: "oil", costGlass: "glass", costIron: "iron", costHoney: "honey", costMead: "mead", costAqua: "aqua" }
+/** A unit's `cost<Name>` fields, as items files carry them. Wood, stone and the rest come out of the castle (CASTLE_COSTS). */
 /** The Sceat tools' components are the account's, under the names protocols.js gives them. */
 const ACCOUNT_COSTS = {
     costComponent1: "screws", costComponent2: "blackPowder", costComponent3: "saws", costComponent4: "drills",

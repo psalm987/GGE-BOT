@@ -563,7 +563,7 @@
   "modules.mp-builder.name": "Bâtisseur MP",
   "modules.mp-builder.description": "Construit le lieu de puissance du serveur d'événement avec le jumeau de votre compte.",
   "modules.recruit-tools-heal.name": "Recrutement, engins et soins",
-  "modules.recruit-tools-heal.description": "Entraîne des troupes, fabrique des engins et soigne les blessés selon un plan que vous fixez.",
+  "modules.recruit-tools-heal.description": "Maintient les troupes et les engins de chaque château au stock que vous fixez, en les commandant à la caserne et aux ateliers avec des pièces et des ressources. Les soins arrivent bientôt.",
   "modules.refinery-toolsmith.name": "Raffinerie et outilleur",
   "modules.refinery-toolsmith.description": "Fabrique des engins de siège dans vos ateliers jusqu'à ce que chacun atteigne le stock que vous fixez.",
   "modules.auto-feast.name": "Banquets auto",
@@ -752,5 +752,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Arrêter après une défaite",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Arrêter les attaques d'un événement quand l'une d'elles est perdue, le temps que vous l'examiniez.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Conseiller nomade",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laisser le Conseiller nomade du jeu gérer les camps nomades pour vous."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laisser le Conseiller nomade du jeu gérer les camps nomades pour vous.",
+  "modules.recruit-tools-heal.soon.heal.name": "Soins",
+  "modules.recruit-tools-heal.soon.heal.description": "Soignez les blessés de vos châteaux selon un plan que vous fixez.",
+  "module.soon.title": "À venir"
 }

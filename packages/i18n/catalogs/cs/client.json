@@ -593,7 +593,7 @@
   "modules.mp-builder.name": "Stavitel MP",
   "modules.mp-builder.description": "Staví mocné místo serveru události z dvojčete vašeho účtu.",
   "modules.recruit-tools-heal.name": "Nábor, nástroje a léčení",
-  "modules.recruit-tools-heal.description": "Cvičí jednotky, vyrábí nástroje a léčí raněné podle plánu, který nastavíte.",
+  "modules.recruit-tools-heal.description": "Udržuje jednotky a nástroje každého hradu na zásobě, kterou nastavíte, a objednává je v kasárnách a dílnách za zlaťáky a zdroje. Léčení přijde brzy.",
   "modules.refinery-toolsmith.name": "Rafinerie a výrobce nástrojů",
   "modules.refinery-toolsmith.description": "Vyrábí obléhací nástroje ve vašich dílnách, dokud každý nedosáhne zásoby, kterou nastavíte.",
   "modules.auto-feast.name": "Automatická hostina",
@@ -782,5 +782,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Zastavit po porážce",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Zastaví útoky události, když jeden prohraje, dokud se na to nepodíváte.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomádský poradce",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Nechte Nomádského poradce ze hry obstarat tábory Nomádů za vás."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Nechte Nomádského poradce ze hry obstarat tábory Nomádů za vás.",
+  "modules.recruit-tools-heal.soon.heal.name": "Léčení",
+  "modules.recruit-tools-heal.soon.heal.description": "Léčí raněné ve vašich hradech podle plánu, který nastavíte.",
+  "module.soon.title": "Připravujeme"
 }

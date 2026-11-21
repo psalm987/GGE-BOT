@@ -563,7 +563,7 @@
   "modules.mp-builder.name": "Constructor MP",
   "modules.mp-builder.description": "Construiește locul puternic (MP) al serverului evenimentului cu geamănul contului tău.",
   "modules.recruit-tools-heal.name": "Recrutare, unelte și vindecare",
-  "modules.recruit-tools-heal.description": "Antrenează trupe, face unelte și vindecă răniții după un plan setat de tine.",
+  "modules.recruit-tools-heal.description": "Menține trupele și uneltele fiecărui castel la stocul setat de tine, comandând de la cazarmă și de la ateliere cu monede și resurse. Vindecarea vine în curând.",
   "modules.refinery-toolsmith.name": "Rafinărie și făurar de unelte",
   "modules.refinery-toolsmith.description": "Construiește unelte de asediu în atelierele tale până când fiecare ajunge la stocul setat de tine.",
   "modules.auto-feast.name": "Festin automat",
@@ -752,5 +752,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Oprire după o înfrângere",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Oprește atacurile unui eveniment când unul este pierdut, până te uiți la el.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Consilierul Nomazilor",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lasă Consilierul Nomazilor din joc să se ocupe de taberele Nomazilor pentru tine."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lasă Consilierul Nomazilor din joc să se ocupe de taberele Nomazilor pentru tine.",
+  "modules.recruit-tools-heal.soon.heal.name": "Vindecare",
+  "modules.recruit-tools-heal.soon.heal.description": "Vindecă răniții din castelele tale după un plan setat de tine.",
+  "module.soon.title": "Ce urmează"
 }

@@ -8,7 +8,7 @@ const dataDir = fileURLToPath(new URL("./fixtures/game-data", import.meta.url))
 test("reads troops, support tools, banners and tools, and skips every other shape", async () => {
     const items = await readGameItems(dataDir)
     expect(items.map(i => [i.id, i.kind])).toEqual([
-        [652, "troop"], [700, "troop"], [359, "supportTool"], [660, "banner"], [77, "banner"], [611, "tool"], [666, "tool"],
+        [652, "troop"], [700, "troop"], [359, "supportTool"], [660, "banner"], [77, "banner"], [611, "tool"], [308, "troop"], [701, "troop"], [666, "tool"],
     ])
 })
 
@@ -19,6 +19,14 @@ test("names an item from the first language key that exists, else by its type", 
     expect(byId.get(77)).toMatchObject({ nameKey: "flag_name", name: "Banner" })
     expect(byId.get(611)).toMatchObject({ nameKey: "Ram_name", name: "Battering ram" })
     expect(byId.get(359)).toMatchObject({ nameKey: "SceatSuppKillMeleeDef_name", name: "SceatSuppKillMeleeDef", level: 1, fameBonus: null })
+})
+
+test("only an item paid with coins or resources has a list to be ordered from", async () => {
+    const byId = new Map((await readGameItems(dataDir)).map(i => [i.id, i]))
+    expect(byId.get(308)!.orderList).toBe(0)
+    expect(byId.get(611)!.orderList).toBe(1)
+    expect(byId.get(701)!.orderList, "costs rubies as well").toBeNull()
+    expect(byId.get(652)!.orderList, "has no price").toBeNull()
 })
 
 test("an item gets its CDN image when the asset list has one", async () => {

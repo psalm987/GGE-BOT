@@ -6,6 +6,7 @@ import type { GameItem, GameItemKind } from "@gge/contracts"
 import { gameItems, type Db } from "@gge/db"
 
 const require = createRequire(import.meta.url)
+const { orderListOf } = require("@gge/bot-core/orderable.js") as { orderListOf: (unit: unknown) => 0 | 1 | null }
 
 type Unit = Record<string, unknown> & { wodID: number; type: string }
 
@@ -48,7 +49,7 @@ export async function readGameItems(dataDir: string): Promise<GameItem[]> {
         const nameKey = [`${type}_name`, `${type[0]!.toLowerCase()}${type.slice(1)}_name`, `${type.toLowerCase()}_name`].find(key => key in lang) ?? `${type}_name`
         items.push({
             id: unit.wodID, kind, nameKey, name: lang[nameKey] ?? type,
-            level: numberOrNull(unit.level), fameBonus: numberOrNull(unit.fameBonus),
+            level: numberOrNull(unit.level), fameBonus: numberOrNull(unit.fameBonus), orderList: orderListOf(unit),
             image: assets[`${unit.name}_${unit.group}_${type}`] ?? null,
         })
     }

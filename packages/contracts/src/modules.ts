@@ -74,6 +74,8 @@ export type ModuleDef = {
         dailyCapOption?: string
         soon: readonly string[]
     }
+    /** What the page lists as still to come, below its settings. Each is `modules.<id>.soon.<item>.name` and `.description`. */
+    soon?: readonly string[]
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
     /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
@@ -129,7 +131,7 @@ export const MODULES: readonly ModuleDef[] = [
     soon("equipment-manager", "bth", "mail-shirt"),
     soon("or-storms", "bth", "tornado"),
     soon("mp-builder", "bth", "tower-bridge"),
-    soon("recruit-tools-heal", "utility", "healing-shield"),
+    { ...live("recruit-tools-heal", "utility", "healing-shield", ["recruitTools"]), soon: ["heal"] },
     live("refinery-toolsmith", "utility", "stone-crafting", ["toolsmith"]),
     live("auto-feast", "utility", "steak", ["feast"]),
     live("equip-sell", "utility", "banknote", ["sellStoredEquipment"]),

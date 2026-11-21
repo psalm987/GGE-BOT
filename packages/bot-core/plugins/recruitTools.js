@@ -1,0 +1,227 @@
+const rowColumns = (item, batch) => [
+    { key: "castle", type: "castle" },
+    { key: item, type: item, orderable: true },
+    { key: "stock", type: "number", min: 1, max: 2_000_000_000, default: 1000 },
+    { key: "batch", type: "number", min: 1, max: batch, default: Math.min(100, batch) },
+]
+
+/** One order holds at most this many tools bought with coins or resources (docs/protocol/tools.md). */
+const MAX_TOOLS_PER_ORDER = 80
+
+const optionDefs = [
+    { type: "Rows", key: "troopTargets", columns: rowColumns("troop", 100_000), default: [] },
+    { type: "Rows", key: "toolStockTargets", columns: rowColumns("tool", MAX_TOOLS_PER_ORDER), default: [] },
+    { type: "Number", key: "coinFloor", min: 0, max: 2_147_483_647, step: 1000, unit: "coins", default: 100_000 },
+    { type: "Number", key: "resourceFloor", min: 0, max: 100_000_000, step: 1000, default: 0 },
+    { type: "Checkbox", key: "dryRunOrders", default: false },
+]
+
+if (require('node:worker_threads').isMainThread)
+    return module.exports = { pluginOptions: optionDefs }
+
+const err = require("../err.json")
+const { events, botConfig, xtHandler } = require("../ggeBot.js")
+const { setCastle, castles, resources } = require("../protocols.js")
+const { ask, chore } = require("../chores.js")
+const { boxMullerRandom, pause } = require("../pacing.js")
+const { UNITS_LIST, TOOLS_LIST, orderListOf, priceOf } = require("../orderable.js")
+const stock = require("./stock.js")
+const loadItem = require("../paths.js").loadItem
+
+const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
+reportStatus("waiting", "statusRecruitToolsStarting")
+
+/** The client's default for `bup`'s SK field. */
+const CLIENT_SK = 73
+const NOT_ENOUGH_COINS = 10, NOT_ENOUGH_CURRENCY = 11
+
+const units = new Map(loadItem("units").map(unit => [Number(unit.wodID), unit]))
+
+const asRows = value => Array.isArray(value) ? value : []
+const asNumber = (value, fallback) => Number.isFinite(Number(value)) && value !== "" && value !== null ? Number(value) : fallback
+
+/**
+ * The rows of both lists as `{ list, wodID, unit, ref, stock, batch }`. A row that isn't a whole castle, item and
+ * number is left out. A row whose item can't be ordered from its list with coins or resources is kept with `unit`
+ * and answers "notOrderable", so a ruby price a stored row slipped in never reaches the game.
+ */
+function targetRows() {
+    const read = (list, key, item) => asRows(pluginOptions[key]).map(row => ({
+        list, wodID: Number(row[item]), ref: row.castle, stock: Number(row.stock), batch: Number(row.batch),
+    }))
+    return [...read(UNITS_LIST, "troopTargets", "troop"), ...read(TOOLS_LIST, "toolStockTargets", "tool")]
+        .filter(row => units.has(row.wodID) && row.stock > 0 && row.batch > 0 && Number.isInteger(row.ref?.kingdom) && Number.isInteger(row.ref?.id))
+        .map(row => ({ ...row, unit: units.get(row.wodID), orderable: orderListOf(units.get(row.wodID)) === row.list }))
+}
+
+const castleOf = ref => castles.find(castle => castle.kingdomID == ref.kingdom && castle.id == ref.id)
+
+/** Outcomes of one row, best first. */
+const OUTCOMES = ["ordered", "met", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused", "notOrderable", "noCastle", "noAnswer"]
+/** The blockers in the order the status names them when nothing was ordered. */
+const BLOCKERS = ["notOrderable", "noCastle", "noAnswer", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused"]
+const STATUS_KEY = {
+    notOrderable: "statusRecruitToolsNotOrderable", noCastle: "statusRecruitToolsNoCastle", noAnswer: "statusRecruitToolsNoAnswer", queueUnknown: "statusRecruitToolsQueueUnknown",
+    queueFull: "statusRecruitToolsQueueFull", coinFloor: "statusRecruitToolsCoinFloor", noResources: "statusRecruitToolsNoResources", refused: "statusRecruitToolsRefused",
+}
+
+const fewMinutes = () => boxMullerRandom(60_000, 3 * 60_000)
+
+/**
+ * Whether the reply to an order shows the game took it: the production list now has it in production when nothing
+ * was, or one empty slot fewer. A reply that shows neither is not trusted, since a filled slot was never captured.
+ */
+function took(before, reply, order) {
+    if (!reply.spl)
+        return false
+    const after = stock.parseQueue(reply.spl)
+    if (after.unknown)
+        return false
+    return before.idle ? !after.psIdle && Number(reply.spl.PS?.WID) == order.WID : after.emptySlots == before.empty - 1
+}
+
+async function cycle(active) {
+    const rows = targetRows()
+    if (rows.length == 0) {
+        reportStatus("waiting", "statusRecruitToolsNoTargets")
+        return 60 * 60_000
+    }
+    const dryRun = Boolean(pluginOptions.dryRunOrders)
+    const coinFloor = asNumber(pluginOptions.coinFloor, 100_000), resourceFloor = asNumber(pluginOptions.resourceFloor, 0)
+
+    await stock.refreshHome()
+    const outcomes = rows.map(() => new Set())
+    const dryOrdered = new Map(), drySpent = new Map()
+    let orders = 0, items = 0, soonest
+
+    const places = new Map()
+    rows.forEach((row, i) => {
+        const castle = row.orderable ? castleOf(row.ref) : undefined
+        if (!row.orderable)
+            return outcomes[i].add("notOrderable")
+        if (!castle)
+            return outcomes[i].add("noCastle")
+        const key = `${castle.kingdomID}:${castle.id}`
+        places.set(key, { castle, indexes: [...places.get(key)?.indexes ?? [], i] })
+    })
+
+    /** What `castle` has of a price's resource right now, after the orders a dry run only logged. */
+    const available = (resource, castle) => (resource == "coins" ? resources.coins : Number(castle[resource])) - (drySpent.get(`${castle.id}:${resource}`) ?? 0)
+    const spend = (resource, castle, amount) => {
+        const key = `${castle.id}:${resource}`
+        if (dryRun)
+            drySpent.set(key, (drySpent.get(key) ?? 0) + amount)
+        else if (resource != "coins")
+            castle[resource] -= amount
+    }
+    /** How many of `unit` the castle can pay for above the floors, and which floor stops it when that is 0. */
+    function affordable(unit, castle) {
+        let count = Infinity, blocker
+        for (const [resource, price] of priceOf(unit)) {
+            const left = Math.floor(((Number.isFinite(available(resource, castle)) ? available(resource, castle) : 0) - (resource == "coins" ? coinFloor : resourceFloor)) / price)
+            if (left < count) {
+                count = Math.max(0, left)
+                blocker = resource == "coins" ? "coinFloor" : "noResources"
+            }
+        }
+        return { count, blocker }
+    }
+
+    for (const { castle, indexes } of places.values()) {
+        if (!active())
+            return
+        await setCastle(castle, async () => {
+            for (const list of [UNITS_LIST, TOOLS_LIST]) {
+                const mine = indexes.filter(i => rows[i].list == list)
+                if (mine.length == 0)
+                    continue
+                const queue = await stock.readQueue(castle, list)
+                if (!queue) {
+                    mine.forEach(i => outcomes[i].add("noAnswer"))
+                    continue
+                }
+                if (queue.unknown) {
+                    console.warn("recruitToolsQueueUnknown", castle.kingdomID, castle.id, list)
+                    mine.forEach(i => outcomes[i].add("queueUnknown"))
+                    continue
+                }
+                if (queue.seconds !== undefined && queue.seconds > 0)
+                    soonest = Math.min(soonest ?? Infinity, queue.seconds)
+                const room = { idle: queue.psIdle, empty: queue.emptySlots }
+                for (const i of mine) {
+                    const row = rows[i]
+                    const dryKey = `${castle.id}:${row.wodID}`
+                    for (;;) {
+                        const deficit = row.stock - stock.toolStock(row.wodID, { castle: { kingdom: castle.kingdomID, id: castle.id } }).total - (dryOrdered.get(dryKey) ?? 0)
+                        if (deficit <= 0) {
+                            outcomes[i].add("met")
+                            break
+                        }
+                        if (!room.idle && room.empty == 0) {
+                            outcomes[i].add("queueFull")
+                            break
+                        }
+                        const { count, blocker } = affordable(row.unit, castle)
+                        const amount = Math.min(row.batch, deficit, list == TOOLS_LIST ? MAX_TOOLS_PER_ORDER : Infinity, count)
+                        if (!(amount > 0)) {
+                            outcomes[i].add(blocker)
+                            break
+                        }
+                        if (!active())
+                            return
+                        const order = { LID: list, WID: row.wodID, AMT: amount, PO: -1, PWR: 0, SK: CLIENT_SK, SID: castle.kingdomID, AID: castle.id }
+                        if (dryRun) {
+                            console.log("dryRunBup", JSON.stringify(order))
+                            dryOrdered.set(dryKey, (dryOrdered.get(dryKey) ?? 0) + amount)
+                            if (room.idle)
+                                room.idle = false
+                            else
+                                room.empty--
+                        } else {
+                            const { reply, result } = await ask("bup", order)
+                            if (result !== 0) {
+                                console.warn("recruitToolsRefused", JSON.stringify(order), " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
+                                outcomes[i].add(result == NOT_ENOUGH_COINS || result == NOT_ENOUGH_CURRENCY ? "noResources" : "refused")
+                                break
+                            }
+                            if (!took(room, reply, order)) {
+                                console.warn("recruitToolsQueueUnknown", castle.kingdomID, castle.id, list, JSON.stringify(reply.spl))
+                                outcomes[i].add("queueUnknown")
+                                room.idle = false
+                                room.empty = 0
+                                break
+                            }
+                            const after = stock.parseQueue(reply.spl)
+                            room.idle = after.psIdle
+                            room.empty = after.emptySlots
+                            stock.noteQueued(castle, row.wodID, amount, list)
+                            if (reply.gcu)
+                                xtHandler.emit("gcu", reply.gcu)
+                        }
+                        for (const [resource, price] of priceOf(row.unit))
+                            spend(resource, castle, price * amount)
+                        orders++
+                        items += amount
+                        outcomes[i].add("ordered")
+                        await pause(1500, 4000)
+                    }
+                }
+            }
+        })
+        await pause(2000, 6000)
+    }
+
+    const finals = outcomes.map(set => OUTCOMES.find(outcome => set.has(outcome)) ?? "noAnswer")
+    if (orders > 0)
+        reportStatus("running", "statusRecruitToolsOrdered", { orders, items })
+    else if (finals.every(outcome => outcome == "met"))
+        reportStatus("waiting", "statusRecruitToolsTargetsMet")
+    else {
+        const blocker = BLOCKERS.find(b => finals.includes(b))
+        reportStatus("waiting", STATUS_KEY[blocker], { item: String(rows[finals.indexOf(blocker)].unit.type) })
+    }
+    return (soonest !== undefined ? soonest * 1000 : 15 * 60_000) + fewMinutes()
+}
+
+events.once("load", () => chore("recruitTools", cycle, boxMullerRandom(3 * 60_000, 8 * 60_000)))

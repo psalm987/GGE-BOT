@@ -563,7 +563,7 @@
   "modules.mp-builder.name": "Construtor de MP",
   "modules.mp-builder.description": "Constrói o lugar poderoso do servidor do evento a partir da gêmea da sua conta.",
   "modules.recruit-tools-heal.name": "Recrutar, ferramentas e curar",
-  "modules.recruit-tools-heal.description": "Treina tropas, fabrica ferramentas e cura os feridos segundo um plano que você definir.",
+  "modules.recruit-tools-heal.description": "Mantém as tropas e ferramentas de cada castelo no estoque que você definir, fazendo pedidos no quartel e nas oficinas com moedas e recursos. A cura chega em breve.",
   "modules.refinery-toolsmith.name": "Refinaria e oficina de ferramentas",
   "modules.refinery-toolsmith.description": "Fabrica ferramentas de cerco nas suas oficinas até cada uma atingir o estoque que você definir.",
   "modules.auto-feast.name": "Banquete automático",
@@ -752,5 +752,8 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.name": "Parar após uma derrota",
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Para os ataques de um evento quando um deles é perdido, até você conferir.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Conselheiro nômade",
-  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Deixe o Conselheiro nômade do jogo cuidar dos acampamentos nômades por você."
+  "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Deixe o Conselheiro nômade do jogo cuidar dos acampamentos nômades por você.",
+  "modules.recruit-tools-heal.soon.heal.name": "Cura",
+  "modules.recruit-tools-heal.soon.heal.description": "Cure os feridos nos seus castelos segundo um plano que você definir.",
+  "module.soon.title": "Ainda por vir"
 }
