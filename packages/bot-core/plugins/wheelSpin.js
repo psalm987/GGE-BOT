@@ -1,5 +1,5 @@
 const optionDefs = [
-    { type: "Checkbox", key: "wheelClassic", default: true },
+    { type: "Checkbox", key: "wheelClassic", default: false },
     { type: "Checkbox", key: "wheelAffluence", default: true },
     { type: "Number", key: "wheelKeepTickets", min: 0, max: 1_000_000, step: 1, default: 0 },
     { type: "Number", key: "wheelMaxPerDay", min: 0, max: 5000, step: 1, default: 0 },
@@ -39,7 +39,8 @@ const pluginOptions = botConfig.plugins[require("path").basename(__filename).sli
 const number = (key, fallback) => pluginOptions[key] !== "" && pluginOptions[key] != null && Number.isFinite(Number(pluginOptions[key])) ? Math.max(0, Math.floor(Number(pluginOptions[key]))) : fallback
 const keep = number("wheelKeepTickets", 0)
 const maxPerDay = number("wheelMaxPerDay", 0)
-const wanted = WHEELS.filter(wheel => pluginOptions[wheel.option] !== false)
+/** A wheel the player never set follows its default: the classic wheel stays off until a spin of it is captured. */
+const wanted = WHEELS.filter(wheel => pluginOptions[wheel.option] ?? optionDefs.find(def => def.key == wheel.option).default)
 
 reportStatus("waiting", "statusWheelSpinStarting")
 

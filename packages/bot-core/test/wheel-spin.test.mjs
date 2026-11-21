@@ -66,12 +66,12 @@ function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)]
 }
 
 describe("the catalog entry", () => {
-    test("is accepted by the API and off by default, with both wheels on and no limits", () => {
+    test("is accepted by the API and off by default, with only the captured wheel on and no limits", () => {
         const { mod } = loadModule("plugins/wheelSpin.js", { mainThread: true })
         const entry = { key: "wheelSpin", force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
         expect(entry.force).toBe(false)
-        expect(Object.fromEntries(mod.pluginOptions.map(o => [o.key, o.default]))).toEqual({ wheelClassic: true, wheelAffluence: true, wheelKeepTickets: 0, wheelMaxPerDay: 0 })
+        expect(Object.fromEntries(mod.pluginOptions.map(o => [o.key, o.default]))).toEqual({ wheelClassic: false, wheelAffluence: true, wheelKeepTickets: 0, wheelMaxPerDay: 0 })
     })
 
     test.each([
@@ -162,10 +162,16 @@ describe("only while a wheel event runs", () => {
 
 describe("the classic wheel", () => {
     test("is spun with LWET 0 and its own tickets, 30 a spin", async () => {
-        const { spins, held } = run({ options: { wheelAffluence: false }, tickets: [0, 65], events: [wheelEvent(CLASSIC)], prize: ["STO", 1000] })
+        const { spins, held } = run({ options: { wheelClassic: true, wheelAffluence: false }, tickets: [0, 65], events: [wheelEvent(CLASSIC)], prize: ["STO", 1000] })
         await vi.advanceTimersByTimeAsync(2 * HOUR)
         expect(spins()).toEqual([{ LWET: 0 }, { LWET: 0 }])
         expect(held.LWT).toBe(5)
+    })
+
+    test("stays off when the player never set it, since no spin of it has been captured", async () => {
+        const { spins } = run({ tickets: [0, 65], events: [wheelEvent(CLASSIC)] })
+        await vi.advanceTimersByTimeAsync(2 * HOUR)
+        expect(spins()).toEqual([])
     })
 
     test("is left alone when it is switched off, and so is the other wheel", async () => {
@@ -213,7 +219,7 @@ describe("what the bot never sends", () => {
     })
 
     test("only lws is ever sent, with both wheels running and every option on", async () => {
-        const { bot } = run({ tickets: [20, 90], events: [wheelEvent(CLASSIC), wheelEvent(AFFLUENCE)], prize: ["STO", 1000] })
+        const { bot } = run({ options: { wheelClassic: true }, tickets: [20, 90], events: [wheelEvent(CLASSIC), wheelEvent(AFFLUENCE)], prize: ["STO", 1000] })
         await vi.advanceTimersByTimeAsync(6 * HOUR)
         expect(bot.sent.length).toBeGreaterThan(0)
         expect(new Set(bot.sent.map(([cmd]) => cmd))).toEqual(new Set(["lws"]))

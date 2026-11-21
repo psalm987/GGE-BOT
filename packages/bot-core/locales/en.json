@@ -822,7 +822,7 @@
     "statusWheelSpinNoWheel": "No wheel event is running. This resumes when one starts.",
     "statusWheelSpinNoTickets": "There are not enough tickets to spin and still keep {{keep}}. This resumes when you have more.",
     "statusWheelSpinDayLimit": "Today's limit of {{limit}} spins is reached. This resumes tomorrow.",
-    "statusWheelSpinProMode": "The wheel is in Pro mode, which costs far more tickets per spin. Switch it back in the game and this resumes.",
+    "statusWheelSpinProMode": "The wheel is in Pro mode, which costs far more tickets per spin. Turn Pro mode off in the game and this resumes.",
     "statusWheelSpinRefused": "The game refused a spin. This tries again later.",
     "statusWheelSpinSpun": "Spins today: {{spins}}.",
     "wheelSpinPrize": "Wheel prize: ",

@@ -59,3 +59,5 @@ The event's own `sei` entry carries the wheel's state, so no extra call is neede
 - How a free spin (`HFS` 1) is requested, and whether it needs `LWET` 0.
 - Whether the daily day is UTC. The plugin counts its daily limit by UTC day and loses the count when the bot restarts.
 - The affluence event ran 17 minutes in the `sei` sample above and the trace notes put it near 11 hours at the spin. The plugin trusts the `RS` of the latest list.
+
+The plugin leaves the classic wheel off by default until a spin of it has been captured, because its `lws` shape, its cost and whether its event entry carries `PMA` are read from the client only.
