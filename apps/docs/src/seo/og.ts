@@ -2,11 +2,11 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import sharp from "sharp"
 import type { OGImageOptions } from "astro-og-canvas"
-import { palette } from "@gge/ui/palette"
 import { LOCALES, type Locale } from "@gge/i18n/locales"
 import { sectionOf } from "../theme/sidebar.ts"
 import { APP_NAME } from "./jsonld.ts"
 import { OG_FORMAT } from "./og-path.ts"
+import { tokens } from "../theme/tokens.ts"
 
 const rgb = (hex: string): [number, number, number] => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number]
 
@@ -39,12 +39,12 @@ export function ogOptions(page: { title: string; slug: string; lang: string }): 
         description: section ? `${APP_NAME}  ·  ${section}` : APP_NAME,
         dir: rtl ? "rtl" : "ltr",
         logo: { path: logoPath },
-        bgGradient: [rgb(palette.ink)],
-        border: { color: rgb(palette.gold), width: 10, side: "inline-start" },
+        bgGradient: [rgb(tokens.dark.ground)],
+        border: { color: rgb(tokens.dark.accent), width: 10, side: "inline-start" },
         padding: 84,
         font: {
-            title: { color: rgb(palette.parchment), size: 82, weight: "Bold", lineHeight: 1.12, families: ["Alegreya", "IBM Plex Sans Arabic"] },
-            description: { color: rgb(palette.gold), size: 34, weight: "Bold", lineHeight: 1.3, families: ["Cinzel", "IBM Plex Sans Arabic"] },
+            title: { color: rgb(tokens.dark.heading), size: 82, weight: "Bold", lineHeight: 1.12, families: ["Alegreya", "IBM Plex Sans Arabic"] },
+            description: { color: rgb(tokens.dark.accent), size: 34, weight: "Bold", lineHeight: 1.3, families: ["Cinzel", "IBM Plex Sans Arabic"] },
         },
         fonts: FONTS,
         cacheDir: CACHE,

@@ -1,5 +1,3 @@
-import { palette } from "@gge/ui/palette"
-
 export const ROLES = [
     "ground", "sidebar", "surface", "code",
     "text", "heading", "muted",
@@ -13,32 +11,30 @@ export type Role = (typeof ROLES)[number]
 export type Tokens = Record<Role, string>
 export type ThemeName = "dark" | "light"
 
-const { banner } = palette
-
-/** Dark is the app's war room, straight from the palette. */
+/** Night ink: the app's former war room, for readers who pick the dark theme. */
 const dark: Tokens = {
-    ground: palette.ink,
-    sidebar: palette.sider,
-    surface: palette.surface,
-    code: palette.terminal,
-    text: palette.parchment,
-    heading: palette.parchment,
-    muted: palette.muted,
-    accent: palette.gold,
-    accentFill: palette.gold,
+    ground: "#15110E",
+    sidebar: "#1B1511",
+    surface: "#211A15",
+    code: "#18130F",
+    text: "#F3E7C9",
+    heading: "#F3E7C9",
+    muted: "#BFAE8A",
+    accent: "#E0A526",
+    accentFill: "#E0A526",
     onAccentFill: "#1A130D",
-    accentTint: palette.raised,
-    rule: palette.rule,
-    control: palette.goldDeep,
-    focus: palette.gold,
-    noteAccent: banner.info.accent,
-    noteGround: banner.info.ground,
-    tipAccent: banner.info.accent,
-    tipGround: banner.info.ground,
-    cautionAccent: banner.warning.accent,
-    cautionGround: banner.warning.ground,
-    dangerAccent: banner.critical.accent,
-    dangerGround: banner.critical.ground,
+    accentTint: "#2B221B",
+    rule: "#4A3B26",
+    control: "#B9821A",
+    focus: "#E0A526",
+    noteAccent: "#6FA3F0",
+    noteGround: "#29282B",
+    tipAccent: "#6FA3F0",
+    tipGround: "#29282B",
+    cautionAccent: "#F08C2E",
+    cautionGround: "#362518",
+    dangerAccent: "#FF7B8A",
+    dangerGround: "#372421",
 }
 
 /** Parchment: cream ground and ink text. Gold is too pale for words here, so links use a darkened gold. */
