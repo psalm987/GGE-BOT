@@ -28,7 +28,7 @@ function serve() {
     return new Promise(resolve => server.listen(0, "127.0.0.1", () => resolve({ server, base: `http://127.0.0.1:${server.address().port}` })))
 }
 
-async function open(browser, base, url, { theme = "dark", viewport = WIDE, reducedMotion = "no-preference", clipboard = false } = {}) {
+async function open(browser, base, url, { theme = "light", viewport = WIDE, reducedMotion = "no-preference", clipboard = false } = {}) {
     const context = await browser.newContext({ viewport, reducedMotion, permissions: clipboard ? ["clipboard-read", "clipboard-write"] : [] })
     await context.addInitScript(t => { try { localStorage.setItem("starlight-theme", t) } catch {} }, theme)
     const page = await context.newPage()
@@ -210,7 +210,7 @@ async function seoLanes(browser, base) {
     assert(true, "?q= opens search pre-filled")
     await queried.context().close()
 
-    const lang = async (url, locale, { viewport = WIDE, theme = "dark" } = {}) => {
+    const lang = async (url, locale, { viewport = WIDE, theme = "light" } = {}) => {
         const context = await browser.newContext({ viewport, locale })
         await context.addInitScript(t => { try { localStorage.setItem("starlight-theme", t) } catch {} }, theme)
         const page = await context.newPage()
@@ -425,12 +425,12 @@ async function shotLanes(browser, base) {
             const page = await open(browser, base, url, { theme })
             await axe(page, `${name} ${theme} 1440 (new tags)`)
             assert(await overflow(page) <= 0, `no horizontal scroll on ${name} ${theme} at 1440`)
-            if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-1440.png`, fullPage: true })
+            if (theme === "light") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-1440.png`, fullPage: true })
             await page.setViewportSize(PHONE)
             await page.waitForTimeout(300)
             await axe(page, `${name} ${theme} 390 (new tags)`)
             assert(await overflow(page) <= 0, `no horizontal scroll on ${name} ${theme} at 390`)
-            if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-390.png`, fullPage: true })
+            if (theme === "light") await page.screenshot({ path: `${out}/${name.replace(/ /g, "-")}-new-390.png`, fullPage: true })
             assert(page.errors.length === 0, `no console errors on ${name} ${theme}${page.errors.length ? ": " + page.errors.join("; ") : ""}`)
             await page.context().close()
         }
@@ -683,7 +683,7 @@ async function shotLanes(browser, base) {
         const close = sheetPop.locator(".gge-term__close")
         const closeBox = await close.boundingBox()
         assert(await close.isVisible() && closeBox.height >= 44, "the sheet has a close button at least 44px tall")
-        await axe(sheetPage, "en dark 390 with a term sheet open")
+        await axe(sheetPage, "en light 390 with a term sheet open")
         await sheetPage.screenshot({ path: `${out}/term-sheet-390.png` })
         await close.click()
         assert(!(await sheetPop.evaluate(el => el.matches(":popover-open"))), "the close button closes the sheet")
@@ -756,12 +756,12 @@ async function shotLanes(browser, base) {
                 const page = await open(browser, base, url, { theme })
                 await axe(page, `${name} ${theme} 1440`)
                 assert(page.errors.length === 0, `no console errors on ${name} ${theme}${page.errors.length ? ": " + page.errors.join("; ") : ""}`)
-                if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(" ", "-")}-1440.png`, fullPage: false })
+                if (theme === "light") await page.screenshot({ path: `${out}/${name.replace(" ", "-")}-1440.png`, fullPage: false })
                 await page.setViewportSize(PHONE)
                 await page.waitForTimeout(300)
                 await axe(page, `${name} ${theme} 390`)
                 assert(await overflow(page) <= 0, `no horizontal scroll on ${name} ${theme} at 390`)
-                if (theme === "dark") await page.screenshot({ path: `${out}/${name.replace(" ", "-")}-390.png` })
+                if (theme === "light") await page.screenshot({ path: `${out}/${name.replace(" ", "-")}-390.png` })
                 const stray = await violets(page)
                 assert(stray.length === 0, `no Starlight violet on ${name} ${theme}${stray.length ? ": " + stray.slice(0, 3).join("; ") : ""}`)
                 await page.context().close()

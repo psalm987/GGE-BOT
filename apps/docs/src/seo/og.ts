@@ -30,7 +30,7 @@ async function crestPng(): Promise<string> {
 
 const logoPath = await crestPng()
 
-/** The image options for one page: crest, title and section on the ink ground, in the page's own language. */
+/** The image options for one page: crest, title and section on the cream ground, in the page's own language. */
 export function ogOptions(page: { title: string; slug: string; lang: string }): OGImageOptions {
     const rtl = (LOCALES[page.lang as Locale]?.dir ?? "ltr") === "rtl"
     const section = sectionOf(page.slug, page.lang)?.label
@@ -39,12 +39,12 @@ export function ogOptions(page: { title: string; slug: string; lang: string }): 
         description: section ? `${APP_NAME}  ·  ${section}` : APP_NAME,
         dir: rtl ? "rtl" : "ltr",
         logo: { path: logoPath },
-        bgGradient: [rgb(tokens.dark.ground)],
-        border: { color: rgb(tokens.dark.accent), width: 10, side: "inline-start" },
+        bgGradient: [rgb(tokens.light.ground)],
+        border: { color: rgb(tokens.light.accentFill), width: 10, side: "inline-start" },
         padding: 84,
         font: {
-            title: { color: rgb(tokens.dark.heading), size: 82, weight: "Bold", lineHeight: 1.12, families: ["Alegreya", "IBM Plex Sans Arabic"] },
-            description: { color: rgb(tokens.dark.accent), size: 34, weight: "Bold", lineHeight: 1.3, families: ["Cinzel", "IBM Plex Sans Arabic"] },
+            title: { color: rgb(tokens.light.heading), size: 82, weight: "Bold", lineHeight: 1.12, families: ["Alegreya", "IBM Plex Sans Arabic"] },
+            description: { color: rgb(tokens.light.accent), size: 34, weight: "Bold", lineHeight: 1.3, families: ["Cinzel", "IBM Plex Sans Arabic"] },
         },
         fonts: FONTS,
         cacheDir: CACHE,

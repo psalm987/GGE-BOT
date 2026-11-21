@@ -1,6 +1,6 @@
 # Player docs site (apps/docs)
 
-The public GGE Command docs, built from Markdoc files with Astro Starlight. It carries the app's war-room look in dark and a parchment light theme, has callouts with link anchors (Pro tip, Heads up, Danger zone, Lore), margin side notes, and calm arrival motion when a reader lands on a `#section`.
+The public GGE Command docs, built from Markdoc files with Astro Starlight. It carries the app's light look (cream ground, white cards, emerald headings, green links) and a night-ink dark theme with the same green accent for readers who pick it, has callouts with link anchors (Pro tip, Heads up, Danger zone, Lore), margin side notes, and calm arrival motion when a reader lands on a `#section`.
 
 ## Sub-features
 
@@ -86,4 +86,4 @@ Hand-written data: `src/content/errors/<locale>.yaml` and `src/content/alerts/<l
 - 90rem is exactly 1440px, so the 1440 lane is the wide layout; the narrow lanes use 1100 and 390.
 - Known limit: margin notes close together in one paragraph can overlap, because there is no collision handling yet.
 - Without JavaScript, side notes show inline and the marker button stays hidden.
-- Light theme links are `#7A520A`; the contrast test (`pnpm --filter @gge/docs test`) holds every token pair to 4.5:1 text and 3:1 borders.
+- Light theme links are `#0D6E51` and dark theme links `#5CCB94`; the contrast test (`pnpm --filter @gge/docs test`) holds every token pair to 4.5:1 text and 3:1 borders.
