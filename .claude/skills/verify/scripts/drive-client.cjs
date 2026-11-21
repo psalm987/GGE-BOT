@@ -1190,6 +1190,7 @@ async function driveSidebar(page) {
     await page.screenshot({ path: `${out}/60-sidebar-1440.png` })
 
     await sidebar(page, "Castle manager")
+    await page.getByRole("link", { name: "Ask for it on Discord" }).waitFor()
     await page.getByText("Coming soon", { exact: true }).waitFor()
     assert(await page.getByRole("switch").count() === 0 && await page.locator(".gge-content form").count() === 0, "a coming-soon page has no form and no switches")
     assert(await page.getByRole("link", { name: "Ask for it on Discord" }).count() === 1, "a coming-soon page links to Discord")
