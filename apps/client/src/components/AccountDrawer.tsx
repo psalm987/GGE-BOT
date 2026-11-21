@@ -136,7 +136,7 @@ export function AccountDrawer({ open, account, twinOf, tab: wantedTab = "overvie
     )
 
     return (
-        <Drawer open={open} onClose={close} size={phone ? "100%" : 620} destroyOnHidden
+        <Drawer open={open} onClose={close} size={phone ? "100%" : 720} destroyOnHidden
             title={<Space wrap size={[12, 4]}>
                 <span className="gge-display">{isNew ? (twinOf ? t("account.addTwinFor", { name: twinOf.name }) : t("drawer.titleNew")) : account.name}</span>
                 {current?.entitled && <SigilStatus state={current.status?.actualState} detail={current.status?.lastError} sleepingUntil={current.sleepingUntil} />}
@@ -149,7 +149,7 @@ export function AccountDrawer({ open, account, twinOf, tab: wantedTab = "overvie
                 onFinishFailed={({ errorFields }) => setTab(errorFields[0]?.name[0] === "schedule" ? "schedule" : "settings")}>
                 {error && <Alert type="error" showIcon title={messageOf(error)} style={{ marginBottom: 16 }} role="alert" />}
                 {isNew ? settings : (
-                    <Tabs className="gge-account-tabs" activeKey={tab} onChange={setTab} size={phone ? "small" : "middle"} tabBarGutter={phone ? 14 : undefined} items={[
+                    <Tabs className="gge-account-tabs" activeKey={tab} onChange={setTab} size={phone ? "small" : "middle"} tabBarGutter={phone ? 14 : 24} items={[
                         { key: "overview", label: t("drawer.overview"), children: <AccountOverview account={current ?? account} /> },
                         // Always mounted, so its fields are in the form when a save comes from another tab.
                         { key: "settings", label: tc("nav.settings"), children: settings, forceRender: true },

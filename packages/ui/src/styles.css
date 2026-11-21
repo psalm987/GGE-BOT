@@ -376,7 +376,7 @@ body {
 .gge-kpi-label { display: flex; align-items: center; gap: 6px; color: var(--gge-muted); font-size: 13px; font-weight: 500; }
 .gge-kpi-value { font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .gge-kpi-value[data-missing] { color: var(--gge-muted); }
-/* Five tabs have to fit a phone-width drawer: a tab bar that overflows grows a "more" menu that axe flags inside the tablist. */
+/* Six tabs have to fit a phone-width drawer: a tab bar that overflows grows a "more" menu that axe flags inside the tablist. */
 @media (max-width: 767.98px) {
     .gge-account-tabs .ant-tabs-tab { padding-inline: 0; }
     .gge-account-tabs .ant-tabs-tab-btn { white-space: nowrap; }
@@ -473,7 +473,10 @@ body {
 .gge-top-accounts th, .gge-top-accounts td { padding: 8px 4px; text-align: start; border-bottom: 1px solid var(--gge-rule); font-weight: 400; }
 .gge-top-accounts thead th { color: var(--gge-muted); font-size: 13px; }
 .gge-top-accounts tbody tr:last-child > * { border-bottom: 0; }
-.gge-top-accounts .gge-num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gge-top-accounts .gge-num { text-align: end; font-variant-numeric: tabular-nums; }
+.gge-top-accounts td.gge-num { white-space: nowrap; }
+/* A long translated status, like Greek "stopped after repeated crashes", wraps instead of widening the table past its card. */
+.gge-top-accounts-cell .ant-tag { white-space: normal; }
 .gge-top-accounts-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .gge-top-accounts-name { min-height: 44px; padding-inline: 0; font-weight: 700; height: auto; }
 
