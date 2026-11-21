@@ -64,7 +64,7 @@ function Options({ onPick, autoFocus, labelledBy }: { onPick: (value: Preference
                             <span lang={row.value === "auto" ? undefined : row.value} dir={row.value === "auto" ? undefined : LOCALES[row.value].dir}>{row.label}</span>
                             {row.hint && <small>{row.hint}</small>}
                         </span>
-                        {row.value === preference && <CheckOutlined aria-hidden="true" style={{ color: "#E0A526" }} />}
+                        {row.value === preference && <CheckOutlined aria-hidden="true" style={{ color: "var(--gge-accent)" }} />}
                     </li>
                 ))}
             </ul>

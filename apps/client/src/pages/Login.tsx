@@ -20,7 +20,7 @@ export function Login() {
     }))
     return (
         <AuthShell title={t("login.title")} subtitle={t("login.subtitle")}
-            footer={<div style={{ color: "#BFAE8A", display: "flex", flexDirection: "column", gap: 8 }}>
+            footer={<div style={{ color: "var(--gge-muted)", display: "flex", flexDirection: "column", gap: 8 }}>
                 <span><Trans t={t} i18nKey="login.newHere" components={{ signup: <Link to="/signup" /> }} /></span>
                 <Link to="/credits">{t("credits.link")}</Link>
             </div>}>

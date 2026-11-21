@@ -28,7 +28,7 @@ export function Signup() {
     }))
     return (
         <AuthShell title={t("signup.title")} subtitle={t("signup.subtitle")} wide
-            footer={<span style={{ color: "#BFAE8A" }}><Trans t={t} i18nKey="signup.enlisted" components={{ login: <Link to="/login" /> }} /></span>}>
+            footer={<span style={{ color: "var(--gge-muted)" }}><Trans t={t} i18nKey="signup.enlisted" components={{ login: <Link to="/login" /> }} /></span>}>
             {signup.error && <Alert type="error" showIcon title={messageOf(signup.error)} style={{ marginBottom: 16 }} role="alert" />}
             <Form form={form} layout="vertical" requiredMark={false}
                 onFinish={({ username, email, password, turnstileToken }) => signup.mutate({ username, email, password, turnstileToken })} disabled={signup.isPending}>

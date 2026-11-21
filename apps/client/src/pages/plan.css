@@ -35,7 +35,7 @@
     padding: 16px;
     border: 1px solid var(--gge-rule);
     border-radius: 8px;
-    background: rgba(243, 231, 201, 0.03);
+    background: var(--gge-raised);
 }
 .gge-package-name { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.04em; font-weight: 700; font-size: 17px; }
 .gge-package-price { font-size: 26px; font-weight: 700; color: var(--gge-heading); font-variant-numeric: tabular-nums; }

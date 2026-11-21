@@ -1,4 +1,4 @@
-.gge-kingdom { border: 1px solid var(--gge-rule); border-radius: 8px; background: rgba(0, 0, 0, 0.18); }
+.gge-kingdom { border: 1px solid var(--gge-rule); border-radius: 8px; background: var(--gge-raised); }
 .gge-kingdom[data-open] { border-color: var(--gge-accent); }
 .gge-kingdom-head { display: flex; align-items: stretch; }
 .gge-kingdom-check { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 56px; padding-inline-start: 8px; cursor: pointer; }

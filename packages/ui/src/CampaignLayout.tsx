@@ -82,10 +82,10 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
         <Layout style={{ minHeight: "100dvh" }}>
 {!phone && (
                 <Layout.Sider breakpoint="lg" collapsedWidth={64} collapsed={collapsed} onCollapse={setCollapsed} width={232}
-                    className={grouped ? "gge-sider-grouped" : undefined} style={{ borderRight: "1px solid #3A2E1F" }}>
+                    className={grouped ? "gge-sider-grouped" : undefined}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed && !phone ? "16px 12px" : "16px 20px", height: 64, flex: "none" }}>
                         <Crest size={28} title={product} />
-                        {(!collapsed || phone) && <span className="gge-display" style={{ color: "#E0A526", fontWeight: 700, fontSize: 17 }}>{product}</span>}
+                        {(!collapsed || phone) && <span className="gge-display" style={{ color: palette.navText, fontWeight: 700, fontSize: 17 }}>{product}</span>}
                     </div>
                     <hr className="gge-rule" />
                     {menu(collapsed)}
@@ -100,7 +100,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                 </Drawer>
             )}
             <Layout>
-                <Layout.Header style={{ display: "flex", alignItems: "center", gap: phone ? 8 : 16, borderBottom: "1px solid #3A2E1F", ...(phone && { padding: "0 12px" }) }}>
+                <Layout.Header style={{ display: "flex", alignItems: "center", gap: phone ? 8 : 16, borderBottom: `1px solid ${palette.rule}`, ...(phone && { padding: "0 12px" }) }}>
                     {phone && <Button type="text" icon={<MenuOutlined />} aria-label={t("nav.openMenu")} aria-haspopup="dialog" onClick={() => setDrawerOpen(true)} style={{ height: 44, minWidth: 44 }} />}
                     <Typography.Title level={3} className="gge-display" ellipsis style={{ margin: 0, flex: 1, minWidth: 0, fontSize: phone ? 17 : 20 }}>{title}</Typography.Title>
                     {extra}
@@ -114,7 +114,7 @@ export function CampaignLayout({ product, nav, activeKey, onNavigate, title, ext
                     <LanguagePicker onChange={onLanguageChange} />
                     <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                         <Button type="text" aria-label={t("nav.accountMenuFor", { username })} style={{ height: 44 }}>
-                            <Avatar size="small" icon={<UserOutlined />} style={{ background: "#D7263D" }} />
+                            <Avatar size="small" icon={<UserOutlined />} style={{ background: palette.primary }} />
                             {!phone && <span style={{ marginInlineStart: 8 }}>{username}</span>}
                         </Button>
                     </Dropdown>

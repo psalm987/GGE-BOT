@@ -27,8 +27,8 @@
     padding: 12px 16px;
     border: 1px solid var(--gge-accent);
     border-radius: 8px;
-    background: #211A15;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+    background: var(--gge-surface);
+    box-shadow: 0 -6px 20px rgba(31, 42, 36, 0.14);
 }
 .gge-savebar-actions { display: flex; gap: 8px; margin-inline-start: auto; }
 .gge-preset-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 12px; }
@@ -40,4 +40,4 @@
 .gge-preset-editor { display: grid; gap: 16px; }
 .gge-preset-field { display: grid; gap: 6px; max-width: 420px; }
 .gge-preset-field label { font-weight: 500; }
-.gge-preset-error { color: #FF9A8A; font-size: 14px; }
+.gge-preset-error { color: var(--gge-crimson); font-size: 14px; }
