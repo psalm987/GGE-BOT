@@ -420,7 +420,7 @@
   "plugins.commanderPicker.order": "Order: {{list}}",
   "plugins.commanderPicker.none": "None picked: the bot sends any of your commanders, in the order that suits each attack.",
   "plugins.commanderPicker.beyond": "Dimmed numbers are commanders you don’t have yet. The bot skips them until you do.",
-  "plugins.commanderPicker.all": "All in order",
+  "plugins.commanderPicker.all": "Select all",
   "plugins.commanderPicker.clear": "Clear",
   "plugins.commanderPicker.vip": "VIP commanders",
   "plugins.commanderPicker.vipTile": "VIP",

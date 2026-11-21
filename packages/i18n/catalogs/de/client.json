@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Reihenfolge: {{list}}",
   "plugins.commanderPicker.none": "Keiner gewählt: Der Bot schickt beliebige deiner Feldherren, in der Reihenfolge, die zum jeweiligen Angriff passt.",
   "plugins.commanderPicker.beyond": "Blasse Nummern sind Feldherren, die Ihr noch nicht habt. Der Bot überspringt sie, bis Ihr sie habt.",
-  "plugins.commanderPicker.all": "Alle der Reihe nach",
+  "plugins.commanderPicker.all": "Alle auswählen",
   "plugins.commanderPicker.clear": "Leeren",
   "plugins.commanderPicker.vip": "VIP-Feldherren",
   "plugins.commanderPicker.vipTile": "VIP",

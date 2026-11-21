@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Sıra: {{list}}",
   "plugins.commanderPicker.none": "Hiçbiri seçili değil: bot komutanlarından herhangi birini, her saldırıya uyan sırayla gönderir.",
   "plugins.commanderPicker.beyond": "Soluk numaralar henüz sahip olmadığın komutanlardır. Bot, onlara sahip olana kadar onları atlar.",
-  "plugins.commanderPicker.all": "Tümü sırayla",
+  "plugins.commanderPicker.all": "Tümünü seç",
   "plugins.commanderPicker.clear": "Temizle",
   "plugins.commanderPicker.vip": "VIP komutanlar",
   "plugins.commanderPicker.vipTile": "VIP",

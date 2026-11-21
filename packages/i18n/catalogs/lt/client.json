@@ -769,7 +769,7 @@
   "plugins.commanderPicker.order": "Tvarka: {{list}}",
   "plugins.commanderPicker.none": "Nieko nepasirinkta: botas siunčia bet kurį iš jūsų vadų tokia tvarka, kuri tinka kiekvienam puolimui.",
   "plugins.commanderPicker.beyond": "Blankūs numeriai – vadai, kurių dar neturite. Botas juos praleidžia, kol jų neturėsite.",
-  "plugins.commanderPicker.all": "Visi iš eilės",
+  "plugins.commanderPicker.all": "Pasirinkti visus",
   "plugins.commanderPicker.clear": "Išvalyti",
   "plugins.commanderPicker.vip": "VIP vadai",
   "plugins.commanderPicker.vipTile": "VIP",

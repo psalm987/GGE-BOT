@@ -739,7 +739,7 @@
   "plugins.commanderPicker.order": "Orden: {{list}}",
   "plugins.commanderPicker.none": "Ninguno elegido: el bot envía cualquiera de tus comandantes, en el orden que mejor convenga a cada ataque.",
   "plugins.commanderPicker.beyond": "Los números atenuados son comandantes que aún no tienes. El bot los salta hasta que los tengas.",
-  "plugins.commanderPicker.all": "Todos en orden",
+  "plugins.commanderPicker.all": "Seleccionar todo",
   "plugins.commanderPicker.clear": "Borrar",
   "plugins.commanderPicker.vip": "Comandantes VIP",
   "plugins.commanderPicker.vipTile": "VIP",

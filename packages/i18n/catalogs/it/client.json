@@ -739,7 +739,7 @@
   "plugins.commanderPicker.order": "Ordine: {{list}}",
   "plugins.commanderPicker.none": "Nessuno scelto: il bot invia uno qualsiasi dei tuoi comandanti, nell'ordine più adatto a ogni attacco.",
   "plugins.commanderPicker.beyond": "I numeri sbiaditi sono comandanti che non hai ancora. Il bot li salta finché non li avrai.",
-  "plugins.commanderPicker.all": "Tutti in ordine",
+  "plugins.commanderPicker.all": "Seleziona tutto",
   "plugins.commanderPicker.clear": "Svuota",
   "plugins.commanderPicker.vip": "Comandanti VIP",
   "plugins.commanderPicker.vipTile": "VIP",

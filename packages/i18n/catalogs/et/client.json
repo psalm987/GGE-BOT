@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Järjekord: {{list}}",
   "plugins.commanderPicker.none": "Kedagi pole valitud: bot saadab ükskõik millise sinu komandöridest, järjekorras, mis sobib igale rünnakule.",
   "plugins.commanderPicker.beyond": "Tuhmid numbrid on komandörid, keda sul veel pole. Bot jätab nad vahele, kuni nad sul on.",
-  "plugins.commanderPicker.all": "Kõik järjekorras",
+  "plugins.commanderPicker.all": "Vali kõik",
   "plugins.commanderPicker.clear": "Tühjenda",
   "plugins.commanderPicker.vip": "VIP-komandörid",
   "plugins.commanderPicker.vipTile": "VIP",

@@ -769,7 +769,7 @@
   "plugins.commanderPicker.order": "Порядок: {{list}}",
   "plugins.commanderPicker.none": "Нікого не вибрано: бот надсилає будь-кого з ваших командирів у порядку, який пасує кожній атаці.",
   "plugins.commanderPicker.beyond": "Бліді номери — це командири, яких у тебе ще немає. Бот пропускає їх, доки вони в тебе не з’являться.",
-  "plugins.commanderPicker.all": "Усі по черзі",
+  "plugins.commanderPicker.all": "Вибрати всі",
   "plugins.commanderPicker.clear": "Очистити",
   "plugins.commanderPicker.vip": "VIP-командири",
   "plugins.commanderPicker.vipTile": "VIP",

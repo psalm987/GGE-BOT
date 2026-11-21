@@ -739,7 +739,7 @@
   "plugins.commanderPicker.order": "Redoslijed: {{list}}",
   "plugins.commanderPicker.none": "Nitko nije odabran: bot šalje bilo kojeg od tvojih zapovjednika, redoslijedom koji odgovara svakom napadu.",
   "plugins.commanderPicker.beyond": "Blijedi brojevi su zapovjednici koje još nemaš. Bot ih preskače dok ih ne dobiješ.",
-  "plugins.commanderPicker.all": "Svi redom",
+  "plugins.commanderPicker.all": "Odaberi sve",
   "plugins.commanderPicker.clear": "Očisti",
   "plugins.commanderPicker.vip": "VIP zapovjednici",
   "plugins.commanderPicker.vipTile": "VIP",

@@ -769,7 +769,7 @@
   "plugins.commanderPicker.order": "Vrstni red: {{list}}",
   "plugins.commanderPicker.none": "Nihče ni izbran: bot pošilja katerega koli od tvojih poveljnikov, v vrstnem redu, ki ustreza vsakemu napadu.",
   "plugins.commanderPicker.beyond": "Zbledele številke so poveljniki, ki jih še nimaš. Bot jih preskoči, dokler jih nimaš.",
-  "plugins.commanderPicker.all": "Vsi po vrsti",
+  "plugins.commanderPicker.all": "Izberi vse",
   "plugins.commanderPicker.clear": "Počisti",
   "plugins.commanderPicker.vip": "Poveljniki VIP",
   "plugins.commanderPicker.vipTile": "VIP",

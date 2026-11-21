@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Järjestys: {{list}}",
   "plugins.commanderPicker.none": "Ei valittuja: botti lähettää kenet tahansa komentajistasi siinä järjestyksessä, joka sopii kuhunkin hyökkäykseen.",
   "plugins.commanderPicker.beyond": "Himmeät numerot ovat komentajia, joita sinulla ei vielä ole. Botti ohittaa ne, kunnes saat ne.",
-  "plugins.commanderPicker.all": "Kaikki järjestyksessä",
+  "plugins.commanderPicker.all": "Valitse kaikki",
   "plugins.commanderPicker.clear": "Tyhjennä",
   "plugins.commanderPicker.vip": "VIP-komentajat",
   "plugins.commanderPicker.vipTile": "VIP",

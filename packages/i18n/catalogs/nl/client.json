@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Volgorde: {{list}}",
   "plugins.commanderPicker.none": "Niets gekozen: de bot stuurt elk van je commandanten, in de volgorde die bij elke aanval past.",
   "plugins.commanderPicker.beyond": "Vervaagde nummers zijn commandanten die je nog niet hebt. De bot slaat ze over tot je ze hebt.",
-  "plugins.commanderPicker.all": "Alle op volgorde",
+  "plugins.commanderPicker.all": "Alles selecteren",
   "plugins.commanderPicker.clear": "Wissen",
   "plugins.commanderPicker.vip": "VIP-commandanten",
   "plugins.commanderPicker.vipTile": "VIP",

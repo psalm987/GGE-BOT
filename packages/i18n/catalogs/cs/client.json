@@ -769,7 +769,7 @@
   "plugins.commanderPicker.order": "Pořadí: {{list}}",
   "plugins.commanderPicker.none": "Nikdo nevybrán: bot posílá kteréhokoli z vašich velitelů v pořadí, které se hodí pro každý útok.",
   "plugins.commanderPicker.beyond": "Ztlumená čísla jsou velitelé, které ještě nemáte. Bot je přeskakuje, dokud je mít nebudete.",
-  "plugins.commanderPicker.all": "Všechny popořadě",
+  "plugins.commanderPicker.all": "Vybrat vše",
   "plugins.commanderPicker.clear": "Vymazat",
   "plugins.commanderPicker.vip": "VIP velitelé",
   "plugins.commanderPicker.vipTile": "VIP",

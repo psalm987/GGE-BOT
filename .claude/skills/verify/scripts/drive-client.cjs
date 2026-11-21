@@ -2465,7 +2465,7 @@ async function driveUxCommanders(page) {
         await open("fortress")
         assert(await order() === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, "an old 1-99 on Fortress loads as every tile, 1 to 50 in order")
         assert(await picker.locator(".gge-commander-tile:not(.gge-commander-vip)[aria-pressed=true]").count() === 50 && await saveBar.count() === 0, "all 50 tiles are pressed and nothing needs saving")
-        assert(await picker.getByRole("button", { name: "All in order" }).isDisabled(), "All in order is off while every tile is already in order")
+        assert(await picker.getByRole("button", { name: "Select all" }).isDisabled(), "Select all is off while every tile is already picked in order")
 
         await open("khan")
         assert(await picker.count() === 1 && await picker.getByText("One list for every attack on this page.", { exact: false }).count() === 0, "Khan, with one attack, has its own picker without the shared-list line")

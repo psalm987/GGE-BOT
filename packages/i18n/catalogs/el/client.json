@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Σειρά: {{list}}",
   "plugins.commanderPicker.none": "Δεν επιλέχθηκε κανείς: το bot στέλνει οποιονδήποτε από τους διοικητές σας, με τη σειρά που ταιριάζει σε κάθε επίθεση.",
   "plugins.commanderPicker.beyond": "Οι αχνοί αριθμοί είναι διοικητές που δεν έχετε ακόμα. Το bot τους παραλείπει μέχρι να τους αποκτήσετε.",
-  "plugins.commanderPicker.all": "Όλοι με τη σειρά",
+  "plugins.commanderPicker.all": "Επιλογή όλων",
   "plugins.commanderPicker.clear": "Καθαρισμός",
   "plugins.commanderPicker.vip": "Διοικητές VIP",
   "plugins.commanderPicker.vipTile": "VIP",

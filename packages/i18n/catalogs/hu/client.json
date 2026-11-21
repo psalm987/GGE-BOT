@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Sorrend: {{list}}",
   "plugins.commanderPicker.none": "Nincs kiválasztva: a bot bármelyik parancsnokodat küldi, abban a sorrendben, amely az adott támadáshoz illik.",
   "plugins.commanderPicker.beyond": "A halvány számok olyan parancsnokok, akik még nincsenek meg neked. A bot kihagyja őket, amíg meg nem szerzed őket.",
-  "plugins.commanderPicker.all": "Mind sorban",
+  "plugins.commanderPicker.all": "Összes kijelölése",
   "plugins.commanderPicker.clear": "Törlés",
   "plugins.commanderPicker.vip": "VIP-parancsnokok",
   "plugins.commanderPicker.vipTile": "VIP",

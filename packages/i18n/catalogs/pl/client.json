@@ -769,7 +769,7 @@
   "plugins.commanderPicker.order": "Kolejność: {{list}}",
   "plugins.commanderPicker.none": "Nikt nie wybrany: bot wysyła dowolnego z twoich dowódców, w kolejności, która pasuje do każdego ataku.",
   "plugins.commanderPicker.beyond": "Wyblakłe numery to dowódcy, których jeszcze nie masz. Bot pomija ich, dopóki ich nie zdobędziesz.",
-  "plugins.commanderPicker.all": "Wszyscy po kolei",
+  "plugins.commanderPicker.all": "Zaznacz wszystkie",
   "plugins.commanderPicker.clear": "Wyczyść",
   "plugins.commanderPicker.vip": "Dowódcy VIP",
   "plugins.commanderPicker.vipTile": "VIP",

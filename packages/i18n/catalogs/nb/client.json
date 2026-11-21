@@ -709,7 +709,7 @@
   "plugins.commanderPicker.order": "Rekkefølge: {{list}}",
   "plugins.commanderPicker.none": "Ingen valgt: boten sender hvilken som helst av kommandørene dine, i den rekkefølgen som passer hvert angrep.",
   "plugins.commanderPicker.beyond": "Nedtonede numre er kommandører du ikke har ennå. Boten hopper over dem til du har dem.",
-  "plugins.commanderPicker.all": "Alle i rekkefølge",
+  "plugins.commanderPicker.all": "Velg alle",
   "plugins.commanderPicker.clear": "Tøm",
   "plugins.commanderPicker.vip": "VIP-kommandører",
   "plugins.commanderPicker.vipTile": "VIP",

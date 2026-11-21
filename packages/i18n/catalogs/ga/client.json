@@ -799,7 +799,7 @@
   "plugins.commanderPicker.order": "Ord: {{list}}",
   "plugins.commanderPicker.none": "Níl aon cheann roghnaithe: seolann an bot aon cheann de do cheannasaithe, san ord a oireann do gach ionsaí.",
   "plugins.commanderPicker.beyond": "Is ceannasaithe nach bhfuil agat fós iad na huimhreacha éadroma. Léimeann an bot tharstu go dtí go mbeidh siad agat.",
-  "plugins.commanderPicker.all": "Gach ceann in ord",
+  "plugins.commanderPicker.all": "Roghnaigh gach ceann",
   "plugins.commanderPicker.clear": "Glan",
   "plugins.commanderPicker.vip": "Ceannasaithe VIP",
   "plugins.commanderPicker.vipTile": "VIP",
