@@ -1,10 +1,11 @@
-import { Alert, Collapse, InputNumber, Segmented, Select, Tag } from "antd"
+import { useState } from "react"
+import { Alert, Button, Collapse, InputNumber, Segmented, Select, Tag } from "antd"
 import { useTranslation } from "react-i18next"
 import {
-    MAX_SLOT_AMOUNT, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
+    MAX_SLOT_AMOUNT, MAX_WAVES, MIN_WAVES, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
     type ArmySlot, type GameItem, type ManualPlan, type Wave,
 } from "@gge/contracts"
-import { filledSlots, withCourtyard, withSlot, withSupportTool, withWave } from "../army-values.ts"
+import { filledSlots, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
 import { useGameItems } from "./PluginOptionField.tsx"
 import "./army.css"
 
@@ -49,7 +50,7 @@ function WaveTag({ wave }: { wave: Wave }) {
 }
 
 /**
- * The wave plan editor: waves 1 to 4, each an in-game preset or custom slots, then the support tools and the courtyard.
+ * The wave plan editor: waves 1 to 25 (4 to begin with), each an in-game preset or custom slots, then the support tools and the courtyard.
  * The same editor writes a module's own plan and a virtual preset.
  */
 export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPlan; onChange: (plan: ManualPlan) => void; disabled?: boolean }) {
@@ -59,6 +60,16 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
     const troops = itemOptions(unknown, useGameItems("troop"))
     const supportTools = itemOptions(unknown, useGameItems("supportTool"))
     const presetOptions = (current: number) => [{ value: 0, label: t("waves.preset.empty") }, ...(current > 0 ? [{ value: current, label: t("waves.preset.option", { n: current }) }] : [])]
+
+    const [open, setOpen] = useState<number[]>(() => value.waves.flatMap((wave, i) => waveIsEmpty(wave) ? [] : [i]))
+    const addWave = () => {
+        onChange(withAddedWave(value))
+        setOpen([...open, value.waves.length])
+    }
+    const removeWave = (index: number) => {
+        onChange(withoutWave(value, index))
+        setOpen(open.filter(i => i !== index).map(i => i > index ? i - 1 : i))
+    }
 
     const panel = (wave: Wave, index: number) => {
         const n = index + 1
@@ -92,6 +103,10 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
                             </fieldset>
                         ))}
                     </div>}
+                <div className="gge-army-row">
+                    {index < value.waves.length - 1 && <Button disabled={disabled} onClick={() => onChange(withWaveCopiedToRest(value, index))}>{t("waves.copyRest")}</Button>}
+                    <Button danger disabled={disabled || value.waves.length <= MIN_WAVES} aria-label={t("waves.remove", { n })} onClick={() => removeWave(index)}>{t("waves.removeShort")}</Button>
+                </div>
             </div>
         )
     }
@@ -100,11 +115,16 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
         <div className="gge-army">
             <p className="gge-army-note">{t("waves.intro")}</p>
             {serverPresetsIn(value).length > 0 && <Alert type="warning" showIcon title={t("waves.preset.warning")} />}
-            <Collapse defaultActiveKey={value.waves.flatMap((wave, i) => waveIsEmpty(wave) ? [] : [i])}
+            {value.waves.length > 4 && <p className="gge-army-note">{t("waves.cap")}</p>}
+            <Collapse activeKey={open} onChange={keys => setOpen([keys].flat().map(Number))}
                 items={value.waves.map((wave, i) => ({
                     key: i, children: panel(wave, i),
                     label: <span className="gge-army-wave-head"><span>{t("waves.wave", { n: i + 1 })}</span><WaveTag wave={wave} /></span>,
                 }))} />
+            <div className="gge-army-row">
+                <Button disabled={disabled || value.waves.length >= MAX_WAVES} onClick={addWave}>{t("waves.add")}</Button>
+                <span className="gge-army-note" data-wave-count>{t("waves.count", { n: value.waves.length, max: MAX_WAVES })}</span>
+            </div>
             <section aria-label={t("waves.support.title")}>
                 <h3 className="gge-army-heading gge-display">{t("waves.support.title")}</h3>
                 <div className="gge-army-support">

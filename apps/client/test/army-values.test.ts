@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
-import { emptyCustomWave, emptyPlan, emptyWave, type AutofillSource, type PluginOptionDef } from "@gge/contracts"
-import { autofillOf, filledSlots, planCounts, pluginsSending, withCourtyard, withSlot, withSupportTool, withWave } from "../src/army-values.ts"
+import { MAX_WAVES, emptyCustomWave, emptyPlan, emptyWave, type AutofillSource, type PluginOptionDef } from "@gge/contracts"
+import { autofillOf, filledSlots, planCounts, pluginsSending, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../src/army-values.ts"
 
 const barons: AutofillSource = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
@@ -41,7 +41,7 @@ test("changing a slot makes a preset wave custom and leaves the plan it came fro
     expect(wave).toEqual({ ...emptyCustomWave(), front: { tools: [null, null, null], units: [null, null, null, null, null, { item: 601, amount: 100 }] } })
     expect(filledSlots(wave)).toBe(1)
     expect(filledSlots(emptyWave())).toBe(0)
-    expect(planCounts(next)).toEqual({ waves: 1, supportTools: 1, courtyard: 1 })
+    expect(planCounts(next)).toEqual({ waves: 1, total: 4, supportTools: 1, courtyard: 1 })
     expect(plan).toEqual(emptyPlan())
 })
 
@@ -54,4 +54,24 @@ test("a virtual preset is sent by the plugins whose stored waves name it, on eit
         attackForeign: { enabled: true, options: { waves: { ...sent, presetId: "9b4e7c1e-2f43-4a3e-9d7e-5a0f3c2b1a10" } } },
     }
     expect(pluginsSending(plugins, sent.presetId)).toEqual(["attackKhan", "attackNomads"])
+})
+
+test("waves are added up to 25, removed down to one, and a wave copies into every wave after it", () => {
+    const written = withSlot(emptyWave(), "front", "units", 0, { item: 601, amount: 100 })
+    let plan = withWave(emptyPlan(), 1, written)
+    expect(withAddedWave(plan).waves).toHaveLength(5)
+    for (let i = 0; i < 40; i++) plan = withAddedWave(plan)
+    expect(plan.waves).toHaveLength(MAX_WAVES)
+
+    const copied = withWaveCopiedToRest(plan, 1)
+    expect(copied.waves[0]).toEqual(emptyWave())
+    expect(copied.waves.slice(1).every(wave => JSON.stringify(wave) === JSON.stringify(written))).toBe(true)
+    expect(copied.waves[2]).not.toBe(copied.waves[3])
+    expect(planCounts(copied)).toMatchObject({ waves: 24, total: 25 })
+    expect(withWaveCopiedToRest(plan, 24)).toEqual(plan)
+
+    let small = emptyPlan()
+    for (let i = 0; i < 6; i++) small = withoutWave(small, 0)
+    expect(small.waves).toHaveLength(1)
+    expect(withoutWave(withWave(emptyPlan(), 2, written), 2).waves).toEqual([emptyWave(), emptyWave(), emptyWave()])
 })
