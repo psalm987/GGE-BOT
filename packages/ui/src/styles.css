@@ -26,6 +26,7 @@
     --gge-emerald: #0F7A5A;
     --gge-azure: #1F5FBF;
     --gge-crimson: #B3192E;
+    --gge-crimson-deep: #951426;
     --gge-amber: #9A4A00;
     --gge-dusk: #5E50B8;
     /* The green the selected rows, the active option and hovers are tinted with. */
@@ -204,6 +205,12 @@ body {
 .gge-tag-option code { font-family: var(--gge-mono); font-size: 13px; color: var(--gge-tag); overflow: hidden; text-overflow: ellipsis; }
 .gge-tag-option small, .gge-count { color: var(--gge-muted); font-variant-numeric: tabular-nums; }
 .gge-tag-chip { font-family: var(--gge-mono); font-size: 12px; color: var(--gge-tag) !important; border-color: color-mix(in srgb, var(--gge-tag) 45%, transparent) !important; }
+
+/* antd's preset tags draw their words in a mid shade, under 4.5:1 on their pale grounds; the palette's status hues pass. */
+.ant-tag:is(.ant-tag-green, .ant-tag-success):not(.ant-tag-solid) { color: var(--gge-emerald) !important; }
+.ant-tag:is(.ant-tag-red, .ant-tag-error):not(.ant-tag-solid) { color: var(--gge-crimson) !important; }
+.ant-tag:is(.ant-tag-gold, .ant-tag-orange, .ant-tag-warning):not(.ant-tag-solid) { color: var(--gge-amber) !important; }
+.ant-tag:is(.ant-tag-blue, .ant-tag-processing):not(.ant-tag-solid) { color: var(--gge-azure) !important; }
 
 /* The log terminal: an inset well a step off the white cards around it. */
 .gge-term {

@@ -32,6 +32,8 @@ test.each([
     ["starting label", palette.azure, 4.5],
     ["wrong-password and waiting label", palette.amber, 4.5],
     ["error, banned and danger text", palette.crimson, 4.5],
+    ["danger words under the pointer", palette.crimsonDeep, 4.5],
+    ["links and green words under the pointer", palette.primaryDeep, 4.5],
     ["sleeping label", palette.dusk, 4.5],
     ["field and default button edges", palette.control, 3],
     ["the focus ring", palette.accent, 3],
@@ -56,6 +58,7 @@ test.each(Object.entries(grounds))("text and links stay readable on the selected
         expect(contrast(palette.text, tinted), `text on ${alpha}`).toBeGreaterThanOrEqual(4.5)
         expect(contrast(palette.muted, tinted), `muted on ${alpha}`).toBeGreaterThanOrEqual(4.5)
         expect(contrast(palette.accent, tinted), `accent on ${alpha}`).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(palette.crimson, tinted), `danger on ${alpha}`).toBeGreaterThanOrEqual(4.5)
     }
 })
 
@@ -109,4 +112,16 @@ test("every palette colour is a stylesheet variable of the same value", () => {
     expect(palette.tags.map((_, i) => cssVar(`tag-${i}`))).toEqual([...palette.tags])
     for (const [severity, { accent, ground }] of Object.entries(palette.banner))
         expect([cssVar(`banner-${severity}`), cssVar(`banner-${severity}-ground`)]).toEqual([accent, ground])
+})
+
+// antd's pale preset tag grounds (its colour-1 shades), under the stylesheet's darker words.
+test.each([
+    ["green", palette.emerald, "#F6FFED"],
+    ["red", palette.crimson, "#FFF1F0"],
+    ["gold", palette.amber, "#FFFBE6"],
+    ["orange", palette.amber, "#FFF7E6"],
+    ["blue", palette.azure, "#E6F4FF"],
+])("a %s tag's words are readable on its ground", (preset, color, ground) => {
+    expect(contrast(color, ground)).toBeGreaterThanOrEqual(4.5)
+    expect(css).toMatch(new RegExp(`\\.ant-tag-${preset}[^{]*\\{ color: var\\(--gge-[a-z]+\\) !important; \\}`))
 })

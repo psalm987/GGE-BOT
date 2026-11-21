@@ -23,6 +23,8 @@ export const palette = {
     emerald: "#0F7A5A",
     azure: "#1F5FBF",
     crimson: "#B3192E",
+    /** Danger under the pointer or pressed: darker, never lighter, so its words keep their contrast. */
+    crimsonDeep: "#951426",
     amber: "#9A4A00",
     /** Resting, not failing. */
     dusk: "#5E50B8",
