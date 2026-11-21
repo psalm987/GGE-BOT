@@ -61,6 +61,11 @@ setTimeout(() => {
   }
 }, 300)
 canvas.addEventListener("click", () => { clicks++; paint(); xt("sbp", { PID: 32 }) })
+// Like the real client, the game runs a dedicated worker from the start and can start more later.
+const echoWorker = () => new Worker(URL.createObjectURL(new Blob(["onmessage = e => postMessage(e.data * 2)"], { type: "text/javascript" })))
+const asked = worker => new Promise(resolve => { worker.onmessage = e => resolve(e.data); worker.postMessage(21) })
+const firstWorker = echoWorker()
+window.askNewWorker = () => Promise.race([asked(echoWorker()), new Promise(resolve => setTimeout(() => resolve("no reply"), 5000))])
 </script>`
 
 const PARENT_HTML = gameOrigin => `<!doctype html><meta charset="utf-8"><title>Fake Game</title>
@@ -195,6 +200,8 @@ await Promise.all([game.waitForEvent("load"), popup.click("#reload")])
 gameFrame = await loadGame()
 await popup.waitForSelector("#hint", { state: "hidden" })
 check(true, "the Reload button reloads the game tab and the hint goes away once the login is seen")
+check(!game.isClosed() && await game.evaluate(() => document.title) === "Fake Game", "the game tab survives a reload while recording, with its worker restarted")
+check(await gameFrame.evaluate(() => window.askNewWorker()) === 42, "a worker the game starts while recording still runs and answers")
 
 for (let i = 0; i < 3; i++) {
   await clickCanvas()
