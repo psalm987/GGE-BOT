@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { MAX_VIRTUAL_PRESETS, emptyPlan, type ManualPlan } from "@gge/contracts"
+import { MAX_VIRTUAL_PRESETS, MAX_WAVES, emptyPlan, type ManualPlan } from "@gge/contracts"
 import { gameAccounts, pluginCatalog, users, virtualPresets } from "@gge/db"
 import { PASSWORD, startApi, type Api } from "./harness.ts"
 
@@ -105,7 +105,8 @@ describe("virtual presets", () => {
         const { player, account } = await playerWithAccount("gus")
         const good = emptyPlan()
         const bad: unknown[] = [
-            { ...good, waves: good.waves.slice(0, 3) },
+            { ...good, waves: [] },
+            { ...good, waves: Array.from({ length: MAX_WAVES + 1 }, () => good.waves[0]) },
             { ...good, waves: [{ kind: "preset", preset: 31 }, ...good.waves.slice(1)] },
             { ...good, rw: [] },
             { kind: "virtual", presetId: crypto.randomUUID() },
