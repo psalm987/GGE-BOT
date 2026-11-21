@@ -3,6 +3,7 @@ if (require("node:worker_threads").isMainThread)
 
 const pretty = require('pretty-time')
 const { spendSkip } = require("../skips.js")
+const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, accountLimits } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander, inWrittenOrder } = require("../commander.js")
@@ -60,7 +61,7 @@ function eventCampAttacks(profile, stored, filename) {
     const queue = campQueue(target)
 
     /** Skips a camp's wait while the budget allows, and returns the skips it spent. */
-    const skipWait = async areaInfo => {
+    const skipTarget = oneSkipPerCamp(async areaInfo => {
         const spent = []
         while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
             let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
@@ -76,18 +77,7 @@ function eventCampAttacks(profile, stored, filename) {
             spent.push(skip)
         }
         return spent
-    }
-    /**
-     * The skip of each camp that is in flight. A march home and the attack loop can both want a camp's wait gone before
-     * the game's reply lowers it, so the second one shares the first's skips instead of spending its own.
-     */
-    const skipping = new Map()
-    const skipTarget = areaInfo => {
-        const camp = `${areaInfo.x}:${areaInfo.y}`
-        if (!skipping.has(camp))
-            skipping.set(camp, skipWait(areaInfo).finally(() => skipping.delete(camp)))
-        return skipping.get(camp)
-    }
+    })
     movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
         if (movement.targetOwner.ownerID != playerInfo.playerID)
             return

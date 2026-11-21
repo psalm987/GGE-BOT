@@ -68,6 +68,7 @@ if (require("node:worker_threads").isMainThread)
 const pretty = require("pretty-time")
 
 const { spendSkip, haveEnoughSkips } = require("../skips.js")
+const { oneSkipPerCamp } = require("../../campSkips.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { castles, ClientCommands, AreaType, KingdomID, movements, movementEvents, resources } = require("../../protocols")
 const {
@@ -209,7 +210,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
     const readyAt = areaInfo => areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000
 
-    async function skipTarget(areaInfo) {
+    const skipTarget = oneSkipPerCamp(async areaInfo => {
         while (areaInfo.extraData[2] > 0) {
             let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
 
@@ -221,7 +222,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
             if (result != 0)
                 break
         }
-    }
+    })
 
     movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
         if (movement.targetOwner.ownerID != playerInfo.playerID)

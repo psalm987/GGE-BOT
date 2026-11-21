@@ -69,6 +69,7 @@ if (require('node:worker_threads').isMainThread)
 
     }
 const { spendSkip } = require("../skips.js")
+const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
@@ -94,7 +95,7 @@ const type = AreaType.beriCamp
 const minTroopCount = 100
 const eventID = 85
 
-const skipTarget = async areaInfo => {
+const skipTarget = oneSkipPerCamp(async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
         let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
 
@@ -106,7 +107,7 @@ const skipTarget = async areaInfo => {
         if (result != 0)
             break
     }
-}
+})
 
 movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     if (movement.targetOwner.ownerID != playerInfo.playerID)
@@ -116,7 +117,7 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
         return
 
     if (!pluginOptions.dryRun)
-        skipTarget(movement.sourceAttack)
+        skipTarget(movement.sourceAttack).catch(e => console.warn(e))
 })
 
 let quit = false

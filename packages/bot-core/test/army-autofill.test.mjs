@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events"
 import { createRequire } from "node:module"
 import { describe, expect, test } from "vitest"
 import { ARMY_MODES, TROOP_SUPPLIES, UNIT_ORDERS } from "@gge/contracts"
@@ -122,5 +123,21 @@ describe("time skips per plugin", () => {
         expect(global.skipped).toEqual(["MS5"])
         const own = await barons({ useTimeSkips: true, attackWaves: "2", skipTypes: [5] }, { ...game, area: area() })
         expect(own.skipped).toEqual(["MS2"])
+    })
+
+    test("a march home and the robber baron loop spend one skip between them on the tower they share", async () => {
+        const area = { type: 2, x: 110, y: 105, extraData: [0, 400, 3000], timeSinceRequest: Date.now() }
+        const home = { kingdomID: 0, targetOwner: { ownerID: 7 }, targetAttack: { type: 1, x: 100, y: 100 }, sourceAttack: area }
+        const movementEvents = new EventEmitter()
+        const waitToAttack = async job => {
+            movementEvents.emit("returning", home)
+            return job()
+        }
+        const { cra, skipped } = await barons({ useTimeSkips: true, attackWaves: "2" }, {
+            inventory: inventory(), resources: { "60MinSkip": 5 }, area, movements: [home], movementEvents, waitToAttack,
+            skipLands: () => new Promise(resolve => setTimeout(resolve, 2)),
+        })
+        expect(skipped).toEqual(["MS5"])
+        expect(cra).toBeDefined()
     })
 })

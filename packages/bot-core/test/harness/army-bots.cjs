@@ -16,21 +16,25 @@ const horses = [
 /**
  * Runs a shared attack builder through its first attack against a stand-in game and returns the `cra` it built, or
  * undefined when it sent none. The real attack engine builds the frame; the map, the queue and the send are stood in.
- * `start` gets the loaded builder and starts it.
+ * `start` gets the loaded builder and starts it. `movements` are the marches on the map, and a skip's reply lands once
+ * `skipLands` resolves.
  */
-async function firstCra(relPath, start, { kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {} }) {
+async function firstCra(relPath, start, {
+    kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
+    movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {},
+}) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
     bot.botConfig.plugins.skips = { "1Minute": true, "5Minute": true, "10Minute": true, "30Minute": true, "1Hour": true, "5Hour": true, "24Hour": true, ...skips }
     const allResources = { pegasusTicket: 5, coins: 0, ...resources }
     const castle = { id: 1, kingdomID, areaInfo: { type: kingdomID == 0 ? MAIN : OUTPOST, x: 100, y: 100 }, unlockedHorses: [1, 2], unitInventory: inventory }
     const protocols = {
-        castles: [castle], movements: [], movementEvents: new EventEmitter(), resources: allResources, ClassTypes: {},
+        castles: [castle], movements, movementEvents, resources: allResources, ClassTypes: {},
         AreaType: { barron: BARON, fortress: FORTRESS, mainCastle: MAIN, externalKingdom: OUTPOST },
         KingdomID: { greatEmpire: 0, burningSands: 1, everWinterGlacier: 2, firePeaks: 3, 0: "greatEmpire", 1: "burningSands", 2: "everWinterGlacier", 3: "firePeaks" },
         ClientCommands: {
             preSpyInfo: async () => {},
-            skipTarget: async (...args) => { skipped.push(args.at(-1)); area.extraData[2] = 0; return { result: 0 } },
+            skipTarget: async (...args) => { skipped.push(args.at(-1)); await skipLands(); area.extraData[2] = 0; return { result: 0 } },
         },
     }
     const skipped = []
@@ -40,7 +44,7 @@ async function firstCra(relPath, start, { kingdomID = 0, inventory, area, effect
     let handedOut = 0
     const attack = {
         ...engine,
-        waitToAttack: job => job(),
+        waitToAttack,
         sendAttack: async attackInfo => {
             sent.push(structuredClone(attackInfo))
             return { AAM: { UM: { L: { VIS: 0 } }, M: { KID: kingdomID, TA: [0, area.x, area.y], TT: 60, PT: 0 } } }

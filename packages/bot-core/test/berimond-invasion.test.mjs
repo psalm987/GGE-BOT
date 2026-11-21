@@ -1,5 +1,6 @@
+import { EventEmitter } from "node:events"
 import { createRequire } from "node:module"
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { readLegacy as contractsRead } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
@@ -48,6 +49,28 @@ describe("the Berimond invasion", () => {
         const { cra } = await berimond({ armyMode: "waves", waves: { kind: "manual", waves: [first, none, none, none], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] } })
         expect(cra.A[0].L).toEqual({ T: [[901, 5], [-1, 0]], U: [[603, 40], [-1, 0]] })
         expect(cra.A.slice(1).some(hasTools)).toBe(false)
+    })
+
+    test("a march home and the attack loop spend one skip between them on the camp they share", async () => {
+        const movementEvents = new EventEmitter()
+        const area = { ...camp(110, RED), extraData: [0, 12, 300, 0, RED, 0, 100] }
+        const waitToAttack = async job => {
+            movementEvents.emit("returning", { targetOwner: { ownerID: 7 }, sourceAttack: area })
+            return job()
+        }
+        const { sent, skipped } = await berimond({}, { areas: [area], movementEvents, waitToAttack, skipLands: () => new Promise(resolve => setTimeout(resolve, 2)) })
+        expect(skipped).toEqual(["MS3"])
+        expect(sent).toHaveLength(1)
+    })
+
+    test("a skip that fails after a march home goes to the plugin's log", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const movementEvents = new EventEmitter()
+        await berimond({}, { areas: [camp(110, RED)], movementEvents, spendSkip: () => undefined })
+        movementEvents.emit("returning", { targetOwner: { ownerID: 7 }, sourceAttack: { ...camp(110, RED), extraData: [0, 12, 300, 0, RED, 0, 100] } })
+        await new Promise(resolve => setTimeout(resolve, 5))
+        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        warn.mockRestore()
     })
 
     test("log only sends no attack and spends no skip", async () => {

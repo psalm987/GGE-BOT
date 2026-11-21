@@ -88,6 +88,7 @@ if (require('node:worker_threads').isMainThread)
 
 const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
+const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
@@ -115,7 +116,7 @@ const troopBlackList = [277, 34, 35]
 
 let campRageNeeded = NaN
 
-const skipTarget = async areaInfo => {
+const skipTarget = oneSkipPerCamp(async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
         let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
 
@@ -127,7 +128,7 @@ const skipTarget = async areaInfo => {
         if (result != 0)
             break
     }
-}
+})
 /** While hits are paused for incoming taunts, the count is looked at again after this long, in milliseconds. */
 const TAUNT_RECHECK_MS = 20_000
 
@@ -151,7 +152,7 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
 
     campRageNeeded = eventAutoScalingCamps.find(campInfo =>
         campInfo.eventAutoScalingCampID == movement.sourceAttack.extraData[6]).playerRageCap
-    skipTarget(movement.sourceAttack)
+    skipTarget(movement.sourceAttack).catch(e => console.warn(e))
 })
 
 xtHandler.on("rpr", ({ EID, PCRP: rage }) => {

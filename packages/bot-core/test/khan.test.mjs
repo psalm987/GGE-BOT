@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events"
 import { createRequire } from "node:module"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { readLegacy as contractsRead, effectivePluginConfig } from "@gge/contracts"
@@ -61,6 +62,32 @@ describe("Khan waves", () => {
         const { cra } = await khan({ armyMode: "waves", waves: { kind: "manual", waves: [first, none, none, none], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] } })
         expect(cra.A[0].L).toEqual({ T: [[106, 5], [-1, 0]], U: [[603, 40], [-1, 0]] })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[], [], []])
+    })
+})
+
+describe("Khan skips", () => {
+    const waiting = () => ({ ...camp(), extraData: [0, 0, 300, 0, 0, 0, 5] })
+
+    test("a march home and the attack loop spend one skip between them on the camp they share", async () => {
+        const movementEvents = new EventEmitter()
+        const area = waiting()
+        const waitToAttack = async job => {
+            movementEvents.emit("returning", { owner: { ownerID: 7 }, sourceAttack: area })
+            return job()
+        }
+        const { sent, skipped } = await khan({}, { areas: [area], movementEvents, waitToAttack, skipLands: () => new Promise(resolve => setTimeout(resolve, 2)) })
+        expect(skipped).toEqual(["MS3"])
+        expect(sent).toHaveLength(1)
+    })
+
+    test("a skip that fails after a march home goes to the plugin's log", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const movementEvents = new EventEmitter()
+        await khan({}, { movementEvents, spendSkip: () => undefined })
+        movementEvents.emit("returning", { owner: { ownerID: 7 }, sourceAttack: waiting() })
+        await new Promise(resolve => setTimeout(resolve, 5))
+        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        warn.mockRestore()
     })
 })
 
