@@ -1164,6 +1164,61 @@ async function driveStationSettings(page) {
     await page.setViewportSize({ width: 1280, height: 860 })
 }
 
+/** The Daily chores page: the login bonus's reward choice, its help, a save read back through the API and after a reload, at 1440, 390 and in Arabic. */
+async function driveDailyChores(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const form = page.locator(".gge-content")
+    const shown = async label => (await form.getByLabel(label).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
+    const openDailyChores = async () => {
+        await page.goto(`${CLIENT_URL}/m/daily-chores?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+    try {
+        await rpc(page, "account/setLocale", { locale: null })
+        await page.setViewportSize(WIDE_VIEW)
+        await openModule(page, "Daily chores")
+        const card = form.locator(".ant-card", { hasText: "Daily login bonus" })
+        assert(await card.getByLabel("Reward to pick").isVisible(), "the Daily login bonus card shows Reward to pick")
+        assert(await shown("Reward to pick") === "VIP time or VIP points", `it starts on VIP time or VIP points: ${await shown("Reward to pick")}`)
+        assert(await card.getByText("The game offers three rewards a day, a different three each day.", { exact: false }).isVisible(), "its help says the offer changes each day and names the fallback order")
+        await form.getByLabel("Reward to pick").click()
+        const choices = await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").allInnerTexts()
+        assert(JSON.stringify(choices) === JSON.stringify(["VIP time or VIP points", "Troops", "Time skips", "Resources", "Decorations"]), `it offers the five kinds in the fallback order: ${choices.join(", ")}`)
+        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: /^Troops$/ }).click()
+        await page.locator(".gge-savebar").waitFor()
+        await page.locator(".ant-select-dropdown").last().waitFor({ state: "hidden" })
+        await axe(page, "daily chores 1440")
+        await page.screenshot({ path: `${out}/daily-chores-1440.png`, fullPage: true })
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const stored = (await account()).plugins.loginBonus?.options?.loginBonusReward
+        assert(stored === 1, `Troops is stored as choice 1 through the API: ${JSON.stringify(stored)}`)
+        await openDailyChores()
+        assert(await shown("Reward to pick") === "Troops", "after a reload the page shows Troops")
+
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on Daily chores at 390")
+        await axe(page, "daily chores 390")
+        await page.screenshot({ path: `${out}/daily-chores-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+
+        await rpc(page, "account/setLocale", { locale: "ar" })
+        await openDailyChores()
+        assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+        assert(await form.getByLabel("المكافأة المفضلة").isVisible() && await shown("المكافأة المفضلة") === "الجنود", "in Arabic the option and its choice are translated")
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on Daily chores in Arabic")
+        await axe(page, "daily chores Arabic 1440")
+        await page.screenshot({ path: `${out}/daily-chores-ar-1440.png`, fullPage: true })
+    } finally {
+        await rpc(page, "account/setLocale", { locale: null })
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: ironhold.plugins })
+    }
+    assert(JSON.stringify((await account()).plugins.loginBonus ?? null) === JSON.stringify(ironhold.plugins.loginBonus ?? null), "Ironhold's Daily login bonus settings are back as they were")
+}
+
 /** The sidebar and module pages as a player meets them: groups, filter, keys, the phone drawer, a coming-soon page, old links, the unsaved guard and the moved notice. */
 async function driveSidebar(page) {
     const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
@@ -2737,6 +2792,17 @@ async function driveUxCommanders(page) {
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
+    if (process.env.DRIVE_ONLY === "daily-chores") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveDailyChores(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "plugin-settings") {
         const demo = await browser.newPage({ viewport: { width: 1280, height: 860 } })
         await demo.goto(`${CLIENT_URL}/login`)
@@ -3139,6 +3205,7 @@ async function driveUxCommanders(page) {
     await driveUxWheel(seeded)
     await driveUxCommanders(seeded)
     await drivePluginSettings(seeded)
+    await driveDailyChores(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
     await seeded.getByRole("tab", { name: "Run history" }).click()
