@@ -211,16 +211,11 @@ async function driveTowers(page) {
     assert(true, "going back to Feather hides it again")
 
     // Commanders: Ironhold has 18, which the seeded bot report says.
-    const commanders = scope => scope.getByLabel("Commanders to use", { exact: true })
-    const card = page.locator(".ant-card", { has: page.getByText("All kingdoms", { exact: true }) })
-    assert(await commanders(green).inputValue() === "1-50", `the commander list starts on 1-50, the game's most: ${await commanders(green).inputValue()}`)
-    assert(await green.getByText("You have 18 commanders (positions 1–18).", { exact: true }).isVisible(), "the commander field names the account's real range")
+    const picker = page.locator("[data-commander-picker]")
+    assert(await picker.locator("[data-order]").innerText() === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, "the commander picker starts on every tile, 1 to 50, the game's most")
+    assert(await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible() && await picker.locator(".gge-commander-tile[data-beyond]").count() === 32, "the picker names the account's real range and dims the tiles past it")
+    assert(await page.getByLabel("Commanders to use", { exact: true }).count() === 0, "no kingdom has a commander text field of its own")
     assert(await page.getByRole("complementary", { name: "Setup checks" }).count() === 0, "Towers has no Setup checks panel")
-    await commanders(green).fill("1;2;3")
-    await commanders(ice).fill("4-6")
-    assert((await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ").includes("6 configured · 18 maximum · 12 remaining"), `the card sums the kingdoms that are on: ${(await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")}`)
-    await commanders(green).fill("1-50")
-    await commanders(ice).fill("1-50")
     await axe(page, "towers 1440")
     await page.screenshot({ path: `${out}/70-towers-1440.png`, fullPage: true })
 
@@ -243,8 +238,8 @@ async function driveTowers(page) {
     await page.locator(".gge-savebar").getByRole("button", { name: "Discard changes" }).click()
     assert(await global.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/?account=${ironhold.id}&tab=account-settings`, "and links to Account settings")
     const soon = await global.locator("li[data-soon]").allInnerTexts()
-    assert(soon.length === 4 && soon.every(text => text.includes("Coming soon")) && ["Loot priority", "Stop after a defeat", "Speed bonus", "VIP commanders"].every((name, i) => soon[i].startsWith(name)),
-        "loot priority, stop after a defeat, the speed bonus and VIP commanders are listed as coming soon")
+    assert(soon.length === 3 && soon.every(text => text.includes("Coming soon")) && ["Loot priority", "Stop after a defeat", "Speed bonus"].every((name, i) => soon[i].startsWith(name)),
+        "loot priority, stop after a defeat and the speed bonus are listed as coming soon; VIP commanders moved to the picker")
     assert(await global.locator("input, button, [role=switch], [role=combobox]").count() === 0, "what is coming soon has no control to set")
 
     await page.setViewportSize(PHONE_VIEW)
@@ -515,11 +510,12 @@ async function driveEventCamps(page) {
     const card = page.locator(".ant-card", { has: page.getByText("All events", { exact: true }) })
     assert((await card.getByText(/attacks in 24 hours/).innerText()).startsWith("3500"), "the All events card shows the account's daily cap")
     assert(await card.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/?account=${ironhold.id}&tab=account-settings`, "and links to Account settings")
-    const usage = (await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")
-    assert(usage.includes("18 configured · 18 maximum · 0 remaining"), `the card counts the commanders of the events that are on: ${usage}`)
+    const picker = page.locator("[data-commander-picker]")
+    assert(await picker.getByText("One list for every attack on this page.", { exact: false }).isVisible() && await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible(),
+        "one commander picker serves both events and names the account's 18 commanders")
     const soon = await card.locator("li[data-soon]").allInnerTexts()
-    assert(soon.length === 3 && soon.every(text => text.includes("Coming soon")) && ["Stop after a defeat", "VIP commanders", "Nomad Advisor"].every((name, i) => soon[i].startsWith(name)),
-        "stop after a defeat, VIP commanders and the Nomad Advisor are listed as coming soon")
+    assert(soon.length === 2 && soon.every(text => text.includes("Coming soon")) && ["Stop after a defeat", "Nomad Advisor"].every((name, i) => soon[i].startsWith(name)),
+        "stop after a defeat and the Nomad Advisor are listed as coming soon; VIP commanders moved to the picker")
     assert(await card.locator("input, button, [role=switch], [role=combobox]").count() === 0, "what is coming soon has no control to set")
     await axe(page, "event camps 1440")
     await page.screenshot({ path: `${out}/90-event-camps-1440.png`, fullPage: true })
@@ -986,11 +982,13 @@ async function drivePluginSettings(page) {
     assert(await food.isVisible() && await form.getByText("Leaves out troops that eat mead, so only troops that eat food go.").isVisible(), "the Food troops only option has a label and its help, where it used to show a raw key")
     assert(await form.getByText("foodTroopsOnly").count() === 0, "no raw option key shows on the page")
     await page.screenshot({ path: `${out}/40-module-nomads-all-options-1440.png` })
-    assert(await form.getByText("You have 18 commanders (positions 1–18).", { exact: true }).isVisible(), "the commander field names the account's real range")
+    const picker = page.locator("[data-commander-picker]")
+    const pickedOrder = () => picker.locator("[data-order]").innerText()
+    assert(await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible(), "the commander picker names the account's real range")
     assert(await saveBar.count() === 0, "an untouched module page has no save bar")
-    await form.getByLabel("Commanders to use").fill("")
-    assert(await saveBar.count() === 0, "an empty whitelist means the default, so it is no change to save")
-    await form.getByLabel("Commanders to use").fill("1-5")
+    await picker.getByRole("button", { name: "Clear" }).click()
+    assert(await saveBar.count() === 0, "no commander picked means the default, every commander in order, so it is no change to save")
+    for (const position of [1, 2, 3, 4, 5]) await picker.getByRole("button", { name: `Commander ${position}`, exact: true }).click()
     await saveBar.waitFor()
     assert(true, "a change brings up the sticky save bar")
     await page.screenshot({ path: `${out}/40-module-nomads-1440.png` })
@@ -1002,8 +1000,8 @@ async function drivePluginSettings(page) {
     await page.setViewportSize(WIDE_VIEW)
     await saveBar.getByRole("button", { name: "Discard changes" }).click()
     await saveBar.waitFor({ state: "detached" })
-    const back = await form.getByLabel("Commanders to use").inputValue()
-    assert(back === "1-50", `(${back}) Discard changes puts the saved whitelist back and takes the save bar away`)
+    const back = await pickedOrder()
+    assert(back === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, `(${back}) Discard changes puts the saved commanders back and takes the save bar away`)
 
     await openModule(page, "Settings preview (dev only)")
     form = page.locator(".gge-content")
@@ -1262,7 +1260,8 @@ async function driveGlorySettings(page) {
         assert(await page.locator(".ant-segmented-item", { hasText: /^(Simple|Advanced)/ }).count() === 0, `${plugin}: no Simple/Advanced toggle`)
         assert(await dialog.getByText(described, { exact: false }).isVisible(), `${plugin}: the header describes the plugin`)
         assert(await dialog.getByText("Hard and above are rented with rubies when you pick one by hand", { exact: false }).isVisible(), `${plugin}: the difficulty help says tiers 5 and up are rented with rubies`)
-        for (const label of ["Difficulty", "Stop at this score", "Stop before the event ends", "Commanders to use", "Horse"])
+        assert(await page.locator("[data-commander-picker]").isVisible(), `${plugin}: the page's commander picker shows above the tabs`)
+        for (const label of ["Difficulty", "Stop at this score", "Stop before the event ends", "Horse"])
             assert(await dialog.getByLabel(label, { exact: true }).isVisible(), `${plugin}: shows ${label} (${await dialog.getByLabel(label, { exact: true }).count()} found, ${await page.getByRole("tabpanel").count()} panels)`)
         assert(await dialog.getByText("Dethrone camps before attacking them").isVisible(), `${plugin}: shows the dethrone setting`)
         assert(await dialog.locator(".ant-select-content", { hasText: "Highest unlocked without rubies" }).count() === 1, `${plugin}: the difficulty starts at the highest tier that needs no rubies`)
@@ -2371,6 +2370,127 @@ async function driveUxAccountSettings(page) {
     assert(JSON.stringify(back.plugins.attack ?? null) === JSON.stringify(original.attack) || !ironhold.plugins.attack, "Ironhold's account settings are back as they were")
 }
 
+/**
+ * The commander picker: one card of tiles 1 to 50 per module, clicked in the order the bot sends commanders and saved to
+ * every plugin of the module in that order. Old lists load as the tiles they meant; VIP and its cap are saved, coming soon.
+ */
+async function driveUxCommanders(page) {
+    const TOWERS = ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"]
+    const FORTRESS = ["attackFortressesBurningSands", "attackFortressesEverWinterGlacier", "attackFortressesFirePeaks"]
+    const find = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await find()
+    const original = Object.fromEntries([...TOWERS, ...FORTRESS, "attackKhan"].map(plugin => [plugin, ironhold.plugins[plugin] ?? { enabled: false, options: {} }]))
+    const picker = page.locator("[data-commander-picker]")
+    const tile = position => picker.getByRole("button", { name: new RegExp(`^Commander ${position}(,|$)`) })
+    const order = () => picker.locator("[data-order]").innerText()
+    const pressed = async position => await tile(position).getAttribute("aria-pressed") === "true"
+    const saveBar = page.locator(".gge-savebar")
+    const open = async (module, settle = "[data-commander-picker]") => {
+        await page.goto(`${CLIENT_URL}/m/${module}?account=${ironhold.id}`)
+        await page.locator(settle).waitFor()
+        await page.waitForTimeout(300)
+    }
+    try {
+        await storePluginSettings({ accountName: "Ironhold", plugin: TOWERS[0], enabled: true, options: { commanderWhiteList: "1;2;3" } })
+        await storePluginSettings({ accountName: "Ironhold", plugin: TOWERS[1], enabled: false, options: { commanderWhiteList: "4-6" } })
+        for (const plugin of TOWERS.slice(2))
+            await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options: {} })
+
+        await page.setViewportSize(WIDE_VIEW)
+        await page.goto(CLIENT_URL)
+        await sidebar(page, "Towers")
+        await picker.waitFor()
+        await open("towers")
+        assert(await picker.locator(".gge-commander-tile:not(.gge-commander-vip)").count() === 50, "Towers has one picker of 50 commander tiles")
+        assert(await page.getByLabel("Commanders to use", { exact: true }).count() === 0, "the text field for commanders is gone from every kingdom")
+        assert(await order() === "Order: 1, 2, 3", `the picker shows Green's stored 1;2;3 as tiles in that order: ${await order()}`)
+        assert(await picker.getByText("The attacks on this page had different commander lists.", { exact: false }).isVisible(), "kingdoms stored with different lists say saving uses the shown one for all")
+        assert(await picker.getByText("One list for every attack on this page.", { exact: false }).isVisible(), "the picker says its list is for every kingdom")
+        assert(await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible(), "the picker names the account's 18 commanders")
+        assert(await picker.locator(".gge-commander-tile[data-beyond]").count() === 32 && await tile(19).getAttribute("data-beyond") === "" && await tile(18).getAttribute("data-beyond") === null,
+            "tiles 19 to 50, past the account's commanders, are dimmed")
+        assert(await saveBar.count() === 0, "loading different lists changes nothing until a save")
+
+        await picker.getByRole("button", { name: "Clear" }).click()
+        assert(await order() === "None picked: the bot sends every commander, 1 to 50 in order.", `Clear empties the order and says what that means: ${await order()}`)
+        for (const position of [36, 2, 5]) await tile(position).click()
+        assert(await order() === "Order: 36, 2, 5", `tiles clicked 36, 2, 5 show that order: ${await order()}`)
+        assert(await pressed(36) && await pressed(2) && await pressed(5) && !(await pressed(1)), "the picked tiles are pressed and the others are not")
+        assert(await tile(36).locator(".gge-commander-order").innerText() === "1" && await tile(5).locator(".gge-commander-order").innerText() === "3", "each picked tile shows its place in the order")
+        assert(await tile(36).getAttribute("aria-label") === "Commander 36, number 1 in the order", "a picked tile's name says its place, for a screen reader")
+        await tile(7).focus()
+        await page.keyboard.press("Space")
+        assert(await order() === "Order: 36, 2, 5, 7", "Space on a focused tile picks it")
+        await page.keyboard.press("Enter")
+        assert(await order() === "Order: 36, 2, 5", "Enter on a picked tile takes it out again")
+
+        const vip = picker.getByRole("button", { name: "VIP commanders, Coming soon" })
+        assert(await vip.isVisible() && (await vip.innerText()).includes("Coming soon"), "the wide VIP tile is marked Coming soon")
+        const vipBox = await vip.boundingBox(), tileBox = await tile(1).boundingBox()
+        assert(vipBox.width > tileBox.width * 2.5, `the VIP tile spans three columns (${Math.round(vipBox.width)} px against ${Math.round(tileBox.width)} px)`)
+        await vip.click()
+        const cap = picker.getByLabel("VIP cap")
+        assert(await vip.getAttribute("aria-pressed") === "true" && await cap.inputValue() === "1", "picking the VIP tile sets the VIP cap to 1")
+        await cap.fill("3")
+        await cap.blur()
+        await axe(page, "ux-commanders towers 1440")
+        await picker.screenshot({ path: `${out}/99-ux-commanders-picker-1440.png` })
+        await page.screenshot({ path: `${out}/99-ux-commanders-towers-1440.png`, fullPage: true })
+
+        await saveBar.getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const saved = (await find()).plugins
+        for (const plugin of TOWERS)
+            assert(saved[plugin]?.options.commanderWhiteList === "36;2;5" && saved[plugin]?.options.vipCommanders === 3, `the API stores 36;2;5 and a VIP cap of 3 for ${plugin}`)
+        assert(saved[TOWERS[0]].enabled && !saved[TOWERS[1]].enabled, "saving the commanders leaves each kingdom's switch as it was")
+
+        await open("towers")
+        assert(await order() === "Order: 36, 2, 5" && await picker.getByLabel("VIP cap").inputValue() === "3" && await vip.getAttribute("aria-pressed") === "true", "the order and the VIP cap come back after a reload")
+        assert(await picker.getByText("The attacks on this page had different commander lists.", { exact: false }).count() === 0, "once saved, the kingdoms share one list and the warning is gone")
+
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        const columns = await picker.locator(".gge-commander-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)
+        assert(columns >= 5 && columns <= 14, `at 390 the grid has ${columns} columns`)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow with the picker at 390")
+        await axe(page, "ux-commanders towers 390")
+        await page.screenshot({ path: `${out}/99-ux-commanders-towers-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+        await page.waitForTimeout(300)
+        const wideColumns = await picker.locator(".gge-commander-grid").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length)
+        assert(wideColumns === 14, `at 1440 the grid has 14 columns: ${wideColumns}`)
+
+        for (const plugin of FORTRESS)
+            await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options: { commanderWhiteList: "1-99" } })
+        await open("fortress")
+        assert(await order() === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, "an old 1-99 on Fortress loads as every tile, 1 to 50 in order")
+        assert(await picker.locator(".gge-commander-tile:not(.gge-commander-vip)[aria-pressed=true]").count() === 50 && await saveBar.count() === 0, "all 50 tiles are pressed and nothing needs saving")
+        assert(await picker.getByRole("button", { name: "All in order" }).isDisabled(), "All in order is off while every tile is already in order")
+
+        await open("khan")
+        assert(await picker.count() === 1 && await picker.getByText("One list for every attack on this page.", { exact: false }).count() === 0, "Khan, with one attack, has its own picker without the shared-list line")
+
+        await rpc(page, "account/setLocale", { locale: "ar" })
+        await open("towers")
+        assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the picker page is right to left")
+        assert((await order()).startsWith("الترتيب: 36"), `the order line reads in Arabic: ${await order()}`)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow with the picker in Arabic at 1440")
+        await axe(page, "ux-commanders towers ar 1440")
+        await page.screenshot({ path: `${out}/99-ux-commanders-ar-1440.png`, fullPage: true })
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow with the picker in Arabic at 390")
+        await axe(page, "ux-commanders towers ar 390")
+        await page.screenshot({ path: `${out}/99-ux-commanders-ar-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+    } finally {
+        await rpc(page, "account/setLocale", { locale: null })
+        for (const [plugin, { enabled, options }] of Object.entries(original))
+            await storePluginSettings({ accountName: "Ironhold", plugin, enabled, options })
+    }
+    assert(JSON.stringify((await find()).plugins[TOWERS[0]] ?? null) === JSON.stringify(ironhold.plugins[TOWERS[0]] ?? { enabled: false, options: {} }), "Ironhold's tower settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "ux-narrow") {
@@ -2414,6 +2534,17 @@ async function driveUxAccountSettings(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxStartStop(demo, browser)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "ux-commanders") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxCommanders(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -2934,6 +3065,7 @@ async function driveUxAccountSettings(page) {
     await driveUxAutobuy(seeded)
     await driveUxWaves(seeded)
     await driveUxArmourer(seeded)
+    await driveUxCommanders(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
