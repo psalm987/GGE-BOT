@@ -2037,6 +2037,62 @@ async function driveUxArmourer(page) {
 }
 
 /**
+ * The Wheel spin page: live, not a coming-soon page. Both wheels are on by default and the keep and daily limit fields
+ * start at 0, a change saves and reads back through the API and after a reload, and axe runs at 1440, 390 and in Arabic.
+ * The runner is off, so nothing spins.
+ */
+async function driveUxWheel(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "wheelSpin", enabled: true, options: {} })
+    const form = page.locator(".gge-content")
+    const field = label => form.locator(".ant-form-item", { has: page.getByText(label, { exact: true }) })
+    const open = async () => {
+        await page.goto(`${CLIENT_URL}/m/wheel-spin?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    await open()
+    assert(await page.getByText("Coming soon", { exact: true }).count() === 0, "the Wheel spin page is live, not coming soon")
+    assert(await form.getByRole("checkbox", { name: "Spin the Wheel of Fortune" }).isChecked() && await form.getByRole("checkbox", { name: "Spin the Wheel of Unimaginable Affluence" }).isChecked(), "both wheels are on by default")
+    assert(await field("Tickets to keep").getByRole("spinbutton").inputValue() === "0" && await field("Most spins a day (0 for no limit)").getByRole("spinbutton").inputValue() === "0", "keeping tickets and the daily limit start at 0")
+    assert(await form.getByText("never buys a jackpot", { exact: false }).first().isVisible(), "the help says the bot never buys a jackpot")
+    assert(await page.locator(".gge-savebar").count() === 0, "opening the page changes nothing by itself")
+    await form.getByRole("checkbox", { name: "Spin the Wheel of Fortune" }).uncheck()
+    await field("Tickets to keep").getByRole("spinbutton").fill("5")
+    await field("Most spins a day (0 for no limit)").getByRole("spinbutton").fill("40")
+    await field("Most spins a day (0 for no limit)").getByRole("spinbutton").blur()
+    await axe(page, "wheel spin 1440")
+    await page.screenshot({ path: `${out}/83-ux-wheel-1440.png`, fullPage: true })
+    await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const saved = (await account()).plugins.wheelSpin
+    assert(saved.enabled && saved.options.wheelClassic === false && saved.options.wheelKeepTickets === 5 && saved.options.wheelMaxPerDay === 40, `the API holds the classic wheel off, 5 kept and 40 a day: ${JSON.stringify(saved.options)}`)
+    await open()
+    assert(!(await form.getByRole("checkbox", { name: "Spin the Wheel of Fortune" }).isChecked()) && await field("Tickets to keep").getByRole("spinbutton").inputValue() === "5", "after a reload the saved values show")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Wheel spin page at 390")
+    await axe(page, "wheel spin 390")
+    await page.screenshot({ path: `${out}/83-ux-wheel-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await open()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Wheel spin page in Arabic")
+    await axe(page, "wheel spin Arabic 1440")
+    await page.screenshot({ path: `${out}/83-ux-wheel-ar-1440.png`, fullPage: true })
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+}
+
+/**
  * The narrowing and the words: no Setup checks and no Simple/Advanced toggle on a module page, wolves instead of dogs, clicks
  * instead of tiles (Feather beyond and the search radius), the preset count and the disabled New button at the limit, and a
  * sidebar that keeps its scroll position across a group toggle, a module, and a move to another page.
@@ -2516,6 +2572,17 @@ async function driveUxCommanders(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxArmourer(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "wheel-spin") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxWheel(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -3069,6 +3136,7 @@ async function driveUxCommanders(page) {
     await driveUxAutobuy(seeded)
     await driveUxWaves(seeded)
     await driveUxArmourer(seeded)
+    await driveUxWheel(seeded)
     await driveUxCommanders(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
