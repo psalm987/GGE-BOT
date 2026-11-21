@@ -46,3 +46,10 @@ test("an old config is unchanged until the player changes it, and then saves onl
     expect(optionsToSave(towers, shown)).toEqual({ horse: 2, attackWaves: 0 })
     expect(optionsToSave(towers, { ...shown, horse: 3 })).toEqual({ horse: 3, attackWaves: 0 })
 })
+
+test("a config saved with the old daily tool budget loads and saves without it", () => {
+    const withAutoBuy: PluginCatalogEntry = { ...towers, options: [...towers.options, { type: "Checkbox", key: "autoBuy", default: false }, { type: "Number", key: "autoBuyMin", min: 0, max: 100000, default: 1000 }] }
+    const stored = { toolBudgetPerDay: 900, autoBuy: true }
+    expect(optionValues(withAutoBuy, stored)).toEqual({ horse: 1, tools: 1, attackWaves: 2, autoBuy: true, autoBuyMin: 1000 })
+    expect(optionsToSave(withAutoBuy, optionValues(withAutoBuy, stored))).toEqual({ autoBuy: true })
+})
