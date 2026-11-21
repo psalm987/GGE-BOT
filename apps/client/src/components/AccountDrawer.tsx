@@ -1,13 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { App, Alert, Button, Drawer, Form, Grid, Input, Select, Space, Switch, Tabs } from "antd"
+import { App, Alert, Button, Drawer, Form, Grid, Input, Select, Skeleton, Space, Switch, Tabs } from "antd"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
-import type { PublicAccount, Schedule } from "@gge/contracts"
+import { ACCOUNT_SETTINGS_PLUGINS, type PublicAccount, type Schedule } from "@gge/contracts"
 import { messageOf, SigilStatus } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { AccountLogs, AccountRuns } from "./AccountHistory.tsx"
 import { AccountOverview } from "./AccountOverview.tsx"
+import { AccountSettings } from "./AccountSettings.tsx"
 import { PluginSettingsForm, pluginFormValues, toPluginSettings, type PluginFormValues } from "./PluginSettingsForm.tsx"
 import { ScheduleEditor, scheduleProblem } from "./ScheduleEditor.tsx"
 
@@ -17,7 +18,9 @@ type Values = { name: string; serverId: number; password?: string; externalEvent
  * Add or edit one game account: settings, plugins and schedule, and for existing accounts its logs and runs.
  * With twinOf, it adds that account's event twin, prefilled with its name and server.
  */
-export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; onClose: () => void }) {
+export type DrawerTab = "overview" | "account-settings"
+
+export function AccountDrawer({ open, account, twinOf, tab: wantedTab = "overview", onClose }: { open: boolean; account?: PublicAccount; twinOf?: PublicAccount; tab?: DrawerTab; onClose: () => void }) {
     const { message, modal } = App.useApp()
     const navigate = useNavigate()
     const { t } = useTranslation("client")
@@ -27,10 +30,12 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     const catalog = useQuery(orpc.plugins.catalog.queryOptions())
     const isNew = !account
     const phone = !Grid.useBreakpoint().md
-    const [tab, setTab] = useState("overview")
+    const [tab, setTab] = useState<string>(wantedTab)
+    const [settingsDirty, setSettingsDirty] = useState(false)
     // `account` is as it was when the drawer opened, so the form isn't reset under the player. The status shown is the current one.
     const current = useQuery({ ...orpc.accounts.list.queryOptions(), select: list => list.find(a => a.id === account?.id), enabled: Boolean(account) }).data ?? account
 
+    useEffect(() => { if (open) setTab(wantedTab) }, [open, wantedTab])
     useEffect(() => {
         if (!open || !catalog.data)
             return
@@ -60,6 +65,11 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
 
     function save(values: Values) {
         const plugins = toPluginSettings(catalog.data ?? [], values.plugins)
+        // The Account settings tab saves its own plugins, so the form's copy of them, from when the drawer opened, is never sent.
+        if (current)
+            for (const key of ACCOUNT_SETTINGS_PLUGINS)
+                if (current.plugins[key]) plugins[key] = current.plugins[key]
+                else delete plugins[key]
         // Read from the form's store: `values` leaves the schedule out until its tab has been opened.
         const schedule: Schedule | null = form.getFieldValue("schedule")
         if (isNew)
@@ -74,14 +84,14 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
     /** A module's page holds that module's options, so the drawer hands over to it after asking about unsaved edits. */
     function openModule(moduleId: string) {
         const go = () => { shut(); navigate(`/m/${moduleId}?account=${account!.id}`) }
-        if (!form.isFieldsTouched()) return go()
+        if (!form.isFieldsTouched() && !settingsDirty) return go()
         modal.confirm({
             title: t("drawer.discardTitle"), content: t("drawer.discardBody"), okText: t("drawer.discard"), okButtonProps: { danger: true }, cancelText: t("drawer.keepEditing"), onOk: go,
         })
     }
 
     function close() {
-        if (!form.isFieldsTouched())
+        if (!form.isFieldsTouched() && !settingsDirty)
             return shut()
         modal.confirm({
             title: t("drawer.discardTitle"),
@@ -131,7 +141,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
                 <span className="gge-display">{isNew ? (twinOf ? t("account.addTwinFor", { name: twinOf.name }) : t("drawer.titleNew")) : account.name}</span>
                 {current?.entitled && <SigilStatus state={current.status?.actualState} detail={current.status?.lastError} sleepingUntil={current.sleepingUntil} />}
             </Space>}
-            footer={<Space style={{ width: "100%", justifyContent: "flex-end" }}>
+            footer={tab === "account-settings" ? null : <Space style={{ width: "100%", justifyContent: "flex-end" }}>
                 <Button onClick={close}>{tc("action.cancel")}</Button>
                 <Button type="primary" loading={saving} onClick={() => form.submit()} className="gge-press">{isNew ? t("account.add") : t("drawer.saveChanges")}</Button>
             </Space>}>
@@ -143,6 +153,7 @@ export function AccountDrawer({ open, account, twinOf, onClose }: { open: boolea
                         { key: "overview", label: t("drawer.overview"), children: <AccountOverview account={current ?? account} /> },
                         // Always mounted, so its fields are in the form when a save comes from another tab.
                         { key: "settings", label: tc("nav.settings"), children: settings, forceRender: true },
+                        { key: "account-settings", label: t("drawer.accountSettings"), children: catalog.data ? <AccountSettings key={account.id} account={current ?? account} catalog={catalog.data} onDirty={setSettingsDirty} /> : <Skeleton active paragraph={{ rows: 6 }} /> },
                         { key: "schedule", label: t("drawer.schedule"), children: schedule },
                         { key: "logs", label: t("nav.logs"), children: <AccountLogs key={account.id} accountId={account.id} /> },
                         { key: "runs", label: t("drawer.runHistory"), children: <AccountRuns accountId={account.id} /> },

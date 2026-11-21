@@ -71,7 +71,7 @@ export function GlobalCard({ module, account, attackLimit, asked, commanders }: 
                     <span className="gge-global-name">{t("module.global.cap")}</span>
                     <span className="gge-global-text">
                         {limit ? t("module.global.capValue", { limit }) : t("module.global.capUnknown")}{" "}
-                        <Link to={account ? `/m/account-settings?account=${account.id}` : "/m/account-settings"}>{t("module.global.capLink")}</Link>
+                        <Link to={account ? `/?account=${account.id}&tab=account-settings` : "/"}>{t("module.global.capLink")}</Link>
                         {limit !== undefined && asked > limit && <span className="gge-global-warning" role="status">{t("module.global.capOver", { asked, limit })}</span>}
                     </span>
                 </li>

@@ -140,9 +140,14 @@ export const MODULES: readonly ModuleDef[] = [
     soon("asset-monitor", "pvp", "open-treasure-chest"),
     live("discord-attacks", "discord", "sword-clash", ["incomingAttacks", "outgoingAttacks"], "per-plugin"),
     live("discord-events", "discord", "trumpet-flag", ["fortress", "aquaIsland", "aquaTower"], "per-plugin"),
-    live("account-settings", "settings", "cog", ["attack", "skips", "shutoffTimer"], "sections"),
     dev("dev-preview", "settings", "erlenmeyer", ["devSettingsPreview"]),
 ].map((module, index) => ({ ...module, order: (index + 1) * 10 }))
+
+/**
+ * The plugins that hold an account's own settings: the pause between attacks, the daily cap, the time skips and the shutoff timer.
+ * They belong to no module. The account's side panel edits them on its Account settings tab.
+ */
+export const ACCOUNT_SETTINGS_PLUGINS: readonly PluginKey[] = ["attack", "skips", "shutoffTimer"]
 
 /** The module whose page edits a plugin, if any. */
 export const moduleOfPlugin = (key: PluginKey): ModuleDef | undefined => MODULES.find(module => module.plugins.includes(key))

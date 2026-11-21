@@ -1,4 +1,4 @@
-import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, ThunderboltOutlined } from "@ant-design/icons"
+import { CaretRightFilled, DeleteOutlined, EditOutlined, PauseOutlined, PlusOutlined, SettingOutlined, ThunderboltOutlined } from "@ant-design/icons"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Alert, App, Button, Grid, Popconfirm, Space, Table, Tag, Tooltip, Typography } from "antd"
 import dayjs from "dayjs"
@@ -6,12 +6,12 @@ import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useSearchParams } from "react-router"
-import { moduleOfPlugin, type PublicAccount } from "@gge/contracts"
+import { ACCOUNT_SETTINGS_PLUGINS, moduleOfPlugin, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty, messageOf, palette, ParchmentCard, SigilStatus } from "@gge/ui"
 import { usePlanHint, useSetDesiredState } from "../account-state.ts"
 import { orpc, queryClient } from "../api.ts"
 import { useMe } from "../auth.tsx"
-import { AccountDrawer } from "../components/AccountDrawer.tsx"
+import { AccountDrawer, type DrawerTab } from "../components/AccountDrawer.tsx"
 import { DashboardOverview } from "../components/DashboardOverview.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { needsAttention } from "../attention.ts"
@@ -35,18 +35,20 @@ export function Dashboard() {
     const servers = useQuery(orpc.servers.list.queryOptions())
     const me = useMe().data
     const [selected, setSelected] = useState<string[]>([])
-    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount }>({ open: false })
+    const [drawer, setDrawer] = useState<{ open: boolean; account?: PublicAccount; twinOf?: PublicAccount; tab?: DrawerTab }>({ open: false })
     const navigate = useNavigate()
     const [movedSeen, setMovedSeen] = useState(movedNoticeSeen)
 
-    // A notification links here as /?account=<id>. Old links with &plugin=<key> opened that plugin's dialog, which is now the module's page.
+    // A notification links here as /?account=<id>. Old links with &plugin=<key> opened that plugin's dialog, which is now the module's page,
+    // or the Account settings tab for the plugins that hold the account's own settings. &tab=account-settings opens that tab.
     // "?add" opens the add-account drawer. Each is taken off the URL once used, so closing the drawer or reloading doesn't reopen it.
     const [params, setParams] = useSearchParams()
     const wanted = params.get("account")
     const wantedPlugin = params.get("plugin")
+    const wantedTab: DrawerTab = params.get("tab") === "account-settings" || ACCOUNT_SETTINGS_PLUGINS.includes(wantedPlugin ?? "") ? "account-settings" : "overview"
     const wantsAdd = params.has("add")
     useEffect(() => {
-        if (wanted && wantedPlugin) {
+        if (wanted && wantedPlugin && wantedTab === "overview") {
             const module = moduleOfPlugin(wantedPlugin)
             if (module) return void navigate(`/m/${module.id}?account=${wanted}`, { replace: true })
         }
@@ -59,13 +61,14 @@ export function Dashboard() {
             return
         const account = accounts.data.find(a => a.id === wanted)
         if (account)
-            setDrawer({ open: true, account })
+            setDrawer({ open: true, account, tab: wantedTab })
         setParams(current => {
             current.delete("account")
             current.delete("plugin")
+            current.delete("tab")
             return current
         }, { replace: true })
-    }, [wanted, wantedPlugin, wantsAdd, accounts.data, setParams, navigate])
+    }, [wanted, wantedPlugin, wantedTab, wantsAdd, accounts.data, setParams, navigate])
 
     const serverLabel = useMemo(() => new Map(servers.data?.map(s => [s.id, s.label])), [servers.data])
     const listKey = orpc.accounts.list.queryKey()
@@ -169,7 +172,7 @@ export function Dashboard() {
                                     : <Typography.Text type="secondary">—</Typography.Text>,
                             },
                             {
-                                title: "", key: "actions", width: 240, align: "right",
+                                title: "", key: "actions", width: 290, align: "right",
                                 render: (_, a) => (
                                     <Space>
                                         {isRunning(a)
@@ -185,6 +188,9 @@ export function Dashboard() {
                                                 <Button icon={<ThunderboltOutlined />} aria-label={t("account.addTwinFor", { name: a.name })} onClick={() => setDrawer({ open: true, twinOf: a })} />
                                             </Tooltip>
                                         )}
+                                        <Tooltip title={t("dashboard.settings", { name: a.name })}>
+                                            <Button icon={<SettingOutlined />} aria-label={t("dashboard.settings", { name: a.name })} onClick={() => setDrawer({ open: true, account: a, tab: "account-settings" })} />
+                                        </Tooltip>
                                         <Button icon={<EditOutlined />} aria-label={t("dashboard.edit", { name: a.name })} onClick={() => setDrawer({ open: true, account: a })} />
                                     </Space>
                                 ),
@@ -194,7 +200,7 @@ export function Dashboard() {
                 )}
             </ParchmentCard>
 
-            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} onClose={() => setDrawer({ open: false })} />
+            <AccountDrawer open={drawer.open} account={drawer.account} twinOf={drawer.twinOf} tab={drawer.tab} onClose={() => setDrawer({ open: false })} />
         </AppLayout>
     )
 }

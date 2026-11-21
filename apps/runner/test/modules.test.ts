@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { beforeAll, expect, test, vi } from "vitest"
-import { MODULE_GROUPS, MODULES } from "@gge/contracts"
+import { ACCOUNT_SETTINGS_PLUGINS, MODULE_GROUPS, MODULES } from "@gge/contracts"
 import { readPluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 
 const en = JSON.parse(readFileSync(new URL("../../../packages/i18n/catalogs/en/client.json", import.meta.url), "utf8")) as Record<string, string>
@@ -11,8 +11,9 @@ beforeAll(() => {
     shown = readPluginRegistry({ discordHub: true }).catalog.filter(entry => !entry.hidden).map(entry => entry.key)
 })
 
-test("every plugin a player can see belongs to exactly one live module", () => {
+test("every plugin a player can see belongs to exactly one live module, or to the account's own settings", () => {
     const owners = new Map<string, string[]>()
+    for (const key of ACCOUNT_SETTINGS_PLUGINS) owners.set(key, ["account settings"])
     for (const module of MODULES) for (const key of module.plugins) owners.set(key, [...(owners.get(key) ?? []), module.id])
     expect(shown.filter(key => !owners.has(key)), "plugins in no module").toEqual([])
     expect([...owners].filter(([, ids]) => ids.length > 1), "plugins in two modules").toEqual([])
