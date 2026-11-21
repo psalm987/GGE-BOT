@@ -559,7 +559,7 @@
   "modules.leveller.name": "Zdobywanie poziomów",
   "modules.leveller.description": "Podnosi poziom konta, atakując podaną listę celów, i zatrzymuje się, gdy lista się skończy.",
   "modules.armourer.name": "Zbrojmistrz",
-  "modules.armourer.description": "Kupuje narzędzia oblężnicze od zbrojmistrza za monety, aż każde osiągnie ustawiony zapas.",
+  "modules.armourer.description": "Kupuje narzędzia oblężnicze u zbrojmistrza za monety, gdy zamek ma mniej niż ustawione minimum.",
   "modules.blacksmith-event-shops.name": "Kowal i sklepy wydarzeń",
   "modules.blacksmith-event-shops.description": "Wydaje walutę wydarzeń w sklepach w wybranej kolejności, do ustawionych limitów.",
   "modules.nom-sam-daimyo.name": "Nomadowie, samuraje i daimyo",

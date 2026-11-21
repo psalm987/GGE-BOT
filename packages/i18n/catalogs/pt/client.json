@@ -529,7 +529,7 @@
   "modules.leveller.name": "Nivelador",
   "modules.leveller.description": "Sobe o nível de uma conta atacando uma lista de alvos que você fornece e para quando a lista acaba.",
   "modules.armourer.name": "Armeiro",
-  "modules.armourer.description": "Compra ferramentas de cerco do armeiro com moedas até cada uma atingir o estoque que você definir.",
+  "modules.armourer.description": "Compra ferramentas de cerco do armeiro com moedas sempre que um castelo tem menos do que o mínimo definido.",
   "modules.blacksmith-event-shops.name": "Ferreiro e lojas de evento",
   "modules.blacksmith-event-shops.description": "Gasta a moeda do evento nas lojas na ordem que você escolher, até os limites que você definir.",
   "modules.nom-sam-daimyo.name": "Nômades, Samurais e Daimyo",

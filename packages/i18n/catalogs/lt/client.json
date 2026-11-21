@@ -559,7 +559,7 @@
   "modules.leveller.name": "Lygio kėlėjas",
   "modules.leveller.description": "Kelia paskyros lygį puldamas jūsų pateiktus taikinius ir sustoja, kai sąrašas baigiasi.",
   "modules.armourer.name": "Ginklų kalvė",
-  "modules.armourer.description": "Perka apgulties įrankius iš ginklų kalvės už monetas, kol kiekvieno atsargos pasieks jūsų nustatytą kiekį.",
+  "modules.armourer.description": "Perka apgulties įrankius iš ginklų kalvės už monetas, kai pilyje yra mažiau nei jūsų nustatytas minimumas.",
   "modules.blacksmith-event-shops.name": "Kalvis ir renginių parduotuvės",
   "modules.blacksmith-event-shops.description": "Leidžia renginio valiutą parduotuvėse jūsų pasirinkta tvarka, neviršydamas jūsų nustatytų ribų.",
   "modules.nom-sam-daimyo.name": "Klajokliai, samurajai ir Daimyo",

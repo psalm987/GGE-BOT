@@ -559,7 +559,7 @@
   "modules.leveller.name": "Підвищення рівня",
   "modules.leveller.description": "Підвищує рівень акаунта, атакуючи список цілей, який ти даєш, і зупиняється, коли список закінчується.",
   "modules.armourer.name": "Зброяр",
-  "modules.armourer.description": "Купує в зброяра облогові знаряддя за монети, доки кожне не досягне заданого тобою запасу.",
+  "modules.armourer.description": "Купує облогові знаряддя в зброяра за монети, коли в замку менше, ніж заданий мінімум.",
   "modules.blacksmith-event-shops.name": "Коваль і подієві крамниці",
   "modules.blacksmith-event-shops.description": "Витрачає подієву валюту в крамницях у порядку, який ти обираєш, у заданих тобою межах.",
   "modules.nom-sam-daimyo.name": "Кочівники, самураї й даймьо",

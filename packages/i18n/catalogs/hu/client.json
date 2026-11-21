@@ -499,7 +499,7 @@
   "modules.leveller.name": "Szintlépető",
   "modules.leveller.description": "Egy fiók szintjét emeli a megadott céllista támadásával, majd leáll, amikor a lista elfogy.",
   "modules.armourer.name": "Fegyverárus",
-  "modules.armourer.description": "Pénzért ostromeszközöket vesz a fegyverárustól, amíg mindegyik el nem éri a megadott készletet.",
+  "modules.armourer.description": "Ostromeszközöket vásárol a fegyverárusnál érmékkel, amikor egy kastélyban kevesebb van a beállított minimumnál.",
   "modules.blacksmith-event-shops.name": "Kovács és eseményboltok",
   "modules.blacksmith-event-shops.description": "Az eseményvalutát a választott sorrendben költi el a boltokban, az általad megadott korlátokig.",
   "modules.nom-sam-daimyo.name": "Nomádok, szamurájok és daimjó",

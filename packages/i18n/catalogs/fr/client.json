@@ -529,7 +529,7 @@
   "modules.leveller.name": "Montée de niveau",
   "modules.leveller.description": "Fait monter le niveau d'un compte en attaquant une liste de cibles que vous lui donnez, puis s'arrête quand la liste est épuisée.",
   "modules.armourer.name": "Armurier",
-  "modules.armourer.description": "Achète des engins de siège à l'armurier avec des pièces jusqu'à ce que chacun atteigne le stock que vous fixez.",
+  "modules.armourer.description": "Achète des engins de siège à l'armurier avec des pièces dès qu'un château en a moins que le minimum que vous fixez.",
   "modules.blacksmith-event-shops.name": "Forgeron et boutiques d'événement",
   "modules.blacksmith-event-shops.description": "Dépense la monnaie d'événement dans les boutiques dans l'ordre que vous choisissez, jusqu'aux limites que vous fixez.",
   "modules.nom-sam-daimyo.name": "Nomades, Samouraïs et Daimyo",

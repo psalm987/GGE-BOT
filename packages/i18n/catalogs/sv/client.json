@@ -499,7 +499,7 @@
   "modules.leveller.name": "Nivåhöjare",
   "modules.leveller.description": "Höjer ett kontos nivå genom att anfalla en lista med mål som du ger den, och stoppar när listan tar slut.",
   "modules.armourer.name": "Vapentillverkare",
-  "modules.armourer.description": "Köper belägringsverktyg av vapentillverkaren med mynt tills varje verktyg når det lager du angav.",
+  "modules.armourer.description": "Köper belägringsverktyg hos vapentillverkaren med mynt när ett slott har färre än minimumet du satt.",
   "modules.blacksmith-event-shops.name": "Smed och eventbutiker",
   "modules.blacksmith-event-shops.description": "Lägger eventvaluta i butikerna i den ordning du väljer, upp till gränser du anger.",
   "modules.nom-sam-daimyo.name": "Nomader, samurajer och daimyo",

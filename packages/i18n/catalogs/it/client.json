@@ -529,7 +529,7 @@
   "modules.leveller.name": "Livellatore",
   "modules.leveller.description": "Alza il livello di un account attaccando un elenco di obiettivi che gli dai, poi si ferma quando l'elenco finisce.",
   "modules.armourer.name": "Armaiolo",
-  "modules.armourer.description": "Compra strumenti d'assedio dall'armaiolo con le monete finché ognuno non raggiunge la scorta che imposti.",
+  "modules.armourer.description": "Compra strumenti d'assedio dall'armaiolo con monete ogni volta che un castello ne ha meno del minimo impostato.",
   "modules.blacksmith-event-shops.name": "Fabbro e negozi degli eventi",
   "modules.blacksmith-event-shops.description": "Spende la valuta degli eventi nei negozi nell'ordine che scegli, entro i limiti che imposti.",
   "modules.nom-sam-daimyo.name": "Nomadi, Samurai e Daimyo",

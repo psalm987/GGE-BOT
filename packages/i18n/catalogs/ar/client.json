@@ -619,7 +619,7 @@
   "modules.leveller.name": "رفع المستوى",
   "modules.leveller.description": "يرفع مستوى الحساب بمهاجمة قائمة أهداف تعطيه إياها، ثم يتوقف عند انتهاء القائمة.",
   "modules.armourer.name": "صانع الأسلحة",
-  "modules.armourer.description": "يشتري أدوات الحصار من صانع الأسلحة بالعملات حتى يبلغ كل منها المخزون الذي تحدده.",
+  "modules.armourer.description": "تشتري أدوات الحصار من صانع الأسلحة بالعملات كلما احتوت قلعة على أقل من الحد الأدنى الذي حددته.",
   "modules.blacksmith-event-shops.name": "الحداد ومتاجر الأحداث",
   "modules.blacksmith-event-shops.description": "ينفق عملة الحدث في المتاجر بالترتيب الذي تختاره، حتى الحدود التي تضعها.",
   "modules.nom-sam-daimyo.name": "البدو والساموراي والدايميو",

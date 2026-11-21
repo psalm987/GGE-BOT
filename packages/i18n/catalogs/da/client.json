@@ -499,7 +499,7 @@
   "modules.leveller.name": "Niveauløfter",
   "modules.leveller.description": "Hæver en kontos niveau ved at angribe en liste af mål, du giver den, og stopper, når listen er brugt op.",
   "modules.armourer.name": "Våbensmed",
-  "modules.armourer.description": "Køber belejringsredskaber hos våbensmeden for mønter, indtil hvert når det lager, du sætter.",
+  "modules.armourer.description": "Køber belejringsredskaber hos våbensmeden med mønter, når en borg har færre end det minimum, du har sat.",
   "modules.blacksmith-event-shops.name": "Smed og eventbutikker",
   "modules.blacksmith-event-shops.description": "Bruger eventvaluta i butikkerne i den rækkefølge, du vælger, op til de grænser, du sætter.",
   "modules.nom-sam-daimyo.name": "Nomader, samuraier og daimyo",

@@ -589,7 +589,7 @@
   "modules.leveller.name": "Livellatur",
   "modules.leveller.description": "Jgħolli l-livell ta' kont billi jattakka lista ta' miri li tagħtih, imbagħad jieqaf meta tispiċċa l-lista.",
   "modules.armourer.name": "Armier",
-  "modules.armourer.description": "Jixtri għodda tal-assedju mill-armier bil-muniti sakemm kull waħda tilħaq il-maħżen li issettjajt.",
+  "modules.armourer.description": "Jixtri għodda tal-assedju mingħand l-armier bil-muniti kull meta kastell ikollu inqas mill-minimu li ssettjajt.",
   "modules.blacksmith-event-shops.name": "Ħaddied u ħwienet tal-avvenimenti",
   "modules.blacksmith-event-shops.description": "Jonfoq il-munita tal-avvenimenti fil-ħwienet bl-ordni li tagħżel, sal-limiti li tissettja.",
   "modules.nom-sam-daimyo.name": "Nomadi, Samurai u Daimyo",

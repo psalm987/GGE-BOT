@@ -529,7 +529,7 @@
   "modules.leveller.name": "Līmeņa cēlājs",
   "modules.leveller.description": "Ceļ konta līmeni, uzbrūkot tevis dotajam mērķu sarakstam, un apstājas, kad saraksts beidzas.",
   "modules.armourer.name": "Ieroču kalējs",
-  "modules.armourer.description": "Pērk aplenkuma rīkus pie ieroču kalēja par monētām, līdz katrs sasniedz tevis iestatīto krājumu.",
+  "modules.armourer.description": "Pērk aplenkuma rīkus pie ieroču kalēja par monētām, kad pilī ir mazāk nekā tavs iestatītais minimums.",
   "modules.blacksmith-event-shops.name": "Kalējs un pasākumu veikali",
   "modules.blacksmith-event-shops.description": "Tērē pasākuma valūtu veikalos tevis izvēlētajā secībā līdz tevis iestatītajiem ierobežojumiem.",
   "modules.nom-sam-daimyo.name": "Nomadi, Samuraji un Daimjo",

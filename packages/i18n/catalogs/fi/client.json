@@ -499,7 +499,7 @@
   "modules.leveller.name": "Tasonnostaja",
   "modules.leveller.description": "Nostaa tilin tasoa hyökkäämällä antamasi kohdelistan kimppuun ja pysähtyy, kun lista loppuu.",
   "modules.armourer.name": "Aseseppä",
-  "modules.armourer.description": "Ostaa asesepältä piiritystyökaluja kolikoilla, kunnes kukin saavuttaa asettamasi varaston.",
+  "modules.armourer.description": "Ostaa piiritystyökaluja aseseppältä kolikoilla aina, kun linnassa on vähemmän kuin asettamasi vähimmäismäärä.",
   "modules.blacksmith-event-shops.name": "Seppä ja tapahtumakaupat",
   "modules.blacksmith-event-shops.description": "Käyttää tapahtumavaluuttaa kaupoissa valitsemassasi järjestyksessä asettamiisi rajoihin asti.",
   "modules.nom-sam-daimyo.name": "Paimentolaiset, samurait ja daimyo",

@@ -499,7 +499,7 @@
   "modules.leveller.name": "Leveln",
   "modules.leveller.description": "Hebt das Level eines Kontos, indem es eine Liste von Zielen angreift, die Ihr vorgebt, und stoppt, wenn die Liste leer ist.",
   "modules.armourer.name": "Waffenschmied",
-  "modules.armourer.description": "Kauft beim Waffenschmied mit Münzen Belagerungswerkzeuge, bis jedes den Bestand erreicht, den Ihr festlegt.",
+  "modules.armourer.description": "Kauft Belagerungswerkzeuge mit Münzen beim Waffenschmied, sobald eine Burg weniger als das von Euch gesetzte Minimum hält.",
   "modules.blacksmith-event-shops.name": "Schmied und Event-Shops",
   "modules.blacksmith-event-shops.description": "Gibt Event-Währung in den Shops in der Reihenfolge aus, die Ihr wählt, bis zu den Grenzen, die Ihr setzt.",
   "modules.nom-sam-daimyo.name": "Nomaden, Samurai und Daimyō",

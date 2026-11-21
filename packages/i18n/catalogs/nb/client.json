@@ -499,7 +499,7 @@
   "modules.leveller.name": "Nivåheving",
   "modules.leveller.description": "Hever nivået til en konto ved å angripe en liste med mål du gir den, og stopper når listen er tom.",
   "modules.armourer.name": "Utrusteren",
-  "modules.armourer.description": "Kjøper beleiringsverktøy hos utrusteren med mynter til hvert verktøy når lageret du satte.",
+  "modules.armourer.description": "Kjøper beleiringsverktøy hos utrusteren med mynter når et slott har færre enn minimumet du har satt.",
   "modules.blacksmith-event-shops.name": "Smed og eventbutikker",
   "modules.blacksmith-event-shops.description": "Bruker eventvaluta i butikkene i rekkefølgen du velger, opptil grensene du setter.",
   "modules.nom-sam-daimyo.name": "Nomader, samuraier og daimyo",

@@ -499,7 +499,7 @@
   "modules.leveller.name": "Levelen",
   "modules.leveller.description": "Verhoogt het level van een account door een lijst met doelen aan te vallen die je opgeeft, en stopt als de lijst op is.",
   "modules.armourer.name": "Wapensmid",
-  "modules.armourer.description": "Koopt belegeringstuigen met munten bij de wapensmid tot elk de voorraad bereikt die je hebt ingesteld.",
+  "modules.armourer.description": "Koopt belegeringstuigen bij de wapensmid met munten zodra een kasteel minder heeft dan het minimum dat je instelt.",
   "modules.blacksmith-event-shops.name": "Smid en eventwinkels",
   "modules.blacksmith-event-shops.description": "Geeft eventvaluta uit in de winkels in de volgorde die je kiest, tot de limieten die je instelt.",
   "modules.nom-sam-daimyo.name": "Nomaden, Samoerai en Daimyo",

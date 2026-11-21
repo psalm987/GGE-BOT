@@ -499,7 +499,7 @@
   "modules.leveller.name": "Seviye atlatıcı",
   "modules.leveller.description": "Verdiğin hedef listesine saldırarak hesabın seviyesini yükseltir, liste bitince durur.",
   "modules.armourer.name": "Silahtar",
-  "modules.armourer.description": "Her biri belirlediğin stoğa ulaşana kadar silahtardan madeni parayla kuşatma aletleri satın alır.",
+  "modules.armourer.description": "Bir kalede belirlediğin en azdan az varsa kuşatma aletlerini silahtardan jetonla satın alır.",
   "modules.blacksmith-event-shops.name": "Demirci ve etkinlik mağazaları",
   "modules.blacksmith-event-shops.description": "Etkinlik parasını mağazalarda seçtiğin sırayla, belirlediğin sınırlara kadar harcar.",
   "modules.nom-sam-daimyo.name": "Göçebeler, Samuray ve Daimyo",

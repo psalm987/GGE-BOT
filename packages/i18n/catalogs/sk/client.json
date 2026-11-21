@@ -559,7 +559,7 @@
   "modules.leveller.name": "Zvyšovanie úrovne",
   "modules.leveller.description": "Zvyšuje úroveň účtu útokmi na zoznam cieľov, ktorý mu dáš, a zastaví sa, keď sa zoznam minie.",
   "modules.armourer.name": "Zbrojnica",
-  "modules.armourer.description": "Kupuje v zbrojnici nástroje na obliehanie za mince, kým každý nedosiahne zásobu, ktorú nastavíš.",
+  "modules.armourer.description": "Kupuje obliehacie nástroje v zbrojnici za mince, kedykoľvek hrad drží menej, než je nastavené minimum.",
   "modules.blacksmith-event-shops.name": "Kováč a obchody eventov",
   "modules.blacksmith-event-shops.description": "Míňa menu eventu v obchodoch v poradí, ktoré vyberieš, až po limity, ktoré nastavíš.",
   "modules.nom-sam-daimyo.name": "Nomádi, Samurajovia a Daimyo",

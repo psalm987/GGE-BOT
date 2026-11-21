@@ -499,7 +499,7 @@
   "modules.leveller.name": "Tasemetõstja",
   "modules.leveller.description": "Tõstab konto taset, rünnates sinu antud sihtmärkide nimekirja, ja peatub, kui nimekiri saab otsa.",
   "modules.armourer.name": "Relvasepp",
-  "modules.armourer.description": "Ostab relvasepalt müntide eest piiramisvahendeid, kuni igaüks jõuab sinu seatud varuni.",
+  "modules.armourer.description": "Ostab relvasepalt müntidega piiramistööriistu, kui lossis on vähem kui sinu seatud miinimum.",
   "modules.blacksmith-event-shops.name": "Sepp ja sündmuste poed",
   "modules.blacksmith-event-shops.description": "Kulutab sündmuse valuutat poodides sinu valitud järjekorras sinu seatud piirideni.",
   "modules.nom-sam-daimyo.name": "Nomaadid, samuraid ja daimyo",

@@ -559,7 +559,7 @@
   "modules.leveller.name": "Dvigovanje ravni",
   "modules.leveller.description": "Dviguje raven računa z napadi na seznam ciljev, ki mu ga daš, in se ustavi, ko seznama zmanjka.",
   "modules.armourer.name": "Orožar",
-  "modules.armourer.description": "Kupuje obleganska orodja pri orožarju za kovance, dokler vsako ne doseže nastavljene zaloge.",
+  "modules.armourer.description": "Kupuje oblegovalna orodja pri orožarju za kovance, kadar ima grad manj od nastavljenega minimuma.",
   "modules.blacksmith-event-shops.name": "Kovač in dogodkovne trgovine",
   "modules.blacksmith-event-shops.description": "Porablja dogodkovno valuto v trgovinah v vrstnem redu, ki ga izbereš, do omejitev, ki jih nastaviš.",
   "modules.nom-sam-daimyo.name": "Nomadi, Samuraji in Daimyo",

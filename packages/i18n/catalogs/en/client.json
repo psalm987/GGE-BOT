@@ -503,7 +503,7 @@
   "modules.leveller.name": "Leveller",
   "modules.leveller.description": "Raises an account's level by attacking a list of targets you give it, then stops when the list runs out.",
   "modules.armourer.name": "Armourer",
-  "modules.armourer.description": "Buys siege tools from the armourer with coins until each one reaches the stock you set.",
+  "modules.armourer.description": "Buys siege tools from the armourer with coins whenever a castle holds fewer than the minimum you set.",
   "modules.blacksmith-event-shops.name": "Blacksmith and event shops",
   "modules.blacksmith-event-shops.description": "Spends event currency in the shops in the order you choose, up to limits you set.",
   "modules.nom-sam-daimyo.name": "Nomads, Samurai and Daimyo",

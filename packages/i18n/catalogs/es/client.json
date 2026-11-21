@@ -529,7 +529,7 @@
   "modules.leveller.name": "Subidor de nivel",
   "modules.leveller.description": "Sube el nivel de una cuenta atacando una lista de objetivos que le das y se detiene cuando la lista se acaba.",
   "modules.armourer.name": "Armero",
-  "modules.armourer.description": "Compra herramientas de asedio al armero con monedas hasta que cada una alcanza la reserva que fijes.",
+  "modules.armourer.description": "Compra herramientas de asedio al armero con monedas cuando un castillo tiene menos que el mínimo que fijes.",
   "modules.blacksmith-event-shops.name": "Herrero y tiendas de evento",
   "modules.blacksmith-event-shops.description": "Gasta la moneda del evento en las tiendas en el orden que elijas, hasta los límites que fijes.",
   "modules.nom-sam-daimyo.name": "Nómadas, samuráis y daimio",

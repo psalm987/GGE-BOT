@@ -529,7 +529,7 @@
   "modules.leveller.name": "Podizač razine",
   "modules.leveller.description": "Podiže razinu računa napadajući popis meta koji mu daš, a staje kad se popis iscrpi.",
   "modules.armourer.name": "Oklopnik",
-  "modules.armourer.description": "Kupuje opsadne alate od oklopnika za novčiće dok svaki ne dosegne zalihu koju postaviš.",
+  "modules.armourer.description": "Kupuje opsadne alate od oklopnika za novčiće kad dvorac ima manje od minimuma koji postaviš.",
   "modules.blacksmith-event-shops.name": "Kovač i događajne trgovine",
   "modules.blacksmith-event-shops.description": "Troši događajnu valutu u trgovinama redoslijedom koji odabereš, do granica koje postaviš.",
   "modules.nom-sam-daimyo.name": "Nomadi, Samuraji i Daimyo",

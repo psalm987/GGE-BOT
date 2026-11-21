@@ -529,7 +529,7 @@
   "modules.leveller.name": "Ridicare de nivel",
   "modules.leveller.description": "Ridică nivelul unui cont atacând o listă de ținte dată de tine, apoi se oprește când lista se termină.",
   "modules.armourer.name": "Armurier",
-  "modules.armourer.description": "Cumpără unelte de asediu de la armurier cu monede până când fiecare ajunge la stocul setat de tine.",
+  "modules.armourer.description": "Cumpără unelte de asediu de la armurier cu monede ori de câte ori un castel are mai puțin decât minimul setat.",
   "modules.blacksmith-event-shops.name": "Fierar și magazine de eveniment",
   "modules.blacksmith-event-shops.description": "Cheltuiește moneda de eveniment în magazine, în ordinea aleasă de tine și în limitele setate de tine.",
   "modules.nom-sam-daimyo.name": "Nomazi, Samurai și Daimyo",
