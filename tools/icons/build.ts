@@ -2,7 +2,6 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "no
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { MODULES } from "@gge/contracts"
-import { palette } from "@gge/ui/palette"
 
 /**
  * Draws every icon a module uses into the house badge and credits its author. Each glyph comes from game-icons.net (npm
@@ -15,6 +14,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const OUT = join(resolve(here, "..", ".."), "packages", "ui", "src", "icons")
 const AUTHORS = join(here, "authors.json")
 const SET = join(here, "node_modules", "@iconify-json", "game-icons")
+
+/** The badge keeps its own ink and gold: a medallion that reads on the emerald sidebar and on the cream page alike. */
+const BADGE = { ink: "#15110E", raised: "#2B221B", gold: "#E0A526", goldDeep: "#B9821A", parchment: "#F3E7C9" }
 
 const LICENCE = { name: "CC BY 3.0", url: "https://creativecommons.org/licenses/by/3.0/" }
 const NAMES: Record<string, string> = {
@@ -43,7 +45,7 @@ async function refreshAuthors(): Promise<void> {
 
 /** The badge is 64 units square, drawn for 28 px and up. The glyph sits in the middle 40. */
 function badge(glyph: string): string {
-    const { ink, raised, gold, goldDeep, parchment } = palette
+    const { ink, raised, gold, goldDeep, parchment } = BADGE
     const cx = 32
     const studs = [0, 90, 180, 270].map(deg => `<path transform="rotate(${deg} ${cx} ${cx})" d="M32 1.5l2.6 2.6l-2.6 2.6l-2.6-2.6z" fill="${goldDeep}"/>`).join("")
     const scale = 40 / 512
