@@ -5,4 +5,4 @@
 .gge-package-row:last-child { border-bottom: 0; }
 
 /* The announcement drawer's live preview stays at the top while the form scrolls. */
-.gge-announcement-preview { position: sticky; top: -24px; z-index: 2; margin: 8px -24px 24px; padding: 8px 24px 12px; background: #211A15; }
+.gge-announcement-preview { position: sticky; top: -24px; z-index: 2; margin: 8px -24px 24px; padding: 8px 24px 12px; background: var(--gge-surface); }
