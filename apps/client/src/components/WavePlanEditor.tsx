@@ -62,10 +62,6 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
     const presetOptions = (current: number) => [{ value: 0, label: t("waves.preset.empty") }, ...(current > 0 ? [{ value: current, label: t("waves.preset.option", { n: current }) }] : [])]
 
     const [open, setOpen] = useState<number[]>(() => value.waves.flatMap((wave, i) => waveIsEmpty(wave) ? [] : [i]))
-    const addWave = () => {
-        onChange(withAddedWave(value))
-        setOpen([...open, value.waves.length])
-    }
     const removeWave = (index: number) => {
         onChange(withoutWave(value, index))
         setOpen(open.filter(i => i !== index).map(i => i > index ? i - 1 : i))
@@ -122,7 +118,7 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
                     label: <span className="gge-army-wave-head"><span>{t("waves.wave", { n: i + 1 })}</span><WaveTag wave={wave} /></span>,
                 }))} />
             <div className="gge-army-row">
-                <Button disabled={disabled || value.waves.length >= MAX_WAVES} onClick={addWave}>{t("waves.add")}</Button>
+                <Button disabled={disabled || value.waves.length >= MAX_WAVES} onClick={() => onChange(withAddedWave(value))}>{t("waves.add")}</Button>
                 <span className="gge-army-note" data-wave-count>{t("waves.count", { n: value.waves.length, max: MAX_WAVES })}</span>
             </div>
             <section aria-label={t("waves.support.title")}>

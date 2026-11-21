@@ -1286,22 +1286,8 @@ async function driveGlorySettings(page) {
     await page.setViewportSize({ width: 1280, height: 860 })
 }
 
-/**
- * The army settings, as the seeded demo player on Ironhold: the Autofill or Waves switch and its summary on Fortress, the
- * wave editor (every wave opened, an in-game preset, custom flanks, a support tool, a courtyard row), a save read back
- * through the API and after a reload, then a virtual preset made, sent by the module, refused for deletion while in
- * use, and deleted. Puts Ironhold's plugin settings back at the end.
- */
-async function driveArmies(page) {
-    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
-    const plugin = "attackFortressesBurningSands"
-    const stored = async () => (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins[plugin]?.options ?? {}
-    // Starts from no army settings and no presets, even after a run that failed before putting them back.
-    const { armyMode: _mode, waves: _waves, ...otherOptions } = ironhold.plugins[plugin]?.options ?? {}
-    const before = { ...ironhold.plugins, ...(ironhold.plugins[plugin] && { [plugin]: { ...ironhold.plugins[plugin], options: otherOptions } }) }
-    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
-    for (const preset of await rpc(page, "virtualPresets/list", { accountId: ironhold.id }))
-        await rpc(page, "virtualPresets/remove", { id: preset.id })
+/** What the army drivers share on Ironhold's Fortress page: the select and segmented pickers, the save bar and opening the module. */
+function armyHelpers(page) {
     /** Picks an option of the select with this accessible name: by its text, or the first one. Returns the option's text. */
     const pick = async (scope, name, text) => {
         const box = scope.getByRole("combobox", { name, exact: true })
@@ -1334,6 +1320,26 @@ async function driveArmies(page) {
         await page.waitForTimeout(300)
         return page.getByRole("tabpanel")
     }
+    return { pick, segment, saveBar, save, openFortress }
+}
+
+/**
+ * The army settings, as the seeded demo player on Ironhold: the Autofill or Waves switch and its summary on Fortress, the
+ * wave editor (every wave opened, an in-game preset, custom flanks, a support tool, a courtyard row), a save read back
+ * through the API and after a reload, then a virtual preset made, sent by the module, refused for deletion while in
+ * use, and deleted. Puts Ironhold's plugin settings back at the end.
+ */
+async function driveArmies(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const plugin = "attackFortressesBurningSands"
+    const stored = async () => (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins[plugin]?.options ?? {}
+    // Starts from no army settings and no presets, even after a run that failed before putting them back.
+    const { armyMode: _mode, waves: _waves, ...otherOptions } = ironhold.plugins[plugin]?.options ?? {}
+    const before = { ...ironhold.plugins, ...(ironhold.plugins[plugin] && { [plugin]: { ...ironhold.plugins[plugin], options: otherOptions } }) }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    for (const preset of await rpc(page, "virtualPresets/list", { accountId: ironhold.id }))
+        await rpc(page, "virtualPresets/remove", { id: preset.id })
+    const { pick, segment, saveBar, save, openFortress } = armyHelpers(page)
 
     await page.setViewportSize(WIDE_VIEW)
     let form = await openFortress()
@@ -1481,6 +1487,113 @@ async function driveArmies(page) {
     assert(await overflowOf(page) <= 0, "no horizontal overflow on the army settings in Arabic at 390")
     await axe(page, "fortress army settings ar 390")
     await page.screenshot({ path: `${out}/66-army-ar-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    assert((await stored()).armyMode === undefined, "Ironhold's plugin settings are back as they were")
+}
+
+/**
+ * The wave editor's growth, as the seeded demo player on Ironhold's Fortress: four waves to begin with, "Apply to the rest
+ * of the waves" on wave 1, two waves added and one written apart, a save read back through the API and after a reload,
+ * a wave removed, the plan grown to the 25-wave limit, and a one-wave plan that can't shrink or copy. Runs axe at 1440,
+ * 390 and in Arabic. Puts Ironhold's plugin settings back at the end.
+ */
+async function driveUxWaves(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const plugin = "attackFortressesBurningSands"
+    const stored = async () => (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins[plugin]?.options ?? {}
+    const { armyMode: _mode, waves: _waves, ...otherOptions } = ironhold.plugins[plugin]?.options ?? {}
+    const before = { ...ironhold.plugins, ...(ironhold.plugins[plugin] && { [plugin]: { ...ironhold.plugins[plugin], options: otherOptions } }) }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    const { pick, segment, saveBar, save, openFortress } = armyHelpers(page)
+
+    await page.setViewportSize(WIDE_VIEW)
+    let form = await openFortress()
+    const summary = () => form.locator("[data-army-summary]").innerText()
+    const count = () => form.locator("[data-wave-count]").innerText()
+    const headers = form.locator(".ant-collapse-header")
+    await segment(form, "Army", "Waves").click()
+    assert(await count() === "4 of 25 waves" && await headers.count() === 4, "a new plan starts with 4 of 25 waves")
+    assert(await form.getByRole("button", { name: "Add wave" }).isEnabled(), "Add wave is on below the limit")
+
+    await headers.nth(0).click()
+    await segment(form, "Wave 1 comes from", "Custom slots").click()
+    await pick(form, "Wave 1, Left flank, troop 1")
+    await form.getByRole("spinbutton", { name: "Wave 1, Left flank, troop 1: how many" }).fill("40")
+    await pick(form, "Wave 1, Front, troop 6")
+    await form.getByRole("spinbutton", { name: "Wave 1, Front, troop 6: how many" }).fill("500")
+    await form.getByRole("spinbutton", { name: "Wave 1, Front, troop 6: how many" }).blur()
+    await form.getByRole("button", { name: "Apply to the rest of the waves" }).click()
+    const tags = await headers.locator(".ant-tag").allInnerTexts()
+    assert(tags.length === 4 && tags.every(tag => tag === "Custom · 2 filled"), `wave 1 copied into waves 2 to 4 (${tags.join(" | ")})`)
+
+    await form.getByRole("button", { name: "Add wave" }).click()
+    await form.getByRole("button", { name: "Add wave" }).click()
+    assert(await count() === "6 of 25 waves" && await headers.count() === 6, "two added waves make 6 of 25")
+    assert(await headers.nth(5).locator(".ant-tag").innerText() === "Empty", "an added wave is empty")
+    assert(await form.getByText("The game sends at most 4 waves", { exact: false }).isVisible(), "past 4 waves the editor says the game sends at most 4 plus the commander's")
+    await headers.nth(5).click()
+    await segment(form, "Wave 6 comes from", "Custom slots").click()
+    await pick(form, "Wave 6, Right flank, troop 1")
+    await form.getByRole("spinbutton", { name: "Wave 6, Right flank, troop 1: how many" }).fill("12")
+    await form.getByRole("spinbutton", { name: "Wave 6, Right flank, troop 1: how many" }).blur()
+    assert(await summary() === "Waves written: 5 of 6 · Support tools: 0 · Courtyard rows: 0", `the summary counts 5 of 6 (${await summary()})`)
+    assert(await form.getByRole("button", { name: "Apply to the rest of the waves" }).count() === 1, "of the open waves 1 and 6 only the last has no Apply to the rest button")
+    await axe(page, "six waves 1440")
+    await page.screenshot({ path: `${out}/90-ux-waves-six-1440.png`, fullPage: true })
+
+    await save()
+    let waves = (await stored()).waves.waves
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+    assert(waves.length === 6 && [1, 2, 3].every(i => same(waves[i], waves[0])) && waves[0].kind === "custom", "the API stores six waves, 2 to 4 equal to wave 1")
+    assert(waves[4].kind === "preset" && waves[4].preset === 0 && waves[5].right.units[0].amount === 12, "wave 5 is empty and wave 6 holds 12 on the right flank")
+    await page.reload()
+    form = await openFortress()
+    assert(await count() === "6 of 25 waves" && await summary() === "Waves written: 5 of 6 · Support tools: 0 · Courtyard rows: 0", "after a reload the six waves are still there")
+
+    await form.locator(".ant-collapse-item-active").first().waitFor()
+    await headers.nth(4).click()
+    await form.getByRole("button", { name: "Remove wave 5" }).click()
+    assert(await count() === "5 of 25 waves", "removing wave 5 leaves 5 of 25")
+    await save()
+    waves = (await stored()).waves.waves
+    assert(waves.length === 5 && waves[4].right.units[0].amount === 12, "the API stores five waves, the one written apart now last")
+
+    const add = form.getByRole("button", { name: "Add wave" })
+    for (let i = 0; i < 20; i++) await add.click()
+    assert(await count() === "25 of 25 waves" && await add.isDisabled(), "the plan stops at 25 waves and Add wave turns off")
+    await axe(page, "twenty-five waves 1440")
+    await page.screenshot({ path: `${out}/91-ux-waves-25-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the 25-wave editor at 390")
+    await axe(page, "twenty-five waves 390")
+    await page.screenshot({ path: `${out}/91-ux-waves-25-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await save()
+    assert((await stored()).waves.waves.length === 25, "the API stores 25 waves")
+
+    const one = { ...(await stored()).waves, waves: [(await stored()).waves.waves[0]] }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: { ...before, [plugin]: { ...before[plugin], options: { ...otherOptions, armyMode: "waves", waves: one } } } })
+    await page.reload()
+    form = await openFortress()
+    assert(await count() === "1 of 25 waves", "a stored one-wave plan opens as 1 of 25")
+    await headers.nth(0).click()
+    assert(await form.getByRole("button", { name: "Remove wave 1" }).isDisabled() && await form.getByRole("button", { name: "Apply to the rest of the waves" }).count() === 0, "a single wave can't be removed or copied")
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await page.goto(`${CLIENT_URL}/m/fortress?account=${ironhold.id}`)
+    await page.locator("[data-wave-count]").first().waitFor()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the wave editor is right to left")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the wave editor in Arabic at 1440")
+    await axe(page, "waves editor ar 1440")
+    await page.screenshot({ path: `${out}/92-ux-waves-ar-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the wave editor in Arabic at 390")
+    await axe(page, "waves editor ar 390")
+    await page.screenshot({ path: `${out}/92-ux-waves-ar-390.png`, fullPage: true })
     await page.setViewportSize(WIDE_VIEW)
     await rpc(page, "account/setLocale", { locale: null })
     await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
@@ -2113,6 +2226,17 @@ async function driveUxStartStop(page, browser) {
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
+    if (process.env.DRIVE_ONLY === "ux-waves") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxWaves(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "armies") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)
@@ -2573,6 +2697,7 @@ async function driveUxStartStop(page, browser) {
     await driveUxNarrow(seeded)
     await driveUxStartStop(seeded, browser)
     await driveUxAutobuy(seeded)
+    await driveUxWaves(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
