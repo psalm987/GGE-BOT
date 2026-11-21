@@ -767,7 +767,7 @@
   "plugins.commanderPicker.tile": "Vadas {{position}}",
   "plugins.commanderPicker.tilePicked": "Vadas {{position}}, eilės numeris {{order}}",
   "plugins.commanderPicker.order": "Tvarka: {{list}}",
-  "plugins.commanderPicker.none": "Nieko nepasirinkta: botas siunčia visus vadus, nuo 1 iki 50 iš eilės.",
+  "plugins.commanderPicker.none": "Nieko nepasirinkta: botas siunčia bet kurį iš jūsų vadų tokia tvarka, kuri tinka kiekvienam puolimui.",
   "plugins.commanderPicker.beyond": "Blankūs numeriai – vadai, kurių dar neturite. Botas juos praleidžia, kol jų neturėsite.",
   "plugins.commanderPicker.all": "Visi iš eilės",
   "plugins.commanderPicker.clear": "Išvalyti",

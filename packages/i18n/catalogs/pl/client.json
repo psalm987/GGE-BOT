@@ -767,7 +767,7 @@
   "plugins.commanderPicker.tile": "Dowódca {{position}}",
   "plugins.commanderPicker.tilePicked": "Dowódca {{position}}, numer {{order}} w kolejności",
   "plugins.commanderPicker.order": "Kolejność: {{list}}",
-  "plugins.commanderPicker.none": "Nikt nie wybrany: bot wysyła wszystkich dowódców, od 1 do 50 po kolei.",
+  "plugins.commanderPicker.none": "Nikt nie wybrany: bot wysyła dowolnego z twoich dowódców, w kolejności, która pasuje do każdego ataku.",
   "plugins.commanderPicker.beyond": "Wyblakłe numery to dowódcy, których jeszcze nie masz. Bot pomija ich, dopóki ich nie zdobędziesz.",
   "plugins.commanderPicker.all": "Wszyscy po kolei",
   "plugins.commanderPicker.clear": "Wyczyść",

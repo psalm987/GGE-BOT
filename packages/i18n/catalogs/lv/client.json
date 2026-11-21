@@ -737,7 +737,7 @@
   "plugins.commanderPicker.tile": "Komandieris {{position}}",
   "plugins.commanderPicker.tilePicked": "Komandieris {{position}}, secībā numurs {{order}}",
   "plugins.commanderPicker.order": "Secība: {{list}}",
-  "plugins.commanderPicker.none": "Neviens nav izvēlēts: bots sūta visus komandierus no 1 līdz 50 pēc kārtas.",
+  "plugins.commanderPicker.none": "Neviens nav izvēlēts: bots sūta jebkuru no taviem komandieriem tādā secībā, kas der katram uzbrukumam.",
   "plugins.commanderPicker.beyond": "Blāvie numuri ir komandieri, kuru tev vēl nav. Bots tos izlaiž, līdz tie tev būs.",
   "plugins.commanderPicker.all": "Visi pēc kārtas",
   "plugins.commanderPicker.clear": "Notīrīt",

@@ -2412,7 +2412,7 @@ async function driveUxCommanders(page) {
         assert(await saveBar.count() === 0, "loading different lists changes nothing until a save")
 
         await picker.getByRole("button", { name: "Clear" }).click()
-        assert(await order() === "None picked: the bot sends every commander, 1 to 50 in order.", `Clear empties the order and says what that means: ${await order()}`)
+        assert(await order() === "None picked: the bot sends any of your commanders, in the order that suits each attack.", `Clear empties the order and says what that means: ${await order()}`)
         for (const position of [36, 2, 5]) await tile(position).click()
         assert(await order() === "Order: 36, 2, 5", `tiles clicked 36, 2, 5 show that order: ${await order()}`)
         assert(await pressed(36) && await pressed(2) && await pressed(5) && !(await pressed(1)), "the picked tiles are pressed and the others are not")

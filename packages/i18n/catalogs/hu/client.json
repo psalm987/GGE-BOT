@@ -707,7 +707,7 @@
   "plugins.commanderPicker.tile": "{{position}}. parancsnok",
   "plugins.commanderPicker.tilePicked": "{{position}}. parancsnok, {{order}}. a sorrendben",
   "plugins.commanderPicker.order": "Sorrend: {{list}}",
-  "plugins.commanderPicker.none": "Nincs kiválasztva: a bot minden parancsnokot küld, 1-től 50-ig sorban.",
+  "plugins.commanderPicker.none": "Nincs kiválasztva: a bot bármelyik parancsnokodat küldi, abban a sorrendben, amely az adott támadáshoz illik.",
   "plugins.commanderPicker.beyond": "A halvány számok olyan parancsnokok, akik még nincsenek meg neked. A bot kihagyja őket, amíg meg nem szerzed őket.",
   "plugins.commanderPicker.all": "Mind sorban",
   "plugins.commanderPicker.clear": "Törlés",

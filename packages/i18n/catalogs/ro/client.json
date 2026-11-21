@@ -737,7 +737,7 @@
   "plugins.commanderPicker.tile": "Comandantul {{position}}",
   "plugins.commanderPicker.tilePicked": "Comandantul {{position}}, numărul {{order}} în ordine",
   "plugins.commanderPicker.order": "Ordine: {{list}}",
-  "plugins.commanderPicker.none": "Niciunul ales: botul trimite toți comandanții, de la 1 la 50 în ordine.",
+  "plugins.commanderPicker.none": "Niciunul ales: botul trimite oricare dintre comandanții tăi, în ordinea potrivită fiecărui atac.",
   "plugins.commanderPicker.beyond": "Numerele estompate sunt comandanți pe care nu îi ai încă. Botul îi sare până când îi ai.",
   "plugins.commanderPicker.all": "Toți în ordine",
   "plugins.commanderPicker.clear": "Golește",

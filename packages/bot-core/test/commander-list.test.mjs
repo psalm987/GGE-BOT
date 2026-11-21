@@ -42,6 +42,14 @@ describe("a commander list", () => {
         expect((await waitForCommanderAvailable("", undefined, (a, b) => b.lordPosition - a.lordPosition)).lordPosition + 1).toBe(20)
         expect((await waitForCommanderAvailable("")).lordPosition + 1).toBe(1)
     })
+    test.each(["1-50", "1-99"])("%j is every commander in order, so the plugin's own order still picks", async list => {
+        const { waitForCommanderAvailable } = pool()
+        expect((await waitForCommanderAvailable(list, undefined, (a, b) => b.lordPosition - a.lordPosition)).lordPosition + 1).toBe(20)
+    })
+    test("a list picked in order but short of every commander keeps its written order", async () => {
+        const { waitForCommanderAvailable } = pool()
+        expect((await waitForCommanderAvailable("1-20", undefined, (a, b) => b.lordPosition - a.lordPosition)).lordPosition + 1).toBe(1)
+    })
     test("a commander taken without waiting is also the first free one in the written order", () => {
         const { takeFreeCommander } = pool()
         expect([takeFreeCommander("7;3"), takeFreeCommander("7;3")].map(lord => lord.lordPosition + 1)).toEqual([7, 3])

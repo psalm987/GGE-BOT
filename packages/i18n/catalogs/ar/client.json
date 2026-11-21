@@ -827,7 +827,7 @@
   "plugins.commanderPicker.tile": "القائد {{position}}",
   "plugins.commanderPicker.tilePicked": "القائد {{position}}، رقم {{order}} في الترتيب",
   "plugins.commanderPicker.order": "الترتيب: {{list}}",
-  "plugins.commanderPicker.none": "لم يتم اختيار أي قائد: يرسل البوت كل القادة، من 1 إلى 50 بالترتيب.",
+  "plugins.commanderPicker.none": "لم يتم اختيار أي قائد: يرسل البوت أيًّا من قادتك، بالترتيب الذي يناسب كل هجوم.",
   "plugins.commanderPicker.beyond": "الأرقام الباهتة لقادة لا تملكهم بعد. يتخطاهم البوت حتى تملكهم.",
   "plugins.commanderPicker.all": "الكل بالترتيب",
   "plugins.commanderPicker.clear": "مسح",

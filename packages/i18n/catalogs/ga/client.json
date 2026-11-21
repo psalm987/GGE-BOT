@@ -797,7 +797,7 @@
   "plugins.commanderPicker.tile": "Ceannasaí {{position}}",
   "plugins.commanderPicker.tilePicked": "Ceannasaí {{position}}, uimhir {{order}} san ord",
   "plugins.commanderPicker.order": "Ord: {{list}}",
-  "plugins.commanderPicker.none": "Níl aon cheann roghnaithe: seolann an bot gach ceannasaí, 1 go 50 in ord.",
+  "plugins.commanderPicker.none": "Níl aon cheann roghnaithe: seolann an bot aon cheann de do cheannasaithe, san ord a oireann do gach ionsaí.",
   "plugins.commanderPicker.beyond": "Is ceannasaithe nach bhfuil agat fós iad na huimhreacha éadroma. Léimeann an bot tharstu go dtí go mbeidh siad agat.",
   "plugins.commanderPicker.all": "Gach ceann in ord",
   "plugins.commanderPicker.clear": "Glan",

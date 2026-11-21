@@ -707,7 +707,7 @@
   "plugins.commanderPicker.tile": "Anförare {{position}}",
   "plugins.commanderPicker.tilePicked": "Anförare {{position}}, nummer {{order}} i ordningen",
   "plugins.commanderPicker.order": "Ordning: {{list}}",
-  "plugins.commanderPicker.none": "Ingen vald: boten skickar alla anförare, 1 till 50 i ordning.",
+  "plugins.commanderPicker.none": "Ingen vald: boten skickar vilken som helst av dina anförare, i den ordning som passar varje anfall.",
   "plugins.commanderPicker.beyond": "Nedtonade nummer är anförare du inte har än. Boten hoppar över dem tills du har dem.",
   "plugins.commanderPicker.all": "Alla i ordning",
   "plugins.commanderPicker.clear": "Rensa",

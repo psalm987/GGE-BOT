@@ -737,7 +737,7 @@
   "plugins.commanderPicker.tile": "Commandant {{position}}",
   "plugins.commanderPicker.tilePicked": "Commandant {{position}}, numéro {{order}} dans l'ordre",
   "plugins.commanderPicker.order": "Ordre : {{list}}",
-  "plugins.commanderPicker.none": "Aucun choisi : le bot envoie tous les commandants, de 1 à 50 dans l'ordre.",
+  "plugins.commanderPicker.none": "Aucun choisi : le bot envoie n'importe lequel de vos commandants, dans l'ordre qui convient à chaque attaque.",
   "plugins.commanderPicker.beyond": "Les numéros estompés sont des commandants que vous n'avez pas encore. Le bot les ignore jusqu'à ce que vous les ayez.",
   "plugins.commanderPicker.all": "Tous dans l'ordre",
   "plugins.commanderPicker.clear": "Effacer",

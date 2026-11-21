@@ -707,7 +707,7 @@
   "plugins.commanderPicker.tile": "Komentaja {{position}}",
   "plugins.commanderPicker.tilePicked": "Komentaja {{position}}, järjestyksessä numero {{order}}",
   "plugins.commanderPicker.order": "Järjestys: {{list}}",
-  "plugins.commanderPicker.none": "Ei valittuja: botti lähettää kaikki komentajat järjestyksessä 1–50.",
+  "plugins.commanderPicker.none": "Ei valittuja: botti lähettää kenet tahansa komentajistasi siinä järjestyksessä, joka sopii kuhunkin hyökkäykseen.",
   "plugins.commanderPicker.beyond": "Himmeät numerot ovat komentajia, joita sinulla ei vielä ole. Botti ohittaa ne, kunnes saat ne.",
   "plugins.commanderPicker.all": "Kaikki järjestyksessä",
   "plugins.commanderPicker.clear": "Tyhjennä",

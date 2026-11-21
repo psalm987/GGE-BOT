@@ -737,7 +737,7 @@
   "plugins.commanderPicker.tile": "Comandante {{position}}",
   "plugins.commanderPicker.tilePicked": "Comandante {{position}}, numero {{order}} nell'ordine",
   "plugins.commanderPicker.order": "Ordine: {{list}}",
-  "plugins.commanderPicker.none": "Nessuno scelto: il bot invia tutti i comandanti, da 1 a 50 in ordine.",
+  "plugins.commanderPicker.none": "Nessuno scelto: il bot invia uno qualsiasi dei tuoi comandanti, nell'ordine più adatto a ogni attacco.",
   "plugins.commanderPicker.beyond": "I numeri sbiaditi sono comandanti che non hai ancora. Il bot li salta finché non li avrai.",
   "plugins.commanderPicker.all": "Tutti in ordine",
   "plugins.commanderPicker.clear": "Svuota",

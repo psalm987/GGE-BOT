@@ -797,7 +797,7 @@
   "plugins.commanderPicker.tile": "Kmandant {{position}}",
   "plugins.commanderPicker.tilePicked": "Kmandant {{position}}, numru {{order}} fl-ordni",
   "plugins.commanderPicker.order": "Ordni: {{list}}",
-  "plugins.commanderPicker.none": "Ebda wieħed magħżul: il-bot jibgħat il-kmandanti kollha, minn 1 sa 50 bl-ordni.",
+  "plugins.commanderPicker.none": "Ebda wieħed magħżul: il-bot jibgħat kwalunkwe wieħed mill-kmandanti tiegħek, fl-ordni li taqbel ma' kull attakk.",
   "plugins.commanderPicker.beyond": "In-numri mċajpra huma kmandanti li għad m'għandekx. Il-bot jaqbiżhom sakemm ikollok.",
   "plugins.commanderPicker.all": "Kollha bl-ordni",
   "plugins.commanderPicker.clear": "Ħassar",

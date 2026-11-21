@@ -707,7 +707,7 @@
   "plugins.commanderPicker.tile": "Командир {{position}}",
   "plugins.commanderPicker.tilePicked": "Командир {{position}}, номер {{order}} в реда",
   "plugins.commanderPicker.order": "Ред: {{list}}",
-  "plugins.commanderPicker.none": "Няма избрани: ботът изпраща всички командири, от 1 до 50 подред.",
+  "plugins.commanderPicker.none": "Няма избрани: ботът изпраща който и да е от командирите ви, в реда, който подхожда на всяка атака.",
   "plugins.commanderPicker.beyond": "Бледите номера са командири, които още нямате. Ботът ги пропуска, докато не ги получите.",
   "plugins.commanderPicker.all": "Всички подред",
   "plugins.commanderPicker.clear": "Изчистване",

@@ -418,7 +418,7 @@
   "plugins.commanderPicker.tile": "Commander {{position}}",
   "plugins.commanderPicker.tilePicked": "Commander {{position}}, number {{order}} in the order",
   "plugins.commanderPicker.order": "Order: {{list}}",
-  "plugins.commanderPicker.none": "None picked: the bot sends every commander, 1 to 50 in order.",
+  "plugins.commanderPicker.none": "None picked: the bot sends any of your commanders, in the order that suits each attack.",
   "plugins.commanderPicker.beyond": "Dimmed numbers are commanders you don’t have yet. The bot skips them until you do.",
   "plugins.commanderPicker.all": "All in order",
   "plugins.commanderPicker.clear": "Clear",

@@ -737,7 +737,7 @@
   "plugins.commanderPicker.tile": "Comandante {{position}}",
   "plugins.commanderPicker.tilePicked": "Comandante {{position}}, número {{order}} na ordem",
   "plugins.commanderPicker.order": "Ordem: {{list}}",
-  "plugins.commanderPicker.none": "Nenhum escolhido: o bot envia todos os comandantes, de 1 a 50 em ordem.",
+  "plugins.commanderPicker.none": "Nenhum escolhido: o bot envia qualquer um dos seus comandantes, na ordem que melhor serve cada ataque.",
   "plugins.commanderPicker.beyond": "Números esmaecidos são comandantes que você ainda não tem. O bot os pula até você tê-los.",
   "plugins.commanderPicker.all": "Todos em ordem",
   "plugins.commanderPicker.clear": "Limpar",

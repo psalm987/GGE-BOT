@@ -767,7 +767,7 @@
   "plugins.commanderPicker.tile": "Velitel {{position}}",
   "plugins.commanderPicker.tilePicked": "Velitel {{position}}, číslo {{order}} v pořadí",
   "plugins.commanderPicker.order": "Pořadí: {{list}}",
-  "plugins.commanderPicker.none": "Nikdo nevybrán: bot posílá všechny velitele, od 1 do 50 popořadě.",
+  "plugins.commanderPicker.none": "Nikdo nevybrán: bot posílá kteréhokoli z vašich velitelů v pořadí, které se hodí pro každý útok.",
   "plugins.commanderPicker.beyond": "Ztlumená čísla jsou velitelé, které ještě nemáte. Bot je přeskakuje, dokud je mít nebudete.",
   "plugins.commanderPicker.all": "Všechny popořadě",
   "plugins.commanderPicker.clear": "Vymazat",
