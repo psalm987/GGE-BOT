@@ -2969,8 +2969,8 @@ async function driveUxCommanders(page) {
     assert(true, `the started account's row shows "Sleeping until ${when}", the time the preview gave`)
     // The tag fades from the colour of the state it replaced, so the colour is read once the fade is over.
     const tagColour = () => sleeping.evaluate(el => getComputedStyle(el.closest(".ant-tag")).color)
-    for (let i = 0; i < 20 && await tagColour() !== "rgb(169, 155, 234)"; i++) await page.waitForTimeout(100)
-    assert(await tagColour() === "rgb(169, 155, 234)", "sleeping has its own calm colour, not the error one")
+    for (let i = 0; i < 20 && await tagColour() !== "rgb(94, 80, 184)"; i++) await page.waitForTimeout(100)
+    assert(await tagColour() === "rgb(94, 80, 184)", "sleeping has its own calm colour, not the error one")
     assert(await twinRow.getByText("Sleeping").count() === 0, "the event twin doesn't follow its main's schedule")
     await bothWidths(page, "16-sleeping-row", "the roster with a sleeping account")
     await page.reload()
