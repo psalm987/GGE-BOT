@@ -66,5 +66,6 @@ export const campaignTheme: ThemeConfig = {
         Card: { headerBg: "transparent", headerFontSize: 17 },
         Table: { headerBg: palette.raised, headerColor: palette.muted, rowHoverBg: tint(0.05), rowSelectedBg: tint(0.08), rowSelectedHoverBg: tint(0.12) },
         Tabs: { inkBarColor: palette.accent, itemSelectedColor: palette.accent },
+        Progress: { defaultColor: palette.primary, remainingColor: palette.raised },
     },
 }
