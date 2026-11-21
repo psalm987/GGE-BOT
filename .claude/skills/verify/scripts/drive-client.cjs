@@ -1897,6 +1897,90 @@ async function driveUxNarrow(page) {
     await page.setViewportSize(WIDE_VIEW)
 }
 
+/** Start and Stop on a module page: the button turns to Stop, the Overview row agrees after a reload, Stop works, and the cases with no button. */
+async function driveUxStartStop(page, browser) {
+    const find = async name => (await rpc(page, "accounts/list")).find(a => a.name === name)
+    const ironhold = await find("Ironhold")
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/setDesiredState", { ids: [ironhold.id], state: "stopped" })
+    const start = page.getByRole("button", { name: "Start the bot" }), stop = page.getByRole("button", { name: "Stop the bot" })
+    const row = page.getByRole("row", { name: /^Select row\s+Ironhold/ })
+
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+    await start.waitFor()
+    assert(await stop.count() === 0 && await page.locator(".ant-card-extra .ant-tag").count() === 0, "a stopped account's page offers Start the bot, with no status tag")
+    await page.screenshot({ path: `${out}/90-ux-startstop-stopped-1440.png` })
+    await start.click()
+    await stop.waitFor()
+    assert((await find("Ironhold")).desiredState === "running", "Start the bot on a module page starts the account through the API")
+    assert(await page.getByText("Starting", { exact: true }).count() === 0, "the seeded status says running, so the page shows Stop the bot and no Starting tag")
+    await axe(page, "module page running 1440")
+    await page.screenshot({ path: `${out}/90-ux-startstop-running-1440.png` })
+
+    await page.reload()
+    await stop.waitFor()
+    assert(await stop.isVisible(), "after a reload the module page still offers Stop the bot")
+    await page.goto(CLIENT_URL)
+    await row.waitFor()
+    assert(await row.getByRole("button", { name: /Stop$/ }).isVisible() && await row.getByRole("button", { name: "Start Ironhold" }).count() === 0, "the Overview row agrees: it offers Stop")
+    await page.screenshot({ path: `${out}/91-ux-startstop-overview-running-1440.png` })
+
+    await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+    await stop.click()
+    await start.waitFor()
+    assert((await find("Ironhold")).desiredState === "stopped" && await page.getByText("Starting", { exact: true }).count() === 0, "Stop the bot on a module page stops the account")
+    await page.goto(CLIENT_URL)
+    await row.getByRole("button", { name: "Start Ironhold" }).waitFor()
+    assert(await row.getByRole("button", { name: /Stop$/ }).count() === 0, "the Overview row agrees: it offers Start and no Stop")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+    await start.waitFor()
+    await start.click()
+    await stop.waitFor()
+    await page.waitForTimeout(300)
+    await axe(page, "module page running 390")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on a module page with the button at 390")
+    await page.screenshot({ path: `${out}/92-ux-startstop-running-390.png` })
+    try {
+        await rpc(page, "account/setLocale", { locale: "ar" })
+        await page.setViewportSize(WIDE_VIEW)
+        await page.reload()
+        await page.getByRole("button", { name: "شغّل البوت" }).or(page.getByRole("button", { name: "أوقف البوت" })).waitFor()
+        assert(await page.evaluate(() => document.documentElement.dir) === "rtl" && await page.getByRole("button", { name: "أوقف البوت" }).isVisible(), "in Arabic the button reads أوقف البوت, right to left")
+        await axe(page, "module page running Arabic 1440")
+        await page.screenshot({ path: `${out}/93-ux-startstop-running-ar-1440.png` })
+    } finally {
+        await rpc(page, "account/setLocale", { locale: null })
+    }
+    await rpc(page, "accounts/setDesiredState", { ids: [ironhold.id], state: "stopped" })
+
+    const brightwater = await find("Brightwater")
+    await page.goto(`${CLIENT_URL}/m/towers?account=${brightwater.id}`)
+    await page.getByText(/^Over your plan limit\./).waitFor()
+    assert(await start.count() === 0 && await stop.count() === 0, "an account the plan doesn't cover shows the plan reason and no button")
+    await page.screenshot({ path: `${out}/94-ux-startstop-over-plan-1440.png` })
+    await axe(page, "module page over plan 1440")
+
+    const fresh = await verifiedPlayer("startstop")
+    const empty = await browser.newPage({ viewport: WIDE_VIEW })
+    try {
+        await empty.context().addCookies([asCookie(fresh.cookie, CLIENT_URL)])
+        await empty.goto(`${CLIENT_URL}/m/towers`)
+        await empty.getByText(/You have no accounts yet/).waitFor()
+        assert(await empty.getByRole("button", { name: "Start the bot" }).isDisabled(), "with no account the Start button is disabled")
+        await empty.getByRole("button", { name: "Start the bot" }).hover({ force: true })
+        const why = await empty.getByText("Add an account to start its bot.").waitFor().then(() => true, () => false)
+        assert(why, "and it says why: add an account to start its bot")
+        await axe(empty, "module page with no account 1440")
+        await empty.screenshot({ path: `${out}/95-ux-startstop-no-account-1440.png` })
+    } finally {
+        await empty.close()
+        await clientCall("account/deleteMe", { password: "a-strong-password", confirmUsername: fresh.name }, fresh.cookie)
+    }
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "ux-narrow") {
@@ -1907,6 +1991,17 @@ async function driveUxNarrow(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxNarrow(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "ux-startstop") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxStartStop(demo, browser)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -2401,6 +2496,7 @@ async function driveUxNarrow(page) {
     await drivePalette(seeded, browser)
     await driveSidebar(seeded)
     await driveUxNarrow(seeded)
+    await driveUxStartStop(seeded, browser)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
