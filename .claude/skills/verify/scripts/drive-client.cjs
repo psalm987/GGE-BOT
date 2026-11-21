@@ -1847,10 +1847,11 @@ async function drivePalette(page, browser) {
     await page.waitForFunction(() => document.documentElement.lang === "pl")
     assert(true, "a language entry switches the interface language (html lang is pl)")
     await page.keyboard.press(right)
-    // The interface is Polish now, so the search box has its Polish name; "automat" finds the Automatic entry in both languages.
+    // The interface is Polish now, so the search box has its Polish name. "automat" also finds Auto feast ("Automatyczne
+    // uczty"), so the Automatic language entry is picked by its Polish label, not by position.
+    const automaticPl = JSON.parse(require("fs").readFileSync(path.join(__dirname, "../../../../packages/i18n/catalogs/pl/common.json"), "utf8"))["language.automatic"]
     await page.getByRole("dialog").getByRole("combobox").fill("automat")
-    await page.getByRole("dialog").getByRole("option").first().waitFor()
-    await page.keyboard.press("Enter")
+    await page.getByRole("dialog").getByRole("option", { name: new RegExp(automaticPl) }).click()
     await page.waitForFunction(() => document.documentElement.lang === "en")
     assert(true, "the Automatic entry puts the language back")
 
