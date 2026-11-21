@@ -120,7 +120,7 @@ async function driveTowers(page) {
         await rpc(page, "virtualPresets/remove", { id: preset.id })
     for (const [, , plugin] of KINGDOMS.slice(1))
         await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options: {} })
-    await storePluginSettings({ accountName: "Ironhold", plugin: KINGDOMS[0][2], enabled: true, options: { useFeather: true, useCoin: false, useShields: true, attackWaves: "4" } })
+    await storePluginSettings({ accountName: "Ironhold", plugin: KINGDOMS[0][2], enabled: true, options: { useFeather: true, useCoin: false, useShields: true, attackWaves: "4", toolBudgetPerDay: 900 } })
 
     const panel = short => page.locator(`section.gge-kingdom[aria-label="${short}"]`)
     const chosen = async (scope, name) => (await scope.getByRole("combobox", { name, exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
@@ -183,8 +183,8 @@ async function driveTowers(page) {
     await slider.focus()
     await page.keyboard.press("ArrowRight")
     assert(await radius.getByRole("spinbutton").inputValue() === "81", "an arrow key on the slider moves the field to 81")
-    for (const label of ["Most attacks a day", "Tool budget a day"])
-        assert(await green.getByRole("slider", { name: label }).count() === 1, `${label} has a slider beside its field`)
+    assert(await green.getByRole("slider", { name: "Most attacks a day" }).count() === 1, "Most attacks a day has a slider beside its field")
+    assert(await page.getByText("Tool budget a day").count() === 0, "the daily tool budget is gone from the page")
     await green.locator(".ant-form-item", { has: page.getByText("Most attacks a day", { exact: true }) }).getByRole("spinbutton").fill("25")
     await pickOption(green, "Tower filter", "Non-maxed only")
 
@@ -229,7 +229,7 @@ async function driveTowers(page) {
     const savedGreen = await stored(KINGDOMS[0][2]), savedIce = await stored(KINGDOMS[2][2]), savedSands = await stored(KINGDOMS[1][2])
     const sorted = options => JSON.stringify(Object.entries(options).sort(([a], [b]) => a.localeCompare(b)))
     assert(sorted(savedGreen.options) === sorted({ sourceCastle: { kingdom: 0, id: 1002 }, towerFilter: 2, searchRadius: 81, maxPerDay: 25, horse: 2, tools: 2, attackWaves: 4 }),
-        `Green saves the new options and none of the old ones: ${JSON.stringify(savedGreen.options)}`)
+        `Green saves the new options and none of the old ones, the old tool budget included: ${JSON.stringify(savedGreen.options)}`)
     assert(savedIce.enabled && savedIce.options.horse === 2 && !savedSands.enabled && savedSands.options.horse === 2, "each kingdom saves by itself: Ice on with the feather, Sands still off")
     await open()
     assert(await chosen(panel("Green"), "Tower filter") === "Non-maxed only" && await panel("Green").getByRole("slider", { name: "Search radius" }).getAttribute("aria-valuenow") === "81"
@@ -1774,6 +1774,70 @@ async function drivePalette(page, browser) {
 }
 
 /**
+ * Towers auto-buy: the Armourer group on a kingdom (switch, minimum tools, coin limits), the old daily tool budget gone from the page
+ * and from what is saved, the values saved and read back through the API and after a reload, and axe at 1440, 390 and in Arabic.
+ * A config stored with toolBudgetPerDay opens without it. The runner is off, so nothing buys anything.
+ */
+async function driveUxAutobuy(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    const plugin = "attackBarronsGreatEmpire"
+    await rpc(page, "account/setLocale", { locale: null })
+    await storePluginSettings({ accountName: "Ironhold", plugin, enabled: true, options: { tools: 2, toolBudgetPerDay: 900 } })
+    const green = page.locator("section.gge-kingdom").first()
+    const field = label => green.locator(".ant-form-item", { has: page.getByText(label, { exact: true }) })
+    const open = async () => {
+        await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
+        await green.waitFor()
+        await page.waitForTimeout(300)
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    await open()
+    assert(await page.getByText("Tool budget a day").count() === 0, "a config stored with a daily tool budget opens without that option")
+    assert(await green.getByText("Armourer", { exact: true }).isVisible(), "the kingdom has an Armourer group")
+    const autoBuy = green.getByRole("checkbox", { name: "Auto-buy from the armourer" })
+    assert(await autoBuy.isVisible() && !(await autoBuy.isChecked()), "Auto-buy from the armourer is there and off")
+    assert(await green.getByText("Minimum tools", { exact: true }).isVisible() === false && await green.getByText("Coins to keep", { exact: true }).isVisible() === false, "the minimum and the coin limits stay hidden while Auto-buy is off")
+    assert(await page.locator(".gge-savebar").count() === 0, "reading the old config changes nothing by itself")
+    await autoBuy.check()
+    await field("Minimum tools").waitFor()
+    assert(await field("Minimum tools").getByRole("spinbutton").inputValue() === "1000", "ticking Auto-buy shows Minimum tools at 1000")
+    assert(await green.getByText("Coins to keep", { exact: true }).isVisible() && await green.getByText("Most coins spent on them in one check", { exact: true }).isVisible(), "and the coin floor and the spend cap")
+    assert(await green.getByText("buys the difference from the armourer with coins", { exact: false }).isVisible(), "the switch has its help text")
+    await field("Minimum tools").getByRole("spinbutton").fill("2500")
+    await field("Coins to keep").getByRole("spinbutton").fill("50000")
+    await field("Minimum tools").getByRole("spinbutton").blur()
+    await axe(page, "towers auto-buy 1440")
+    await page.screenshot({ path: `${out}/81-ux-autobuy-1440.png`, fullPage: true })
+    await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const saved = (await account()).plugins[plugin]
+    assert(saved.enabled && saved.options.autoBuy === true && saved.options.autoBuyMin === 2500 && saved.options.armourerCoinFloor === 50000 && saved.options.tools === 2 && !("toolBudgetPerDay" in saved.options),
+        `the API holds Auto-buy on, 2500 minimum and a 50000 floor, and no tool budget: ${JSON.stringify(saved.options)}`)
+    await open()
+    assert(await autoBuy.isChecked() && await field("Minimum tools").getByRole("spinbutton").inputValue() === "2500" && await field("Coins to keep").getByRole("spinbutton").inputValue() === "50000", "after a reload the switch, the minimum and the floor are as saved")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers with Auto-buy at 390")
+    await axe(page, "towers auto-buy 390")
+    await page.screenshot({ path: `${out}/81-ux-autobuy-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await open()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await green.getByText("الشراء التلقائي من صانع الأسلحة", { exact: true }).isVisible() && await green.getByText("الحد الأدنى للأدوات", { exact: true }).isVisible(), "in Arabic the Auto-buy switch and Minimum tools are translated")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on Towers with Auto-buy in Arabic")
+    await axe(page, "towers auto-buy Arabic 1440")
+    await page.screenshot({ path: `${out}/81-ux-autobuy-ar-1440.png`, fullPage: true })
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+}
+
+/**
  * The narrowing and the words: no Setup checks and no Simple/Advanced toggle on a module page, wolves instead of dogs, clicks
  * instead of tiles (Feather beyond and the search radius), the preset count and the disabled New button at the limit, and a
  * sidebar that keeps its scroll position across a group toggle, a module, and a move to another page.
@@ -1991,6 +2055,17 @@ async function driveUxStartStop(page, browser) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxNarrow(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "ux-autobuy") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxAutobuy(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -2497,6 +2572,7 @@ async function driveUxStartStop(page, browser) {
     await driveSidebar(seeded)
     await driveUxNarrow(seeded)
     await driveUxStartStop(seeded, browser)
+    await driveUxAutobuy(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
