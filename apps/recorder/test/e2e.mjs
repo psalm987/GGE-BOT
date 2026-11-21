@@ -38,6 +38,7 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const GAME_HTML = `<!doctype html><meta charset="utf-8"><style>body{margin:0;font:14px sans-serif}canvas{display:block}</style>
 <canvas id="game" width="${CANVAS.w}" height="${CANVAS.h}" tabindex="0"></canvas>
 <input id="chat" placeholder="chat">
+<input id="pass" type="password" placeholder="password">
 <script>
 const colours = ${JSON.stringify(COLOURS)}
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d")
@@ -211,6 +212,8 @@ await game.keyboard.press("m")
 await game.keyboard.press("Escape")
 await gameFrame.click("#chat")
 await game.keyboard.type("pw9")
+await gameFrame.focus("#pass")
+await game.keyboard.type("s3cret!")
 await sleep(900)
 await game.screenshot({ path: join(evidence, "04-game-after-three-clicks.png") })
 
@@ -290,7 +293,7 @@ downs.forEach((down, i) => {
 check(of("rx", e => e.cmd === "gcu").length === 1, "the unsolicited gcu push is recorded")
 
 const keys = of("in", e => e.type === "key").map(e => e.key)
-check(keys.join() === "<char>,Escape,<text>,<text>,<text>", `a printable key is never recorded by value, a named key keeps its name (${keys.join()})`)
+check(keys.join() === "<char>,Escape,<text>,<text>,<text>", `a printable key is never recorded by value, a named key keeps its name, and a password box records no keys at all (${keys.join()})`)
 
 const marks = of("life", e => e.what === "mark")
 check(marks.length === 1 && marks[0].note === "start: buy 10 rams", "the marker is a life: mark with its note")

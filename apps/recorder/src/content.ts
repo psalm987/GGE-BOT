@@ -45,7 +45,8 @@ function main() {
     input("up", { btn: ev.button })
   })
   listen("keydown", ev => {
-    if (ev.repeat) return
+    // The count of keys at one field's position, and the shot each key takes, would give away the password's length.
+    if (ev.repeat || (ev.target instanceof HTMLInputElement && ev.target.type === "password")) return
     // The game may draw its own text boxes on the canvas, so a printable key is never recorded by value anywhere.
     input("key", { key: isTextField(ev.target) ? TEXT_KEY : ev.key.length === 1 ? CHAR_KEY : ev.key })
   })

@@ -10,7 +10,7 @@ Read this part first, and record only if you agree with it.
 
 The recorder saves three things:
 
-- Your clicks, key presses, and scrolls in the game tab. For a key pressed in a text box, the recorder saves only that a key was pressed, not which key.
+- Your clicks, key presses, and scrolls in the game tab. For a key pressed in a text box, the recorder saves only that a key was pressed, not which key. For a password box it saves nothing at all and takes no screenshot for those keys, though a screenshot from a later click can still show the dots in the box.
 - Every message between the game and its server on the recorded tab.
 - A screenshot of the game tab before and after each click or key press, and one for each marker.
 
