@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 import {
-    Army, ManualPlan, PluginCatalogEntry, PluginSettingsError, SkipTypes, WavePlan, effectivePluginConfig, emptyCustomWave, emptyPlan, normalizePluginSettings,
+    Army, ManualPlan, PluginCatalogEntry, PluginSettingsError, SkipTypes, WavePlan, effectivePluginConfig, emptyCustomWave, emptyPlan, emptyWave, normalizePluginSettings,
     serverPresetsIn, waveIsEmpty,
 } from "../src/index.ts"
 
@@ -16,6 +16,11 @@ describe("WavePlan", () => {
         expect([empty.waves.length, empty.ast.length, empty.rw.length]).toEqual([4, 3, 8])
     })
 
+    test.each([1, 4, 6, 25])("a plan of %i waves is valid", length => {
+        const stored = { ...emptyPlan(), waves: Array.from({ length }, emptyWave) }
+        expect(ManualPlan.parse(stored)).toEqual(stored)
+    })
+
     test("a custom wave has 2 tools and 2 units a flank, and 3 tools and 6 units in front", () => {
         const wave = emptyCustomWave()
         expect([wave.left.tools.length, wave.left.units.length, wave.front.tools.length, wave.front.units.length, wave.right.tools.length, wave.right.units.length]).toEqual([2, 2, 3, 6, 2, 2])
@@ -24,7 +29,8 @@ describe("WavePlan", () => {
     })
 
     test.each([
-        ["a fifth wave", { ...emptyPlan(), waves: [...emptyPlan().waves, { kind: "preset", preset: 0 }] }],
+        ["a twenty-sixth wave", { ...emptyPlan(), waves: Array.from({ length: 26 }, emptyWave) }],
+        ["no waves", { ...emptyPlan(), waves: [] }],
         ["preset 31", { ...emptyPlan(), waves: [{ kind: "preset", preset: 31 }, ...emptyPlan().waves.slice(1)] }],
         ["a third flank unit", { ...emptyPlan(), waves: [{ ...emptyCustomWave(), left: { tools: [null, null], units: [null, null, null] } }, ...emptyPlan().waves.slice(1)] }],
         ["an amount of 0", { ...emptyPlan(), rw: [{ item: 601, amount: 0 }, ...emptyPlan().rw.slice(1)] }],

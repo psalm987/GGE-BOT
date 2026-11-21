@@ -45,7 +45,10 @@ export const Autofill = z.object({
 export type Autofill = z.infer<typeof Autofill>
 
 export const SERVER_PRESETS = 30
-export const MAX_WAVES = 4
+/** A plan holds 1 to 25 waves, 4 to begin with. The game sends fewer: its cap follows the target's level and the commander. */
+export const MIN_WAVES = 1
+export const MAX_WAVES = 25
+export const DEFAULT_WAVES = 4
 export const SUPPORT_TOOL_SLOTS = 3
 export const COURTYARD_SLOTS = 8
 export const MAX_SLOT_AMOUNT = 100_000
@@ -70,10 +73,10 @@ export const Wave = z.discriminatedUnion("kind", [
 ])
 export type Wave = z.infer<typeof Wave>
 
-/** Waves 1 to 4 (the fourth repeats for any wave after it), the support tools and the courtyard. */
+/** Waves 1 to 25 (the last one repeats for any wave the game adds after it), the support tools and the courtyard. */
 export const ManualPlan = z.object({
     kind: z.literal("manual"),
-    waves: z.array(Wave).length(MAX_WAVES),
+    waves: z.array(Wave).min(MIN_WAVES).max(MAX_WAVES),
     ast: z.array(ItemId.nullable()).length(SUPPORT_TOOL_SLOTS),
     rw: z.array(ArmySlot).length(COURTYARD_SLOTS),
 })
@@ -99,7 +102,7 @@ export const emptyCustomWave = (): Extract<Wave, { kind: "custom" }> =>
     ({ kind: "custom", left: emptyFlank(WAVE_SLOTS.left), front: emptyFlank(WAVE_SLOTS.front), right: emptyFlank(WAVE_SLOTS.right) })
 export const emptyPlan = (): ManualPlan => ({
     kind: "manual",
-    waves: Array.from({ length: MAX_WAVES }, emptyWave),
+    waves: Array.from({ length: DEFAULT_WAVES }, emptyWave),
     ast: Array<number | null>(SUPPORT_TOOL_SLOTS).fill(null),
     rw: Array<ArmySlot>(COURTYARD_SLOTS).fill(null),
 })

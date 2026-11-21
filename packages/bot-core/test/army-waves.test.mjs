@@ -1,6 +1,6 @@
 import { createRequire } from "node:module"
 import { afterEach, describe, expect, test, vi } from "vitest"
-import { ManualPlan, emptyCustomWave, emptyPlan } from "@gge/contracts"
+import { ManualPlan, emptyCustomWave, emptyPlan, emptyWave } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
 const { barons, fortress, melee, ranged, tool } = require("./harness/army-bots.cjs")
@@ -58,6 +58,40 @@ describe("a stored wave plan becomes the cra", () => {
         expect(cra.A).toHaveLength(6)
         expect(cra.A[4]).toEqual(cra.A[3])
         expect(cra.A[5]).toEqual(cra.A[3])
+    })
+
+    test("a six-wave plan sends all six waves while the commander adds two, each as written", async () => {
+        const stored = plan()
+        const fifth = emptyCustomWave()
+        fifth.left.units = [slot(MELEE, 15), null]
+        const sixth = emptyCustomWave()
+        sixth.right.tools = [slot(LADDER, 7), null]
+        sixth.right.units = [slot(RANGED, 12), null]
+        stored.waves = [...stored.waves, fifth, sixth]
+        const { cra } = await barons(waves(stored), { inventory: inventory(), effects: { additionalWaves: 2 } })
+        expect(cra.A).toHaveLength(6)
+        expect(cra.A[3]).toEqual({ ...emptyCraWave, M: { T: [EMPTY, EMPTY, EMPTY], U: [[RANGED, 40], EMPTY, EMPTY, EMPTY, EMPTY, EMPTY] } })
+        expect(cra.A[4]).toEqual({ ...emptyCraWave, L: { T: [EMPTY, EMPTY], U: [[MELEE, 15], EMPTY] } })
+        expect(cra.A[5]).toEqual({ ...emptyCraWave, R: { T: [[LADDER, 7], EMPTY], U: [[RANGED, 12], EMPTY] } })
+    })
+
+    test("a six-wave plan sends only the waves the game allows, the first four at level 70", async () => {
+        const stored = plan()
+        const fifth = emptyCustomWave()
+        fifth.left.units = [slot(MELEE, 15), null]
+        stored.waves = [...stored.waves, fifth, fifth]
+        const { cra } = await barons(waves(stored), { inventory: inventory() })
+        expect(cra.A).toEqual((await barons(waves(), { inventory: inventory() })).cra.A)
+    })
+
+    test("a wave copied to the rest sends the same slots in every wave", async () => {
+        const stored = plan()
+        stored.waves = Array.from({ length: 6 }, () => structuredClone(stored.waves[0]))
+        const { cra, castle } = await barons(waves(stored), { inventory: inventory(), effects: { additionalWaves: 2 } })
+        const copy = { L: { T: [[LADDER, 10], [MANTLET, 5]], U: [[RANGED, 30], [MELEE, 10]] }, M: { T: [[RAM, 8], EMPTY, EMPTY], U: [[MELEE, 100], EMPTY, EMPTY, EMPTY, EMPTY, EMPTY] }, R: emptySide(2, 2) }
+        expect(cra.A).toEqual(Array(6).fill(copy))
+        const held = Object.fromEntries(castle.unitInventory.map(unit => [unit.unitInfo.wodID, unit.amount]))
+        expect(held).toMatchObject({ [MELEE]: 900 - 6 * 110 - 50, [RANGED]: 800 - 6 * 30 - 25, [LADDER]: 400 - 60, [MANTLET]: 400 - 30, [RAM]: 400 - 48 })
     })
 
     test("an amount above what a side holds fills the side, and no more", async () => {
@@ -138,6 +172,10 @@ describe("the bot's plan check agrees with the contracts", () => {
         ["a filled plan", plan()],
         ["a fifth wave", { ...emptyPlan(), waves: [...emptyPlan().waves, { kind: "preset", preset: 0 }] }],
         ["three waves", { ...emptyPlan(), waves: emptyPlan().waves.slice(1) }],
+        ["one wave", { ...emptyPlan(), waves: emptyPlan().waves.slice(3) }],
+        ["twenty-five waves", { ...emptyPlan(), waves: Array.from({ length: 25 }, () => emptyWave()) }],
+        ["twenty-six waves", { ...emptyPlan(), waves: Array.from({ length: 26 }, () => emptyWave()) }],
+        ["no waves", { ...emptyPlan(), waves: [] }],
         ["preset 31", { ...emptyPlan(), waves: [{ kind: "preset", preset: 31 }, ...emptyPlan().waves.slice(1)] }],
         ["a third flank unit", { ...emptyPlan(), waves: [{ ...first(), left: { tools: [null, null], units: [null, null, null] } }, ...emptyPlan().waves.slice(1)] }],
         ["a missing side", { ...emptyPlan(), waves: [{ kind: "custom", left: first().left, front: first().front }, ...emptyPlan().waves.slice(1)] }],

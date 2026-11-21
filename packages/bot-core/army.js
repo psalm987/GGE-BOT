@@ -41,7 +41,8 @@ const unitOrderOption = (unitOrder = "castle") =>
 const supplyOption = () => ({ type: "Select", key: "supply", selection: SUPPLY_CHOICES, default: 0, army: "autofill" })
 const horseOption = horse => ({ type: "Select", key: "horse", selection: HORSE_CHOICES, default: horse })
 
-const MAX_WAVES = 4
+const MIN_WAVES = 1
+const MAX_WAVES = 25
 const SUPPORT_TOOL_SLOTS = 3
 const COURTYARD_SLOTS = 8
 const SERVER_PRESETS = 30
@@ -72,7 +73,7 @@ const isWave = wave => isObject(wave) && (
         : wave.kind == "custom" && SIDES.every(([side]) => isFlank(wave[side], WAVE_SLOTS[side])))
 /** Whether `plan` is a written-out wave plan, as @gge/contracts' ManualPlan defines one. */
 const isManualPlan = plan => isObject(plan) && plan.kind == "manual" &&
-    Array.isArray(plan.waves) && plan.waves.length == MAX_WAVES && plan.waves.every(isWave) &&
+    Array.isArray(plan.waves) && isInt(plan.waves.length, MIN_WAVES, MAX_WAVES) && plan.waves.every(isWave) &&
     Array.isArray(plan.ast) && plan.ast.length == SUPPORT_TOOL_SLOTS && plan.ast.every(item => item === null || isInt(item, 1, Infinity)) &&
     isSlots(plan.rw, COURTYARD_SLOTS)
 
@@ -128,7 +129,7 @@ const fitsSide = (info, key) => info.slotTypes?.split(",").includes(key == "M" ?
 
 /**
  * Fills the empty `cra` that `getAttackInfo` built from a wave plan, taking what it sends out of `inventory`.
- * Wave 4 of the plan repeats for every wave after it. A slot never gets more than its side has room for:
+ * The plan's last wave repeats for every wave after it. A slot never gets more than its side has room for:
  * `room` is `{ flankUnits, frontUnits, flankTools, frontTools, courtyard }` for this target and commander, and a
  * slot the target's level hasn't opened is left out. Support tools the castle lacks are left out too.
  *
@@ -158,7 +159,7 @@ function fillFromPlan(attackInfo, plan, inventory, room) {
     }
 
     attackInfo.A.forEach((wave, i) => {
-        const planned = plan.waves[Math.min(i, MAX_WAVES - 1)]
+        const planned = plan.waves[Math.min(i, plan.waves.length - 1)]
         if (planned.kind != "custom")
             return
         for (const [side, key] of SIDES) {
