@@ -31,7 +31,7 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Daily bonus claimed, share of attempts",
+      "title": "Daily bonus claimed or already taken, share of days",
       "gridPos": {
         "x": 0,
         "y": 0,
@@ -51,7 +51,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(bot_daily_bonus_total{result=\"claimed\"}[$__range])) / sum(increase(bot_daily_bonus_total[$__range]))",
+          "expr": "sum(increase(bot_daily_bonus_total{result=~\"claimed|already\"}[$__range])) / sum(increase(bot_daily_bonus_total[$__range]))",
           "instant": true
         }
       ]

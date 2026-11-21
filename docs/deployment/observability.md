@@ -33,7 +33,7 @@ Every dashboard links to the others from its top bar. The Postgres panels read t
 | `bot_game_rtt_seconds` | workers | `command` |
 | `bot_send_wait_seconds` | workers | none |
 | `bot_gaa_cache_total` | workers | `result` (hit, miss) |
-| `bot_daily_bonus_total` | workers with the Daily login bonus plugin on | `result` (claimed, refused, no_reply) |
+| `bot_daily_bonus_total` | workers with the Daily login bonus plugin on | `result` (claimed, refused, no_reply, already, no_offer) |
 | `bot_tax_collect_total` | workers with the Tax collector plugin on | `result` (collected, refused, no_reply) |
 | `bot_inbound_gap_seconds` | workers | none |
 | `bot_workers` | runner, from `bot_status` | `state` |
