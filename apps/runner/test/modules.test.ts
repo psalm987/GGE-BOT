@@ -43,6 +43,11 @@ test("a module laid out by kingdom names the kingdom of each plugin, which is th
     expect(MODULES.find(m => m.id === "towers")).toMatchObject({ kingdoms: [0, 1, 2, 3], plugins: ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"] })
 })
 
+test("the wheel spin module is live and edits the wheelSpin plugin", () => {
+    expect(MODULES.find(m => m.id === "wheel-spin")).toMatchObject({ status: "live", plugins: ["wheelSpin"], group: "account" })
+    expect(shown).toContain("wheelSpin")
+})
+
 test("every setting a module says is still to come has its English name and description", () => {
     for (const module of MODULES) for (const item of module.global?.soon ?? []) for (const part of ["name", "description"])
         expect(en[`modules.${module.id}.soon.${item}.${part}`], `${module.id} ${item} ${part}`).toBeTruthy()

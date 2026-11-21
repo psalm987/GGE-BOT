@@ -95,7 +95,7 @@ export const MODULES: readonly ModuleDef[] = [
     soon("live-view", "overview", "all-seeing-eye"),
     soon("castle-manager", "account", "castle"),
     soon("offer-buyer", "account", "shopping-cart"),
-    soon("wheel-spin", "account", "tarot-10-wheel-of-fortune"),
+    live("wheel-spin", "account", "tarot-10-wheel-of-fortune", ["wheelSpin"]),
     soon("overseers", "account", "overlord-helm"),
     soon("food-manager", "account", "bread"),
     live("messages", "account", "envelope", ["chat"]),
