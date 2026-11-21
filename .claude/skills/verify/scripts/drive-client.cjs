@@ -241,7 +241,7 @@ async function driveTowers(page) {
     await panel("Green").locator(".ant-form-item", { has: page.getByText("Most attacks a day", { exact: true }) }).getByRole("spinbutton").fill("3900")
     assert(await global.getByText("The kingdoms that are on ask for 3900 attacks a day between them. The account's cap of 3500 still holds.").isVisible(), "kingdoms that ask for more than the account's cap get a warning on the card")
     await page.locator(".gge-savebar").getByRole("button", { name: "Discard changes" }).click()
-    assert(await global.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/m/account-settings?account=${ironhold.id}`, "and links to Account settings")
+    assert(await global.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/?account=${ironhold.id}&tab=account-settings`, "and links to Account settings")
     const soon = await global.locator("li[data-soon]").allInnerTexts()
     assert(soon.length === 4 && soon.every(text => text.includes("Coming soon")) && ["Loot priority", "Stop after a defeat", "Speed bonus", "VIP commanders"].every((name, i) => soon[i].startsWith(name)),
         "loot priority, stop after a defeat, the speed bonus and VIP commanders are listed as coming soon")
@@ -514,7 +514,7 @@ async function driveEventCamps(page) {
 
     const card = page.locator(".ant-card", { has: page.getByText("All events", { exact: true }) })
     assert((await card.getByText(/attacks in 24 hours/).innerText()).startsWith("3500"), "the All events card shows the account's daily cap")
-    assert(await card.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/m/account-settings?account=${ironhold.id}`, "and links to Account settings")
+    assert(await card.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/?account=${ironhold.id}&tab=account-settings`, "and links to Account settings")
     const usage = (await card.locator("li[data-commanders]").innerText()).replace(/\s+/g, " ")
     assert(usage.includes("18 configured · 18 maximum · 0 remaining"), `the card counts the commanders of the events that are on: ${usage}`)
     const soon = await card.locator("li[data-soon]").allInnerTexts()
@@ -1201,6 +1201,12 @@ async function driveSidebar(page) {
     await page.goto(`${CLIENT_URL}/?account=${ironhold.id}&plugin=attackKhan`)
     await page.waitForURL(url => url.pathname === "/m/khan")
     assert(new URL(page.url()).searchParams.get("account") === ironhold.id, "an old ?account=&plugin= link lands on the module page for that account")
+
+    await page.goto(`${CLIENT_URL}/m/account-settings?account=${ironhold.id}`)
+    await page.getByRole("dialog").getByRole("tab", { name: "Account settings", selected: true }).waitFor()
+    assert(await nav.getByRole("link", { name: /Account settings/ }).count() === 0, "the old Account settings module address opens the account's panel on Account settings, and the sidebar lists no such module")
+    await page.keyboard.press("Escape")
+    await drawerClosed(page)
 
     await openModule(page, "Khan")
     const waves = page.getByLabel("Stop at this score", { exact: true })
@@ -2158,6 +2164,133 @@ async function driveUxStartStop(page, browser) {
     }
 }
 
+/** Account settings moved out of the sidebar into a cog on each Overview row and a tab of the account's side panel. */
+async function driveUxAccountSettings(page) {
+    const find = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await find()
+    const original = Object.fromEntries(["attack", "skips", "shutoffTimer"].map(key => [key, ironhold.plugins[key] ?? { enabled: false, options: {} }]))
+    const drawer = page.getByRole("dialog")
+    const row = page.getByRole("row", { name: /^Select row\s+Ironhold/ })
+    const tabName = () => drawer.getByRole("tab", { selected: true }).innerText()
+    const cog = row.getByRole("button", { name: "Account settings for Ironhold" })
+    const limit = () => drawer.getByLabel("Daily attack limit", { exact: true })
+    const saveBar = page.locator(".gge-savebar")
+    const stored = async key => (await find()).plugins[key]
+    // A panel opened from the address can still count its first load as an edit, so the guard may ask once.
+    const closePanel = async () => {
+        await drawer.getByRole("button", { name: "Close", exact: true }).first().click()
+        await page.locator(".ant-modal-confirm-title", { hasText: "Discard your changes?" }).waitFor({ timeout: 1500 }).then(() => page.getByRole("button", { name: "Discard" }).click(), () => {})
+        await drawerClosed(page)
+    }
+    const reopen = async () => {
+        await page.goto(CLIENT_URL)
+        await cog.click()
+        await limit().waitFor()
+    }
+    try {
+        await rpc(page, "account/setLocale", { locale: null })
+        await page.setViewportSize(WIDE_VIEW)
+        await page.goto(CLIENT_URL)
+        await row.waitFor()
+        const nav = page.getByRole("navigation", { name: "Modules" })
+        assert(await nav.getByRole("link", { name: /Account settings/ }).count() === 0, "the sidebar no longer has an Account settings module")
+        assert(await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`).then(() => true) && await page.getByRole("link", { name: "Change it in Account settings" }).getAttribute("href") === `/?account=${ironhold.id}&tab=account-settings`, "Towers' All kingdoms card links to the account's Account settings tab")
+        await page.getByRole("link", { name: "Change it in Account settings" }).click()
+        await limit().waitFor()
+        assert(await tabName() === "Account settings" && new URL(page.url()).search === "", "that link opens the side panel on Account settings and takes the address parameters off")
+        await page.keyboard.press("Escape")
+        await drawerClosed(page)
+
+        await page.goto(CLIENT_URL)
+        await row.waitFor()
+        await cog.click()
+        await limit().waitFor()
+        assert(await tabName() === "Account settings", "the cog on an Overview row opens the side panel on Account settings")
+        assert(await page.locator("form form").count() === 0, "the tab's forms are not nested in the panel's form")
+        const names = await drawer.locator(".gge-account-settings .ant-card-head-title").allInnerTexts()
+        assert(["Attack", "Time skips", "Shutoff timer"].every((name, i) => names[i] === name), `it holds Attack, Time skips and Shutoff timer: ${names}`)
+        await axe(page, "account settings tab 1440")
+        await page.screenshot({ path: `${out}/96-ux-account-settings-1440.png` })
+
+        const before = await limit().inputValue()
+        const next = before === "3300" ? "3200" : "3300"
+        await limit().fill(next)
+        await drawer.getByLabel("Seconds between attacks", { exact: true }).fill("5")
+        await saveBar.waitFor()
+        await axe(page, "account settings tab unsaved 1440")
+        await page.screenshot({ path: `${out}/96-ux-account-settings-unsaved-1440.png` })
+        await page.getByRole("button", { name: "Close" }).first().click()
+        await page.locator(".ant-modal-confirm-title", { hasText: "Discard your changes?" }).waitFor()
+        await page.getByRole("button", { name: "Keep editing" }).click()
+        assert(await limit().inputValue() === next, "closing the panel with an unsaved change asks first, and Keep editing keeps it")
+        await saveBar.getByRole("button", { name: "Save" }).click()
+        await saveBar.waitFor({ state: "detached" })
+        const attack = await stored("attack")
+        assert(attack.options.attackLimit === next && attack.options.attackDelaySeconds === "5", `Save stores the options through the API: ${JSON.stringify(attack.options)}`)
+
+        await drawer.getByRole("tab", { name: "Settings", exact: true }).click()
+        await drawer.getByRole("button", { name: "Save changes" }).click()
+        await drawerClosed(page)
+        assert((await stored("attack")).options.attackLimit === next, "saving the connection tab afterwards does not put the old Account settings back")
+
+        await page.reload()
+        await cog.click()
+        await limit().waitFor()
+        assert(await limit().inputValue() === next && await drawer.getByLabel("Seconds between attacks", { exact: true }).inputValue() === "5", "after a reload the saved values are in the tab")
+
+        const shutoff = drawer.getByRole("switch", { name: "Enable Shutoff timer" })
+        await shutoff.setChecked(!(await shutoff.isChecked()))
+        const wasOn = await shutoff.isChecked()
+        await drawer.getByLabel("Hours until the bot stops", { exact: true }).fill("3")
+        await saveBar.getByRole("button", { name: "Save" }).click()
+        await saveBar.waitFor({ state: "detached" })
+        const timer = await stored("shutoffTimer")
+        assert(timer.enabled === wasOn && timer.options.hours === "3", `the Shutoff timer's switch and hours save: ${JSON.stringify(timer)}`)
+
+        await drawer.getByLabel("Daily attack limit", { exact: true }).fill("2900")
+        await page.getByRole("button", { name: "Discard changes" }).click()
+        assert(await limit().inputValue() === next, "Discard changes puts the saved value back")
+        await page.keyboard.press("Escape")
+        await drawerClosed(page)
+
+        for (const link of [`/m/account-settings?account=${ironhold.id}`, `/?account=${ironhold.id}&plugin=attack`, `/?account=${ironhold.id}&plugin=skips`]) {
+            await page.goto(CLIENT_URL + link)
+            await limit().waitFor()
+            assert(await tabName() === "Account settings" && new URL(page.url()).pathname === "/" && new URL(page.url()).search === "", `the old link ${link.replace(ironhold.id, "<id>")} lands on the panel's Account settings tab`)
+            await closePanel()
+        }
+        await page.goto(`${CLIENT_URL}/?account=${ironhold.id}`)
+        await drawer.getByRole("tab", { name: "Overview", selected: true }).waitFor()
+        assert(true, "the Edit button's plain /?account= link still opens on Overview")
+        await closePanel()
+
+        await page.setViewportSize(PHONE_VIEW)
+        await reopen()
+        assert(await tabName() === "Account settings", "at 390 the cog opens the same tab")
+        await limit().fill("2800")
+        await saveBar.waitFor()
+        await axe(page, "account settings tab 390")
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on the tab at 390")
+        await page.screenshot({ path: `${out}/97-ux-account-settings-390.png` })
+        await page.getByRole("button", { name: "Discard changes" }).click()
+
+        await rpc(page, "account/setLocale", { locale: "ar" })
+        await page.setViewportSize(WIDE_VIEW)
+        await page.reload()
+        await page.getByRole("button", { name: "إعدادات الحساب Ironhold" }).click()
+        await drawer.getByRole("tab", { selected: true }).filter({ hasText: "إعدادات الحساب" }).waitFor()
+        assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the tab reads إعدادات الحساب, right to left")
+        await axe(page, "account settings tab Arabic 1440")
+        await page.screenshot({ path: `${out}/98-ux-account-settings-ar-1440.png` })
+    } finally {
+        await rpc(page, "account/setLocale", { locale: null })
+        for (const [plugin, { enabled, options }] of Object.entries(original))
+            await storePluginSettings({ accountName: "Ironhold", plugin, enabled, options })
+    }
+    const back = await find()
+    assert(JSON.stringify(back.plugins.attack ?? null) === JSON.stringify(original.attack) || !ironhold.plugins.attack, "Ironhold's account settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "ux-narrow") {
@@ -2190,6 +2323,17 @@ async function driveUxStartStop(page, browser) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxStartStop(demo, browser)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "ux-account-settings") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxAccountSettings(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
