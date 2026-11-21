@@ -1,6 +1,7 @@
 const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { towerAttackLine } = require("../../attackLog.js")
+const { spendOptions } = require("../../stockOptions.js")
 
 const AUTOFILL = {
     sides: { left: "attackLeft", front: "attackMiddle", right: "attackRight", courtyard: "attackCourtyard" },
@@ -15,6 +16,10 @@ const AUTOFILL = {
 const BARON_HORSES = ["none", "coin", "feather", "distance"]
 /** What the `tools` Select sends in the first wave: nothing, wall tools, or wall tools with shields beside them. */
 const TOOL_SETS = ["none", "ladders", "all"]
+/** The tools the armoury tops up for each choice of the `tools` Select: ladders, and with rams and mantlets also 611 and 620. */
+const AUTO_BUY_TOOLS = { none: [], ladders: [614], all: [614, 611, 620] }
+/** The stock is looked at again no sooner than this, in milliseconds, so a refused or capped buy is not tried at every attack. */
+const AUTO_BUY_RECHECK_MS = 5 * 60_000
 const WAVE_COUNTS = ["All waves", "1 wave", "2 waves", "3 waves", "4 waves"]
 
 /**
@@ -28,7 +33,6 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Number", key: "searchRadius", min: 10, max: 100, unit: "clicks", display: "slider", default: 50 },
     { type: "Label", key: "limitSettings" },
     { type: "Number", key: "maxPerDay", min: 0, max: 4000, unit: "attacks", display: "slider", default: 0 },
-    { type: "Number", key: "toolBudgetPerDay", min: 0, max: 10000, unit: "tools", display: "slider", default: 0 },
     { type: "Number", key: "attacksPerHour", min: 0, max: 600, unit: "attacks", default: 0 },
     { type: "Label", key: "horseSettings" },
     {
@@ -59,6 +63,10 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Checkbox", key: "attackCourtyard", default: false, army: "autofill" },
     unitOrderOption(),
     supplyOption(),
+    { type: "Label", key: "armourySettings", army: "autofill" },
+    { type: "Checkbox", key: "autoBuy", default: false, army: "autofill" },
+    { type: "Number", key: "autoBuyMin", min: 0, max: 100_000, step: 100, unit: "tools", default: 1000, army: "autofill", showWhen: { key: "autoBuy", in: [1] } },
+    ...spendOptions().map(def => ({ ...def, army: "autofill", showWhen: { key: "autoBuy", in: [1] } })),
 ]
 const baronChecks = [{ type: "commanders", option: "commanderWhiteList" }]
 
@@ -85,6 +93,7 @@ const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
 const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
 
 const { boxMullerRandom, sleep } = require("../../pacing.js")
+const { topUp } = require("../../armourer.js")
 const err = require("../../err.json")
 const minTroopCount = 80
 const troopBlackList = [277]
@@ -105,7 +114,7 @@ const IDLE_MS = [5_000, 60_000]
 /** With the account's daily limit reached, the plugin asks again after this long, in milliseconds. */
 const DAILY_LIMIT_RECHECK_MS = 30 * 60_000
 /** Counts in a status are rounded down to these steps, so the status isn't rewritten after every attack. */
-const STATUS_STEPS = { attacks: 10, tools: 100 }
+const STATUS_STEPS = { attacks: 10 }
 /** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
 const TROOPS_RECHECK_MS = 10 * 60_000
 
@@ -134,13 +143,12 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         return RIDES[ride.horse]
     }
     const troopFloor = Math.max(minTroopCount, Number(options.minTroops) || 0)
-    const caps = { day: Number(options.maxPerDay) || 0, hour: Number(options.attacksPerHour) || 0, tools: Number(options.toolBudgetPerDay) || 0 }
-    const sentInDay = new RollingWindow(DAY), sentInHour = new RollingWindow(HOUR), toolsInDay = new RollingWindow(DAY)
+    const caps = { day: Number(options.maxPerDay) || 0, hour: Number(options.attacksPerHour) || 0 }
+    const sentInDay = new RollingWindow(DAY), sentInHour = new RollingWindow(HOUR)
     // What the runner kept of this kingdom's last 24 hours, so a restart doesn't hand the limits back.
-    for (const { at, tools } of botConfig.attackHistory?.[require("node:path").basename(filename, ".js")] ?? []) {
+    for (const { at } of botConfig.attackHistory?.[require("node:path").basename(filename, ".js")] ?? []) {
         sentInDay.add(at)
         sentInHour.add(at)
-        toolsInDay.add(at, tools)
     }
     /** The minutes until `time`, rounded up to 5 above ten minutes and to 30 above an hour, so a long wait's status is rewritten seldom. */
     const minutesTo = time => {
@@ -163,13 +171,11 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         ].filter(block => block && block.until > now)
         return blocks.sort((a, b) => b.until - a.until)[0]
     }
-    /** Set while the tool budget keeps an attack home: the time the budget has room for it. */
-    let toolsFreeAt
     /** The numbers every status of a running kingdom carries. */
     const progress = () => {
         const now = Date.now()
         const shown = (used, step, cap) => cap > 0 ? `${used}/${cap}` : String(used < step ? used : Math.floor(used / step) * step)
-        return { castle: from, found: areas.length, attacks: shown(sentInDay.total(now), STATUS_STEPS.attacks, caps.day), tools: shown(toolsInDay.total(now), STATUS_STEPS.tools, caps.tools) }
+        return { castle: from, found: areas.length, attacks: shown(sentInDay.total(now), STATUS_STEPS.attacks, caps.day) }
     }
     const autofill = parseAutofill(options)
     const army = readArmy(options, reportStatus)
@@ -250,6 +256,29 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 skipTarget(movement.sourceAttack).catch(e => console.warn(e))
     })
 
+    const buyTools = army.mode == "autofill" && options.autoBuy ? AUTO_BUY_TOOLS[toolSet] : []
+    let nextBuyCheckAt = 0
+    /**
+     * With Auto-buy on, buys the tools the source castle holds fewer of than the minimum, up to the minimum, from the
+     * armourer. The check repeats at most every AUTO_BUY_RECHECK_MS, whatever it bought.
+     */
+    async function restockTools() {
+        const minimum = Number(options.autoBuyMin) || 0
+        if (!(minimum > 0) || buyTools.length == 0 || Date.now() < nextBuyCheckAt)
+            return
+        nextBuyCheckAt = Date.now() + AUTO_BUY_RECHECK_MS
+        const held = tool => castle.unitInventory.reduce((total, unit) => unit.unitInfo.wodID == tool ? total + unit.amount : total, 0)
+        const rows = buyTools.map(tool => ({ tool, keep: minimum, have: held(tool), batch: minimum - held(tool) }))
+        const { bought, spent } = await topUp(rows, {
+            kingdom: kingdomID, dryRun: Boolean(options.dryRun), coinFloor: Number(options.armourerCoinFloor) || 0, spendCap: Number(options.armourerSpendCap) || 0,
+        })
+        if (bought > 0) {
+            console.info("stormToolsBought", bought, " ", "stormToolsCoins", spent)
+            if (!options.dryRun)
+                await require("../stock.js").refreshHome().catch(error => console.warn(error))
+        }
+    }
+
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList)
         const hasShieldMadiens = commander.getEffects(type).AttackSupportUnits
@@ -291,22 +320,13 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 const areaInfo = areas[index]
                 const level = getLevel(areaInfo.extraData[1])
                 const horse = horseFor(areaInfo)
-                const stock = castle.unitInventory.map(unit => unit.amount)
-                /** Sends the frame unless its tools would take the day over the budget. Then it puts the castle's counts back and sends nothing. */
-                const sendWithinBudget = async attackInfo => {
-                    const tools = toolsIn(attackInfo)
-                    const freeAt = caps.tools > 0 && tools > 0 ? toolsInDay.roomAt(Date.now(), caps.tools, tools) : 0
-                    if (freeAt > Date.now()) {
-                        castle.unitInventory.forEach((unit, i) => unit.amount = stock[i])
-                        toolsFreeAt = freeAt
-                        return
-                    }
+                /** Sends the frame and counts the attack against the kingdom's limits. */
+                const sendFrame = async attackInfo => {
                     const sent = await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
                     const now = Date.now()
                     sentInDay.add(now)
                     sentInHour.add(now)
-                    toolsInDay.add(now, tools)
-                    return { ...sent, tools }
+                    return { ...sent, tools: toolsIn(attackInfo) }
                 }
 
                 if (army.mode == "waves") {
@@ -317,7 +337,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | stats.attackUnitAmountReinforcementBonus),
                     })
-                    return await sendWithinBudget(attackInfo)
+                    return await sendFrame(attackInfo)
                 }
 
                 const attackerMeleeTroops = []
@@ -464,7 +484,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     })
                 }
 
-                return await sendWithinBudget(attackInfo)
+                return await sendFrame(attackInfo)
             })
 
             if (!attackInfo) {
@@ -535,20 +555,9 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
             await sleep(Math.min(Math.max(limit.until - Date.now(), IDLE_MS[0]), IDLE_MS[1]))
             continue
         }
-        // With the budget used up, an autofill that sends tools would only build an attack to put it back.
-        toolsFreeAt = caps.tools > 0 && army.mode == "autofill" && useWallTools && toolsInDay.roomAt(Date.now(), caps.tools) > Date.now()
-            ? toolsInDay.roomAt(Date.now(), caps.tools) : undefined
-        if (!toolsFreeAt && await sendHit())
+        await restockTools()
+        if (await sendHit())
             continue
-        if (toolsFreeAt) {
-            const used = toolsInDay.total(Date.now())
-            if (Number.isFinite(toolsFreeAt))
-                reportStatus("waiting", "statusTowersLimitTools", { cap: caps.tools, used, minutes: minutesTo(toolsFreeAt) })
-            else
-                reportStatus("waiting", "statusTowersToolsOverBudget", { cap: caps.tools })
-            await sleep(Math.min(Math.max(toolsFreeAt - Date.now(), IDLE_MS[0]), IDLE_MS[1]))
-            continue
-        }
         // Nothing can be attacked now. The map is read again once the last look is old enough, and never sooner.
         if (Date.now() >= nextScanAt) {
             await scan()

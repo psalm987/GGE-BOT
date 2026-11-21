@@ -98,12 +98,14 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * A march takes `travelSeconds` each way. When it reaches home the tower has one more victory and waits `cooldown`
  * seconds, and the commander is free again. `commanders` is how many the player has. While `scanFails()` is true the
  * game leaves a map request unanswered, and `sendResult(cra)` may return an error name for the game to refuse a send with.
- * `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
+ * `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
+ * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and, as the game does, delivers its tools to
+ * the player's castle in that kingdom. `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
  * `attackOptions` are the account's attack settings.
  */
 function startTowers(options, {
     kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, attackOptions = {}, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
-    resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false,
+    resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false, armourer,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
@@ -114,6 +116,7 @@ function startTowers(options, {
         bot.botConfig.attackHistory = { [TOWER_PLUGINS[kingdomID]]: history }
     const movementEvents = new EventEmitter()
     const requests = []
+    const orders = []
     const protocols = {
         castles, movements: [], movementEvents, resources: { pegasusTicket: 5, coins: 0, ...resources }, ClassTypes: {},
         AreaType: { barron: BARON, fortress: FORTRESS, mainCastle: MAIN, externalKingdom: OUTPOST },
@@ -129,6 +132,23 @@ function startTowers(options, {
             },
         },
     }
+    if (armourer) {
+        protocols.activeEvent = () => ({ PIDS: armourer.live })
+        bot.sendXT = async (command, params) => {
+            const order = JSON.parse(params)
+            if (command == "sbp") {
+                orders.push(order)
+                const pack = armourer.packages.find(pack => Number(pack.packageID) == order.PID)
+                const home = castles.find(castle => castle.kingdomID == order.KID)
+                const held = home.unitInventory.find(unit => unit.unitInfo.wodID == Number(pack.unitID))
+                if (held)
+                    held.amount += order.AMT * Number(pack.unitAmount)
+                protocols.resources.coins -= order.AMT * Number(pack.packagePriceC1)
+            }
+            setTimeout(() => bot.xtHandler.emit(command, command == "sbp" ? { gcu: { C1: protocols.resources.coins } } : {}, 0), 1)
+        }
+    }
+    const items = { horses: stable, units: armourer?.units, packages: armourer?.packages }
     const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses: stable }, extra: { protocols } }).mod
     const sent = []
     const statuses = []
@@ -171,7 +191,7 @@ function startTowers(options, {
     }
     const file = `/plugins/${TOWER_PLUGINS[kingdomID]}.js`
     const { mod } = loadModule("plugins/attack/sharedBarronAttackLogic.js", {
-        bot, items: { horses: stable },
+        bot, items,
         parentPort: { postMessage: ([, report]) => statuses.push(report), on() {} },
         extra: {
             protocols, "protocols.js": protocols,
@@ -189,7 +209,7 @@ function startTowers(options, {
     // The plugin's attack lines, as the runner would store them, for a test to feed back as a restart's history.
     console.info = (...parts) => { logged.push(["[12:00] ", "[", "sharedBarronAttackLogic", "] ", ...parts]); info(...parts) }
     Promise.resolve(mod(BARON, kingdomID, options, TOP_LEVELS[kingdomID], file)).catch(error => stopped.push(error))
-    return { sent, statuses, requests, map, stopped, protocols, bot, logged }
+    return { sent, statuses, requests, map, stopped, protocols, bot, logged, orders }
 }
 
 module.exports = { firstCra, barons, fortress, startTowers, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }

@@ -74,44 +74,21 @@ describe("a kingdom's own limits", () => {
         expect(game.sent).toHaveLength(5)
     })
 
-    test("a running kingdom's status carries its attacks and tools of the last 24 hours against their caps", async () => {
-        const game = startTowers({ maxPerDay: 40, toolBudgetPerDay: 900 }, { castles: castles(), map: row().slice(0, 2), commanders: 9, travelSeconds: 600, cooldown: 3600 })
+    test("a running kingdom's status carries its attacks of the last 24 hours against their cap", async () => {
+        const game = startTowers({ maxPerDay: 40 }, { castles: castles(), map: row().slice(0, 2), commanders: 9, travelSeconds: 600, cooldown: 3600 })
         await run(MINUTE)
         expect(game.sent).toHaveLength(2)
-        expect(last(game)).toMatchObject({ reasonKey: "statusTowersAllOut", params: { castle: "Ironhold", found: 2, attacks: "2/40", tools: "60/900" } })
+        expect(last(game)).toMatchObject({ reasonKey: "statusTowersAllOut", params: { castle: "Ironhold", found: 2, attacks: "2/40" } })
     })
 })
 
-describe("the tool budget", () => {
-    test("counts the tools put into attacks and keeps attacks with tools home once it is used", async () => {
-        const game = startTowers({ toolBudgetPerDay: 60, attackLeft: true, attackMiddle: true, attackRight: true }, { castles: castles(), map: row(), commanders: 9, travelSeconds: 30, cooldown: 60 })
+describe("the old tool budget", () => {
+    test("a config saved with toolBudgetPerDay still runs, and the number limits nothing", async () => {
+        const game = startTowers({ toolBudgetPerDay: 20, attackLeft: true, attackMiddle: true, attackRight: true }, { castles: castles(), map: row(), commanders: 9, travelSeconds: 30, cooldown: 60 })
         await run(60 * MINUTE)
-        expect(game.sent.map(toolsIn)).toEqual([30, 30])
-        expect(last(game)).toMatchObject({ state: "waiting", reasonKey: "statusTowersLimitTools", params: { cap: 60, used: 60 } })
-        await run(24 * 60 * MINUTE)
-        expect(game.sent.map(toolsIn)).toEqual([30, 30, 30, 30])
-    })
-
-    test("an attack that would take the day over the budget is not sent, and the castle's tools are not taken", async () => {
-        const home = castles()
-        const game = startTowers({ toolBudgetPerDay: 50 }, { castles: home, map: row(), commanders: 9, travelSeconds: 30, cooldown: 60 })
-        await run(60 * MINUTE)
-        expect(game.sent.map(toolsIn)).toEqual([30])
-        expect(home[0].unitInventory.find(unit => unit.unitInfo.wodID == LADDER).amount).toBe(500_000 - 30)
-        expect(last(game)).toMatchObject({ reasonKey: "statusTowersLimitTools", params: { cap: 50, used: 30 } })
-    })
-
-    test("a budget smaller than one attack's tools says so instead of waiting for a day that never comes", async () => {
-        const game = startTowers({ toolBudgetPerDay: 20 }, { castles: castles(), map: row(), commanders: 9 })
-        await run(60 * MINUTE)
-        expect(game.sent).toEqual([])
-        expect(last(game)).toMatchObject({ state: "waiting", reasonKey: "statusTowersToolsOverBudget", params: { cap: 20 } })
-    })
-
-    test("with Tools on No tools the budget stops nothing", async () => {
-        const game = startTowers({ toolBudgetPerDay: 20, tools: 0, maxPerDay: 4 }, { castles: castles(), map: row(), commanders: 9, travelSeconds: 30, cooldown: 60 })
-        await run(60 * MINUTE)
-        expect(game.sent.map(toolsIn)).toEqual([0, 0, 0, 0])
+        expect(game.sent.length).toBeGreaterThan(4)
+        expect(game.sent.every(cra => toolsIn(cra) == 30)).toBe(true)
+        expect(game.statuses.map(status => status.reasonKey)).not.toContain("statusTowersLimitTools")
     })
 })
 
@@ -178,12 +155,6 @@ describe("the last 24 hours across a restart", () => {
     })
 
     const history = () => [{ at: START - 5 * 60 * MINUTE, tools: 60 }, { at: START - 20 * MINUTE, tools: 0 }]
-    test("the tools of the last 24 hours count against the budget too", async () => {
-        const tools = startTowers({ toolBudgetPerDay: 80 }, { castles: castles(), map: row(), commanders: 9, history: history() })
-        await run(30 * MINUTE)
-        expect(tools.sent).toEqual([])
-        expect(last(tools)).toMatchObject({ reasonKey: "statusTowersLimitTools", params: { cap: 80, used: 60 } })
-    })
     test("and the last hour against the hourly limit", async () => {
         const hourly = startTowers({ attacksPerHour: 1 }, { castles: castles(), map: row(), commanders: 9, history: history() })
         await run(30 * MINUTE)

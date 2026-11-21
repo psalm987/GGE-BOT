@@ -55,11 +55,11 @@ async function buy(offer, packagesToBuy, kingdom, dryRun) {
 }
 
 /**
- * Tops up tools that have run low, one batch each: a row is `{ tool, keep, have }`, and a tool with `have` below
- * `keep` gets `batch` more, or as many as `maxPerClick` allows. Nothing is bought that would take the coins under
+ * Tops up tools that have run low, one batch each: a row is `{ tool, keep, have, batch? }`, and a tool with `have` below
+ * `keep` gets its row's `batch` or else `batch` more, or as many as `maxPerClick` allows. Nothing is bought that would take the coins under
  * `coinFloor` or the run's spending over `spendCap`. Resolves to `{ bought, spent }` in tools and coins.
  */
-async function topUp(rows, { kingdom, batch, coinFloor, spendCap, dryRun, active = () => true }) {
+async function topUp(rows, { kingdom, batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
     const offers = liveOffers()
     let coins = resources.coins, spent = 0, bought = 0
     if (!Number.isFinite(coins))
@@ -68,7 +68,7 @@ async function topUp(rows, { kingdom, batch, coinFloor, spendCap, dryRun, active
         const offer = offers.get(row.tool)
         if (!offer || row.have >= row.keep)
             continue
-        const count = Math.min(Math.ceil(batch / offer.perPackage), offer.maxPerClick,
+        const count = Math.min(Math.ceil((row.batch ?? batch) / offer.perPackage), offer.maxPerClick,
             Math.floor((coins - coinFloor) / offer.price), Math.floor((spendCap - spent) / offer.price))
         if (!(count > 0) || !active())
             continue
