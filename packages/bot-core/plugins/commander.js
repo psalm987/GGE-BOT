@@ -64,32 +64,29 @@ function parseWhitelist(commanderWhitelist) {
     })
 }
 
-/**
- * A `sortCallback` for waitForCommanderAvailable that takes commanders in the order a whitelist names them, so "5;2;1"
- * sends commander 5 first. Undefined for an empty list, which names no order.
- */
-function inWrittenOrder(commanderWhitelist) {
-    const order = parseWhitelist(commanderWhitelist)
-    return Array.isArray(order) ? (a, b) => order.indexOf(a.lordPosition) - order.indexOf(b.lordPosition) : undefined
-}
+/** Orders commanders by where a parsed whitelist names them, so "5;2;1" puts commander 5 first. */
+const byWrittenOrder = whitelist => (a, b) => whitelist.indexOf(a.lordPosition) - whitelist.indexOf(b.lordPosition)
 
-/** A whitelisted commander that is free right now, marked used; undefined when none is. Never waits. */
+/** The first whitelisted commander that is free right now, in the list's order, marked used; undefined when none is. Never waits. */
 function takeFreeCommander(commanderWhitelist) {
     const whitelist = parseWhitelist(commanderWhitelist)
-    const lord = commanders.find(e => (!whitelist || whitelist.includes(e.lordPosition)) && !usedCommanders.includes(e.lordID))
+    const free = commanders.filter(e => (!whitelist || whitelist.includes(e.lordPosition)) && !usedCommanders.includes(e.lordID))
+    if (whitelist)
+        free.sort(byWrittenOrder(whitelist))
+    const lord = free[0]
     if (lord)
         useCommander(lord.lordID)
     return lord
 }
 
 /**
- * 
- * @param {string} commanderWhitelist 
- * @param {filterCallback} filterCallback 
- * @param {sortCallback} sortCallback 
- * @returns 
+ * A free commander of the whitelist, marked used, waiting for one to come home when none is free. Free commanders are
+ * taken in the order the list names them, so "36;2;5" sends 36 first. `sortCallback` orders them only when the list is
+ * empty, which names no order.
+ * @param {string} commanderWhitelist
+ * @param {filterCallback} filterCallback
+ * @param {sortCallback} sortCallback
  */
-
 const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sortCallback) => {
     commanderWhitelist = parseWhitelist(commanderWhitelist)
 
@@ -101,8 +98,9 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
         ((!commanderWhitelist || commanderWhitelist.includes(e.lordPosition)) &&
             !usedCommanders.includes(e.lordID)))
 
-    if (sortCallback)
-        usableCommanders.sort(sortCallback)
+    const order = commanderWhitelist ? byWrittenOrder(commanderWhitelist) : sortCallback
+    if (order)
+        usableCommanders.sort(order)
     if (filterCallback)
         usableCommanders = usableCommanders.filter(filterCallback)
 
@@ -143,7 +141,6 @@ module.exports = {
     waitForCommanderAvailable,
     takeFreeCommander,
     parseWhitelist,
-    inWrittenOrder,
     useCommander,
     freeCommander
 }

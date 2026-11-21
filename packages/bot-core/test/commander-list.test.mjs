@@ -23,19 +23,28 @@ describe("a commander list", () => {
     })
     test("a list written with semicolons hands out exactly those commanders", () => {
         const { takeFreeCommander } = pool()
-        expect([takeFreeCommander("2;5"), takeFreeCommander("2;5"), takeFreeCommander("2;5")].map(lord => lord?.lordID)).toEqual([101, 104, undefined])
+        expect([takeFreeCommander("5;2"), takeFreeCommander("5;2"), takeFreeCommander("5;2")].map(lord => lord?.lordID)).toEqual([104, 101, undefined])
     })
-    test("the written order is the order commanders are taken in, for a plugin that asks for it", async () => {
-        const { waitForCommanderAvailable, inWrittenOrder } = pool()
+    test("the written order is the order commanders are taken in", async () => {
+        const { waitForCommanderAvailable } = pool()
         const taken = []
         for (let i = 0; i < 3; i++)
-            taken.push((await waitForCommanderAvailable("5;2;9", undefined, inWrittenOrder("5;2;9"))).lordPosition + 1)
+            taken.push((await waitForCommanderAvailable("5;2;9")).lordPosition + 1)
         expect(taken).toEqual([5, 2, 9])
-        expect(inWrittenOrder("")).toBeUndefined()
     })
-    test("without it the first free commander of the game's own list is taken, whatever the list's order", async () => {
+    test("a plugin's own order gives way to the written one", async () => {
         const { waitForCommanderAvailable } = pool()
-        expect((await waitForCommanderAvailable("5;2;9")).lordPosition + 1).toBe(2)
+        const fastestFirst = (a, b) => b.lordPosition - a.lordPosition
+        expect((await waitForCommanderAvailable("5;2;9", undefined, fastestFirst)).lordPosition + 1).toBe(5)
+    })
+    test("an empty list names no order, so the plugin's own order picks", async () => {
+        const { waitForCommanderAvailable } = pool()
+        expect((await waitForCommanderAvailable("", undefined, (a, b) => b.lordPosition - a.lordPosition)).lordPosition + 1).toBe(20)
+        expect((await waitForCommanderAvailable("")).lordPosition + 1).toBe(1)
+    })
+    test("a commander taken without waiting is also the first free one in the written order", () => {
+        const { takeFreeCommander } = pool()
+        expect([takeFreeCommander("7;3"), takeFreeCommander("7;3")].map(lord => lord.lordPosition + 1)).toEqual([7, 3])
     })
     test("a range written backwards picks nothing instead of stopping the plugin", () => {
         const { parseWhitelist, takeFreeCommander } = pool()

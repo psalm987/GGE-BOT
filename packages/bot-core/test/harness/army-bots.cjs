@@ -14,14 +14,26 @@ const horses = [
 ]
 
 /**
+ * The real commander pool with `count` commanders at positions 1 to `count` (lord ids 101 on), each with `effects`. A
+ * "return" on `movementEvents` that comes home to the player frees its commander, as in the game.
+ */
+function commanderPool(bot, movementEvents, count, effects) {
+    class Lord { constructor(e) { this.lordID = e.ID; this.lordPosition = e.VIS } getEffects() { return effects } }
+    const { mod } = loadModule("plugins/commander.js", { bot, extra: { "protocols.js": { ClassTypes: { Lord }, movementEvents } } })
+    bot.xtHandler.emit("gli", { C: Array.from({ length: count }, (_, i) => ({ ID: 101 + i, VIS: i })) }, 0)
+    return mod
+}
+
+/**
  * Runs a shared attack builder through its first attack against a stand-in game and returns the `cra` it built, or
  * undefined when it sent none. The real attack engine builds the frame; the map, the queue and the send are stood in.
  * `start` gets the loaded builder and starts it. `movements` are the marches on the map, and a skip's reply lands once
- * `skipLands` resolves.
+ * `skipLands` resolves. With `commanders` set, the real commander pool hands out that many commanders; without it, one
+ * stand-in commander (lord id 9) goes out once.
  */
 async function firstCra(relPath, start, {
     kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
-    movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {},
+    movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {}, commanders,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
@@ -56,7 +68,7 @@ async function firstCra(relPath, start, {
         extra: {
             protocols, "protocols.js": protocols,
             "./attack.js": attack, "./attack": attack,
-            "../commander": {
+            "../commander": commanders ? commanderPool(bot, movementEvents, commanders, effects) : {
                 waitForCommanderAvailable: () => handedOut++ ? new Promise(() => {}) : Promise.resolve({ lordID: 9, getEffects: () => effects }),
                 freeCommander() {}, useCommander() {},
             },
@@ -96,7 +108,8 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * - `map`: the towers, which a test may add to.
  *
  * A march takes `travelSeconds` each way. When it reaches home the tower has one more victory and waits `cooldown`
- * seconds, and the commander is free again. `commanders` is how many the player has. While `scanFails()` is true the
+ * seconds, and the commander is free again. `commanders` is how many the player has; with `pool` the real commander
+ * pool hands them out (lord ids 101 on), as the plugin's commander list asks. While `scanFails()` is true the
  * game leaves a map request unanswered, and `sendResult(cra)` may return an error name for the game to refuse a send with.
  * `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
  * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and, as the game does, delivers its tools to
@@ -105,7 +118,7 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  */
 function startTowers(options, {
     kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, attackOptions = {}, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
-    resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false, armourer,
+    resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false, armourer, pool = false,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
@@ -196,7 +209,7 @@ function startTowers(options, {
         extra: {
             protocols, "protocols.js": protocols,
             "./attack.js": attack, "./attack": attack,
-            "../commander": {
+            "../commander": pool ? commanderPool(bot, movementEvents, commanders, effects) : {
                 waitForCommanderAvailable: () => free.length ? Promise.resolve(free.shift()) : new Promise(resolve => waiting.push(resolve)),
                 freeCommander, useCommander() {},
             },

@@ -6,7 +6,7 @@ const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, accountLimits } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander, inWrittenOrder } = require("../commander.js")
+const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
@@ -203,7 +203,7 @@ function eventCampAttacks(profile, stored, filename) {
             reportAttacking()
 
         while (!quit) {
-            const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, inWrittenOrder(options.commanderWhiteList))
+            const commander = await waitForCommanderAvailable(options.commanderWhiteList)
             /** What the log line says of the attack being built: the skips spent on the camp and the horse. */
             const sending = { skips: [], horse: "none" }
             try {
