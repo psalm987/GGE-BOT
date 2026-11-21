@@ -1958,6 +1958,85 @@ async function driveUxAutobuy(page) {
 }
 
 /**
+ * The Armourer page, a row for each castle: a kingdom row stored before castles opens as that kingdom's main castle, a
+ * row picks a castle and a tool and the least to keep, the new rows save and read back through the API and after a
+ * reload, and axe runs at 1440, 390 and in Arabic. The runner is off, so nothing buys anything.
+ */
+async function driveUxArmourer(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "buyTools", enabled: true, options: { targets: [{ kingdom: 0, tool: 614, stock: 5000 }] } })
+    const form = page.locator(".gge-content")
+    const openArmourer = async () => {
+        await page.goto(`${CLIENT_URL}/m/armourer?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+    const shown = async label => (await form.getByLabel(label).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).replace(/\s+/g, " ").trim()
+    const pick = async (label, text, type = false) => {
+        await form.getByLabel(label).click()
+        if (type)
+            await page.keyboard.type(text)
+        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: text }).first().click()
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    await openModule(page, "Armourer")
+    assert(await form.getByText("Keep at least", { exact: true }).first().isVisible() && await form.getByText("Castle", { exact: true }).first().isVisible(), "the rows have Castle and Keep at least columns")
+    assert(await form.getByText("Kingdom", { exact: true }).count() === 0, "no Kingdom column is left")
+    assert(/^Ironhold /.test(await shown("Castle, row 1")) && !(await shown("Castle, row 1")).includes("Watch"), `a stored kingdom row shows that kingdom's main castle: ${await shown("Castle, row 1")}`)
+    assert(/ladder/i.test(await shown("Tool, row 1")), `and its tool: ${await shown("Tool, row 1")}`)
+    assert(await form.getByLabel("Keep at least, row 1").inputValue() === "5,000" || await form.getByLabel("Keep at least, row 1").inputValue() === "5000", "and its stock as the minimum")
+    assert(await form.getByText("A minimum of 0 buys nothing", { exact: false }).isVisible(), "the help says what the minimum does and that 0 buys nothing")
+    assert(await page.locator(".gge-savebar").count() === 0, "reading the old row changes nothing by itself")
+
+    await form.getByRole("button", { name: "Add row" }).first().click()
+    assert(await form.getByLabel("Keep at least, row 2").inputValue() === "0", "a new row starts at a minimum of 0")
+    await pick("Castle, row 2", "Ironhold Watch")
+    await pick("Tool, row 2", "Battering ram", true)
+    await form.getByLabel("Keep at least, row 2").fill("1200")
+    await form.getByRole("button", { name: "Add row" }).first().click()
+    await pick("Castle, row 3", "Frostgate")
+    await pick("Tool, row 3", "Mantlet", true)
+    await form.getByLabel("Keep at least, row 3").click()
+    assert(await page.getByText("whenever a castle holds fewer than the minimum you set", { exact: false }).first().isVisible(), "the page describes the minimum, not the old stock")
+    await page.waitForTimeout(500)
+    await axe(page, "armourer rows 1440")
+    await page.screenshot({ path: `${out}/82-ux-armourer-1440.png`, fullPage: true })
+    await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const rows = (await account()).plugins.buyTools.options.targets
+    assert(rows.length === 3 && rows[0].castle.kingdom === 0 && rows[0].castle.id === -1 && rows[0].tool === 614 && rows[0].stock === 5000 && !("kingdom" in rows[0]),
+        `the first row is saved as the main castle of kingdom 0: ${JSON.stringify(rows[0])}`)
+    assert(rows[1].castle.id === 1002 && rows[1].tool === 611 && rows[1].stock === 1200 && rows[2].castle.id === 2001 && rows[2].stock === 0,
+        `the new rows are saved by castle: ${JSON.stringify(rows.slice(1))}`)
+
+    await openArmourer()
+    assert((await shown("Castle, row 2")).includes("Ironhold Watch") && (await shown("Castle, row 3")).includes("Frostgate") && /^Ironhold /.test(await shown("Castle, row 1")),
+        "after a reload each row shows its castle")
+    assert(await form.getByLabel("Keep at least, row 2").inputValue() === "1,200" || await form.getByLabel("Keep at least, row 2").inputValue() === "1200", "and its minimum")
+
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Armourer page at 390")
+    await axe(page, "armourer rows 390")
+    await page.screenshot({ path: `${out}/82-ux-armourer-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    await rpc(page, "account/setLocale", { locale: "ar" })
+    await openArmourer()
+    assert(await page.evaluate(() => document.documentElement.dir) === "rtl", "in Arabic the page is right to left")
+    assert(await form.getByText("احتفظ بما لا يقل عن", { exact: true }).first().isVisible(), "in Arabic the minimum column is translated")
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Armourer page in Arabic")
+    await axe(page, "armourer rows Arabic 1440")
+    await page.screenshot({ path: `${out}/82-ux-armourer-ar-1440.png`, fullPage: true })
+    await rpc(page, "account/setLocale", { locale: null })
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+}
+
+/**
  * The narrowing and the words: no Setup checks and no Simple/Advanced toggle on a module page, wolves instead of dogs, clicks
  * instead of tiles (Feather beyond and the search radius), the preset count and the disabled New button at the limit, and a
  * sidebar that keeps its scroll position across a group toggle, a module, and a move to another page.
@@ -2302,6 +2381,17 @@ async function driveUxAccountSettings(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxNarrow(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "ux-armourer") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveUxArmourer(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
@@ -2843,6 +2933,7 @@ async function driveUxAccountSettings(page) {
     await driveUxStartStop(seeded, browser)
     await driveUxAutobuy(seeded)
     await driveUxWaves(seeded)
+    await driveUxArmourer(seeded)
     await drivePluginSettings(seeded)
     await seeded.goto(CLIENT_URL)
     await seeded.getByRole("button", { name: "Edit Ironhold" }).click()
