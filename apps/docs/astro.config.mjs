@@ -9,7 +9,7 @@ import { sidebar } from "./src/theme/sidebar.ts"
 export default defineConfig({
     site: "https://docs.neisesolutions.com",
     // Moved pages go here as "/old/": "/new/". Phase 8 turns each entry into a Caddy 301.
-    redirects: {},
+    redirects: { "/plugins/attack-khan/": "/modules/khan/" },
     vite: {
         ssr: { external: ["canvaskit-wasm"] },
         // A house icon is used on many pages. As a file it is cached once; inlined it would be repeated in every page.

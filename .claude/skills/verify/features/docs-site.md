@@ -8,7 +8,7 @@ The public GGE Command docs, built from Markdoc files with Astro Starlight. It c
 - Side notes: a margin column at 90rem and wider, a button that expands under the paragraph below that.
 - Arrival at `#heading`, aside id or side-note id: gold inline-start bar, tint fade, focus moves to the target.
 - English at the root, `/de/` and `/ar/` hand-written; the other locales fall back. `/ar/` is RTL.
-- Generated references: `/errors/` (one entry per public error code, with fix text), `/alerts/` (one per notification kind) and a settings table per plugin (`/plugins/attack-khan/`). Each entry has an anchor, `#too-many-attack-plugins` for the code `TOO_MANY_ATTACK_PLUGINS`.
+- Generated references: `/errors/` (one entry per public error code, with fix text), `/alerts/` (one per notification kind) and a settings table per plugin (`/modules/khan/`). Each entry has an anchor, `#too-many-attack-plugins` for the code `TOO_MANY_ATTACK_PLUGINS`.
 - Terms: an underlined word opens a popover (hover 300 ms, tap, Enter or Space) with a short definition and a Read more link to `/glossary/#<id>`. Under 640px it is a bottom sheet. `/glossary/` is A to Z with category filters, aliases (TOTP, 2FA), See also and Used on links. Each page's first use of a term is tagged, and a card at the top lists the page's terms.
 - SEO plumbing (`src/seo/`): a Starlight route middleware (`middleware.ts`) adds JSON-LD, social image tags, `noindex` and canonical fixes to each page's head. See "SEO" below.
 - Language bar: a dismissible "Read this page in Deutsch?" overlay for a browser that prefers a locale with a real translation of the page.
@@ -81,7 +81,7 @@ Hand-written data: `src/content/errors/<locale>.yaml` and `src/content/alerts/<l
 - Glossary entries and error entries put their `id` on the `h3`, because Pagefind only makes sub-result anchors from headings with an id. The arrival frame is the whole entry (`.gge-gloss`, `.gge-ref`).
 - The popover's `aria-expanded` follows the `toggle` event, which fires after the click, so a script must wait for it.
 
-- Starlight gives a fallback route an id with the locale prefix (`de/plugins/attack-khan`) but keeps the English entry in `route.entry`, and the home page has an empty id. The middleware therefore reads `route.entry.id` through `slugOf`.
+- Starlight gives a fallback route an id with the locale prefix (`de/modules/khan`) but keeps the English entry in `route.entry`, and the home page has an empty id. The middleware therefore reads `route.entry.id` through `slugOf`.
 - Axe runs `wcag2a`, `wcag2aa` and `wcag21aa`. `wcag21a` adds an experimental rule that flags Starlight's own search button.
 - 90rem is exactly 1440px, so the 1440 lane is the wide layout; the narrow lanes use 1100 and 390.
 - Known limit: margin notes close together in one paragraph can overlap, because there is no collision handling yet.

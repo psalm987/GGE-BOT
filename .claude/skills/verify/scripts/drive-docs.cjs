@@ -160,10 +160,10 @@ async function seoLanes(browser, base) {
     const seo = seoFiles(DIST)
     console.log(`checked ${seo.content.length} pages, ${seo.og} social images`)
     const read = rel => fs.readFileSync(path.join(DIST, rel), "utf8")
-    const deFallback = read("de/plugins/attack-khan/index.html")
+    const deFallback = read("de/modules/khan/index.html")
     assert(/<meta name="robots" content="noindex"/.test(deFallback), "a German fallback page is noindex")
-    assert(attr(deFallback, /<link rel="canonical" href="([^"]+)"/) === `${SITE}/plugins/attack-khan/`, "a German fallback page's canonical is the English page")
-    assert(attr(deFallback, /<meta property="og:image" content="([^"]+)"/) === `${SITE}/og/en/plugins/attack-khan.jpeg`, "a fallback page shares the English social image")
+    assert(attr(deFallback, /<link rel="canonical" href="([^"]+)"/) === `${SITE}/modules/khan/`, "a German fallback page's canonical is the English page")
+    assert(attr(deFallback, /<meta property="og:image" content="([^"]+)"/) === `${SITE}/og/en/modules/khan.jpeg`, "a fallback page shares the English social image")
     const deReal = read("de/quick-start/index.html")
     assert(!/name="robots"/.test(deReal), "the German quick start is indexable")
     assert(attr(deReal, /<link rel="canonical" href="([^"]+)"/) === `${SITE}/de/quick-start/`, "the German quick start has a self canonical")
@@ -253,7 +253,7 @@ async function seoLanes(browser, base) {
     const fallbackBar = await lang("/fr/quick-start/", "de-DE")
     assert(!(await shown(fallbackBar)), "the bar does not show on a fallback page")
     await fallbackBar.context().close()
-    const untranslated = await lang("/plugins/attack-khan/", "de-DE")
+    const untranslated = await lang("/modules/khan/", "de-DE")
     assert(!(await shown(untranslated)), "the bar does not show on a page with no German translation")
     await untranslated.context().close()
     const english = await lang("/quick-start/", "en-US")
@@ -382,7 +382,7 @@ async function shotLanes(browser, base) {
     assert(pulse === 2, `the markers pulse twice on first view (${pulse} iterations)`)
     await moving.context().close()
 
-    const khan = await open(browser, base, "/plugins/attack-khan/")
+    const khan = await open(browser, base, "/modules/khan/")
     const icon = khan.locator("img.gge-icon").first()
     assert(await icon.evaluate(img => img.alt === "" && img.complete && img.naturalWidth > 0 && img.width === 32), "the icon tag renders a loaded, decorative image at its size")
     await khan.context().close()
@@ -420,7 +420,7 @@ async function shotLanes(browser, base) {
         await page.context().close()
     }
 
-    for (const [url, name] of [["/quick-start/", "quick start"], ["/ar/quick-start/", "ar quick start"], ["/de/quick-start/", "de quick start"], ["/plugins/attack-khan/", "attack khan"], ["/credits/", "credits"], ["/ar/credits/", "ar credits"], ["/de/credits/", "de credits"], ["/glossary/", "glossary"]]) {
+    for (const [url, name] of [["/quick-start/", "quick start"], ["/ar/quick-start/", "ar quick start"], ["/de/quick-start/", "de quick start"], ["/modules/khan/", "attack khan"], ["/credits/", "credits"], ["/ar/credits/", "ar credits"], ["/de/credits/", "de credits"], ["/glossary/", "glossary"]]) {
         for (const theme of ["dark", "light"]) {
             const page = await open(browser, base, url, { theme })
             await axe(page, `${name} ${theme} 1440 (new tags)`)
@@ -721,7 +721,7 @@ async function shotLanes(browser, base) {
         assert(await gloss.locator(".gge-filter[aria-pressed=true]").textContent() === "All" && await gloss.evaluate(() => document.activeElement.id === "two-factor"), "a link to a hidden term resets the filter and focuses the entry")
         assert((await gloss.locator('[data-id="two-factor"] .gge-gloss__aliases').textContent()).includes("TOTP"), "the 2FA entry lists TOTP among its aliases")
         assert((await gloss.locator('[data-id="plugin"] .gge-gloss__used a').allTextContents()).includes("Quick start"), "Used on lists the Quick start for Plugin")
-        assert(await gloss.locator('[data-id="game-account"] .gge-gloss__used').count() === 1 && await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').first().getAttribute("href") === "/plugins/attack-khan/", "Used on links are computed from the term tags on each page")
+        assert(await gloss.locator('[data-id="game-account"] .gge-gloss__used').count() === 1 && await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').first().getAttribute("href") === "/modules/khan/", "Used on links are computed from the term tags on each page")
         await gloss.context().close()
 
         const search = async (browser, query, locale = "") => {
@@ -751,7 +751,7 @@ async function shotLanes(browser, base) {
         assert(!popoverText.hits.includes("/quick-start/"), `a popover definition is not indexed on the page that uses it (${popoverText.hits.join(", ")})`)
         await popoverText.page.context().close()
 
-        for (const [url, name] of [["/errors/", "errors"], ["/alerts/", "alerts"], ["/glossary/", "glossary"], ["/plugins/attack-khan/", "attack-khan"], ["/ar/errors/", "ar errors"], ["/ar/alerts/", "ar alerts"], ["/ar/glossary/", "ar glossary"]]) {
+        for (const [url, name] of [["/errors/", "errors"], ["/alerts/", "alerts"], ["/glossary/", "glossary"], ["/modules/khan/", "attack-khan"], ["/ar/errors/", "ar errors"], ["/ar/alerts/", "ar alerts"], ["/ar/glossary/", "ar glossary"]]) {
             for (const theme of ["dark", "light"]) {
                 const page = await open(browser, base, url, { theme })
                 await axe(page, `${name} ${theme} 1440`)
@@ -768,14 +768,14 @@ async function shotLanes(browser, base) {
             }
         }
 
-        const khan = await open(browser, base, "/plugins/attack-khan/")
+        const khan = await open(browser, base, "/modules/khan/")
         const rows = await khan.locator("table.gge-settings tbody tr").count()
         assert(rows > 10, `the Khan settings table lists ${rows} options`)
         const difficulty = await khan.locator('tr[data-option="eventDifficulty"]').evaluate(tr => [...tr.children].map(c => c.textContent))
         assert(difficulty[0] === "Event difficulty" && difficulty[1] === "Choice" && difficulty[2] === "Intermediate+" && difficulty[3].includes("Archmaster"), `a choice option shows its label, type, default and choices (${JSON.stringify(difficulty).slice(0, 120)})`)
         assert(await khan.locator(".gge-status--planned").count() === 1 && /Planned/.test(await khan.locator(".gge-status--planned").textContent()), "the planned status badge renders with a text label")
         await khan.context().close()
-        const khanDe = await open(browser, base, "/de/plugins/attack-khan/")
+        const khanDe = await open(browser, base, "/de/modules/khan/")
         assert(await khanDe.locator('tr[data-option="eventDifficulty"] th').textContent() !== "Event difficulty", "the German page shows the German option label")
         await khanDe.context().close()
 
