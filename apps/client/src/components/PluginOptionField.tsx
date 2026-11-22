@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
+import { itemLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
 
 const KIND: Record<ItemCatalog, GameItemKind> = { banners: "banner", tools: "tool", troops: "troop", supportTools: "supportTool" }
@@ -13,12 +14,10 @@ const COLUMN_KIND = { tool: "tool", troop: "troop" } as const
 
 export function useGameItems(kind: GameItemKind) {
     const { t } = useTranslation("game")
+    const { t: tc } = useTranslation("client")
     const items = useQuery({ ...orpc.catalog.gameItems.queryOptions({ input: { kind } }), staleTime: Infinity }).data ?? []
-    // Levels of one item share its name in the game's strings, so the level tells them apart.
-    const nameOf = (item: GameItem) => {
-        const name = t(item.nameKey, { defaultValue: item.name })
-        return item.level ? `${name} ${item.level}` : name
-    }
+    // Levels of one item share its name in the game's strings, so the level tells them apart, and the variant tells apart what still shares both.
+    const nameOf = (item: GameItem) => itemLabel(t(item.nameKey, { defaultValue: item.name }), item, tc)
     return { items, nameOf, byId: new Map(items.map(item => [item.id, item])) }
 }
 
