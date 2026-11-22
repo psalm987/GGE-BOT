@@ -41,3 +41,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check
+
+      # The web image builds the docs on every deploy; a page that breaks the build fails here first.
+      - run: pnpm --filter @gge/docs build

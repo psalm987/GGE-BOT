@@ -132,6 +132,7 @@ services:
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
         VITE_GGE_VERSION: ${GGE_VERSION:-latest}
+        DOCS_NOINDEX: ${DOCS_NOINDEX:-}
       secrets: [sentry_auth_token]
     image: gge-web:${GGE_VERSION:-latest}
     restart: unless-stopped

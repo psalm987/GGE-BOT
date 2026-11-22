@@ -7,7 +7,7 @@ Read the warnings at the top of [README.md](README.md) first: botting breaks the
 ## Before you start
 
 - Dokploy installed on the server, reachable at its dashboard.
-- Three DNS records pointing at the server: `app.<domain>`, `admin.<domain>` and `grafana.<domain>`.
+- Four DNS records pointing at the server: `app.<domain>`, `admin.<domain>`, `docs.<domain>` and `grafana.<domain>`.
 - The repository on a Git provider Dokploy can read (GitHub, GitLab, Gitea or a plain Git URL), with the branch you want to deploy.
 - A machine with Node 22.18+ and pnpm to generate the key pair (your laptop is fine).
 
@@ -70,15 +70,16 @@ Generate the two passwords with `openssl rand -hex 32`. Every variable is explai
 
 ## 4. Domains
 
-Open the **Domains** tab and add three, each with HTTPS on and the Let's Encrypt certificate:
+Open the **Domains** tab and add four, each with HTTPS on and the Let's Encrypt certificate:
 
 | Host | Path | Service | Container port |
 |---|---|---|---|
 | `app.<domain>` | `/` | `web` | 80 |
 | `admin.<domain>` | `/` | `web` | 80 |
+| `docs.<domain>` | `/` | `web` | 80 |
 | `grafana.<domain>` | `/` | `grafana` | 3000 |
 
-The hosts must match `DOMAIN`: the API only accepts calls from `https://app.<DOMAIN>` and `https://admin.<DOMAIN>`, and Caddy inside `web` picks the app by host name.
+The hosts must match `DOMAIN`: the API only accepts calls from `https://app.<DOMAIN>` and `https://admin.<DOMAIN>`, and Caddy inside `web` picks the app, or the docs, by host name. The docs are built into `web` on every deploy, so they always describe the release that is running. Their links and sitemap name `docs.neisesolutions.com` (`apps/docs/astro.config.mjs`), so on another domain change `site` there and `SITE_URL` in `apps/docs/src/seo/jsonld.ts`.
 
 ## 5. Deploy
 
@@ -103,6 +104,7 @@ Sign in at `https://admin.<domain>`. The first sign-in asks you to set up an aut
 | Check | Expect |
 |---|---|
 | `https://app.<domain>/healthz` | `{"ok":true}` |
+| `https://docs.<domain>` | The docs home page |
 | Admin app, Overview | Runner heartbeat a few seconds old |
 | `https://grafana.<domain>` | Sign in as `admin` / `GRAFANA_ADMIN_PASSWORD`; the GGE folder has three dashboards |
 

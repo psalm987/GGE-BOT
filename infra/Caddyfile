@@ -1,5 +1,5 @@
 # DOMAIN comes from the environment, e.g. example.com. Caddy gets and renews
-# certificates for app., admin. and grafana. on its own.
+# certificates for app., admin., docs. and grafana. on its own.
 {
 	email {$ACME_EMAIL}
 }
@@ -54,6 +54,23 @@ admin.{$DOMAIN} {
 	handle {
 		root * /srv/admin
 		import spa
+	}
+}
+
+docs.{$DOMAIN} {
+	import security
+	encode zstd gzip
+	root * /srv/docs
+	@assets path /_astro/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} {path}/index.html
+	file_server
+	# A missing page under /de/ gets the German 404 page, and anything else the English one.
+	handle_errors 404 {
+		@localized path_regexp locale ^/([a-z]{2})/
+		rewrite @localized /{re.locale.1}/404/index.html
+		try_files {path} /404.html
+		file_server
 	}
 }
 

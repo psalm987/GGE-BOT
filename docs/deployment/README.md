@@ -10,7 +10,7 @@ Before you start, know that running bots against Goodgame Empire breaks its term
 
 - A host with 2 vCPU and 4 GB RAM for up to about 30 bots. Each bot is a worker thread; measure with the "Worker heap" panel and raise `MAX_ACCOUNTS` to match ([observability.md](observability.md)).
 - Docker Engine 24+ with the Compose plugin.
-- A domain with three DNS A/AAAA records pointing at the host: `app.`, `admin.` and `grafana.` under it.
+- A domain with four DNS A/AAAA records pointing at the host: `app.`, `admin.`, `docs.` and `grafana.` under it.
 - Ports 80 and 443 open (Caddy uses 80 for the certificate challenge).
 
 ## First deploy

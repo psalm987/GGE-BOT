@@ -1,4 +1,4 @@
-# Behind Dokploy: Traefik terminates TLS for app.<domain> and admin.<domain>
+# Behind Dokploy: Traefik terminates TLS for app.<domain>, admin.<domain> and docs.<domain>
 # and forwards plain HTTP here with the original Host header. Grafana gets its
 # own Dokploy domain and does not pass through Caddy.
 {
@@ -70,5 +70,22 @@ http://admin.{$DOMAIN} {
 	handle {
 		root * /srv/admin
 		import spa
+	}
+}
+
+http://docs.{$DOMAIN} {
+	import security
+	encode zstd gzip
+	root * /srv/docs
+	@assets path /_astro/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} {path}/index.html
+	file_server
+	# A missing page under /de/ gets the German 404 page, and anything else the English one.
+	handle_errors 404 {
+		@localized path_regexp locale ^/([a-z]{2})/
+		rewrite @localized /{re.locale.1}/404/index.html
+		try_files {path} /404.html
+		file_server
 	}
 }

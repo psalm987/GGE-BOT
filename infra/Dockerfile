@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# One image definition, three targets: node (api, runner, migrate, tools) and web (Caddy with both apps).
+# One image definition, three targets: node (api, runner, migrate, tools) and web (Caddy with both apps and the docs).
 # The TypeScript services run from source with Node's type stripping, so there is no build step for them.
 
 FROM node:24-bookworm-slim AS deps
@@ -29,9 +29,11 @@ ARG VITE_GRAFANA_URL
 ARG VITE_SENTRY_DSN
 ARG VITE_TURNSTILE_SITE_KEY
 ARG VITE_GGE_VERSION
+# 1 marks every docs page noindex, for a docs site that is up but not launched yet.
+ARG DOCS_NOINDEX
 # The Sentry token is a build secret, so it never lands in an image layer.
 RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN,required=false \
-    pnpm --filter @gge/client build && pnpm --filter @gge/admin build
+    pnpm --filter @gge/client build && pnpm --filter @gge/admin build && pnpm --filter @gge/docs build
 
 FROM caddy:2.10-alpine AS web
 # infra/Caddyfile terminates TLS itself; infra/Caddyfile.dokploy serves plain HTTP behind Dokploy's Traefik.
@@ -39,6 +41,7 @@ ARG CADDYFILE=infra/Caddyfile
 COPY ${CADDYFILE} /etc/caddy/Caddyfile
 COPY --from=web-build /app/apps/client/dist /srv/client
 COPY --from=web-build /app/apps/admin/dist /srv/admin
+COPY --from=web-build /app/apps/docs/dist /srv/docs
 
 FROM node:24-bookworm-slim AS node
 # DejaVu is the font the Discord attack previews draw with (imageGen.js).

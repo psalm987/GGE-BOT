@@ -1,6 +1,6 @@
 # The same stack for Dokploy (docs/deployment/dokploy.md). Dokploy's Traefik
 # owns ports 80/443 and TLS, so nothing here publishes a port. Assign domains in
-# Dokploy: app.<domain> and admin.<domain> to service "web" port 80,
+# Dokploy: app.<domain>, admin.<domain> and docs.<domain> to service "web" port 80,
 # grafana.<domain> to service "grafana" port 3000. Dokploy writes the
 # Environment tab to infra/.env, which the ${...} below read.
 
@@ -135,6 +135,7 @@ services:
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
         VITE_GGE_VERSION: ${GGE_VERSION:-latest}
+        DOCS_NOINDEX: ${DOCS_NOINDEX:-}
       secrets: [sentry_auth_token]
     image: gge-web:${GGE_VERSION:-latest}
     restart: unless-stopped

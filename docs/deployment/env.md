@@ -43,6 +43,7 @@
 | `BACKUP_KEEP_MONTHS` | backup | no | Months to keep the first dump of each month in Drive's `monthly/`. Default 12. |
 | `SENTRY_DSN` | api, runner | no | DSN of the `gge-bot-server` Sentry project. Empty turns server-side Sentry off. |
 | `VITE_SENTRY_DSN` | web (build) | no | DSN of the `gge-bot-frontend` Sentry project, baked into both apps at build time. Empty turns browser Sentry off. |
+| `DOCS_NOINDEX` | web (build) | no | `1` marks every page of `docs.<domain>` noindex, so search engines skip the docs before launch. Empty lets them index it. |
 | `SENTRY_AUTH_TOKEN` | web (build secret) | no | Sentry organization token. The web build uploads source maps with it so production stack traces stay readable, then deletes them. Empty skips the upload and builds no source maps. |
 
 ## Set inside the compose file (no need to touch)
