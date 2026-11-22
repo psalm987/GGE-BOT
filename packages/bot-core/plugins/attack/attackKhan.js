@@ -70,7 +70,7 @@ if (require('node:worker_threads').isMainThread)
             {
                 type: "Text",
                 key: "scoreShutoff",
-                default: "881100"
+                default: ""
             },
             ...require("../../khan.js").khanChainOptions(),
             {
@@ -161,7 +161,7 @@ xtHandler.on("rpr", ({ EID, PCRP: rage }) => {
         if (rage > campRageNeeded)
             console.warn("rageTooHigh")
 
-        if (khan.tabletsOnly || pluginOptions.dryRun)
+        if (khan.tabletsOnly || pluginOptions.dryRun || quit)
             return
         console.info("rageTrigger")
         sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))

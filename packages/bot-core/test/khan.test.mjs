@@ -120,14 +120,28 @@ describe("Khan, setting the event difficulty", () => {
 })
 
 describe("Khan taunts", () => {
-    const fullRage = async stored => {
-        const run = await khan(stored)
+    const running = { waitToAttack: () => new Promise(() => {}), wait: 10 }
+    const fullRage = async (stored, game = running) => {
+        const run = await khan(stored, game)
         run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
         run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
         return run.frames.filter(([command]) => command == "lta")
     }
     test("a full rage bar taunts the Khan", async () => {
         expect(await fullRage({})).toEqual([["lta", { AV: 0, EID: 72 }]])
+    })
+    test("the score shutoff is off by default", () => {
+        expect(options.find(option => option.key == "scoreShutoff").default).toBe("")
+    })
+    test("once the score shutoff is reached a full rage bar sends no taunt", async () => {
+        const run = await khan({ scoreShutoff: "1000" }, running)
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        run.bot.xtHandler.emit("pep", { EID: 72, OP: ["1500"] }, 0)
+        run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
+        expect(run.frames.filter(([command]) => command == "lta")).toEqual([])
+    })
+    test("an ended event sends no taunt either", async () => {
+        expect(await fullRage({}, { sends: 1 })).toEqual([])
     })
     test("tablets only never taunts", async () => {
         expect(await fullRage({ tabletsOnly: true })).toEqual([])
