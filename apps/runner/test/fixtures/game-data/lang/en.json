@@ -3,5 +3,9 @@
     "speerman_name": "Spearman",
     "flag_name": "Banner",
     "Ram_name": "Battering ram",
-    "peasant_name": "Peasant"
+    "peasant_name": "Peasant",
+    "mat_name": "Insulating mat",
+    "MayaMat_name": "Insulating mat",
+    "Renegadeskeletonspeerman_name": "Skeleton warrior",
+    "Skeletonspeerman_name": "Skeleton warrior"
 }
