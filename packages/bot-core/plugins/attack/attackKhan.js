@@ -242,6 +242,8 @@ events.on("eventStop", ({ EID }) => {
     if (EID != eventID)
         return
 
+    // A lost defence holds taunts through reconnects, which start the event again, and only until the event ends.
+    defenceLost = false
     if (quit)
         return
 
@@ -271,7 +273,6 @@ events.on("eventStart", async ({ EID, EDID }) => {
         return
 
     quit = false
-    defenceLost = false
     reportStatus("running")
     if (khan.keepDefence) {
         defence ??= keepDefence({

@@ -176,7 +176,7 @@ The plugin keeps one gate in front of `lta`, `tauntHold` in `packages/bot-core/k
 |---|---|---|
 | `off` | The tablets only or log only option | Never |
 | `stopped` | The score shutoff or the event ending | The next event start |
-| `defenceLost` | A battle report that says the defender failed, matched to a Khan taunt | The next event start |
+| `defenceLost` | A battle report that says the defender failed, matched to a Khan taunt | The event ending. A reconnect keeps it. |
 | `defenceShort` | `keepDefence` could not refill every slot, because storage ran out or a write was refused | A refill that leaves nothing missing |
 
 While tools are missing, `keepDefence` reads `dfc` again every 5 minutes, so tools that reach storage meanwhile close the gap. The bot logs a hold when it starts or changes, and once more when taunts resume. With `keepDefence` off there is no `defenceShort` hold.

@@ -126,4 +126,4 @@ const TAUNT_HOLDS = [
 /** The first reason taunts are held, or undefined when the bar may be spent. */
 const tauntHold = state => TAUNT_HOLDS.find(([, held]) => held(state))?.[0]
 
-module.exports = { tauntHold, defenceResult, tauntLandings,  khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
+module.exports = { tauntHold, defenceResult, tauntLandings, khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
