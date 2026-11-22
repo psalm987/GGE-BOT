@@ -37,6 +37,12 @@ describe("settling the difficulty of an event", () => {
         await settleDifficulty(72, -1, 5)
         expect(sedes()).toHaveLength(2)
     })
+    test("a plugin whose own choice is Classic still gets the difficulty another plugin set", async () => {
+        const { settleDifficulty, sedes } = load()
+        const answers = await Promise.all([settleDifficulty(72, -1, 5), settleDifficulty(72, -1, 0)])
+        expect(answers).toEqual([{ EDID: 105 }, { EDID: 105 }])
+        expect(sedes()).toHaveLength(1)
+    })
     test("an event with a difficulty, or a choice without a row (Classic), asks nothing", async () => {
         const { settleDifficulty, sedes } = load()
         expect(await settleDifficulty(72, 105, 5)).toEqual({ EDID: 105 })

@@ -19,19 +19,22 @@ async function sendDifficulty(EID, EDID) {
 /**
  * The difficulty in force for an event that started on `EDID`. While it is -1 the game has none yet, and the
  * `eventDifficulty` choice `choice` is set as the player would: `{ EDID }` once the game accepts it, `{ refused }`
- * with the game's error otherwise. A choice with no difficulty row (Classic) leaves the event on -1, and so does an
- * event that already has a difficulty.
+ * with the game's error otherwise. Once one plugin has asked, every plugin gets that answer, whatever its own choice.
+ * A choice with no difficulty row (Classic) leaves the event on -1, and so does an event that already has a difficulty.
  */
 function settleDifficulty(EID, EDID, choice) {
+    if (EDID != -1)
+        return Promise.resolve({ EDID })
+    if (settled.has(EID))
+        return settled.get(EID)
     // Classic has no difficulty row, so the event stays on EDID -1 and its classic camps.
     const difficulty = eventsDifficulties.find(e => choice == e.difficultyTypeID && e.eventID == EID)
-    if (EDID != -1 || !difficulty)
+    if (!difficulty)
         return Promise.resolve({ EDID })
-    if (!settled.has(EID))
-        settled.set(EID, sendDifficulty(EID, Number(difficulty.difficultyID)).catch(error => {
-            settled.delete(EID)
-            throw error
-        }))
+    settled.set(EID, sendDifficulty(EID, Number(difficulty.difficultyID)).catch(error => {
+        settled.delete(EID)
+        throw error
+    }))
     return settled.get(EID)
 }
 
