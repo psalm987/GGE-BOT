@@ -64,6 +64,57 @@ const isTaunt = (march, playerID, campType) =>
 /** How many Khan attacks are on their way to the player. */
 const incomingTaunts = (movements, playerID, campType) => movements.filter(march => isTaunt(march, playerID, campType)).length
 
+/** `MESSAGE_TYPE_BATTLE_LOG` and `SUBTYPE_ATTACK_NPC` in the client, the type of a battle report and the attack subtype of an NPC's. */
+const BATTLE_LOG = 6
+const ATTACK_NPC = 2
+/** The result of a battle report as the client numbers it for the defender: 1 is `DEFENDER_SUCCESS`, 3 is `DEFENDER_FAILED`. */
+const DEFENCE_RESULTS = { 1: "held", 3: "lost" }
+
+/**
+ * Whether a `sne` message `[id, type, header, ...]` reports a defence of the player against an NPC, and how it went:
+ * "held", "lost", or undefined for anything else. The header reads `areaType+subtypeAttack+subtypeResult[+...]#kingdomID+ownerID[+areaName]`.
+ */
+function defenceResult(message, playerID) {
+    const [, type, header] = message
+    if (type != BATTLE_LOG || typeof header != "string")
+        return undefined
+    const [left, right = ""] = header.split("#")
+    const [, subtypeAttack, subtypeResult] = left.split("+")
+    const [, ownerID] = right.split("+")
+    if (subtypeAttack != ATTACK_NPC || ownerID != playerID)
+        return undefined
+    return DEFENCE_RESULTS[subtypeResult]
+}
+
+/** How long before a report an expected landing still matches it, and how long after, in milliseconds. */
+const LANDING_BEFORE_MS = 60_000
+const LANDING_AFTER_MS = 15_000
+/** An expected landing is forgotten this long after its time, in milliseconds. */
+const LANDING_STALE_MS = 5 * 60_000
+
+/**
+ * The arrival times of the Khan attacks on their way, to tell a Khan's battle report from another NPC's. A report
+ * comes a little before or after the arrival the movement gave, so `claim` takes the earliest arrival near `nowMs`.
+ */
+function tauntLandings(clock = Date.now) {
+    let arrivals = []
+    const forget = nowMs => { arrivals = arrivals.filter(at => at >= nowMs - LANDING_STALE_MS) }
+    return {
+        expect(arrivalMs) {
+            forget(clock())
+            arrivals.push(arrivalMs)
+        },
+        claim(nowMs) {
+            forget(nowMs)
+            const near = arrivals.filter(at => at >= nowMs - LANDING_BEFORE_MS && at <= nowMs + LANDING_AFTER_MS)
+            if (near.length == 0)
+                return false
+            arrivals.splice(arrivals.indexOf(Math.min(...near)), 1)
+            return true
+        },
+    }
+}
+
 /** Why a full rage bar is not spent on a taunt, in the order the reasons are checked, each with the state that sets it. */
 const TAUNT_HOLDS = [
     ["off", state => state.tabletsOnly || state.dryRun],
@@ -75,4 +126,4 @@ const TAUNT_HOLDS = [
 /** The first reason taunts are held, or undefined when the bar may be spent. */
 const tauntHold = state => TAUNT_HOLDS.find(([, held]) => held(state))?.[0]
 
-module.exports = { tauntHold,  khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
+module.exports = { tauntHold, defenceResult, tauntLandings,  khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }

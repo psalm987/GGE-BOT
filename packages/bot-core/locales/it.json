@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "Difesa del tuo castello principale ripristinata con strumenti dalla scorta, strumenti sistemati: ",
     "khanDefencePlanned": "Solo log, la difesa verrebbe ripristinata con questo numero di strumenti: ",
     "khanDefenceRefused": "Il gioco ha rifiutato una modifica della difesa: ",
+    "khanDefenceHeld": "La difesa ha retto a un attacco del Khan",
+    "khanDefenceLost": "La difesa ha ceduto a un attacco del Khan",
     "khanTauntHeldDefenceShort": "Le provocazioni al Khan sono sospese finché la difesa non è di nuovo ripristinata",
     "khanTauntHeldDefenceLost": "Una difesa è andata persa, quindi le provocazioni al Khan sono sospese finché l'evento non riparte",
     "khanTauntsResumed": "Le provocazioni al Khan riprendono",

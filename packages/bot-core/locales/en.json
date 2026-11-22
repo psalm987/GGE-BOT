@@ -693,6 +693,8 @@
     "khanDefenceRefilled": "Refilled the defence of your main castle with tools from storage, tools placed: ",
     "khanDefencePlanned": "Log only: the defence would be refilled with this many tools: ",
     "khanDefenceRefused": "The game refused a defence change: ",
+    "khanDefenceHeld": "The defence held against a Khan attack",
+    "khanDefenceLost": "The defence was lost to a Khan attack",
     "khanTauntHeldDefenceShort": "Khan taunts are held until the defence is filled again",
     "khanTauntHeldDefenceLost": "A defence was lost, so Khan taunts are held until the event starts again",
     "khanTauntsResumed": "Khan taunts resume",

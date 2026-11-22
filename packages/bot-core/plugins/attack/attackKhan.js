@@ -95,7 +95,7 @@ const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, DEFENCE_TOOLS } = require("../../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
@@ -193,6 +193,31 @@ xtHandler.on("rpr", ({ EID, PCRP }) => {
     if (rage > campRageNeeded)
         console.warn("rageTooHigh")
     tryTaunt()
+})
+
+const landings = tauntLandings()
+const seenTaunts = new Set()
+
+movementEvents.on("outgoing", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ march) => {
+    if (!isTaunt(march, playerInfo.playerID, type) || seenTaunts.has(march.id))
+        return
+    seenTaunts.add(march.id)
+    landings.expect(Date.now() + Math.max(0, march.totalTime - (march.deltaTime - Date.now())))
+})
+
+xtHandler.on("sne", ({ MSG }) => {
+    for (const message of Array.isArray(MSG) ? MSG : []) {
+        const result = defenceResult(message, playerInfo.playerID)
+        if (!result || !landings.claim(Date.now()))
+            continue
+        if (result == "held")
+            console.info("khanDefenceHeld")
+        else {
+            console.warn("khanDefenceLost")
+            defenceLost = true
+            tryTaunt()
+        }
+    }
 })
 
 xtHandler.on("pep", ({ EID, OP }) => {

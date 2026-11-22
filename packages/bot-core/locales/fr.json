@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "Défense de votre château principal remplie avec des engins du stock, engins placés : ",
     "khanDefencePlanned": "Journal seulement, la défense serait remplie avec ce nombre d'engins : ",
     "khanDefenceRefused": "Le jeu a refusé une modification de la défense : ",
+    "khanDefenceHeld": "La défense a tenu face à une attaque du Khan",
+    "khanDefenceLost": "La défense a cédé face à une attaque du Khan",
     "khanTauntHeldDefenceShort": "Les provocations du Khan sont suspendues jusqu'à ce que la défense soit de nouveau remplie",
     "khanTauntHeldDefenceLost": "Une défense a été perdue, donc les provocations du Khan sont suspendues jusqu'au prochain démarrage de l'événement",
     "khanTauntsResumed": "Les provocations du Khan reprennent",

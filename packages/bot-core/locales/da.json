@@ -693,6 +693,8 @@
     "khanDefenceRefilled": "Forsvaret af din hovedborg er genopfyldt med redskaber fra lageret, redskaber placeret: ",
     "khanDefencePlanned": "Kun logget, forsvaret ville blive genopfyldt med så mange redskaber: ",
     "khanDefenceRefused": "Spillet afviste en ændring af forsvaret: ",
+    "khanDefenceHeld": "Forsvaret holdt mod et Khan-angreb",
+    "khanDefenceLost": "Forsvaret faldt for et Khan-angreb",
     "khanTauntHeldDefenceShort": "Provokationer af khanen er sat på pause, indtil forsvaret er fyldt op igen",
     "khanTauntHeldDefenceLost": "Et forsvar blev tabt, så provokationer af khanen er sat på pause, indtil eventet starter igen",
     "khanTauntsResumed": "Provokationer af khanen genoptages",

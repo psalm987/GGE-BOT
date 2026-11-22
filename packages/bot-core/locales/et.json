@@ -693,6 +693,8 @@
     "khanDefenceRefilled": "Peaslossi kaitse täiendati laos olevate tööriistadega, paigutatud tööriistu: ",
     "khanDefencePlanned": "Ainult logi, kaitset täiendataks nii paljude tööriistaga: ",
     "khanDefenceRefused": "Mäng lükkas kaitse muudatuse tagasi: ",
+    "khanDefenceHeld": "Kaitse pidas vastu Khaani rünnakule",
+    "khanDefenceLost": "Kaitse kaotas Khaani rünnakule",
     "khanTauntHeldDefenceShort": "Khaani provotseerimine on peatatud, kuni kaitse on uuesti täidetud",
     "khanTauntHeldDefenceLost": "Üks kaitse kaotati, seega on Khaani provotseerimine peatatud, kuni sündmus algab uuesti",
     "khanTauntsResumed": "Khaani provotseerimine jätkub",

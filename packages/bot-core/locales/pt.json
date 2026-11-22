@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "A defesa do seu castelo principal foi reposta com ferramentas do estoque, ferramentas colocadas: ",
     "khanDefencePlanned": "Só registrado, a defesa seria reposta com esta quantidade de ferramentas: ",
     "khanDefenceRefused": "O jogo recusou uma alteração na defesa: ",
+    "khanDefenceHeld": "A defesa resistiu a um ataque do Khan",
+    "khanDefenceLost": "A defesa foi perdida para um ataque do Khan",
     "khanTauntHeldDefenceShort": "As provocações ao Khan ficam em espera até a defesa ser reposta de novo",
     "khanTauntHeldDefenceLost": "Uma defesa foi perdida, então as provocações ao Khan ficam em espera até o evento começar de novo",
     "khanTauntsResumed": "As provocações ao Khan são retomadas",

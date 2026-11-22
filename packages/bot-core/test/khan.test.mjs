@@ -8,7 +8,7 @@ const { melee, ranged, unit } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
 const { loadModule, fakeBot } = require("./harness/load.cjs")
 const { readLegacy } = require("../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, tauntHold } = require("../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, tauntHold, defenceResult, tauntLandings } = require("../khan.js")
 
 const options = loadModule("plugins/attack/attackKhan.js", { mainThread: true }).mod.pluginOptions
 
@@ -218,6 +218,107 @@ describe("Khan taunts and the defence", () => {
         const { keeper, rage, taunts } = await keeping({})
         rage()
         expect(keeper).toBeUndefined()
+        expect(taunts()).toHaveLength(1)
+    })
+})
+
+describe("the battle report of a taunt", () => {
+    const report = (header, type = 6) => [324182170, type, header, "", -1, 0, 0, 0, 0]
+    test("the header of the trace reads as a defence that held, and a failed defender as lost", () => {
+        expect(defenceResult(report("1+2+1#0+2190967+BlackBuck"), 2190967)).toBe("held")
+        expect(defenceResult(report("1+2+3#0+2190967+BlackBuck"), 2190967)).toBe("lost")
+        expect(defenceResult(report("1+2+1+5+7#0+7"), 7)).toBe("held")
+    })
+    test("the attacker's results, another kind of attack, another owner and another message type say nothing", () => {
+        expect(defenceResult(report("1+2+0#0+7+x"), 7)).toBeUndefined()
+        expect(defenceResult(report("1+2+2#0+7+x"), 7)).toBeUndefined()
+        expect(defenceResult(report("1+1+1#0+7+x"), 7)).toBeUndefined()
+        expect(defenceResult(report("1+2+1#0+8+x"), 7)).toBeUndefined()
+        expect(defenceResult(report("1+2+1#0+7+x", 7), 7)).toBeUndefined()
+        expect(defenceResult(report("1+2+1"), 7)).toBeUndefined()
+        expect(defenceResult([1, 6], 7)).toBeUndefined()
+    })
+
+    test("a report claims the earliest arrival near it, once, and the 1.3 s it came early is inside", () => {
+        const landings = tauntLandings(() => 100_000)
+        landings.expect(101_300)
+        landings.expect(100_500)
+        expect(landings.claim(100_000)).toBe(true)
+        expect(landings.claim(100_000)).toBe(true)
+        expect(landings.claim(100_000)).toBe(false)
+    })
+    test("an arrival too far ahead or too long past matches no report", () => {
+        const landings = tauntLandings(() => 100_000)
+        landings.expect(120_000)
+        expect(landings.claim(100_000)).toBe(false)
+        expect(landings.claim(100_000 + 120_000 + 60_000 + 1)).toBe(false)
+        landings.expect(100_000)
+        expect(landings.claim(100_000 + 60_000)).toBe(true)
+    })
+    test("an arrival is forgotten after a few minutes", () => {
+        let now = 0
+        const landings = tauntLandings(() => now)
+        landings.expect(1000)
+        now = 10 * 60_000
+        landings.expect(now + 1000)
+        expect(landings.claim(1000)).toBe(false)
+        expect(landings.claim(now)).toBe(true)
+    })
+})
+
+describe("Khan taunts and the battle report", () => {
+    afterEach(() => vi.restoreAllMocks())
+    const running = { waitToAttack: () => new Promise(() => {}), wait: 10 }
+    const march = id => ({ id, owner: { ownerID: -801 }, targetOwner: { ownerID: 7 }, sourceAttack: { type: 35 }, totalTime: 2000, deltaTime: Date.now() })
+    async function game() {
+        const run = await khan({}, running)
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        const sne = header => run.bot.xtHandler.emit("sne", { MSG: [[1, 6, header, "", -1, 0, 0, 0, 0]] }, 0)
+        const rage = () => run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
+        const taunts = () => run.frames.filter(([command]) => command == "lta")
+        return { run, sne, rage, taunts }
+    }
+    const logged = (spy, key) => spy.mock.calls.filter(([first]) => first == key)
+
+    test("a lost defence stops the next full bar from taunting, and the warning says why", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { run, sne, rage, taunts } = await game()
+        run.movementEvents.emit("outgoing", march(1))
+        sne("1+2+3#0+7+BlackBuck")
+        rage()
+        expect(taunts()).toEqual([])
+        expect(logged(warn, "khanDefenceLost")).toHaveLength(1)
+        expect(logged(warn, "khanTauntHeldDefenceLost")).toHaveLength(1)
+    })
+    test("the next event start lets taunts go on", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { run, sne, rage, taunts } = await game()
+        run.movementEvents.emit("outgoing", march(1))
+        sne("1+2+3#0+7+BlackBuck")
+        rage()
+        run.bot.events.emit("eventStart", { EID: 72, EDID: 3 })
+        await new Promise(resolve => setTimeout(resolve, 10))
+        expect(taunts()).toHaveLength(1)
+        expect(logged(info, "khanTauntsResumed")).toHaveLength(1)
+    })
+    test("a defence that held is logged and the bar is spent", async () => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { run, sne, rage, taunts } = await game()
+        run.movementEvents.emit("outgoing", march(1))
+        run.movementEvents.emit("outgoing", march(1))
+        sne("1+2+1#0+7+BlackBuck")
+        sne("1+2+3#0+7+BlackBuck")
+        rage()
+        expect(logged(info, "khanDefenceHeld")).toHaveLength(1)
+        expect(taunts()).toHaveLength(1)
+    })
+    test("a report with no recent taunt changes nothing", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { sne, rage, taunts } = await game()
+        sne("1+2+3#0+7+BlackBuck")
+        rage()
+        expect(logged(warn, "khanDefenceLost")).toHaveLength(0)
         expect(taunts()).toHaveLength(1)
     })
 })

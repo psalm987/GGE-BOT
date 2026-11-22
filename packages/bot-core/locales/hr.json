@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "Obrana tvog glavnog dvorca nadopunjena je alatima iz skladišta, postavljeno alata: ",
     "khanDefencePlanned": "Samo zapisnik, obrana bi se nadopunila s ovoliko alata: ",
     "khanDefenceRefused": "Igra je odbila promjenu obrane: ",
+    "khanDefenceHeld": "Obrana je izdržala napad Kana",
+    "khanDefenceLost": "Obrana je pala pod napadom Kana",
     "khanTauntHeldDefenceShort": "Izazivanje Kana je zaustavljeno dok se obrana ponovno ne nadopuni",
     "khanTauntHeldDefenceLost": "Jedna obrana je izgubljena pa je izazivanje Kana zaustavljeno dok događaj ponovno ne počne",
     "khanTauntsResumed": "Izazivanje Kana se nastavlja",

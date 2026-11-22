@@ -697,6 +697,8 @@
     "khanDefenceRefilled": "أُعيد ملء دفاع قلعتك الرئيسية بأدوات من المخزن، عدد الأدوات الموضوعة: ",
     "khanDefencePlanned": "تسجيل فقط، سيُعاد ملء الدفاع بهذا العدد من الأدوات: ",
     "khanDefenceRefused": "رفضت اللعبة تغييرًا في الدفاع: ",
+    "khanDefenceHeld": "صمد الدفاع أمام هجوم الخان",
+    "khanDefenceLost": "سقط الدفاع أمام هجوم الخان",
     "khanTauntHeldDefenceShort": "استفزاز الخان معلّق حتى يُملأ الدفاع من جديد",
     "khanTauntHeldDefenceLost": "خسرتَ دفاعًا، لذا استفزاز الخان معلّق حتى يبدأ الحدث من جديد",
     "khanTauntsResumed": "استُؤنف استفزاز الخان",

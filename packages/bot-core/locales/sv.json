@@ -693,6 +693,8 @@
     "khanDefenceRefilled": "Försvaret av ditt huvudslott har fyllts på med verktyg från lagret, verktyg placerade: ",
     "khanDefencePlanned": "Endast logg, försvaret skulle fyllas på med så här många verktyg: ",
     "khanDefenceRefused": "Spelet avvisade en ändring av försvaret: ",
+    "khanDefenceHeld": "Försvaret höll mot ett khan-anfall",
+    "khanDefenceLost": "Försvaret föll för ett khan-anfall",
     "khanTauntHeldDefenceShort": "Provocerandet av khan ligger på is tills försvaret är påfyllt igen",
     "khanTauntHeldDefenceLost": "Ett försvar gick förlorat, så provocerandet av khan ligger på is tills eventet startar igen",
     "khanTauntsResumed": "Provocerandet av khan återupptas",

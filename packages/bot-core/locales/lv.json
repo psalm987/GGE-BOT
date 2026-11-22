@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "Tavas galvenās pils aizsardzība papildināta ar rīkiem no krājuma, novietoti rīki: ",
     "khanDefencePlanned": "Tikai žurnāls, aizsardzība tiktu papildināta ar tik rīkiem: ",
     "khanDefenceRefused": "Spēle noraidīja aizsardzības izmaiņu: ",
+    "khanDefenceHeld": "Aizsardzība izturēja Hana uzbrukumu",
+    "khanDefenceLost": "Aizsardzība zaudēja Hana uzbrukumā",
     "khanTauntHeldDefenceShort": "Hana izaicināšana ir apturēta, līdz aizsardzība atkal būs papildināta",
     "khanTauntHeldDefenceLost": "Viena aizsardzība tika zaudēta, tāpēc Hana izaicināšana ir apturēta, līdz notikums atkal sāksies",
     "khanTauntsResumed": "Hana izaicināšana atsākas",

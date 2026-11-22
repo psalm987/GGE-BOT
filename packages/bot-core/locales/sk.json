@@ -695,6 +695,8 @@
     "khanDefenceRefilled": "Obrana tvojho hlavného hradu bola doplnená nástrojmi zo skladu, umiestnených nástrojov: ",
     "khanDefencePlanned": "Len záznam, obrana by sa doplnila týmto počtom nástrojov: ",
     "khanDefenceRefused": "Hra odmietla zmenu obrany: ",
+    "khanDefenceHeld": "Obrana odolala útoku Chána",
+    "khanDefenceLost": "Obrana podľahla útoku Chána",
     "khanTauntHeldDefenceShort": "Provokovanie Chána je pozastavené, kým sa obrana znova nedoplní",
     "khanTauntHeldDefenceLost": "Jedna obrana bola stratená, preto je provokovanie Chána pozastavené, kým udalosť znova nezačne",
     "khanTauntsResumed": "Provokovanie Chána pokračuje",

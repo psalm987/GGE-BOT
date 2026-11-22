@@ -696,6 +696,8 @@
     "khanDefenceRefilled": "Id-difiża tal-kastell ewlieni tiegħek ġiet mimlija b'għodda mill-maħżen, għodda mqiegħda: ",
     "khanDefencePlanned": "Reġistru biss, id-difiża tiġi mimlija b'dan in-numru ta' għodda: ",
     "khanDefenceRefused": "Il-logħba rrifjutat bidla fid-difiża: ",
+    "khanDefenceHeld": "Id-difiża reġgħet lura attakk tal-Khan",
+    "khanDefenceLost": "Id-difiża ntilfet quddiem attakk tal-Khan",
     "khanTauntHeldDefenceShort": "Il-provokar tal-Khan inżamm sakemm id-difiża terġa' tiġi mimlija",
     "khanTauntHeldDefenceLost": "Difiża ntilfet, għalhekk il-provokar tal-Khan inżamm sakemm l-avveniment jerġa' jibda",
     "khanTauntsResumed": "Il-provokar tal-Khan jerġa' jibda",

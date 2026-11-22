@@ -694,6 +694,8 @@
     "khanDefenceRefilled": "Se repuso la defensa de tu castillo principal con herramientas del almacén, herramientas colocadas: ",
     "khanDefencePlanned": "Solo registro, la defensa se repondría con estas herramientas: ",
     "khanDefenceRefused": "El juego rechazó un cambio en la defensa: ",
+    "khanDefenceHeld": "La defensa resistió un ataque del Khan",
+    "khanDefenceLost": "La defensa cayó ante un ataque del Khan",
     "khanTauntHeldDefenceShort": "Las provocaciones al Khan quedan en espera hasta que la defensa vuelva a estar repuesta",
     "khanTauntHeldDefenceLost": "Se perdió una defensa, así que las provocaciones al Khan quedan en espera hasta que el evento vuelva a empezar",
     "khanTauntsResumed": "Se reanudan las provocaciones al Khan",
