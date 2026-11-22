@@ -13,6 +13,8 @@ The fields below are the order in which each `C2S*VO` constructor assigns them, 
 | Event wheel spin | `pep {EID}`, `lws {LWET:1}` | The same fixture, and [wheel.md](wheel.md) |
 | VIP state | the `vip` push and `gbd.vip`: `VP` points, `VRL` highest level reached, `VRS` seconds of VIP left, `UPG` premium commanders used today | [vip-commanders.md](vip-commanders.md) |
 | Daily tasks | the `dql` push: `RDQ` open tasks with progress `P`, `FDQ` finished task ids, `RS` milestone rewards | This page, under Daily tasks |
+| Spying | `ssi {TX, TY, KID}`, `csm {SID, TX, TY, SC, ST, SE, HBW, KID, PTT, SD}` | `nomad-20261122.json`, and [nomad-khan.md](nomad-khan.md) |
+| Castle defence | `dfc`, `dfw`, `dfm`, `dfk` | `khan-20261122.json`, and [nomad-khan.md](nomad-khan.md) |
 
 ## Needs a capture
 
@@ -79,11 +81,6 @@ Each entry names the cheapest safe action that would capture it. Actions marked 
 - **Commands**: `mpe {MID}` (`C2SMercenaryPackageVO`), `rmm {MID}` refreshes a mission (`C2SRefreshMercenaryMissionVO`, may cost rubies).
 - **Capture**: open the mercenary post and start one free mission. It is one of the daily tasks.
 
-### Spying
-
-- **Command**: `csm {SID, TX, TY, SC, ST, SE, HBW, KID, PTT, SD}` (`C2SCreateSpyMovementVO`: `SC` spy count, `ST` spy type, `SE` effort).
-- **Capture**: spy on one robber baron castle. The daily task asks for 5.
-
 ### Crafting
 
 - **Commands**: `ceq {I, EX}` (`C2SCraftEquipmentVO`), `cge {MID, UG, C2}` (`C2SCraftGemVO`; `C2` 1 pays rubies and must stay 0).
@@ -119,7 +116,7 @@ The `dql` push lists the day's tasks. On 2026-11-21 there were 12, and the miles
 | Produce tools | `bup` with `LID` 1 | Recruit and tools |
 | Collect the wheelbarrows 5 times | `rcc` | needs a capture |
 | Complete one mission at the mercenary post | `mpe` | needs a capture |
-| Spy on 5 targets | `csm` | needs a capture |
+| Spy on 5 targets | `csm` | captured, no plugin yet |
 | Make an equipment item or a gem | `ceq` or `cge` | needs a capture |
 | Perform a successful sabotage | spy movement | not planned: it attacks other players |
 | Spend rubies | any | never |
@@ -130,16 +127,16 @@ Record on the second test account with the recorder, add a marker before each st
 
 1. Collect the wheelbarrows in front of the main castle.
 2. Open the mercenary post and start one free mission.
-3. Spy on one robber baron castle.
-4. Craft one piece of equipment or one gem without rubies.
-5. Heal two units that heal for coins.
-6. Repair one burning building for resources.
-7. Send 100 food to another castle in the same kingdom.
-8. Open the equipment auto-sell settings and save them unchanged.
-9. Upgrade one cheap building.
-10. Open the overseers tab of the King's Market (no purchase), so `boi` and the booster state are recorded.
-11. On a VIP account only: one attack with a premium commander.
-12. During a Nomad Invasion only: buy or use one advisor token.
+3. Craft one piece of equipment or one gem without rubies.
+4. Heal two units that heal for coins.
+5. Repair one burning building for resources.
+6. Send 100 food to another castle in the same kingdom.
+7. Open the equipment auto-sell settings and save them unchanged.
+8. Upgrade one cheap building.
+9. Open the overseers tab of the King's Market (no purchase), so `boi` and the booster state are recorded.
+10. On a VIP account only: one attack with a premium commander.
+11. During a Nomad Invasion only: buy or use one advisor token.
+12. During a Nomad Invasion only: open the castle defence after a Khan attack lands, so `dfc` shows what the defence used up, and change one courtyard slot, so `dfk` shows what `S` and `STS` hold.
 13. Queue two small troop orders back to back, so `spl` shows a filled slot.
 14. Pick troops on a login bonus day that offers them.
 15. Spin the classic Wheel of Fortune once while it runs, outside Pro mode.
