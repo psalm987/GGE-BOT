@@ -82,15 +82,14 @@ if (require('node:worker_threads').isMainThread)
 
     }
 
-const err = require("../../err.json")
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
-const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
+const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
+const { settleDifficulty } = require("../../eventDifficulty.js")
 
-const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
@@ -201,18 +200,12 @@ events.on("eventStart", async ({ EID, EDID }) => {
     if (EID != eventID)
         return
 
-    // Classic has no difficulty row, so the event stays on EDID -1 and its classic camps.
-    const difficulty = eventsDifficulties.find(e => pluginOptions.eventDifficulty == e.difficultyTypeID && e.eventID == eventID)
-    if (EDID == -1 && difficulty) {
-        const eventDifficultyID = Number(difficulty.difficultyID)
-        await sendXT("sede", JSON.stringify({ EID: eventID, EDID: eventDifficultyID, C2U: 0 }))
-        const [, result] = await waitForResult("sede", 1000 * 10)
-        if (result != 0) {
-            console.warn("campDifficultyRefused", err[result] ?? result)
-            return reportStatus("waiting", "statusCampDifficultyRefused")
-        }
-        EDID = eventDifficultyID
+    const settled = await settleDifficulty(eventID, EDID, pluginOptions.eventDifficulty)
+    if (settled.refused) {
+        console.warn("campDifficultyRefused", settled.refused)
+        return reportStatus("waiting", "statusCampDifficultyRefused")
     }
+    EDID = settled.EDID
     let classic = false
 
     if ([-1, 0].includes(EDID))

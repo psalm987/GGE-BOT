@@ -13,13 +13,12 @@ const { readLegacy } = require("../../legacyOptions.js")
 const { parseTarget, campQueue, areaAt, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
 const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
 const { campAttackLine } = require("../../attackLog.js")
-const { sendXT, waitForResult, xtHandler, events, playerInfo } = require("../../ggeBot.js")
+const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
+const { settleDifficulty } = require("../../eventDifficulty.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { sleep } = require("../../pacing.js")
 
-const eventsDifficulties = require("../../paths.js").loadItem("eventAutoScalingDifficulties")
 const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
-const err = require("../../err.json")
 
 const minTroopCount = 100
 /** A count of attacks in a status is rounded down to this step once it passes it, so the status isn't rewritten after every attack. */
@@ -128,18 +127,12 @@ function eventCampAttacks(profile, stored, filename) {
             console.warn("campDifficultyNotSet")
             return reportStatus("waiting", "statusCampDifficultyNotSet")
         }
-        // Classic has no difficulty row, so the event stays on EDID -1 and its classic camps.
-        const difficulty = eventsDifficulties.find(e => options.eventDifficulty == e.difficultyTypeID && e.eventID == eventID)
-        if (eventInfo.EDID == -1 && difficulty) {
-            const eventDifficultyID = Number(difficulty.difficultyID)
-            await sendXT("sede", JSON.stringify({ EID: eventID, EDID: eventDifficultyID, C2U: 0 }))
-            const [, result] = await waitForResult("sede", 1000 * 10)
-            if (result != 0) {
-                console.warn("campDifficultyRefused", err[result] ?? result)
-                return reportStatus("waiting", "statusCampDifficultyRefused")
-            }
-            eventInfo.EDID = eventDifficultyID
+        const settled = await settleDifficulty(eventID, eventInfo.EDID, options.eventDifficulty)
+        if (settled.refused) {
+            console.warn("campDifficultyRefused", settled.refused)
+            return reportStatus("waiting", "statusCampDifficultyRefused")
         }
+        eventInfo.EDID = settled.EDID
         let classic = false
         if ([-1, 0].includes(eventInfo.EDID))
             classic = true
