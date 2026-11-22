@@ -98,26 +98,47 @@ function parseTarget(options) {
 const readyAt = area => (area.timeSinceRequest ?? 0) + (Number(area.extraData[2]) || 0) * 1000
 
 /**
- * The camps of one event and the order they are attacked in. `target` is parseTarget's. A camp that was attacked goes
- * to the back of the line.
+ * How many attacks a camp takes before one of them starts a wait: one for each camp with none from this camp on, and
+ * one for the camp that has it. `camps` are the rows of the eventAutoScalingCamps item file. A camp with no row
+ * takes one.
  */
-function campQueue(target, areas = []) {
+function hitsBeforeCooldown(camps, campID) {
+    const first = camps.find(camp => camp.eventAutoScalingCampID == campID)
+    if (!first)
+        return 1
+    let hits = 1
+    for (let id = Number(campID); ; id++) {
+        const next = camps.find(camp => Number(camp.eventAutoScalingCampID) == id && camp.eventID == first.eventID && camp.difficultyID == first.difficultyID && camp.areaType == first.areaType)
+        if (!next || Number(next.coolDown) != 0)
+            break
+        hits++
+    }
+    return hits
+}
+
+/**
+ * The camps of one event and the order they are attacked in. `target` is parseTarget's. A camp that was attacked goes
+ * to the back of the line. `room(area)` is how many marches may head for a camp at once, and a plugin may replace it
+ * once it knows the event's difficulty.
+ */
+function campQueue(target, areas = [], room = () => 1) {
     const spent = new RollingWindow(DAY)
     const queue = {
         areas,
+        room,
         /** Whether one more skip fits the plugin's budget of skips in any 24 hours. */
         maySkip: (now = Date.now()) => target.skips && (target.skipBudget == 0 || spent.total(now) < target.skipBudget),
         skipped: (now = Date.now()) => spent.add(now),
         /**
          * The next camp to attack, or undefined when none can be attacked now. While skips may be spent it is the camp at
-         * the front, whatever its wait. Otherwise it is the first camp whose wait is over and that no march of `movements`
-         * is heading for.
+         * the front, whatever its wait. Otherwise it is the first camp whose wait is over and that fewer marches of
+         * `movements` are heading for than its room.
          */
         pick(movements = [], now = Date.now()) {
-            const marchingTo = area => movements.some(march => march.targetAttack?.x == area.x && march.targetAttack?.y == area.y)
+            const full = area => movements.filter(march => march.targetAttack?.x == area.x && march.targetAttack?.y == area.y).length >= queue.room(area)
             if (areas.length == 0)
                 return undefined
-            const index = queue.maySkip(now) ? 0 : areas.findIndex(area => readyAt(area) <= now && !marchingTo(area))
+            const index = queue.maySkip(now) ? 0 : areas.findIndex(area => readyAt(area) <= now && !full(area))
             if (index < 0)
                 return undefined
             const [area] = areas.splice(index, 1)
@@ -178,4 +199,4 @@ const EVENT_PROFILES = {
     },
 }
 
-module.exports = { EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, eventCampOptions, eventCampChecks, parseTarget, readyAt, campQueue, areaAt }
+module.exports = { EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, eventCampOptions, eventCampChecks, parseTarget, readyAt, campQueue, hitsBeforeCooldown, areaAt }

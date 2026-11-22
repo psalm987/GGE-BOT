@@ -10,7 +10,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { parseTarget, campQueue, areaAt, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
+const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
 const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
 const { campAttackLine } = require("../../attackLog.js")
 const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
@@ -136,6 +136,7 @@ function eventCampAttacks(profile, stored, filename) {
         let classic = false
         if ([-1, 0].includes(eventInfo.EDID))
             classic = true
+        queue.room = classic ? () => 1 : area => hitsBeforeCooldown(eventAutoScalingCamps, area.extraData[5])
 
         const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.mainCastle])
         const castle = source.castle
@@ -182,7 +183,7 @@ function eventCampAttacks(profile, stored, filename) {
                 .sort((a, b) =>
                     (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
                     (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
-                .sort((a, b) => a.extraData[6] - b.extraData[6]))
+                .sort((a, b) => a.extraData[5] - b.extraData[5]))
         if (queue.areas.length == 0) {
             console.error("campsNoneFound")
             return reportStatus("stopped", "statusCampsNoneFound")

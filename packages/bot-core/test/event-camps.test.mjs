@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 const require = createRequire(import.meta.url)
 const { melee, ranged, tool, unit } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
-const { parseTarget, campQueue, eventCampOptions, EVENT_PROFILES } = require("../eventCamps.js")
+const { parseTarget, campQueue, hitsBeforeCooldown, eventCampOptions, EVENT_PROFILES } = require("../eventCamps.js")
 const { campAttackLine } = require("../attackLog.js")
 
 const camp = (x, y, wait = 0, type = 27) => ({ type, x, y, extraData: [0, 0, wait, 0, 0, 5, 0], timeSinceRequest: Date.now() })
@@ -42,6 +42,33 @@ describe("a camp plugin's target", () => {
         expect(queue.nextReadyAt()).toBe(now)
         expect(queue.pick([], now + 600_000)).toBe(cooling)
     })
+    describe("several attacks in flight on a camp with no wait yet", () => {
+        const row = (id, coolDown) => ({ eventAutoScalingCampID: String(id), eventID: "72", difficultyID: "310", areaType: "27", coolDown: String(coolDown) })
+        const rows = [...Array.from({ length: 9 }, (_, i) => row(991 + i, 0)), row(1000, 5400), { ...row(992, 0), difficultyID: "320" }]
+        test("a camp takes one hit for each camp with no wait from it on, and one more for the camp that starts the wait", () => {
+            expect(hitsBeforeCooldown(rows, 991)).toBe(10)
+            expect(hitsBeforeCooldown(rows, 999)).toBe(2)
+            expect(hitsBeforeCooldown(rows, 1000)).toBe(1)
+        })
+        test("a camp with no row takes one hit", () => {
+            expect(hitsBeforeCooldown(rows, 5)).toBe(1)
+            expect(hitsBeforeCooldown([], 991)).toBe(1)
+        })
+        test("rows of another difficulty or event do not extend the run", () => {
+            expect(hitsBeforeCooldown([row(991, 0), { ...row(992, 0), eventID: "80" }, { ...row(993, 0), areaType: "29" }], 991)).toBe(2)
+        })
+        test("a ready camp is picked while fewer marches head for it than its room", () => {
+            const ready = { x: 2, y: 2, extraData: [0, 0, 0], timeSinceRequest: 0 }
+            const queue = campQueue(parseTarget({ targetMode: 1 }), [ready], () => 3)
+            const march = { targetAttack: { x: 2, y: 2 } }
+            expect(queue.pick([march, march], 0)).toBe(ready)
+            expect(queue.pick([march, march, march], 0)).toBeUndefined()
+        })
+        test("a camp's room is one by default", () => {
+            const ready = { x: 2, y: 2, extraData: [0, 0, 0], timeSinceRequest: 0 }
+            expect(campQueue(parseTarget({ targetMode: 1 }), [ready]).pick([{ targetAttack: { x: 2, y: 2 } }], 0)).toBeUndefined()
+        })
+    })
     test("a march home brings the camp's new wait", () => {
         const area = { x: 1, y: 1, extraData: [0, 0, 0], timeSinceRequest: 1000 }
         const queue = campQueue(parseTarget({ targetMode: 1 }), [area])
@@ -71,6 +98,14 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         const { sent, skipped } = await run({ targetMode: 1 }, { areas: [camp(110, 105, 300, type), camp(120, 100, 0, type)] })
         expect(targets(sent)).toEqual([[120, 100]])
         expect(skipped).toEqual([])
+    })
+
+    test("camps are attacked from the lowest camp id up, the nearer camp first among equals", async () => {
+        const withID = (area, id) => ({ ...area, extraData: area.extraData.with(5, id).with(6, 99 - id) })
+        const areas = [withID(camp(110, 105, 0, type), 7), withID(camp(130, 100, 0, type), 5), withID(camp(120, 100, 0, type), 5)]
+        const rows = { eventAutoScalingCamps: [5, 7].map(id => ({ eventAutoScalingCampID: id, camplevel: "50" })) }
+        const { sent } = await run({ targetMode: 1 }, { areas, sends: 2, items: rows })
+        expect(targets(sent)).toEqual([[120, 100], [130, 100]])
     })
 
     test("every camp, no time skips: with every camp waiting it reports when the next one is ready", async () => {
