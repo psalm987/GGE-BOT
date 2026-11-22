@@ -29,7 +29,7 @@ export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
 
 /** The game's items of one kind for the settings pickers: banners strongest first, everything else by name. */
 export function loadGameItems(db: Db, kind: GameItemKind) {
-    return db.select({ id: gameItems.id, kind: gameItems.kind, nameKey: gameItems.nameKey, name: gameItems.name, level: gameItems.level, fameBonus: gameItems.fameBonus, orderList: gameItems.orderList, image: gameItems.image })
+    return db.select({ id: gameItems.id, kind: gameItems.kind, nameKey: gameItems.nameKey, name: gameItems.name, level: gameItems.level, fameBonus: gameItems.fameBonus, orderList: gameItems.orderList, image: gameItems.image, variant: gameItems.variant })
         .from(gameItems).where(eq(gameItems.kind, kind))
         .orderBy(...kind === "banner" ? [desc(gameItems.fameBonus), asc(gameItems.name), asc(gameItems.id)] : [asc(gameItems.name), asc(gameItems.id)]) as Promise<GameItem[]>
 }

@@ -18,7 +18,7 @@ import {
     uniqueIndex,
     uuid,
 } from "drizzle-orm/pg-core"
-import { ANNOUNCEMENT_SEVERITIES, CURRENCIES, PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS, PURCHASE_PROVIDERS, PURCHASE_STATUSES } from "@gge/contracts"
+import { ANNOUNCEMENT_SEVERITIES, CURRENCIES, PERIOD_SOURCES, PLAN_IDS, POINTS_REASONS, PURCHASE_PROVIDERS, PURCHASE_STATUSES, type GameItemVariant } from "@gge/contracts"
 import { LOCALE_CODES } from "@gge/i18n"
 
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" })
@@ -236,6 +236,8 @@ export const gameItems = pgTable("game_items", {
     orderList: integer("order_list"),
     /** The game CDN asset path, without the extension. */
     image: text("image"),
+    /** What sets the item apart from others sharing its kind, name and level; null when nothing needs to. */
+    variant: jsonb("variant").$type<GameItemVariant>(),
     updatedAt: updatedAt(),
 })
 

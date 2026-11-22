@@ -183,6 +183,13 @@
       "when": 1795299578345,
       "tag": "0025_game_items_order_list",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795369595286,
+      "tag": "0026_game_items_variant",
+      "breakpoints": true
     }
   ]
 }
