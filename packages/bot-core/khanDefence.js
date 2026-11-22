@@ -54,12 +54,12 @@ function learnTarget(target, seen) {
 
 /**
  * What to write to bring `seen` back up to `target`, with `stock`, the tools in storage as a Map of wodID to count.
- * The result holds the body of each section that gets a write, under its command (`dfw`, `dfm`, `dfk`), and `placed`,
- * the tools it moves into slots. Slots draw on the stock in table order.
+ * The result holds the body of each section that gets a write, under its command (`dfw`, `dfm`, `dfk`), `placed`, the
+ * tools it moves into slots, and `placedBy`, those tools by command. Slots draw on the stock in table order.
  */
 function refillPlan(target, seen, stock) {
     const left = new Map(stock)
-    const plan = { placed: 0 }
+    const plan = { placed: 0, placedBy: { dfw: 0, dfm: 0, dfk: 0 } }
     const filled = new Set()
     const raised = clone(seen)
     for (const slot of SLOTS) {
@@ -75,6 +75,7 @@ function refillPlan(target, seen, stock) {
             list[index] = [tool, (held[0] == tool ? held[1] : 0) + give]
             left.set(tool, left.get(tool) - give)
             plan.placed += give
+            plan.placedBy[slot[0]] += give
             filled.add(slot[0])
         })
     }
@@ -116,14 +117,18 @@ function keepDefence({ castle, kingdomID, isTaunt, dryRun }) {
             return
         if (dryRun)
             return console.info("khanDefencePlanned", plan.placed)
+        let placed = 0
         for (const command of Object.keys(WRITES)) {
             if (!plan[command])
                 continue
             const written = await ask(command, { ...at, ...plan[command] })
-            if (written.result != 0)
+            if (written.result == 0)
+                placed += plan.placedBy[command]
+            else
                 refused(command, written.result)
         }
-        console.info("khanDefenceRefilled", plan.placed)
+        if (placed > 0)
+            console.info("khanDefenceRefilled", placed)
     }
 
     async function refill() {

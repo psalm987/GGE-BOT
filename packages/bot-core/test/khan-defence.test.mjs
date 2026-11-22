@@ -47,8 +47,8 @@ describe("what a refill writes", () => {
         expect(plan.placed).toBe(50497 - 46793 + 926)
     })
     test("a section nothing was missing from is not written", () => {
-        expect(Object.keys(refillPlan(full, used, stockOf(used))).sort()).toEqual(["dfm", "dfw", "placed"])
-        expect(refillPlan(used, used, stockOf(used))).toEqual({ placed: 0 })
+        expect(Object.keys(refillPlan(full, used, stockOf(used))).sort()).toEqual(["dfm", "dfw", "placed", "placedBy"])
+        expect(refillPlan(used, used, stockOf(used))).toEqual({ placed: 0, placedBy: { dfw: 0, dfm: 0, dfk: 0 } })
     })
     test("a small storage is shared between the slots in table order", () => {
         const plan = refillPlan(full, used, new Map([[110, 1000]]))
@@ -154,6 +154,14 @@ describe("keeping the defence while Khan attacks land", () => {
         await landing(taunt(1))
         expect(commands()).toEqual(["dfc", "dfc", "dfw", "dfm"])
         expect(warn).toHaveBeenCalledWith("khanDefenceRefused", "dfw", " ", "INVALID_EVENT_DIFFICULTY_ID")
+    })
+    test("the log counts only the tools of writes the game accepted", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { keeper, landing } = start({ writes: cmd => cmd == "dfw" ? 437 : 0 })
+        await keeper.refill()
+        await landing(taunt(1))
+        expect(info).toHaveBeenCalledWith("khanDefenceRefilled", 926)
     })
     test("after the bot unloads a landing taunt refills nothing", async () => {
         const { keeper, bot, commands, landing } = start()
