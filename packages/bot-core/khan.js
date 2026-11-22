@@ -64,4 +64,15 @@ const isTaunt = (march, playerID, campType) =>
 /** How many Khan attacks are on their way to the player. */
 const incomingTaunts = (movements, playerID, campType) => movements.filter(march => isTaunt(march, playerID, campType)).length
 
-module.exports = { khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
+/** Why a full rage bar is not spent on a taunt, in the order the reasons are checked, each with the state that sets it. */
+const TAUNT_HOLDS = [
+    ["off", state => state.tabletsOnly || state.dryRun],
+    ["stopped", state => state.quit],
+    ["defenceLost", state => state.defenceLost],
+    ["defenceShort", state => state.defenceShort],
+]
+
+/** The first reason taunts are held, or undefined when the bar may be spent. */
+const tauntHold = state => TAUNT_HOLDS.find(([, held]) => held(state))?.[0]
+
+module.exports = { tauntHold,  khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }

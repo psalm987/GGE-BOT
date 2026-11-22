@@ -95,7 +95,7 @@ const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS } = require("../../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, DEFENCE_TOOLS } = require("../../khan.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
@@ -153,22 +153,47 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
     skipTarget(movement.sourceAttack).catch(e => console.warn(e))
 })
 
-xtHandler.on("rpr", ({ EID, PCRP: rage }) => {
+let nomadsPoints = 0
+let quit = false
+let defenceShort = false
+let defenceLost = false
+let rage = 0
+/** The hold logged last, so a hold is announced when it starts or changes and never once per `rpr`. */
+let announced
+
+const HOLD_WARNINGS = { defenceShort: "khanTauntHeldDefenceShort", defenceLost: "khanTauntHeldDefenceLost" }
+
+function announce(hold) {
+    if (hold == announced)
+        return
+    const before = announced
+    announced = hold
+    if (HOLD_WARNINGS[hold])
+        console.warn(HOLD_WARNINGS[hold])
+    else if (!hold && HOLD_WARNINGS[before])
+        console.info("khanTauntsResumed")
+}
+
+/** Spends the full rage bar on a taunt unless something holds it. Called with each `rpr` and whenever a hold clears. */
+function tryTaunt() {
+    const hold = tauntHold({ tabletsOnly: khan.tabletsOnly, dryRun: pluginOptions.dryRun, quit, defenceLost, defenceShort })
+    announce(hold)
+    if (hold || !(rage >= campRageNeeded))
+        return
+    console.info("rageTrigger")
+    rage = 0
+    sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
+}
+
+xtHandler.on("rpr", ({ EID, PCRP }) => {
     if (EID != eventID)
         return
 
-    if (rage >= campRageNeeded) {
-        if (rage > campRageNeeded)
-            console.warn("rageTooHigh")
-
-        if (khan.tabletsOnly || pluginOptions.dryRun || quit)
-            return
-        console.info("rageTrigger")
-        sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
-    }
+    rage = PCRP
+    if (rage > campRageNeeded)
+        console.warn("rageTooHigh")
+    tryTaunt()
 })
-let nomadsPoints = 0
-let quit = false
 
 xtHandler.on("pep", ({ EID, OP }) => {
     if (EID != eventID)
@@ -221,11 +246,19 @@ events.on("eventStart", async ({ EID, EDID }) => {
         return
 
     quit = false
+    defenceLost = false
     reportStatus("running")
     if (khan.keepDefence) {
-        defence ??= keepDefence({ castle, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun })
+        defence ??= keepDefence({
+            castle, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun,
+            onChecked: ({ missing }) => {
+                defenceShort = missing > 0
+                tryTaunt()
+            },
+        })
         defence.refill()
     }
+    tryTaunt()
 
     const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
 

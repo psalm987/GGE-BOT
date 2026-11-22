@@ -8,7 +8,7 @@ const { melee, ranged, unit } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
 const { loadModule, fakeBot } = require("./harness/load.cjs")
 const { readLegacy } = require("../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, incomingTaunts } = require("../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, tauntHold } = require("../khan.js")
 
 const options = loadModule("plugins/attack/attackKhan.js", { mainThread: true }).mod.pluginOptions
 
@@ -163,6 +163,62 @@ describe("Khan taunts", () => {
     test("hits go on below the limit", async () => {
         const { sent } = await khan({ pauseAtTaunts: 3 }, { movements: [taunt(1), taunt(2), home] })
         expect(sent).toHaveLength(1)
+    })
+})
+
+describe("what holds a taunt", () => {
+    test("the reasons come in a fixed order and nothing set means no hold", () => {
+        expect(tauntHold({})).toBeUndefined()
+        expect(tauntHold({ defenceShort: true })).toBe("defenceShort")
+        expect(tauntHold({ defenceShort: true, defenceLost: true })).toBe("defenceLost")
+        expect(tauntHold({ defenceShort: true, defenceLost: true, quit: true })).toBe("stopped")
+        expect(tauntHold({ defenceShort: true, defenceLost: true, quit: true, tabletsOnly: true })).toBe("off")
+        expect(tauntHold({ dryRun: true })).toBe("off")
+    })
+})
+
+describe("Khan taunts and the defence", () => {
+    afterEach(() => vi.restoreAllMocks())
+    const running = { waitToAttack: () => new Promise(() => {}), wait: 10 }
+    async function keeping(stored = { keepDefence: true }) {
+        let keeper
+        const refill = vi.fn()
+        const run = await khan(stored, { ...running, extra: { "khanDefence.js": { keepDefence: options => (keeper = options, { refill }) } } })
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        const rage = () => run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
+        const taunts = () => run.frames.filter(([command]) => command == "lta")
+        return { run, keeper, rage, taunts }
+    }
+
+    test("tools missing hold the taunt, say so once, and the full bar is spent as soon as the defence is whole", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { keeper, rage, taunts } = await keeping()
+        keeper.onChecked({ missing: 12 })
+        rage()
+        rage()
+        expect(taunts()).toEqual([])
+        expect(warn.mock.calls.filter(([key]) => key == "khanTauntHeldDefenceShort")).toHaveLength(1)
+        keeper.onChecked({ missing: 12 })
+        expect(warn.mock.calls.filter(([key]) => key == "khanTauntHeldDefenceShort")).toHaveLength(1)
+        keeper.onChecked({ missing: 0 })
+        expect(taunts()).toEqual([["lta", { AV: 0, EID: 72 }]])
+        expect(info).toHaveBeenCalledWith("khanTauntsResumed")
+        keeper.onChecked({ missing: 0 })
+        expect(taunts()).toHaveLength(1)
+        expect(info.mock.calls.filter(([key]) => key == "khanTauntsResumed")).toHaveLength(1)
+    })
+    test("a defence that is whole never holds a taunt", async () => {
+        const { keeper, rage, taunts } = await keeping()
+        keeper.onChecked({ missing: 0 })
+        rage()
+        expect(taunts()).toHaveLength(1)
+    })
+    test("with the keeper off nothing holds the taunt for want of tools", async () => {
+        const { keeper, rage, taunts } = await keeping({})
+        rage()
+        expect(keeper).toBeUndefined()
+        expect(taunts()).toHaveLength(1)
     })
 })
 
