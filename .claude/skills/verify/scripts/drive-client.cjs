@@ -344,11 +344,15 @@ async function drivePhaseC(page) {
     await number("Pause hits at this many incoming Khan attacks").fill("120")
     assert(await number("Flaming arrows").inputValue() === "0", "the defence stock starts at 0, which buys nothing")
     await number("Flaming arrows").fill("500")
+    const keepDefence = () => page.getByRole("checkbox", { name: "Refill the defence after each Khan attack" })
+    assert(!(await keepDefence().isChecked()), "refilling the defence starts off")
+    assert(await page.getByText("back to the layout they held when the plugin started", { exact: false }).isVisible(), "the defence refill's help says it restores the layout set in the game")
+    await keepDefence().check()
     await save()
     const khan = (await stored("attackKhan")).options
-    assert(khan.rageWaves === 1 && khan.tabletsOnly === true && khan.pauseAtTaunts === 120 && khan.stockFlamingArrows === 500 && !("wavesTillChests" in khan), `Khan saves the new options and drops the old key: ${JSON.stringify(khan)}`)
+    assert(khan.rageWaves === 1 && khan.tabletsOnly === true && khan.pauseAtTaunts === 120 && khan.stockFlamingArrows === 500 && khan.keepDefence === true && !("wavesTillChests" in khan), `Khan saves the new options and drops the old key: ${JSON.stringify(khan)}`)
     await openModule(page, "Khan")
-    assert(await page.getByRole("checkbox", { name: "Tablets only: never taunt the Khan" }).isChecked() && await number("Pause hits at this many incoming Khan attacks").inputValue() === "120", "Khan's choices come back after a reload")
+    assert(await page.getByRole("checkbox", { name: "Tablets only: never taunt the Khan" }).isChecked() && await number("Pause hits at this many incoming Khan attacks").inputValue() === "120" && await keepDefence().isChecked(), "Khan's choices come back after a reload")
     await shots("81-khan", "khan")
 
     await openModule(page, "Green Berimond")
