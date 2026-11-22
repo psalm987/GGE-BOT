@@ -14,7 +14,11 @@ const COLUMN_KIND = { tool: "tool", troop: "troop" } as const
 export function useGameItems(kind: GameItemKind) {
     const { t } = useTranslation("game")
     const items = useQuery({ ...orpc.catalog.gameItems.queryOptions({ input: { kind } }), staleTime: Infinity }).data ?? []
-    const nameOf = (item: GameItem) => t(item.nameKey, { defaultValue: item.name })
+    // Levels of one item share its name in the game's strings, so the level tells them apart.
+    const nameOf = (item: GameItem) => {
+        const name = t(item.nameKey, { defaultValue: item.name })
+        return item.level ? `${name} ${item.level}` : name
+    }
     return { items, nameOf, byId: new Map(items.map(item => [item.id, item])) }
 }
 
@@ -149,12 +153,11 @@ const emptyRow = (columns: RowColumn[]) => Object.fromEntries(columns.flatMap(c 
 
 export const rowsComplete = (columns: RowColumn[], rows: RowValue[] = []) => rows.every(row => columns.every(c => row[c.key] !== undefined && row[c.key] !== null))
 
-/** `orderable` lists only what a plugin may order with coins or resources, and tells the levels of one item apart in the name. */
+/** `orderable` lists only what a plugin may order with coins or resources. */
 function ItemSelect({ kind, orderable, value, onChange, label }: { kind: GameItemKind; orderable?: boolean; value?: number; onChange: (v: number | undefined) => void; label: string }) {
     const { items, nameOf } = useGameItems(kind)
-    const named = (item: GameItem) => orderable && item.level ? `${nameOf(item)} ${item.level}` : nameOf(item)
     return <Select showSearch={{ optionFilterProp: "label" }} aria-label={label} value={value} onChange={onChange} style={{ width: "100%" }}
-        options={items.filter(item => !orderable || item.orderList !== null).map(item => ({ value: item.id, label: named(item) }))} />
+        options={items.filter(item => !orderable || item.orderList !== null).map(item => ({ value: item.id, label: nameOf(item) }))} />
 }
 
 function KingdomSelect({ value, onChange, label }: { value?: number; onChange: (v: number | undefined) => void; label: string }) {

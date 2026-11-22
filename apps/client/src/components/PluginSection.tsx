@@ -43,7 +43,7 @@ function PluginFields({ entry, castles, accountId }: { entry: PluginCatalogEntry
     const values = (Form.useWatch(["options"]) as Record<string, unknown> | undefined) ?? {}
     const unwanted = (def: PluginOptionDef) => def.type !== "" && def.showWhen !== undefined && !def.showWhen.in.includes(Number(values[def.showWhen.key]))
     return (
-        <Row>
+        <Row gutter={[24, 0]}>
             {entry.options.map((def, i) => <PluginOptionField key={def.key ?? `gap-${i}`} entry={entry} def={def} castles={castles} accountId={accountId}
                 hidden={otherMode(def) || unwanted(def)} />)}
         </Row>
