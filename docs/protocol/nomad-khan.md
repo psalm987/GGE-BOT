@@ -16,6 +16,8 @@ Both camp types belong to event 72. The event has one difficulty and one score:
 - `sede {EID: 72, EDID, C2U: 0}` sets the difficulty for both camp types. The trace set `EDID` 310, tier 10 (`difficultyTypeID` 10), and the server answered 0 with `C2U` 0.
 - `pep {EID: 72}` returns one `OP[0]` for the player, whichever camp type earned the points.
 
+The Nomad, Samurai and Khan plugins share one `sede` per event start through `settleDifficulty` in `packages/bot-core/eventDifficulty.js`. The first plugin to see the event start sends it, and the others take its answer. Each plugin's score shutoff reads the same `OP[0]`.
+
 ## Nomad camps
 
 ### Camp area info
@@ -40,7 +42,7 @@ Each victory moves a camp to the next `eventAutoScalingCamps` row. At difficulty
 
 The trace sent 10 attacks at one camp before the first one landed. All 10 won. Victories 1 to 9 moved the camp from 991 to 1000 and left its wait at 0. The tenth victory, against row 1000, set the wait to 5400 seconds. From then on, every victory against the camp sets the wait to 5400 seconds again.
 
-A camp can therefore take as many attacks in flight as there are rows with `coolDown` 0 from its current row, plus one.
+A camp can therefore take as many attacks in flight as there are rows with `coolDown` 0 from its current row, plus one. `hitsBeforeCooldown` in `packages/bot-core/eventCamps.js` computes this number, and the Nomad and Samurai plugins send up to that many attacks at a camp at once.
 
 ### Points depend on the chests in the later waves
 
@@ -153,7 +155,7 @@ The reply repeats the three sides with `U`, `US` and `D`. The client sent one mo
 
 A write moves tools between storage and the slots. The trace raised every wall slot of tool 110 to 999. The 110 slots went from 8,284 tools to 11,988, and storage went from 50,497 to 46,793, the same 3,704 tools. The moat writes moved 926 moat tools (unit 112) the same way.
 
-A defence uses up the tools in the slots. To keep the defence at strength, read `dfc` after a taunt lands and write each part back up to the wanted amounts, while storage lasts.
+A defence uses up the tools in the slots. To keep the defence at strength, read `dfc` after a taunt lands and write each part back up to the wanted amounts, while storage lasts. The Khan plugin's `keepDefence` option does this in `packages/bot-core/khanDefence.js`. It refills to the layout it read when the plugin started, and a slot the player raises or changes in the game becomes the new target.
 
 The trace's tools were elite Nomad defence tools: unit 110 on the walls (ranged defence +70), 622 at the gate (gate +75) and 112 in the moat (moat +110).
 
