@@ -117,6 +117,17 @@ The taunt lands at the time `M.TT` gives. No movement-removal push names it. Its
 
 A defended taunt also fills the rage bar again: after the second defence `PCRP` was back at 2460. A plugin that taunts at a full bar keeps the chain going while the defence holds.
 
+### Battle report
+
+A taunt that lands pushes `sne {MSG: [[messageID, type, header, "", -1, 0, 0, 0, 0]]}`. The trace's entry was `[324182170, 6, "1+2+1#0+2190967+BlackBuck", "", -1, 0, 0, 0, 0]`. Type 6 is `MESSAGE_TYPE_BATTLE_LOG`. The client reads the header with `MessageBattleLogVO.parseMessageHeader` as `left#right`:
+
+- `left` is `areaType+subtypeAttack+subtypeResult`, with `+tmapID` and `+tmapAreaType` after them when the map object has them.
+- `right` is `kingdomID+ownerID`, with `+areaName` after it when the area has a name.
+
+`subtypeAttack` 2 is `SUBTYPE_ATTACK_NPC`. `subtypeResult` is 0 for `ATTACKER_SUCCESS`, 1 for `DEFENDER_SUCCESS`, 2 for `ATTACKER_FAILED` and 3 for `DEFENDER_FAILED`. In the trace `ownerID` is the player's own id.
+
+Other NPC attacks land on a player's castle too, Daimyo taunts for one. The report also came 1.3 seconds before the arrival time the `gam` movement gave (`TT` and `PT`). The bot therefore records the arrival time of each Khan taunt from its movement, and counts a report as the Khan's only when it comes from 60 seconds before to 15 seconds after an expected arrival. `defenceResult` and `tauntLandings` in `packages/bot-core/khan.js` do this.
+
 ## Castle defence
 
 The client reads the whole defence with one command and writes it in three parts.
@@ -157,6 +168,19 @@ A write moves tools between storage and the slots. The trace raised every wall s
 
 A defence uses up the tools in the slots. To keep the defence at strength, read `dfc` after a taunt lands and write each part back up to the wanted amounts, while storage lasts. The Khan plugin's `keepDefence` option does this in `packages/bot-core/khanDefence.js`. It refills to the layout it read when the plugin started, and a slot the player raises or changes in the game becomes the new target.
 
+### When the bot holds a taunt
+
+The plugin keeps one gate in front of `lta`, `tauntHold` in `packages/bot-core/khan.js`. It returns the first of these reasons that applies, in this order, and the full bar is spent as soon as none does:
+
+| Hold | Set by | Cleared by |
+|---|---|---|
+| `off` | The tablets only or log only option | Never |
+| `stopped` | The score shutoff or the event ending | The next event start |
+| `defenceLost` | A battle report that says the defender failed, matched to a Khan taunt | The next event start |
+| `defenceShort` | `keepDefence` could not refill every slot, because storage ran out or a write was refused | A refill that leaves nothing missing |
+
+While tools are missing, `keepDefence` reads `dfc` again every 5 minutes, so tools that reach storage meanwhile close the gap. The bot logs a hold when it starts or changes, and once more when taunts resume. With `keepDefence` off there is no `defenceShort` hold.
+
 The trace's tools were elite Nomad defence tools: unit 110 on the walls (ranged defence +70), 622 at the gate (gate +75) and 112 in the moat (moat +110).
 
 ## Evidence and confidence
@@ -169,6 +193,7 @@ The trace's tools were elite Nomad defence tools: unit 110 on the walls (ranged 
 | `msd` fields and the skip lengths | high | |
 | `lta`, the taunt movement and its landing time | high | |
 | About 200,000 points for a defended taunt at row 1153 | high, for this row | A capture at another difficulty |
+| The `sne` header format and the `subtypeResult` values | high, from the client build | A lost defence in a trace |
 | `dfc`, `dfw` and `dfm` fields | high | |
 | A write moves tools out of storage | high | |
 | A defence uses up slot tools | medium | Read `dfc` after a taunt lands |
