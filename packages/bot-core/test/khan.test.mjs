@@ -152,6 +152,19 @@ describe("Khan taunts", () => {
     })
 })
 
+describe("Khan defence keeper option", () => {
+    test("it sits right after the defence stock label and is off by default", () => {
+        const keys = options.map(option => option.key)
+        expect(keys[keys.indexOf("defenceStock") + 1]).toBe("keepDefence")
+        expect(options.find(option => option.key == "keepDefence")).toMatchObject({ type: "Checkbox", default: false })
+    })
+    test("on, the plugin reads the main castle's defence when the event runs, and off it asks nothing", async () => {
+        const read = async stored => (await khan(stored, { wait: 10 })).frames.filter(([command]) => command == "dfc")
+        expect(await read({ keepDefence: true })).toEqual([["dfc", { CX: 100, CY: 100, AID: 1, KID: -1 }]])
+        expect(await read({})).toEqual([])
+    })
+})
+
 describe("defence tools from the armourer", () => {
     const units = [{ wodID: 629, type: "Brazier" }, { wodID: 637, type: "Oilsmelter" }]
     const packages = [{ packageID: "2476", unitID: "629", unitAmount: "1", packagePriceC1: "642" }, { packageID: "2472", unitID: "637", unitAmount: "1", packagePriceC1: "110" }]

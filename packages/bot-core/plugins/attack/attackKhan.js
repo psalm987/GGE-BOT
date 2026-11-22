@@ -89,12 +89,13 @@ const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountT
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
+const { keepDefence } = require("../../khanDefence.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS } = require("../../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS } = require("../../khan.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
@@ -110,6 +111,8 @@ const eventID = 72
 const troopBlackList = [277, 34, 35]
 
 let campRageNeeded = NaN
+/** The defence keeper, started with the first run of the event. */
+let defence
 
 const skipTarget = oneSkipPerCamp(async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
@@ -219,6 +222,10 @@ events.on("eventStart", async ({ EID, EDID }) => {
 
     quit = false
     reportStatus("running")
+    if (khan.keepDefence) {
+        defence ??= keepDefence({ castle, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun })
+        defence.refill()
+    }
 
     const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
 

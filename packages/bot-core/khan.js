@@ -31,6 +31,7 @@ const khanChainOptions = () => [
     { type: "Checkbox", key: "tabletsOnly", default: false },
     { type: "Number", key: "pauseAtTaunts", min: 0, max: 500, unit: "attacks", default: 0 },
     { type: "Label", key: "defenceStock" },
+    { type: "Checkbox", key: "keepDefence", default: false },
     ...stockOptions(DEFENCE_TOOLS),
     ...spendOptions(),
 ]
@@ -45,6 +46,7 @@ const parseKhan = options => ({
     tabletChests: idList(options.tabletChests),
     tabletsOnly: Boolean(options.tabletsOnly),
     pauseAtTaunts: Math.max(0, Number(options.pauseAtTaunts) || 0),
+    keepDefence: Boolean(options.keepDefence),
 })
 
 /** What wave `index` carries besides troops, for a wave after the first: rage waves come first, then booster waves. */
@@ -54,9 +56,12 @@ const waveKind = ({ rageWaves, boosterWaves }, index) =>
 /** The alliance Khan camp's owner, `BASIC_ALLIANCE_NOMAD_CAMP_PLAYER_ID` in the client. */
 const KHAN_OWNER = -801
 
-/** How many Khan attacks are on their way to the player: marches that aren't the player's own, from a Khan camp. */
-const incomingTaunts = (movements, playerID, campType) => movements.filter(march =>
+/** Whether a march is a Khan attack on the player: it isn't the player's own and comes from a Khan camp. */
+const isTaunt = (march, playerID, campType) =>
     march.targetOwner?.ownerID == playerID && march.owner?.ownerID != playerID &&
-    (march.sourceAttack?.type == campType || march.owner?.ownerID == KHAN_OWNER)).length
+    (march.sourceAttack?.type == campType || march.owner?.ownerID == KHAN_OWNER)
 
-module.exports = { khanWaveOptions, khanChainOptions, parseKhan, waveKind, incomingTaunts, DEFENCE_TOOLS }
+/** How many Khan attacks are on their way to the player. */
+const incomingTaunts = (movements, playerID, campType) => movements.filter(march => isTaunt(march, playerID, campType)).length
+
+module.exports = { khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
