@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "Obrana tvog glavnog dvorca nadopunjena je alatima iz skladišta, postavljeno alata: ",
     "khanDefencePlanned": "Samo zapisnik, obrana bi se nadopunila s ovoliko alata: ",
     "khanDefenceRefused": "Igra je odbila promjenu obrane: ",
+    "khanDefenceShort": "Skladište ne može nadopuniti obranu, još nedostaje alata: ",
     "khanArmourer": "Obrambena zaliha za Kana",
     "khanDefence": "Obrana od Kana",
     "attackKhan.armyMode.help": "Automatsko popunjavanje pušta bota da bira trupe i alate prema postavkama ispod. Valovi šalju točno valove koje upišeš.",

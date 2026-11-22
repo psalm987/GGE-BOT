@@ -696,6 +696,7 @@
     "khanDefenceRefilled": "Id-difiża tal-kastell ewlieni tiegħek ġiet mimlija b'għodda mill-maħżen, għodda mqiegħda: ",
     "khanDefencePlanned": "Reġistru biss, id-difiża tiġi mimlija b'dan in-numru ta' għodda: ",
     "khanDefenceRefused": "Il-logħba rrifjutat bidla fid-difiża: ",
+    "khanDefenceShort": "Il-maħżen ma jistax jimla d-difiża, għodda li għadha nieqsa: ",
     "khanArmourer": "Maħżen tad-difiża tal-Khan",
     "khanDefence": "Difiża tal-Khan",
     "attackKhan.armyMode.help": "Mili awtomatiku jħalli lill-bot jagħżel it-truppi u l-għodda skont l-għażliet hawn taħt. Mewġ jibgħat eżatt il-mewġ li tikteb.",

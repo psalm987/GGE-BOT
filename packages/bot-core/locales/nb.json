@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Forsvaret av hovedslottet ditt er fylt opp med verktøy fra lageret, verktøy plassert: ",
     "khanDefencePlanned": "Bare logg, forsvaret ville blitt fylt opp med så mange verktøy: ",
     "khanDefenceRefused": "Spillet avviste en endring i forsvaret: ",
+    "khanDefenceShort": "Lageret rekker ikke til å fylle opp forsvaret, verktøy mangler fortsatt: ",
     "khanArmourer": "Forsvarslager mot Khan",
     "khanDefence": "Khan-forsvar",
     "attackKhan.armyMode.help": "«Autofyll» lar boten velge tropper og verktøy etter valgene nedenfor. «Bølger» sender nøyaktig bølgene du setter opp.",

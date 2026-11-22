@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Verteidigung Eurer Hauptburg mit Werkzeugen aus dem Lager aufgefüllt, Werkzeuge eingesetzt: ",
     "khanDefencePlanned": "Nur protokolliert, die Verteidigung würde mit so vielen Werkzeugen aufgefüllt: ",
     "khanDefenceRefused": "Das Spiel hat eine Änderung der Verteidigung abgelehnt: ",
+    "khanDefenceShort": "Das Lager reicht nicht, um die Verteidigung aufzufüllen, es fehlen noch Werkzeuge: ",
     "khanArmourer": "Khan-Verteidigungsvorrat",
     "khanDefence": "Khan-Verteidigung",
     "attackKhan.armyMode.help": "Automatisch füllen lässt den Bot Truppen und Werkzeuge nach den Optionen unten wählen. Wellen schickt genau die Wellen, die Ihr festlegt.",

@@ -696,6 +696,7 @@
     "khanDefenceRefilled": "Athlíonadh cosaint do phríomhchaisleáin le huirlisí ón stóras, uirlisí curtha ar fáil: ",
     "khanDefencePlanned": "Logleabhar amháin, d'athlíonfaí an chosaint leis an líon seo uirlisí: ",
     "khanDefenceRefused": "Dhiúltaigh an cluiche d'athrú ar an gcosaint: ",
+    "khanDefenceShort": "Níl go leor sa stóras chun an chosaint a líonadh, uirlisí atá fós ar iarraidh: ",
     "khanArmourer": "Stoc cosanta an Khan",
     "khanDefence": "Cosaint an Khan",
     "attackKhan.armyMode.help": "Ligeann Líonadh uathoibríoch don bhot trúpaí agus uirlisí a roghnú de réir na roghanna thíos. Seolann Tonnta go díreach na tonnta a scríobhann tú.",

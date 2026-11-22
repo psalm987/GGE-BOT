@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Refilled the defence of your main castle with tools from storage, tools placed: ",
     "khanDefencePlanned": "Log only: the defence would be refilled with this many tools: ",
     "khanDefenceRefused": "The game refused a defence change: ",
+    "khanDefenceShort": "The storage cannot fill the defence, tools still missing: ",
     "khanArmourer": "Khan defence stock",
     "khanDefence": "Khan defence",
     "attackKhan.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",

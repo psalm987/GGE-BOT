@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Verdediging van je hoofdkasteel aangevuld met tuigen uit de voorraad, tuigen geplaatst: ",
     "khanDefencePlanned": "Alleen gelogd, de verdediging zou met zoveel tuigen worden aangevuld: ",
     "khanDefenceRefused": "Het spel weigerde een wijziging van de verdediging: ",
+    "khanDefenceShort": "De voorraad is te klein om de verdediging aan te vullen, tuigen die nog ontbreken: ",
     "khanArmourer": "Verdedigingsvoorraad tegen de Khan",
     "khanDefence": "Khan-verdediging",
     "attackKhan.armyMode.help": "Bij Automatisch vullen kiest de bot troepen en tuigen volgens de opties hieronder. Golven stuurt precies de golven die je invult.",

@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Ana kalenin savunması stoktaki araçlarla yeniden dolduruldu, yerleştirilen araç: ",
     "khanDefencePlanned": "Yalnızca günlük, savunma şu kadar araçla yeniden doldurulacaktı: ",
     "khanDefenceRefused": "Oyun savunmada bir değişikliği reddetti: ",
+    "khanDefenceShort": "Depo savunmayı doldurmaya yetmiyor, hâlâ eksik olan araç: ",
     "khanArmourer": "Han savunma stoğu",
     "khanDefence": "Han savunması",
     "attackKhan.armyMode.help": "Otomatik doldur, birlikleri ve aletleri botun aşağıdaki seçeneklere göre seçmesini sağlar. Dalgalar, tam olarak yazdığın dalgaları gönderir.",

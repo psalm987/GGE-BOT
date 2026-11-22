@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "Tavas galvenās pils aizsardzība papildināta ar rīkiem no krājuma, novietoti rīki: ",
     "khanDefencePlanned": "Tikai žurnāls, aizsardzība tiktu papildināta ar tik rīkiem: ",
     "khanDefenceRefused": "Spēle noraidīja aizsardzības izmaiņu: ",
+    "khanDefenceShort": "Krājuma nepietiek aizsardzības papildināšanai, joprojām trūkst rīku: ",
     "khanArmourer": "Hana aizsardzības krājums",
     "khanDefence": "Aizsardzība pret Hanu",
     "attackKhan.armyMode.help": "Autoaizpilde ļauj botam izvēlēties karavīrus un rīkus pēc zemāk esošajām opcijām. Viļņi sūta tieši tos viļņus, ko tu uzraksti.",

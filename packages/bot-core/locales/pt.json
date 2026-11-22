@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "A defesa do seu castelo principal foi reposta com ferramentas do estoque, ferramentas colocadas: ",
     "khanDefencePlanned": "Só registrado, a defesa seria reposta com esta quantidade de ferramentas: ",
     "khanDefenceRefused": "O jogo recusou uma alteração na defesa: ",
+    "khanDefenceShort": "O estoque não basta para repor a defesa, ferramentas que ainda faltam: ",
     "khanArmourer": "Estoque de defesa contra o Khan",
     "khanDefence": "Defesa contra o Khan",
     "attackKhan.armyMode.help": "Preenchimento automático deixa o bot escolher tropas e ferramentas pelas opções abaixo. Ondas envia exatamente as ondas que você escrever.",

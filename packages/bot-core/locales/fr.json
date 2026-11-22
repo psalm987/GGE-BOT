@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "Défense de votre château principal remplie avec des engins du stock, engins placés : ",
     "khanDefencePlanned": "Journal seulement, la défense serait remplie avec ce nombre d'engins : ",
     "khanDefenceRefused": "Le jeu a refusé une modification de la défense : ",
+    "khanDefenceShort": "Le stock ne suffit pas à remplir la défense, engins encore manquants : ",
     "khanArmourer": "Stock de défense contre le Khan",
     "khanDefence": "Défense contre le Khan",
     "attackKhan.armyMode.help": "Remplissage auto laisse le bot choisir troupes et engins selon les options ci-dessous. Vagues envoie exactement les vagues que vous écrivez.",

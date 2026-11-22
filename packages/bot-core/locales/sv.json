@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Försvaret av ditt huvudslott har fyllts på med verktyg från lagret, verktyg placerade: ",
     "khanDefencePlanned": "Endast logg, försvaret skulle fyllas på med så här många verktyg: ",
     "khanDefenceRefused": "Spelet avvisade en ändring av försvaret: ",
+    "khanDefenceShort": "Lagret räcker inte för att fylla på försvaret, verktyg som fortfarande saknas: ",
     "khanArmourer": "Försvarslager för khan",
     "khanDefence": "Khan-försvar",
     "attackKhan.armyMode.help": "Med Autofyll väljer botten trupper och verktyg efter alternativen nedan. Vågor skickar exakt de vågor du skriver.",

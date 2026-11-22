@@ -695,6 +695,7 @@
     "khanDefenceRefilled": "Obrona twojego głównego zamku uzupełniona narzędziami z zapasu, umieszczono narzędzi: ",
     "khanDefencePlanned": "Tylko dziennik, obrona zostałaby uzupełniona tyloma narzędziami: ",
     "khanDefenceRefused": "Gra odrzuciła zmianę obrony: ",
+    "khanDefenceShort": "Zapas nie wystarcza do uzupełnienia obrony, nadal brakuje narzędzi: ",
     "khanArmourer": "Zapas obronny przeciw chanowi",
     "khanDefence": "Obrona przed chanem",
     "attackKhan.armyMode.help": "Automatyczne uzupełnianie pozwala botowi dobierać jednostki i narzędzia według opcji poniżej. Fale wysyła dokładnie te fale, które ułożysz.",

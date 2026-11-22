@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "Apărarea castelului tău principal a fost reumplută cu unelte din stoc, unelte plasate: ",
     "khanDefencePlanned": "Doar în jurnal, apărarea ar fi fost reumplută cu atâtea unelte: ",
     "khanDefenceRefused": "Jocul a refuzat o modificare a apărării: ",
+    "khanDefenceShort": "Stocul nu ajunge pentru a reumple apărarea, unelte care încă lipsesc: ",
     "khanArmourer": "Stoc defensiv pentru Han",
     "khanDefence": "Apărare împotriva Hanului",
     "attackKhan.armyMode.help": "Cu „Completare automată”, botul alege trupele și uneltele după opțiunile de mai jos. „Valuri” trimite exact valurile pe care le scrii.",

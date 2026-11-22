@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Forsvaret af din hovedborg er genopfyldt med redskaber fra lageret, redskaber placeret: ",
     "khanDefencePlanned": "Kun logget, forsvaret ville blive genopfyldt med så mange redskaber: ",
     "khanDefenceRefused": "Spillet afviste en ændring af forsvaret: ",
+    "khanDefenceShort": "Lageret kan ikke fylde forsvaret op, redskaber mangler stadig: ",
     "khanArmourer": "Khan-forsvarslager",
     "khanDefence": "Khan-forsvar",
     "attackKhan.armyMode.help": "Autofyld lader botten vælge tropper og redskaber ud fra valgene nedenfor. Bølger sender præcis de bølger, du skriver.",

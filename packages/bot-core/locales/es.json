@@ -694,6 +694,7 @@
     "khanDefenceRefilled": "Se repuso la defensa de tu castillo principal con herramientas del almacén, herramientas colocadas: ",
     "khanDefencePlanned": "Solo registro, la defensa se repondría con estas herramientas: ",
     "khanDefenceRefused": "El juego rechazó un cambio en la defensa: ",
+    "khanDefenceShort": "El almacén no alcanza para reponer la defensa, herramientas que aún faltan: ",
     "khanArmourer": "Reserva de defensa contra el Khan",
     "khanDefence": "Defensa contra el Khan",
     "attackKhan.armyMode.help": "Autorrelleno deja que el bot elija tropas y herramientas según las opciones de abajo. Oleadas envía exactamente las oleadas que escribas.",

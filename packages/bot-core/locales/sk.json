@@ -695,6 +695,7 @@
     "khanDefenceRefilled": "Obrana tvojho hlavného hradu bola doplnená nástrojmi zo skladu, umiestnených nástrojov: ",
     "khanDefencePlanned": "Len záznam, obrana by sa doplnila týmto počtom nástrojov: ",
     "khanDefenceRefused": "Hra odmietla zmenu obrany: ",
+    "khanDefenceShort": "Sklad nestačí na doplnenie obrany, stále chýba nástrojov: ",
     "khanArmourer": "Obranné zásoby proti Chánovi",
     "khanDefence": "Obrana proti Chánovi",
     "attackKhan.armyMode.help": "Automatické plnenie nechá bota vybrať vojsko a nástroje podľa možností nižšie. Vlny pošlú presne tie vlny, ktoré napíšeš.",

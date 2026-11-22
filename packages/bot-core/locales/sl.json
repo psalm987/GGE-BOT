@@ -695,6 +695,7 @@
     "khanDefenceRefilled": "Obramba tvojega glavnega gradu je dopolnjena z orodji iz zaloge, nameščenih orodij: ",
     "khanDefencePlanned": "Samo dnevnik, obramba bi se dopolnila s tolikšnim številom orodij: ",
     "khanDefenceRefused": "Igra je zavrnila spremembo obrambe: ",
+    "khanDefenceShort": "Zaloga ne zadošča za dopolnitev obrambe, še vedno manjka orodij: ",
     "khanArmourer": "Obrambna zaloga za Kana",
     "khanDefence": "Obramba pred Kanom",
     "attackKhan.armyMode.help": "Pri samodejni izpolnitvi bot izbere čete in orodja po spodnjih možnostih. Valovi pošlje natanko valove, ki jih zapišeš.",

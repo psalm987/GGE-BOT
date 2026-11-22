@@ -47,8 +47,8 @@ describe("what a refill writes", () => {
         expect(plan.placed).toBe(50497 - 46793 + 926)
     })
     test("a section nothing was missing from is not written", () => {
-        expect(Object.keys(refillPlan(full, used, stockOf(used))).sort()).toEqual(["dfm", "dfw", "placed", "placedBy"])
-        expect(refillPlan(used, used, stockOf(used))).toEqual({ placed: 0, placedBy: { dfw: 0, dfm: 0, dfk: 0 } })
+        expect(Object.keys(refillPlan(full, used, stockOf(used))).sort()).toEqual(["dfm", "dfw", "missing", "placed", "placedBy"])
+        expect(refillPlan(used, used, stockOf(used))).toEqual({ placed: 0, placedBy: { dfw: 0, dfm: 0, dfk: 0 }, missing: 0 })
     })
     test("a small storage is shared between the slots in table order", () => {
         const plan = refillPlan(full, used, new Map([[110, 1000]]))
@@ -56,6 +56,10 @@ describe("what a refill writes", () => {
         expect(plan.dfw.M.S).toEqual(used.dfw.M.S)
         expect(plan.dfm).toBeUndefined()
         expect(plan.placed).toBe(1000)
+    })
+    test("what the storage could not cover is missing, and a full storage leaves nothing missing", () => {
+        expect(refillPlan(full, used, stockOf(used)).missing).toBe(0)
+        expect(refillPlan(full, used, new Map([[110, 1000]])).missing).toBe(3704 - 1000 + 926)
     })
     test("an emptied slot gets its tool back, and stays empty when storage has none", () => {
         const emptied = structuredClone(used)
@@ -80,18 +84,18 @@ describe("keeping the defence while Khan attacks land", () => {
     beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }))
     afterEach(() => vi.useRealTimers())
 
-    function start({ dryRun = false, writes = () => 0 } = {}) {
-        const layouts = [full, used]
+    const small = { ...used, gui: { I: [[110, 1000]] } }
+    function start({ dryRun = false, writes = () => 0, layouts = [full, used], reads = () => 0, onChecked } = {}) {
         const bot = fakeBot()
         const record = bot.sendXT
         bot.sendXT = async (cmd, params) => {
             await record(cmd, params)
-            const reply = cmd == "dfc" ? [layouts.shift() ?? used, 0] : [{}, writes(cmd)]
+            const reply = cmd == "dfc" ? [layouts.shift() ?? used, reads()] : [{}, writes(cmd)]
             setImmediate(() => bot.xtHandler.emit(cmd, ...reply))
         }
         const movementEvents = new EventEmitter()
         const { mod } = loadModule("khanDefence.js", { bot, extra: { "protocols.js": { movementEvents } } })
-        const keeper = mod.keepDefence({ castle, kingdomID: 0, isTaunt, dryRun })
+        const keeper = mod.keepDefence({ castle, kingdomID: 0, isTaunt, dryRun, onChecked })
         const commands = () => bot.sent.map(([cmd]) => cmd)
         const settle = async () => {
             for (let i = 0; i < 20; i++)
@@ -169,5 +173,80 @@ describe("keeping the defence while Khan attacks land", () => {
         bot.events.emit("unload")
         await landing(taunt(1))
         expect(commands()).toEqual(["dfc"])
+    })
+
+    describe("when the storage cannot cover the target", () => {
+        const RETRY = 5 * 60_000
+        const silent = () => {
+            vi.spyOn(console, "warn").mockImplementation(() => {})
+            vi.spyOn(console, "info").mockImplementation(() => {})
+        }
+        test("the first read only learns the target, so nothing is missing", async () => {
+            const onChecked = vi.fn()
+            const { keeper } = start({ onChecked })
+            await keeper.refill()
+            expect(onChecked.mock.calls).toEqual([[{ missing: 0 }]])
+        })
+        test("tools the storage lacks are reported once per count and the defence is read again later", async () => {
+            silent()
+            const onChecked = vi.fn()
+            const { keeper, commands, landing, settle } = start({ layouts: [full, small, small, used], onChecked })
+            await keeper.refill()
+            await landing(taunt(1))
+            expect(onChecked).toHaveBeenLastCalledWith({ missing: 3630 })
+            expect(console.warn).toHaveBeenCalledWith("khanDefenceShort", 3630)
+            const reads = () => commands().filter(cmd => cmd == "dfc").length
+            expect(reads()).toBe(2)
+            await vi.advanceTimersByTimeAsync(RETRY)
+            await settle()
+            expect(reads()).toBe(3)
+            expect(console.warn.mock.calls.filter(([key]) => key == "khanDefenceShort")).toHaveLength(1)
+            await vi.advanceTimersByTimeAsync(RETRY)
+            await settle()
+            expect(reads()).toBe(4)
+            expect(onChecked).toHaveBeenLastCalledWith({ missing: 0 })
+            await vi.advanceTimersByTimeAsync(RETRY * 2)
+            await settle()
+            expect(reads()).toBe(4)
+        })
+        test("a write the game refused counts its tools as missing", async () => {
+            silent()
+            const onChecked = vi.fn()
+            const { keeper, landing } = start({ writes: cmd => cmd == "dfw" ? 437 : 0, onChecked })
+            await keeper.refill()
+            await landing(taunt(1))
+            expect(onChecked).toHaveBeenLastCalledWith({ missing: 3704 })
+        })
+        test("a read that failed is not a check", async () => {
+            silent()
+            const onChecked = vi.fn()
+            const { keeper } = start({ reads: () => 437, onChecked })
+            await keeper.refill()
+            expect(onChecked).not.toHaveBeenCalled()
+        })
+        test("a read that fails while tools are missing is tried again", async () => {
+            silent()
+            let failing = false
+            const { keeper, commands, landing, settle } = start({ layouts: [full, small, used], reads: () => failing ? 437 : 0 })
+            await keeper.refill()
+            await landing(taunt(1))
+            failing = true
+            await vi.advanceTimersByTimeAsync(RETRY)
+            await settle()
+            failing = false
+            await vi.advanceTimersByTimeAsync(RETRY)
+            await settle()
+            expect(commands().filter(cmd => cmd == "dfc")).toHaveLength(4)
+        })
+        test("after the bot unloads the retry is cancelled", async () => {
+            silent()
+            const { keeper, bot, commands, landing, settle } = start({ layouts: [full, small, used] })
+            await keeper.refill()
+            await landing(taunt(1))
+            bot.events.emit("unload")
+            await vi.advanceTimersByTimeAsync(RETRY)
+            await settle()
+            expect(commands().filter(cmd => cmd == "dfc")).toHaveLength(2)
+        })
     })
 })

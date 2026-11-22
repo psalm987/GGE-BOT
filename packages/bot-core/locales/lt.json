@@ -695,6 +695,7 @@
     "khanDefenceRefilled": "Pagrindinės jūsų pilies gynyba papildyta įrankiais iš atsargų, įdėta įrankių: ",
     "khanDefencePlanned": "Tik žurnalas, gynyba būtų papildyta tiek įrankių: ",
     "khanDefenceRefused": "Žaidimas atmetė gynybos pakeitimą: ",
+    "khanDefenceShort": "Atsargų nepakanka gynybai papildyti, vis dar trūksta įrankių: ",
     "khanArmourer": "Chano gynybos atsargos",
     "khanDefence": "Gynyba nuo Chano",
     "attackKhan.armyMode.help": "„Automatinis užpildymas“ leidžia botui parinkti karius ir įrankius pagal toliau esančias parinktis. „Bangos“ siunčia būtent jūsų sudarytas bangas.",

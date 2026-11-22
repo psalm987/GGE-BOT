@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "Peaslossi kaitse täiendati laos olevate tööriistadega, paigutatud tööriistu: ",
     "khanDefencePlanned": "Ainult logi, kaitset täiendataks nii paljude tööriistaga: ",
     "khanDefenceRefused": "Mäng lükkas kaitse muudatuse tagasi: ",
+    "khanDefenceShort": "Ladu ei piisa kaitse täiendamiseks, tööriistu on veel puudu: ",
     "khanArmourer": "Khaani kaitsevaru",
     "khanDefence": "Khaani kaitse",
     "attackKhan.armyMode.help": "Automaatne täitmine laseb botil valida väed ja tööriistad allolevate valikute järgi. Lained saadab täpselt need lained, mille kirjutad.",

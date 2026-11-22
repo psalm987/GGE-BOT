@@ -693,6 +693,7 @@
     "khanDefenceRefilled": "A főkastélyod védelme feltöltve a raktárban lévő eszközökkel, elhelyezett eszközök: ",
     "khanDefencePlanned": "Csak napló, a védelem ennyi eszközzel lenne feltöltve: ",
     "khanDefenceRefused": "A játék elutasította a védelem módosítását: ",
+    "khanDefenceShort": "A raktár nem elég a védelem feltöltéséhez, még hiányzó eszközök: ",
     "khanArmourer": "Kán elleni védelmi készlet",
     "khanDefence": "Kán elleni védelem",
     "attackKhan.armyMode.help": "Az Automatikus kitöltésnél a bot az alábbi beállítások szerint választ katonákat és eszközöket. A Hullámok pontosan a megírt hullámokat küldi.",
