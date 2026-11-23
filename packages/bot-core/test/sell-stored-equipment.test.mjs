@@ -1,5 +1,6 @@
 import { createRequire } from "node:module"
 import { afterEach, expect, test, vi } from "vitest"
+import { effectivePluginConfig, normalizePluginSettings, PluginSettingsError } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
 const { loadModule, fakeBot } = require("./harness/load.cjs")
@@ -54,4 +55,26 @@ test("the remainder waits for the next run", async () => {
     const s = sales(sentAt)
     expect(s.length).toBeGreaterThan(20)
     expect(sentAt.filter(([cmd]) => cmd == "gei").length).toBeGreaterThan(1)
+})
+
+const catalog = [{ key: "sellStoredEquipment", force: false, hidden: false, options: loadModule("plugins/sellStoredEquipment.js", { mainThread: true }).mod.pluginOptions }]
+const saved = options => ({ sellStoredEquipment: { enabled: true, options } })
+
+/** How many items the first run sells with these options, up to the 80 the storage holds. */
+async function firstRun(options) {
+    const { sentAt } = start(options)
+    await vi.advanceTimersByTimeAsync(30 * 60_000)
+    const second = sentAt.filter(([cmd]) => cmd == "gei")[1]
+    return sales(sentAt.slice(0, sentAt.indexOf(second))).length
+}
+
+test.each(["-5", "0", "99", "abc", "", "7"])("a stored run size of %j sells as many items on the legacy host as under the runner", async stored => {
+    const asStored = await firstRun({ sellMaxPerRun: stored })
+    const viaRunner = await firstRun(effectivePluginConfig(catalog, saved({ sellMaxPerRun: stored })).sellStoredEquipment)
+
+    expect(asStored).toBe(viaRunner)
+})
+
+test("a run size that is not a whole number is refused when saved", () => {
+    expect(() => normalizePluginSettings(catalog, saved({ sellMaxPerRun: "2.5" }))).toThrow(PluginSettingsError)
 })
