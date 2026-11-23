@@ -19,5 +19,5 @@ export function toggleTile(list: string, position: number): string {
     return writeCommanderPicks(picks.includes(position) ? picks.filter(p => p !== position) : [...picks, position])
 }
 
-/** Every tile in order: the default list. */
+/** Every tile in order, which Select all picks. */
 export const ALL_TILES = writeCommanderPicks(Array.from({ length: MAX_COMMANDERS }, (_, i) => i + 1))

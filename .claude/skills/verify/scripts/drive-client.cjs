@@ -283,7 +283,7 @@ async function driveTowers(page) {
 
     // Commanders: Ironhold has 18, which the seeded bot report says.
     const picker = page.locator("[data-commander-picker]")
-    assert(await picker.locator("[data-order]").innerText() === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, "the commander picker starts on every tile, 1 to 50, the game's most")
+    assert(await picker.locator("[data-order]").innerText() === "None picked: the bot sends any of your commanders, in the order that suits each attack." && await picker.locator(".gge-commander-tile[aria-pressed=true]").count() === 0, "the commander picker starts with no tile picked, so the player picks")
     assert(await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible() && await picker.locator(".gge-commander-tile[data-beyond]").count() === 32, "the picker names the account's real range and dims the tiles past it")
     assert(await page.getByLabel("Commanders to use", { exact: true }).count() === 0, "no kingdom has a commander text field of its own")
     assert(await page.getByRole("complementary", { name: "Setup checks" }).count() === 0, "Towers has no Setup checks panel")
@@ -1038,8 +1038,7 @@ async function drivePluginSettings(page) {
     const pickedOrder = () => picker.locator("[data-order]").innerText()
     assert(await picker.getByText("You have 18 commanders (positions 1–18).", { exact: false }).isVisible(), "the commander picker names the account's real range")
     assert(await saveBar.count() === 0, "an untouched module page has no save bar")
-    await picker.getByRole("button", { name: "Clear" }).click()
-    assert(await saveBar.count() === 0, "no commander picked means the default, every commander in order, so it is no change to save")
+    assert(await pickedOrder() === "None picked: the bot sends any of your commanders, in the order that suits each attack." && await picker.getByRole("button", { name: "Clear" }).isDisabled(), "an untouched page picks no commander, and Clear is off")
     for (const position of [1, 2, 3, 4, 5]) await picker.getByRole("button", { name: `Commander ${position}`, exact: true }).click()
     await saveBar.waitFor()
     assert(true, "a change brings up the sticky save bar")
@@ -1053,7 +1052,7 @@ async function drivePluginSettings(page) {
     await saveBar.getByRole("button", { name: "Discard changes" }).click()
     await saveBar.waitFor({ state: "detached" })
     const back = await pickedOrder()
-    assert(back === `Order: ${Array.from({ length: 50 }, (_, i) => i + 1).join(", ")}`, `(${back}) Discard changes puts the saved commanders back and takes the save bar away`)
+    assert(back === "None picked: the bot sends any of your commanders, in the order that suits each attack.", `(${back}) Discard changes puts the saved commanders back, none picked, and takes the save bar away`)
 
     await openModule(page, "Settings preview (dev only)")
     form = page.locator(".gge-content")

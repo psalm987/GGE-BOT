@@ -67,10 +67,10 @@ function parseWhitelist(commanderWhitelist) {
 /** Orders commanders by where a parsed whitelist names them, so "5;2;1" puts commander 5 first. */
 const byWrittenOrder = whitelist => (a, b) => whitelist.indexOf(a.lordPosition) - whitelist.indexOf(b.lordPosition)
 
-/** The settings page's tiles run from 1 to this, and picking all of them in order stores the default "1-50". */
+/** The settings page's tiles run from 1 to this, and picking all of them in order stores "1-50". */
 const TILE_COUNT = 50
 /**
- * Whether a parsed whitelist is every commander from the first, in order, as the default "1-50" and the old "1-99"
+ * Whether a parsed whitelist is every commander from the first, in order, as "1-50" and the old "1-99"
  * are. Such a list names no order of its own, so a plugin's own order still picks among its commanders.
  */
 const isEveryCommander = whitelist => whitelist.length >= TILE_COUNT && whitelist.every((position, i) => position === i)
@@ -90,7 +90,7 @@ function takeFreeCommander(commanderWhitelist) {
 /**
  * A free commander of the whitelist, marked used, waiting for one to come home when none is free. Free commanders are
  * taken in the order the list names them, so "36;2;5" sends 36 first. `sortCallback` orders them only when the list
- * names no order: empty, or every commander in order like the default "1-50".
+ * names no order: empty, the default, or every commander in order like "1-50".
  * @param {string} commanderWhitelist
  * @param {filterCallback} filterCallback
  * @param {sortCallback} sortCallback
