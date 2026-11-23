@@ -27,15 +27,23 @@ function commanderPool(bot, movementEvents, count, effects) {
 /**
  * Runs a shared attack builder through its first attack against a stand-in game and returns the `cra` it built, or
  * undefined when it sent none. The real attack engine builds the frame; the map, the queue and the send are stood in.
- * `start` gets the loaded builder and starts it. `movements` are the marches on the map, and a skip's reply lands once
+ * `start` gets the loaded builder and starts it. `presets` is the game's `gas` reply. `movements` are the marches on the map, and a skip's reply lands once
  * `skipLands` resolves. With `commanders` set, the real commander pool hands out that many commanders; without it, one
  * stand-in commander (lord id 9) goes out once.
  */
 async function firstCra(relPath, start, {
     kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
     movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {}, commanders,
+    presets = { S: [] },
 }) {
     const bot = fakeBot()
+    // The game lists the player's in-game presets (`gas`) as `presets`.
+    const record = bot.sendXT
+    bot.sendXT = async (command, params) => {
+        await record(command, params)
+        if (command == "gas")
+            setImmediate(() => bot.xtHandler.emit("gas", presets, 0))
+    }
     bot.playerInfo.level = playerLevel
     bot.botConfig.plugins.skips = { "1Minute": true, "5Minute": true, "10Minute": true, "30Minute": true, "1Hour": true, "5Hour": true, "24Hour": true, ...skips }
     const allResources = { pegasusTicket: 5, coins: 0, ...resources }

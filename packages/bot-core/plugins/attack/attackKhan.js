@@ -94,6 +94,7 @@ const { keepDefence } = require("../../khanDefence.js")
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
@@ -269,7 +270,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
 
     const army = readArmy(pluginOptions, reportStatus)
-    if (!army)
+    if (!army || !await presetsListed(army, reportStatus))
         return
 
     quit = false

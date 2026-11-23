@@ -11,6 +11,7 @@ const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmou
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
 const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 
 const err = require('../../err.json')
@@ -23,8 +24,9 @@ const type = AreaType.fortress
 async function fortressHit(kingdomID, level, options, filename) {
     const horse = choice(HORSES, options.horse, HORSES[2])
     const autofill = parseAutofill(options, { unitOrder: "fastest" })
-    const army = readArmy(options, (...report) => statusReporter(filename)(...report))
-    if (!army)
+    const report = (...status) => statusReporter(filename)(...status)
+    const army = readArmy(options, report)
+    if (!army || !await presetsListed(army, report))
         return
 
     const areas = []

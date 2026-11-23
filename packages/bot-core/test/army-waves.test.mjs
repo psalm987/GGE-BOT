@@ -4,7 +4,8 @@ import { ManualPlan, emptyCustomWave, emptyPlan, emptyWave } from "@gge/contract
 
 const require = createRequire(import.meta.url)
 const { barons, fortress, melee, ranged, tool } = require("./harness/army-bots.cjs")
-const { isManualPlan, parseArmy } = require("../army.js")
+const { isManualPlan, parseArmy, presetsOf, rememberPresets, fillFromPlan } = require("../army.js")
+const capture = require("./fixtures/protocol/presets-20261122.json")
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -150,7 +151,7 @@ describe("a wave setting the bot can't send stops the plugin and says why", () =
     const withPreset = () => ({ ...plan(), waves: [{ kind: "preset", preset: 3 }, ...plan().waves.slice(1)] })
     test.each([
         ["no plan", { armyMode: "waves" }, "statusArmyNoPlan", {}],
-        ["an in-game preset", waves(withPreset()), "statusArmyServerPreset", { preset: 3 }],
+        ["an in-game preset the game doesn't list", waves(withPreset()), "statusArmyServerPreset", { preset: 3 }],
         ["a virtual preset the runner didn't find", waves({ kind: "virtual", presetId: "0b4e7c1e-2f43-4a3e-9d7e-5a0f3c2b1a10" }), "statusArmyPresetDeleted", {}],
         ["a plan with no troops", waves(emptyPlan()), "statusArmyPlanEmpty", {}],
         ["a plan that can't be read", waves({ kind: "manual", waves: [] }), "statusArmyPlanUnreadable", {}],
@@ -161,6 +162,45 @@ describe("a wave setting the bot can't send stops the plugin and says why", () =
             const { cra, statuses } = await run(options, { inventory: inventory() })
             expect(cra, "autofill never stands in for a plan").toBeUndefined()
             expect(statuses.at(-1)).toMatchObject({ state: "error", reasonKey, params })
+        }
+    })
+})
+
+describe("an in-game preset", () => {
+    afterEach(() => rememberPresets(null))
+    const freshSide = (tools, units) => ({ T: Array.from({ length: tools }, () => [-1, 0]), U: Array.from({ length: units }, () => [-1, 0]) })
+    const freshCra = () => ({ A: [{ L: freshSide(2, 2), M: freshSide(3, 6), R: freshSide(2, 2) }], RW: Array.from({ length: 8 }, () => [-1, 0]), AST: [-1, -1, -1] })
+    const presetPlan = preset => ({ ...emptyPlan(), waves: [{ kind: "preset", preset }] })
+
+    test("the game's list names each preset one past its slot, and unpacks it into a wave's sides", () => {
+        const presets = presetsOf(capture.gas.reply)
+        expect([...presets].map(([n, { name }]) => [n, name])).toEqual([[1, "shield"], [2, "wall+moat"], [3, "sand fire"], [4, "samu"]])
+        expect(presets.get(1).wave.front).toEqual({ tools: [slot(26, 5), slot(25, 4), slot(27, 13)], units: [slot(216, 254), null, null, null, null, null] })
+        expect(presets.get(1).wave.left).toEqual({ tools: [slot(26, 5), slot(27, 11)], units: [slot(216, 125), null] })
+        expect(presets.get(4).wave.left).toEqual({ tools: [null, null], units: [null, null] })
+        expect(ManualPlan.shape.waves.element.parse(presets.get(1).wave)).toEqual(presets.get(1).wave)
+    })
+
+    test("a preset with nothing in it, or one the reply can't say, is not listed", () => {
+        const presets = presetsOf({ S: [{ S: 5, A: "[[],[],[],[],[],[]]", SN: "empty" }, { S: 6, A: "not json", SN: "broken" }, { S: 30, A: "[[1,1],[],[],[],[],[]]" }] })
+        expect([...presets.keys()]).toEqual([])
+    })
+
+    test("a wave that names a preset sends it slot for slot, as the game's client sent it", () => {
+        rememberPresets({ S: [{ ...capture.sas.payload, SN: "khan" }] })
+        const attackInfo = freshCra()
+        const inventory = [tool(740, 100), tool(738, 100), tool(739, 100), melee(215, 1000)]
+        fillFromPlan(attackInfo, presetPlan(capture.sas.payload.S + 1), inventory, { flankUnits: 1000, frontUnits: 1000, flankTools: 100, frontTools: 100, courtyard: 0 })
+        expect(attackInfo.A[0]).toEqual(capture.craFirstWave)
+    })
+
+    test("a plan whose preset the game lists is sent", async () => {
+        const presets = { S: [{ S: 0, A: JSON.stringify([[], [LADDER, 10], [], [MELEE, 100], [RANGED, 30], []]), SN: "ladders" }] }
+        for (const run of [barons, fortress]) {
+            const { cra, statuses } = await run(waves(presetPlan(1)), { inventory: inventory(), presets })
+            expect(statuses.filter(status => status.state == "error")).toEqual([])
+            expect(cra.A[0].L.T[0]).toEqual([LADDER, 10])
+            expect(cra.A[0].L.U[0][0]).toBe(RANGED)
         }
     })
 })

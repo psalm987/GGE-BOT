@@ -78,6 +78,7 @@ const pretty = require('pretty-time')
 const err = require('../../err.json')
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const pluginOptions = readLegacy(waveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const autofill = parseAutofill(pluginOptions)
@@ -134,7 +135,7 @@ events.on("eventStart", async eventInfo => {
         return
 
     const army = readArmy(pluginOptions, reportStatus)
-    if (!army)
+    if (!army || !await presetsListed(army, reportStatus))
         return
 
     const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)

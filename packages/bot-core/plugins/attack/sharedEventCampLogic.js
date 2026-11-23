@@ -14,6 +14,7 @@ const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, eventCampOptions, EV
 const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
 const { campAttackLine } = require("../../attackLog.js")
 const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { sleep } = require("../../pacing.js")
@@ -162,7 +163,7 @@ function eventCampAttacks(profile, stored, filename) {
             : reportStatus("running", "statusCampsAttacking", { found: queue.areas.length, castle: from, attacks: shown() })
 
         const army = readArmy(options, reportStatus)
-        if (!army)
+        if (!army || !await presetsListed(army, reportStatus))
             return
         queue.areas.length = 0
         if (target.mode == "single") {

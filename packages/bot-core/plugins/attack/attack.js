@@ -390,8 +390,8 @@ const attackShape = attackInfo => ({
 
 /**
  * What the client sends while a player sets an attack up: `adi` when the army
- * screen opens, `gas` as it loads, and `gdi` when the travel dialog opens. The
- * 2026-11-13 capture holds no server frames, so nothing here waits for a reply.
+ * screen opens, `gas` as it loads, and `gdi` when the travel dialog opens.
+ * Nothing here waits for a reply; gamePresets.js keeps the presets `gas` lists.
  */
 async function openAttackDialog({ SX, SY, TX, TY, KID }) {
     await sendXT("adi", JSON.stringify({ SX, SY, TX, TY, KID }))

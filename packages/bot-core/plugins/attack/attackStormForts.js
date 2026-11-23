@@ -78,6 +78,7 @@ const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmou
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler, playerInfo } = require("../../ggeBot.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 
 const err = require("../../err.json")
@@ -197,7 +198,7 @@ events.once("load", async () => {
         allowedLevels.push(7, 8, 9, 13, 14)
 
     const army = readArmy(pluginOptions, reportStatus)
-    if (!army)
+    if (!army || !await presetsListed(army, reportStatus))
         return
 
     let areas = []

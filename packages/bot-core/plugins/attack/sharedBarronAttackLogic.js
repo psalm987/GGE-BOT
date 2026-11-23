@@ -89,6 +89,7 @@ const {
     getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, accountLimits } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
 const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
 
@@ -179,7 +180,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     }
     const autofill = parseAutofill(options)
     const army = readArmy(options, reportStatus)
-    if (!army)
+    if (!army || !await presetsListed(army, reportStatus))
         return
     const filter = choice(TOWER_FILTERS, options.towerFilter, "all")
     const radius = Math.min(Number(options.searchRadius) || 50, MAX_RADIUS)

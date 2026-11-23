@@ -608,6 +608,9 @@ xtHandler.on("lli", async (obj, r) => {
     setTimeout(() => parentPort.postMessage([ActionType.KillBot]), 1000 * 8)
 })
 
+// Keeps the in-game presets listed for the wave editor and the attack plugins.
+require("./gamePresets.js")
+
 try {
     require("./plugins/misc.js")
 }

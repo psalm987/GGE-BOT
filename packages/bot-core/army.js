@@ -79,6 +79,45 @@ const isManualPlan = plan => isObject(plan) && plan.kind == "manual" &&
 
 const filled = slots => slots.filter(Boolean)
 const planSlots = plan => [...plan.waves.flatMap(wave => wave.kind == "custom" ? SIDES.flatMap(([side]) => wave[side].units) : []), ...plan.rw]
+/** The in-game presets a plan names, as @gge/contracts' serverPresetsIn lists them. */
+const presetsNamed = plan => [...new Set(plan.waves.flatMap(wave => wave.kind == "preset" && wave.preset > 0 ? [wave.preset] : []))]
+
+/** `gas` lists the six slot lists of a preset in this order, each a flat run of item and amount pairs. */
+const PRESET_LISTS = [["front", "tools"], ["left", "tools"], ["right", "tools"], ["front", "units"], ["left", "units"], ["right", "units"]]
+const pairsOf = (flat, length) => {
+    const pairs = []
+    for (let i = 0; Array.isArray(flat) && i + 1 < flat.length; i += 2)
+        if (isInt(flat[i], 1, Infinity) && isInt(flat[i + 1], 1, MAX_SLOT_AMOUNT))
+            pairs.push({ item: flat[i], amount: flat[i + 1] })
+    return Array.from({ length }, (_, i) => pairs[i] ?? null)
+}
+const readJSON = text => { try { return JSON.parse(text) } catch { return undefined } }
+
+/**
+ * The player's in-game presets from a `gas` reply, by the number a wave plan names them with: the game's slot `S`
+ * plus one, since 0 is the empty preset. Each holds its name and the custom wave it fills. A preset with nothing in
+ * it is left out, since it would send nothing.
+ */
+function presetsOf(reply) {
+    const presets = new Map()
+    for (const entry of Array.isArray(reply?.S) ? reply.S : []) {
+        const lists = typeof entry?.A == "string" ? readJSON(entry.A) : entry?.A
+        if (!isInt(entry?.S, 0, SERVER_PRESETS - 1) || !Array.isArray(lists))
+            continue
+        const wave = { kind: "custom", left: {}, front: {}, right: {} }
+        PRESET_LISTS.forEach(([side, row], i) => wave[side][row] = pairsOf(lists[i], WAVE_SLOTS[side][row]))
+        if (SIDES.every(([side]) => filled([...wave[side].tools, ...wave[side].units]).length == 0))
+            continue
+        presets.set(entry.S + 1, { name: String(entry.SN ?? "").slice(0, 60), wave })
+    }
+    return presets
+}
+
+/** The presets the game listed last; null until it has listed them. Every attack's `gas` refreshes them. */
+let listedPresets = null
+/** Keeps the presets of a `gas` reply. */
+const rememberPresets = reply => { listedPresets = reply == null ? null : presetsOf(reply) }
+const knownPresets = () => listedPresets
 
 /**
  * A plugin's army, read from its stored options: `{ mode: "autofill" }`, or `{ mode: "waves", waves }` with a plan
@@ -99,11 +138,11 @@ function parseArmy(options) {
         throw new ArmyProblem("statusArmyPresetDeleted")
     if (!isManualPlan(plan))
         throw new ArmyProblem("statusArmyPlanUnreadable")
-    // The game's reply that lists a player's presets hasn't been captured, so the bot can't tell what one holds.
-    const preset = plan.waves.find(wave => wave.kind == "preset" && wave.preset > 0)
-    if (preset)
-        throw new ArmyProblem("statusArmyServerPreset", { preset: preset.preset })
-    if (filled(planSlots(plan)).length == 0)
+    // Once the game's list is read (gamePresets.js), a preset it lacks can't be sent. Before then gamePresets.js checks.
+    const missing = listedPresets && presetsNamed(plan).find(preset => !listedPresets.has(preset))
+    if (missing)
+        throw new ArmyProblem("statusArmyServerPreset", { preset: missing })
+    if (filled(planSlots(plan)).length == 0 && presetsNamed(plan).length == 0)
         throw new ArmyProblem("statusArmyPlanEmpty")
     return { mode, waves: plan }
 }
@@ -129,7 +168,9 @@ const fitsSide = (info, key) => info.slotTypes?.split(",").includes(key == "M" ?
 
 /**
  * Fills the empty `cra` that `getAttackInfo` built from a wave plan, taking what it sends out of `inventory`.
- * The plan's last wave repeats for every wave after it. A slot never gets more than its side has room for:
+ * The plan's last wave repeats for every wave after it. A wave that names an in-game preset sends what the game
+ * last listed for it, as the game's own client unpacks a preset into the attack; one the game doesn't list sends
+ * nothing. A slot never gets more than its side has room for:
  * `room` is `{ flankUnits, frontUnits, flankTools, frontTools, courtyard }` for this target and commander, and a
  * slot the target's level hasn't opened is left out. Support tools the castle lacks are left out too.
  *
@@ -159,8 +200,9 @@ function fillFromPlan(attackInfo, plan, inventory, room) {
     }
 
     attackInfo.A.forEach((wave, i) => {
-        const planned = plan.waves[Math.min(i, plan.waves.length - 1)]
-        if (planned.kind != "custom")
+        const named = plan.waves[Math.min(i, plan.waves.length - 1)]
+        const planned = named.kind == "preset" ? listedPresets?.get(named.preset)?.wave : named
+        if (!planned)
             return
         for (const [side, key] of SIDES) {
             let tools = key == "M" ? room.frontTools : room.flankTools
@@ -211,5 +253,6 @@ const fortressOptions = waves => [
 module.exports = {
     ARMY_MODES, UNIT_ORDERS, TROOP_SUPPLIES, HORSES, ArmyProblem,
     orderUnits, eats, choice, parseAutofill, parseArmy, readArmy, isManualPlan, fillFromPlan,
+    presetsNamed, presetsOf, rememberPresets, knownPresets,
     unitOrderOption, supplyOption, armyOptions, fortressOptions,
 }

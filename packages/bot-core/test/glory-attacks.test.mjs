@@ -74,6 +74,7 @@ async function glory(plugin, {
             pep: () => [{ EID, OR: [1, 1], OP: [points, 0] }, 0],
             uap: () => [{ KID: 0, ...protection }, 0],
             sede: () => [{}, 0],
+            gas: () => [{ S: [] }, 0],
             rae: () => [{}, 0],
             dcl: () => [{}, 0],
         }[cmd]?.()
@@ -601,11 +602,11 @@ describe("a wave plan", () => {
         expect(inventory.find(unit => unit.unitInfo.wodID == 2).amount).toBe(5000)
     })
 
-    test("that names an in-game preset stops the plugin with the reason", async () => {
+    test("that names an in-game preset the game doesn't list stops the run with the reason", async () => {
         vi.spyOn(console, "error").mockImplementation(() => {})
         const waves = { ...plan(), waves: [{ kind: "preset", preset: 4 }, empty, empty, empty] }
         const { sent, statuses } = await glory("attackForeign", { options: { armyMode: "waves", waves } })
         expect(sent("cra")).toEqual([])
-        expect(statuses).toEqual([{ plugin: "attackForeign", state: "error", reasonKey: "statusArmyServerPreset", params: { preset: 4 } }])
+        expect(statuses.at(-1)).toEqual({ plugin: "attackForeign", state: "error", reasonKey: "statusArmyServerPreset", params: { preset: 4 } })
     })
 })

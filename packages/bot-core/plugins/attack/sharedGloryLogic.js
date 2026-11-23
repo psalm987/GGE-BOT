@@ -52,6 +52,7 @@ const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, sendAttack, get
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { areasAround } = require("../../mapScan.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
+const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
 
@@ -375,6 +376,12 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
     const pastStopTime = target => Date.now() >= target.endsAt - Number(setting("stopMinutesBefore")) * 60 * 1000
 
     async function farm(target, eventInfo) {
+        // presetsListed reports why it can't send, so the run ends without a status of its own.
+        if (!await presetsListed(army, reportStatus)) {
+            target.stopped = true
+            target.halt()
+            return
+        }
         if (!await chooseDifficulty(target, eventInfo))
             return
         await readPoints()
