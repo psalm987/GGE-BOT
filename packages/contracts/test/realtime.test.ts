@@ -16,14 +16,14 @@ describe("realtime channels", () => {
 describe("realtime events", () => {
     test("a status event read off the wire has real dates again", () => {
         const heartbeatAt = new Date("2031-02-03T04:05:06.789Z")
-        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, resources: null } }
+        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null } }
         expect(UserEvent.parse(overTheWire(event))).toEqual(event)
     })
 
     test("a status event's figures get a real report time again", () => {
         const reportedAt = new Date("2031-02-03T04:05:06.789Z")
         const resources = { food: 1, mead: null, cash: 2, gold: null, aquamarine: 3, attackDailyCount: 4, reportedAt }
-        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt: null, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, resources } }
+        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt: null, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources } }
         expect(UserEvent.parse(overTheWire(event))).toEqual(event)
     })
 

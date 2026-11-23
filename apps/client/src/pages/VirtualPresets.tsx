@@ -125,7 +125,7 @@ export function VirtualPresets({ module }: { module: ModuleDef }) {
                                 onChange={event => { change({ name: event.target.value }); setNameMissing(false) }} />
                             {nameMissing && <span id="preset-name-error" role="alert" className="gge-preset-error">{t("presets.nameMissing")}</span>}
                         </div>
-                        <WavePlanEditor value={draft.plan} onChange={plan => change({ plan })} disabled={saving} />
+                        <WavePlanEditor value={draft.plan} onChange={plan => change({ plan })} disabled={saving} gamePresets={account?.status?.gamePresets ?? []} />
                         <div className="gge-savebar-actions">
                             <Button onClick={close} disabled={saving}>{t("presets.cancel")}</Button>
                             <Button type="primary" loading={saving} onClick={save} className="gge-press">{tc("action.save")}</Button>

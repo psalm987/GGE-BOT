@@ -110,7 +110,11 @@ export const emptyPlan = (): ManualPlan => ({
 const slotsOf = (wave: Wave) => wave.kind === "custom" ? WAVE_SIDES.flatMap(side => [...wave[side].tools, ...wave[side].units]) : []
 /** Whether a wave sends anything: a preset other than the empty one, or a custom wave with a filled slot. */
 export const waveIsEmpty = (wave: Wave) => wave.kind === "preset" ? wave.preset === 0 : slotsOf(wave).every(slot => slot === null)
-/** The in-game presets a plan names. The bot can only send those it has seen the game list. */
+/** One of the player's in-game presets as the bot last saw the game list it: its number in a wave plan and its name. */
+export const GamePreset = z.object({ preset: z.number().int().min(1).max(SERVER_PRESETS), name: z.string().max(60) })
+export type GamePreset = z.infer<typeof GamePreset>
+
+/** The in-game presets a plan names. The bot sends only those the game lists. */
 export const serverPresetsIn = (plan: ManualPlan) => [...new Set(plan.waves.flatMap(wave => wave.kind === "preset" && wave.preset > 0 ? [wave.preset] : []))]
 
 /** A virtual preset: a named plan the account's attack modules can pick. */

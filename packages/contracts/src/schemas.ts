@@ -1,6 +1,7 @@
 import * as z from "zod"
 import { LOCALE_CODES } from "@gge/i18n"
 import { PLAN_IDS } from "./plans.ts"
+import { GamePreset } from "./army.ts"
 import { AccountCastle, PluginStates } from "./plugin-checks.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 import { Schedule } from "./schedule.ts"
@@ -62,6 +63,8 @@ export const BotStatus = z.object({
     castles: z.array(AccountCastle).default([]),
     /** How many commanders the bot last counted on the account; null until it has run. */
     commanders: z.number().int().min(0).nullable().default(null),
+    /** The in-game presets the bot last saw the game list; empty until it has read them. */
+    gamePresets: z.array(GamePreset).default([]),
     /** The figures in the worker's last report; null until it has made one. */
     resources: AccountResources.nullable().default(null),
 })

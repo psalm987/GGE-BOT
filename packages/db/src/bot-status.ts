@@ -1,4 +1,4 @@
-import { AccountCastle, PluginStates, type PublicAccount } from "@gge/contracts"
+import { AccountCastle, GamePreset, PluginStates, type PublicAccount } from "@gge/contracts"
 import type { botStatus } from "./schema.ts"
 
 const figure = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
@@ -16,16 +16,18 @@ function figuresOf(resources: unknown): NonNullable<PublicAccount["status"]>["re
     }
 }
 
-/** A bot_status row as the API and the realtime events show it. Castles live in the worker's last resources report. */
+/** A bot_status row as the API and the realtime events show it. Castles and in-game presets live in the worker's last resources report. */
 export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualState" | "heartbeatAt" | "lastError" | "bannedUntil" | "pluginStates" | "resources">): NonNullable<PublicAccount["status"]> {
     const castles = AccountCastle.array().safeParse((row.resources as { castles?: unknown } | null)?.castles)
     const pluginStates = PluginStates.safeParse(row.pluginStates)
     const commanders = (row.resources as { commanders?: unknown } | null)?.commanders
+    const gamePresets = GamePreset.array().safeParse((row.resources as { gamePresets?: unknown } | null)?.gamePresets)
     return {
         actualState: row.actualState, heartbeatAt: row.heartbeatAt, lastError: row.lastError, bannedUntil: row.bannedUntil,
         pluginStates: pluginStates.success ? pluginStates.data : {},
         castles: castles.success ? castles.data : [],
         commanders: typeof commanders === "number" && Number.isInteger(commanders) && commanders >= 0 ? commanders : null,
+        gamePresets: gamePresets.success ? gamePresets.data : [],
         resources: figuresOf(row.resources),
     }
 }

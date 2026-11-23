@@ -3,7 +3,7 @@ import { Form, Segmented, Select } from "antd"
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import { emptyPlan, type ArmyMode, type AutofillSource, type ManualPlan, type PluginOptionDef, type VirtualPreset, type WavePlan } from "@gge/contracts"
+import { emptyPlan, type ArmyMode, type AutofillSource, type GamePreset, type ManualPlan, type PluginOptionDef, type VirtualPreset, type WavePlan } from "@gge/contracts"
 import { orpc } from "../api.ts"
 import { autofillOf, planCounts } from "../army-values.ts"
 import type { OptionValues } from "../plugin-values.ts"
@@ -29,6 +29,12 @@ function useAutofillSummary() {
 /** The account's virtual presets; none while no account is picked. */
 export function useVirtualPresets(accountId: string | undefined): VirtualPreset[] {
     return useQuery({ ...orpc.virtualPresets.list.queryOptions({ input: { accountId: accountId ?? "" } }), enabled: accountId !== undefined }).data ?? []
+}
+
+/** The in-game presets the bot last saw the game list for the account; none until it has read them. */
+export function useGamePresets(accountId: string | undefined): GamePreset[] {
+    const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), enabled: accountId !== undefined })
+    return accounts.data?.find(account => account.id === accountId)?.status?.gamePresets ?? []
 }
 
 /** A wave plan in one line. */
@@ -74,6 +80,7 @@ export function WavesField({ value, onChange, id, collapsed, accountId }: {
 }) {
     const { t } = useTranslation("client")
     const presets = useVirtualPresets(accountId)
+    const gamePresets = useGamePresets(accountId)
     // The plan written here survives a look at the virtual presets and back.
     const written = useRef<ManualPlan | null>(null)
     if (value?.kind === "manual") written.current = value
@@ -100,7 +107,7 @@ export function WavesField({ value, onChange, id, collapsed, accountId }: {
                         style={{ width: "100%", maxWidth: 360 }} />
                     <p className="gge-army-note">{t("waves.source.virtualNote")}</p>
                 </>
-                : <WavePlanEditor value={value?.kind === "manual" ? value : emptyPlan()} onChange={next => onChange?.(next)} />}
+                : <WavePlanEditor value={value?.kind === "manual" ? value : emptyPlan()} onChange={next => onChange?.(next)} gamePresets={gamePresets} />}
         </div>
     )
 }

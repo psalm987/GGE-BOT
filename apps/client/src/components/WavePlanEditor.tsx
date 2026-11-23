@@ -3,7 +3,7 @@ import { Alert, Button, Collapse, InputNumber, Segmented, Select, Tag } from "an
 import { useTranslation } from "react-i18next"
 import {
     MAX_SLOT_AMOUNT, MAX_WAVES, MIN_WAVES, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
-    type ArmySlot, type GameItem, type ManualPlan, type Wave,
+    type ArmySlot, type GameItem, type GamePreset, type ManualPlan, type Wave,
 } from "@gge/contracts"
 import { filledSlots, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
 import { useGameItems } from "./PluginOptionField.tsx"
@@ -43,23 +43,34 @@ function SlotField({ optionsFor, value, onChange, label, startAmount, disabled }
     )
 }
 
-function WaveTag({ wave }: { wave: Wave }) {
+function WaveTag({ wave, gamePresets }: { wave: Wave; gamePresets: GamePreset[] }) {
     const { t } = useTranslation("client")
     if (waveIsEmpty(wave)) return <Tag>{t("waves.tag.empty")}</Tag>
-    return <Tag color="gold">{wave.kind === "preset" ? t("waves.tag.preset", { n: wave.preset }) : t("waves.tag.custom", { n: filledSlots(wave) })}</Tag>
+    if (wave.kind === "custom") return <Tag color="gold">{t("waves.tag.custom", { n: filledSlots(wave) })}</Tag>
+    const name = gamePresets.find(preset => preset.preset === wave.preset)?.name
+    return <Tag color="gold">{name ? t("waves.tag.presetNamed", { n: wave.preset, name }) : t("waves.tag.preset", { n: wave.preset })}</Tag>
 }
 
 /**
  * The wave plan editor: waves 1 to 25 (4 to begin with), each an in-game preset or custom slots, then the support tools and the courtyard.
- * The same editor writes a module's own plan and a virtual preset.
+ * The same editor writes a module's own plan and a virtual preset. `gamePresets` are the in-game presets the bot last
+ * saw the game list for the account, which a wave can name.
  */
-export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPlan; onChange: (plan: ManualPlan) => void; disabled?: boolean }) {
+export function WavePlanEditor({ value, onChange, disabled, gamePresets = [] }: {
+    value: ManualPlan; onChange: (plan: ManualPlan) => void; disabled?: boolean; gamePresets?: GamePreset[]
+}) {
     const { t } = useTranslation("client")
     const unknown = (id: number) => t("plugins.list.unknownItem", { id })
     const tools = itemOptions(unknown, useGameItems("tool"), useGameItems("banner"))
     const troops = itemOptions(unknown, useGameItems("troop"))
     const supportTools = itemOptions(unknown, useGameItems("supportTool"))
-    const presetOptions = (current: number) => [{ value: 0, label: t("waves.preset.empty") }, ...(current > 0 ? [{ value: current, label: t("waves.preset.option", { n: current }) }] : [])]
+    const listed = new Set(gamePresets.map(preset => preset.preset))
+    const presetOptions = (current: number) => [
+        { value: 0, label: t("waves.preset.empty") },
+        ...gamePresets.map(({ preset, name }) => ({ value: preset, label: name ? t("waves.preset.named", { n: preset, name }) : t("waves.preset.option", { n: preset }) })),
+        ...(current > 0 && !listed.has(current) ? [{ value: current, label: t("waves.preset.unlisted", { n: current }) }] : []),
+    ]
+    const unlisted = gamePresets.length > 0 && serverPresetsIn(value).some(preset => !listed.has(preset))
 
     const [open, setOpen] = useState<number[]>(() => value.waves.flatMap((wave, i) => waveIsEmpty(wave) ? [] : [i]))
     const removeWave = (index: number) => {
@@ -79,7 +90,7 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
                     ? <>
                         <Select aria-label={t("waves.preset.label", { n })} value={wave.preset} options={presetOptions(wave.preset)} disabled={disabled}
                             onChange={(preset: number) => set({ kind: "preset", preset })} style={{ width: "100%", maxWidth: 360 }} />
-                        <p className="gge-army-note">{t("waves.preset.note")}</p>
+                        <p className="gge-army-note">{t(gamePresets.length ? "waves.preset.note" : "waves.preset.unread")}</p>
                     </>
                     : <div className="gge-army-sides">
                         {WAVE_SIDES.map(side => (
@@ -110,12 +121,12 @@ export function WavePlanEditor({ value, onChange, disabled }: { value: ManualPla
     return (
         <div className="gge-army">
             <p className="gge-army-note">{t("waves.intro")}</p>
-            {serverPresetsIn(value).length > 0 && <Alert type="warning" showIcon title={t("waves.preset.warning")} />}
+            {unlisted && <Alert type="warning" showIcon title={t("waves.preset.warning")} />}
             {value.waves.length > 4 && <p className="gge-army-note">{t("waves.cap")}</p>}
             <Collapse activeKey={open} onChange={keys => setOpen([keys].flat().map(Number))}
                 items={value.waves.map((wave, i) => ({
                     key: i, children: panel(wave, i),
-                    label: <span className="gge-army-wave-head"><span>{t("waves.wave", { n: i + 1 })}</span><WaveTag wave={wave} /></span>,
+                    label: <span className="gge-army-wave-head"><span>{t("waves.wave", { n: i + 1 })}</span><WaveTag wave={wave} gamePresets={gamePresets} /></span>,
                 }))} />
             <div className="gge-army-row">
                 <Button disabled={disabled || value.waves.length >= MAX_WAVES} onClick={() => onChange(withAddedWave(value))}>{t("waves.add")}</Button>
