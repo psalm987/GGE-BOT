@@ -100,7 +100,7 @@ function insertResources({ accountName, resources }) {
         const figure = value => typeof value === "number" ? value : null
         const status = {
             actualState: row.actual_state, heartbeatAt: row.heartbeat_at, lastError: row.last_error, bannedUntil: row.banned_until,
-            pluginStates: row.plugin_states, castles: stored?.castles ?? [], commanders: stored?.commanders ?? null,
+            pluginStates: row.plugin_states, castles: stored?.castles ?? [], commanders: stored?.commanders ?? null, gamePresets: stored?.gamePresets ?? [],
             resources: stored && {
                 food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
                 aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,

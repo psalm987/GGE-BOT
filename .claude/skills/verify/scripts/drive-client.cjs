@@ -4,7 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
-const { insertLogLine, insertNotification, insertResources, storePluginSettings } = require("./dev-db.cjs")
+const { insertLogLine, insertNotification, insertResources, storePluginSettings, withDatabase } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -1419,6 +1419,85 @@ function armyHelpers(page) {
     return { pick, segment, saveBar, save, openFortress }
 }
 
+/** Sets the in-game presets Ironhold's bot last saw the game list, keeping the rest of its last report. */
+const setGamePresets = gamePresets => withDatabase(db => db.query(
+    `insert into bot_status (account_id, resources) select id, jsonb_build_object('gamePresets', $1::jsonb) from game_accounts where name = 'Ironhold'
+     on conflict (account_id) do update set resources = coalesce(bot_status.resources, '{}'::jsonb) || jsonb_build_object('gamePresets', $1::jsonb)`,
+    [JSON.stringify(gamePresets)]))
+
+/**
+ * In-game presets on Ironhold's Fortress, as the seeded demo player: the four presets of the 2026-11-22 trace offered by
+ * name, one picked and saved as its number, a stored plan naming a preset the game doesn't list shown with a warning,
+ * and the note for an account whose presets the bot hasn't read. Puts Ironhold's settings and report back at the end.
+ */
+async function driveGamePresets(page) {
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const plugin = "attackFortressesBurningSands"
+    const stored = async () => (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins[plugin]?.options ?? {}
+    const { armyMode: _mode, waves: _waves, ...otherOptions } = ironhold.plugins[plugin]?.options ?? {}
+    const before = { ...ironhold.plugins, ...(ironhold.plugins[plugin] && { [plugin]: { ...ironhold.plugins[plugin], options: otherOptions } }) }
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    const listed = [{ preset: 1, name: "shield" }, { preset: 2, name: "wall+moat" }, { preset: 3, name: "sand fire" }, { preset: 4, name: "samu" }]
+    await setGamePresets(listed)
+    const { pick, segment, save, openFortress } = armyHelpers(page)
+    const choicesOf = async box => {
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        const options = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
+        await options.first().waitFor()
+        const texts = await options.allInnerTexts()
+        await page.keyboard.press("Escape")
+        return texts
+    }
+
+    await page.setViewportSize(WIDE_VIEW)
+    let form = await openFortress()
+    assert(JSON.stringify((await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).status.gamePresets) === JSON.stringify(listed), "the API shows the presets the bot last saw the game list")
+    await segment(form, "Army", "Waves").click()
+    const headers = form.locator(".ant-collapse-header")
+    await headers.nth(0).click()
+    const box = form.getByRole("combobox", { name: "In-game preset for wave 1", exact: true })
+    await box.waitFor()
+    const choices = await choicesOf(box)
+    assert(JSON.stringify(choices) === JSON.stringify(["Empty (no troops)", "shield (preset 1)", "wall+moat (preset 2)", "sand fire (preset 3)", "samu (preset 4)"]), `the list offers each listed preset by name (${JSON.stringify(choices)})`)
+    assert(await form.getByText("Pick a preset saved in the game.", { exact: false }).isVisible(), "the note says to pick a preset saved in the game")
+    await pick(form, "In-game preset for wave 1", "samu (preset 4)")
+    assert(await headers.nth(0).locator(".ant-tag").innerText() === "samu (preset 4)", "wave 1's tag names the preset")
+    assert(await form.locator(".ant-alert-warning").count() === 0, "a listed preset brings no warning")
+    await axe(page, "game presets 1440")
+    await page.screenshot({ path: `${out}/95-game-presets-1440.png`, fullPage: true })
+    await save()
+    let options = await stored()
+    assert(options.armyMode === "waves" && JSON.stringify(options.waves.waves[0]) === JSON.stringify({ kind: "preset", preset: 4 }), "the API stores wave 1 as preset 4")
+
+    const naming9 = { ...options, waves: { ...options.waves, waves: [{ kind: "preset", preset: 9 }, ...options.waves.waves.slice(1)] } }
+    const updated = await rpc(page, "accounts/update", { id: ironhold.id, plugins: { ...before, [plugin]: { ...before[plugin], options: naming9 } } })
+    assert(updated?.plugins?.[plugin]?.options?.waves?.waves?.[0]?.preset === 9, `a plan naming preset 9 is stored through the API (${JSON.stringify(updated).slice(0, 300)})`)
+    await page.reload()
+    form = await openFortress()
+    assert(await form.locator(".ant-alert-warning", { hasText: "A wave uses a preset the game didn't list" }).isVisible(), "a stored plan naming a preset the game doesn't list shows the warning")
+    await form.locator(".ant-collapse-header").nth(0).click()
+    const unlisted = form.getByRole("combobox", { name: "In-game preset for wave 1", exact: true })
+    await unlisted.waitFor()
+    assert(await form.locator(".ant-select-content", { hasText: "Preset 9 (not in the game's list)" }).count() === 1, "the wave shows preset 9 as not in the game's list")
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(300)
+    await axe(page, "game presets unlisted 390")
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), "nothing overflows at 390")
+    await page.screenshot({ path: `${out}/96-game-presets-unlisted-390.png`, fullPage: true })
+
+    await setGamePresets([])
+    await page.setViewportSize(WIDE_VIEW)
+    await page.reload()
+    form = await openFortress()
+    assert(await form.locator(".ant-alert-warning").count() === 0, "with no presets read, a named preset brings no warning")
+    await form.locator(".ant-collapse-header").nth(0).click()
+    assert(await form.getByText("The bot hasn't read this account's in-game presets yet.", { exact: false }).isVisible(), "an account whose presets aren't read says when the bot reads them")
+
+    await rpc(page, "accounts/update", { id: ironhold.id, plugins: ironhold.plugins })
+    assert(JSON.stringify((await stored()).waves ?? null) === JSON.stringify(ironhold.plugins[plugin]?.options?.waves ?? null), "Ironhold's settings are back as they were")
+}
+
 /**
  * The army settings, as the seeded demo player on Ironhold: the Autofill or Waves switch and its summary on Fortress, the
  * wave editor (every wave opened, an in-game preset, custom flanks, a support tool, a courtyard row), a save read back
@@ -1465,7 +1544,7 @@ async function driveArmies(page) {
     await presetBox.click()
     await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").first().waitFor()
     const presetChoices = await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option").allInnerTexts()
-    assert(presetChoices.length === 1 && presetChoices[0] === "Empty (no troops)", `in-game presets 1 to 30 stay hidden until the bot can read them (${JSON.stringify(presetChoices)})`)
+    assert(presetChoices.length === 1 && presetChoices[0] === "Empty (no troops)", `with no in-game presets read yet, the list offers only Empty (${JSON.stringify(presetChoices)})`)
     await page.keyboard.press("Escape")
 
     await segment(form, "Wave 1 comes from", "Custom slots").click()
@@ -2770,6 +2849,17 @@ async function driveUxCommanders(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxWheel(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "game-presets") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveGamePresets(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
