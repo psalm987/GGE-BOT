@@ -1,16 +1,17 @@
+const optionDefs = [
+    { type: "Number", key: "sellStartDelayMinutes", min: 1, max: 60, step: 1, unit: "minutes", default: 2, legacy: "text" },
+    { type: "Number", key: "sellMaxPerRun", min: 1, max: 50, step: 1, default: 20, legacy: "text" },
+]
+
 if (require('node:worker_threads').isMainThread)
-    return module.exports = {
-        pluginOptions: [
-            { type: "Text", key: "sellStartDelayMinutes", default: "2", min: 1, max: 60 },
-            { type: "Text", key: "sellMaxPerRun", default: "20", min: 1, max: 50 },
-        ]
-    }
+    return module.exports = { pluginOptions: optionDefs }
 
 const { events, sendXT, waitForResult, botConfig } = require('../ggeBot')
 const { pause } = require("../pacing.js")
+const { readLegacy } = require("../legacyOptions.js")
 const gems = require("../paths.js").loadItem("gems")
 
-const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
+const pluginOptions = readLegacy(optionDefs, botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const startDelayMinutes = Number(pluginOptions.sellStartDelayMinutes) || 2
 const maxPerRun = Number(pluginOptions.sellMaxPerRun) || 20
 const runIntervalMs = 1000 * 60 * 5
