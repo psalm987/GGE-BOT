@@ -41,11 +41,7 @@ When that happens, the {% term id="module" %}module{% /term %} page shows **The 
 
 **Tickets to keep** is the reserve. A wheel stops when one more spin would leave fewer tickets than this number. The bot counts each kind of ticket on its own, so the reserve applies to affluence tickets and to Wheel of Fortune tickets separately.
 
-**Most spins a day (0 for no limit)** counts the spins of both wheels together. The count starts again at midnight {% term id="utc" %}UTC{% /term %}. When the limit is reached, the bot waits until the next day.
-
-{% aside type="caution" id="limit-resets-on-restart" %}
-The bot keeps the daily count in memory. If you stop and start the bot, the count starts again from zero, so the bot can spin up to the limit again that day.
-{% /aside %}
+**Most spins a day (0 for no limit)** counts the spins of both wheels together. The count starts again at midnight {% term id="utc" %}UTC{% /term %}. When the limit is reached, the bot waits until the next day. If you stop and start the bot, it keeps counting the spins it made earlier that day.
 
 ## Settings {% #settings %}
 

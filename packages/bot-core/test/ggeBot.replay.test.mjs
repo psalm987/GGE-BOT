@@ -88,6 +88,18 @@ describe("the account's commanders", () => {
     }, 15000)
 })
 
+describe("the day's wheel spins", () => {
+    test("the count the runner hands over stays in every status report, even with the wheel plugin off", async () => {
+        const wheelSpins = { day: 20_413, count: 7 }
+        bot = startBot({ wheelSpins })
+        await bot.login()
+        bot.xt("gli", 0, { C: [{ ID: 1, VIS: 0 }] })
+        await bot.until(() => bot.toParent.some(m => m[0] === ActionType.StatusUser))
+
+        expect(bot.toParent.filter(m => m[0] === ActionType.StatusUser).map(m => m[1].wheelSpins)).toEqual([wheelSpins])
+    }, 15000)
+})
+
 describe("important error counter", () => {
     const reply = async result => {
         const { done } = await bot.startWaitForResult("tst", 1000)

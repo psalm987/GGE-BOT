@@ -8,7 +8,9 @@ const optionDefs = [
 if (require('node:worker_threads').isMainThread)
     return module.exports = { pluginOptions: optionDefs }
 
-const { events, xtHandler, botConfig } = require("../ggeBot.js")
+const { parentPort } = require("node:worker_threads")
+const { events, xtHandler, botConfig, status } = require("../ggeBot.js")
+const ActionType = require("../actions.json")
 const err = require("../err.json")
 const { resources } = require("../protocols.js")
 const { count } = require("../metrics.js")
@@ -59,15 +61,16 @@ function noteEvents(list) {
 xtHandler.on("sei", (list, result) => result == 0 && noteEvents(list))
 xtHandler.on("fjf", (obj, result) => result == 0 && noteEvents(obj?.sei))
 
-let today = Math.floor(Date.now() / DAY_MS)
-let spinsToday = 0
-const spinsLeft = () => {
-    if (Math.floor(Date.now() / DAY_MS) != today) {
-        today = Math.floor(Date.now() / DAY_MS)
-        spinsToday = 0
-    }
-    return maxPerDay > 0 ? maxPerDay - spinsToday : Infinity
+const today = () => Math.floor(Date.now() / DAY_MS)
+/**
+ * The spins of this UTC day, kept in the bot's status as `wheelSpins` ({ day, count }). The runner hands the last report's
+ * value to the next run and ggeBot.js seeds the status with it, so a restart doesn't hand the daily limit back.
+ */
+const spinsToday = () => {
+    const { day, count } = status.wheelSpins ?? {}
+    return day === today() && Number.isInteger(count) && count > 0 ? count : 0
 }
+const spinsLeft = () => maxPerDay > 0 ? maxPerDay - spinsToday() : Infinity
 
 /** Why a wheel can't be spun right now, or undefined when it can. */
 function blocker(wheel) {
@@ -98,7 +101,8 @@ async function spin(wheel) {
         console.warn("wheelSpinRefused", err[result] ?? result)
         return "refused"
     }
-    spinsToday++
+    status.wheelSpins = { day: today(), count: spinsToday() + 1 }
+    parentPort?.postMessage([ActionType.StatusUser, status])
     console.log("wheelSpinPrize", prizeText(reply.R))
     if (reply.PMA) {
         listed.set(wheel.event, { ...listed.get(wheel.event), pro: true })
@@ -142,7 +146,7 @@ async function cycle(active) {
         return
     const stopped = STOP_ORDER.find(stop => stops.has(stop))
     if (spun > 0)
-        reportStatus("running", "statusWheelSpinSpun", { spins: spinsToday })
+        reportStatus("running", "statusWheelSpinSpun", { spins: spinsToday() })
     else if (stopped == "proMode")
         reportStatus("waiting", "statusWheelSpinProMode")
     else if (stopped == "refused")

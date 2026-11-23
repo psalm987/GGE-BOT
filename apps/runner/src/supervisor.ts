@@ -111,6 +111,8 @@ export type SupervisorDeps = {
         log(accountId: string, level: number, parts: unknown, message: string): void
         /** Each tower plugin's attacks of the last 24 hours, which a starting bot counts against its daily limits. */
         recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
+        /** The day's wheel spins in the last status report, which a starting bot counts against its daily spin limit. */
+        wheelSpins?(accountId: string): Promise<unknown>
     }
     /** Opens a sealed game password or proxy URL. */
     openSealed: (sealed: Buffer) => string
@@ -402,14 +404,19 @@ export class Supervisor {
         await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        const attackHistory = await this.deps.store.recentAttacks?.(id).catch(error => {
-            this.log.warn("reading the last 24 hours of attacks failed; the daily limits start from nothing", error)
-            return undefined
-        })
+        const [attackHistory, wheelSpins] = await Promise.all([
+            this.deps.store.recentAttacks?.(id).catch(error => {
+                this.log.warn("reading the last 24 hours of attacks failed; the daily limits start from nothing", error)
+                return undefined
+            }),
+            this.deps.store.wheelSpins?.(id).catch(error => {
+                this.log.warn("reading the day's wheel spins failed; the daily spin limit starts from nothing", error)
+                return undefined
+            }),
+        ])
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        if (attackHistory)
-            workerData = { ...workerData, attackHistory }
+        workerData = { ...workerData, ...(attackHistory && { attackHistory }), ...(wheelSpins !== undefined && { wheelSpins }) }
 
         const worker = this.deps.spawn(workerData)
         bot.worker = worker

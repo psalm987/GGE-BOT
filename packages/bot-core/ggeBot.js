@@ -230,7 +230,11 @@ const webSocket = new WebSocket(`wss://${botConfig.gameURL}/`, {
     ...(proxy && { agent: proxy.agent })
   })
 
-const status = {}
+/**
+ * `wheelSpins` is the day's wheel spins as the last run reported them (plugins/wheelSpin.js). It is carried here, not by
+ * the plugin, so a run with the wheel switched off still passes it on to the next run of the day.
+ */
+const status = { wheelSpins: botConfig.wheelSpins }
 const playerInfo = {
     level: NaN,
     userID: NaN,

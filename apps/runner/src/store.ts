@@ -155,6 +155,15 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             return history
         },
 
+        /**
+         * The day's wheel spins in the account's last status report (plugins/wheelSpin.js checks the day). A starting bot
+         * carries on from it, so a restart doesn't hand the daily spin limit back. Undefined when nothing was reported.
+         */
+        async wheelSpins(accountId: string): Promise<unknown> {
+            const [row] = await db.select({ resources: botStatus.resources }).from(botStatus).where(eq(botStatus.accountId, accountId))
+            return (row?.resources as { wheelSpins?: unknown } | null | undefined)?.wheelSpins
+        },
+
         /** Merges one plugin's report into the account's states and tells the owner, in one statement and one transaction. */
         async setPluginState(accountId: string, plugin: string, state: PluginState) {
             try {
