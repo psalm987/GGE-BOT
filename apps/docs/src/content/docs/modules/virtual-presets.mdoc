@@ -10,7 +10,9 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="battle-gear" size=32 /%}Same army, many targets? A virtual preset is a set of attack waves saved under a name. Any attack module of the same account can send it, so you write the waves once and use them on many pages.
+{% icon id="battle-gear" size=32 /%}Same army, many targets? A {% term id="virtual-preset" %}virtual preset{% /term %} is a set of attack {% term id="wave" %}waves{% /term %} saved under a name. Any attack {% term id="module" %}module{% /term %} of the same account can send it, so you write the waves once and use them on many pages.
+
+{% terms_on_page /%}
 
 Virtual presets live in GGE Command, not in the game. That is why they are called virtual. The page has no {% term id="plugin" %}plugin{% /term %} of its own, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
 
@@ -35,10 +37,10 @@ The same editor appears on the attack pages when **Army** is set to {% ui key="c
 - Write 1 to 25 waves. A new plan starts with 4. Choose {% ui key="client:waves.add" /%} for another.
 - The last wave is sent again for each wave after it, so the castle needs troops for those waves too.
 - The game sends at most 4 waves at level 51 and above, plus any your {% term id="commander-game" %}commander{% /term %} adds. Waves past that are kept, but not sent.
-- Each wave has slots for tools and troops on the left flank, the front and the right flank. Pick an item in a slot, then type how many.
+- Each wave has slots for {% term id="tool" %}tools{% /term %} and troops on the left {% term id="flank" %}flank{% /term %}, the front and the right flank. Pick an item in a slot, then type how many.
 - {% ui key="client:waves.copyRest" /%} copies a wave into every wave after it.
 - {% ui key="client:waves.support.title" /%} has 3 slots for tools that go with the whole attack.
-- {% ui key="client:waves.courtyard.title" /%} has 8 rows for the courtyard.
+- {% ui key="client:waves.courtyard.title" /%} has 8 rows for the {% term id="courtyard" %}courtyard{% /term %}.
 
 An amount above what a side can hold fills the side. The bot waits while the castle holds less than a slot needs.
 

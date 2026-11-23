@@ -11,17 +11,17 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="wolf-head" size=32 /%}The Khan rides again? The Khan module sends your armies at {% term id="khan-camp" %}Khan camps{% /term %} while the Khan event runs. Its attacks fill the Khan's rage bar, and a full bar lets the bot taunt the Khan into attacking your castle.
+{% icon id="wolf-head" size=32 /%}The Khan rides again? The Khan {% term id="module" %}module{% /term %} sends your armies at {% term id="khan-camp" %}Khan camps{% /term %} while the Khan event runs. Its attacks fill the Khan's {% term id="rage" %}rage{% /term %} bar, and a full bar lets the bot {% term id="taunt" %}taunt{% /term %} the Khan into attacking your castle.
 
 {% terms_on_page /%}
 
-Use it to loot tablets and earn event points. If you play the Khan chain, it can also keep your defence filled between Khan attacks.
+Use it to loot {% term id="tablet" %}tablets{% /term %} and earn event points. If you play the {% term id="khan-chain" %}Khan chain{% /term %}, it can also keep your defence filled between Khan attacks.
 
 ## How it works {% #how-it-works %}
 
 1. The bot waits for the event. When it starts with no difficulty set, the bot sets the one in **Event difficulty**.
-2. It asks the game for a Khan camp and attacks that camp from your main castle in the Great Empire.
-3. Before each attack, it spends time skips on the camp's wait. **Time skips the bot may use** picks which ones.
+2. It asks the game for a Khan camp and attacks that camp from your {% term id="main-castle" %}main castle{% /term %} in the {% term id="great-empire" %}Great Empire{% /term %}.
+3. Before each attack, it spends {% term id="time-skip" %}time skips{% /term %} on the camp's wait. **Time skips the bot may use** picks which ones.
 4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and sends the attack.
 5. It goes on until the event ends or your score reaches **Stop at this score**. Leave that empty for no limit.
 
@@ -33,7 +33,7 @@ Khan camps and [Nomad camps](/modules/nom-sam-daimyo/) are part of the same even
 
 ## Rage and taunts {% #taunts %}
 
-Rage tools in your attacks fill the Khan's rage bar. When the bar is full, the bot taunts the Khan, which sends a Khan attack at your castle. In the Khan chain, most points come from Khan attacks your castle defends.
+Rage {% term id="tool" %}tools{% /term %} in your attacks fill the Khan's rage bar. When the bar is full, the bot taunts the Khan, which sends a Khan attack at your castle. In the Khan chain, most points come from Khan attacks your castle defends.
 
 - **Tablets only: never taunt the Khan** keeps attacking the camp for tablets, but never taunts.
 - **Pause hits at this many incoming Khan attacks** stops new hits while that many Khan attacks are on their way to you. Hits already marching still land. 0 turns it off.
@@ -46,7 +46,7 @@ The bot also stops taunting in these cases:
 
 ## Keep your defence filled {% #defence %}
 
-{% status kind="beta" /%} With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and courtyard of your main castle after each Khan attack lands. It fills them back to the layout they held when the plugin started, with tools from storage. If you put a different tool in a slot, or more of one, the bot takes that as your new layout.
+{% status kind="beta" /%} With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and {% term id="courtyard" %}courtyard{% /term %} of your main castle after each Khan attack lands. It fills them back to the layout they held when the plugin started, with tools from storage. If you put a different tool in a slot, or more of one, the bot takes that as your new layout.
 
 Set your defence in the game before you start the plugin. While storage is short, the bot looks again every 5 minutes.
 
@@ -54,7 +54,7 @@ To keep storage full, set the tools under **Defence tools to keep in stock**: **
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+{% ui key="client:army.mode.waves" /%} sends exactly the {% term id="wave" %}waves{% /term %} you write, or a [virtual preset](/modules/virtual-presets/).
 
 {% ui key="client:army.mode.autofill" /%} fills every side and the courtyard, and builds the waves like this:
 
@@ -65,9 +65,9 @@ To keep storage full, set the tools under **Defence tools to keep in stock**: **
 
 **Rage tools, in order** and **Tablet chests, in order** let you pick the tools and their order. Left empty, the bot takes the strongest first. **Use the weakest event tools first** turns that order around. **Don't use event tools** sends troops only after the first wave.
 
-**Use food troops** and **Food troops only** decide which troops go. Autofill waits until the castle holds at least 100 troops.
+**Use food troops** and **Food troops only** decide which troops go. {% term id="autofill" %}Autofill{% /term %} waits until the castle holds at least 100 troops.
 
-For the horse, **Use a coin horse** is on by default and needs a stable. **Use fast horse feathers** spends one feather on each attack.
+For the horse, **Use a coin horse** is on by default and needs a stable. **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack.
 
 ## Test with Log only {% #log-only %}
 

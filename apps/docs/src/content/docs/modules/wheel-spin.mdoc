@@ -10,17 +10,19 @@ sources:
 
 {% icon id="tarot-10-wheel-of-fortune" size=32 /%}Tickets piling up? The Wheel spin {% term id="plugin" %}plugin{% /term %} spins the event wheels with the tickets you already hold. It keeps the tickets you set aside, and it stops at your daily limit.
 
+{% terms_on_page /%}
+
 Use it while a wheel event runs and you want your tickets spent without opening the game.
 
 ## How it works {% #how-it-works %}
 
 1. A few minutes after your bot signs in, it checks the game's event list for a running wheel.
-2. For each wheel you switched on, it checks that the event has more than one minute left and that Pro mode is off.
+2. For each wheel you switched on, it checks that the event has more than one minute left and that {% term id="pro-mode" %}Pro mode{% /term %} is off.
 3. It spins one time, waits a moment, and spins again. It goes on while your tickets pay for a spin and still leave the number you keep.
 4. Each prize goes into your {% term id="log" %}log{% /term %} on a line that starts with **Wheel prize**.
 5. When nothing is left to spin, the bot waits and checks again later. A new wheel event or new tickets start it again.
 
-The bot spins only with tickets. It never buys a jackpot, which can cost rubies. It never switches a wheel to Pro mode, and it does not claim free spins.
+The bot spins only with tickets. It never buys a jackpot, which can cost {% term id="ruby" %}rubies{% /term %}. It never switches a wheel to Pro mode, and it does not claim free spins.
 
 ## The two wheels {% #wheels %}
 
@@ -33,13 +35,13 @@ The Wheel of Fortune stays off until you turn it on. GGE Command has not yet tes
 
 A wheel in Pro mode costs ten times the tickets per spin. The bot does not spin a wheel while Pro mode is on. It also stops at once if a spin shows that Pro mode is now on.
 
-When that happens, the module page shows **The wheel is in Pro mode, which costs far more tickets per spin.** Turn Pro mode off in the game. The bot spins again on its next check.
+When that happens, the {% term id="module" %}module{% /term %} page shows **The wheel is in Pro mode, which costs far more tickets per spin.** Turn Pro mode off in the game. The bot spins again on its next check.
 
 ## Keep tickets and limit spins {% #keep-and-limit %}
 
 **Tickets to keep** is the reserve. A wheel stops when one more spin would leave fewer tickets than this number. The bot counts each kind of ticket on its own, so the reserve applies to affluence tickets and to Wheel of Fortune tickets separately.
 
-**Most spins a day (0 for no limit)** counts the spins of both wheels together. The count starts again at midnight UTC. When the limit is reached, the bot waits until the next day.
+**Most spins a day (0 for no limit)** counts the spins of both wheels together. The count starts again at midnight {% term id="utc" %}UTC{% /term %}. When the limit is reached, the bot waits until the next day.
 
 {% aside type="caution" id="limit-resets-on-restart" %}
 The bot keeps the daily count in memory. If you stop and start the bot, the count starts again from zero, so the bot can spin up to the limit again that day.

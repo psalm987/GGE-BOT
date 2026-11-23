@@ -9,7 +9,9 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="stone-crafting" size=32 /%}Keep your tool stores full. The Toolsmith {% term id="plugin" %}plugin{% /term %} builds tools in your workshops until each tool reaches the stock you set. You can set a target for all your castles together, or for one castle.
+{% icon id="stone-crafting" size=32 /%}Keep your {% term id="tool" %}tool{% /term %} stores full. The Toolsmith {% term id="plugin" %}plugin{% /term %} builds tools in your workshops until each tool reaches the stock you set. You can set a target for all your castles together, or for one castle.
+
+{% terms_on_page /%}
 
 Use it to keep ladders, rams and defence tools ready for the next fight.
 
@@ -19,7 +21,7 @@ Use it to keep ladders, rams and defence tools ready for the next fight.
 2. It counts each tool at home, in production, in the queue, and out on marches.
 3. For each target that is short, it goes to a castle with the right workshop. Attack tools need a siege workshop. Defence tools need a defence workshop.
 4. It picks the highest level of the tool that the castle's workshop can build and that your skills in the game allow.
-5. It orders up to 80 tools at a time, while the workshop has a free queue slot and the castle can pay above your resource floor.
+5. It orders up to 80 tools at a time, while the workshop has a free queue slot and the castle can pay above your {% term id="resource-floor" %}resource floor{% /term %}.
 6. When the order in production finishes, the bot checks again. If nothing is in production, it checks again in about 15 minutes.
 
 ## Set your targets {% #targets %}
@@ -35,7 +37,7 @@ For a tool with several levels, pick the tool and let the bot choose the level. 
 The castle list is empty until your bot has signed in once. Start the bot, wait for it to sign in, then come back to add rows.
 
 {% aside type="caution" id="recruit-overlap" %}
-The [Recruit, tools and heal](/modules/recruit-tools-heal/) module can order tools too. Don't give both modules a target for the same tool.
+The [Recruit, tools and heal](/modules/recruit-tools-heal/) {% term id="module" %}module{% /term %} can order tools too. Don't give both modules a target for the same tool.
 {% /aside %}
 
 ## Keep resources in reserve {% #floor %}

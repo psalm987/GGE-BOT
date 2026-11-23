@@ -11,7 +11,7 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="sinking-ship" size=32 /%}Sailing for aquamarine? The Storms module attacks the fortresses of the Storm Islands, and it keeps your Storm Islands castle supplied with mead. It has two tabs: **Attack Storm Fortresses** and **Mead replace**.
+{% icon id="sinking-ship" size=32 /%}Sailing for {% term id="aquamarine" %}aquamarine{% /term %}? The Storms {% term id="module" %}module{% /term %} attacks the {% term id="fortress" %}fortresses{% /term %} of the {% term id="storm-islands" %}Storm Islands{% /term %}, and it keeps your Storm Islands castle supplied with {% term id="mead" %}mead{% /term %}. It has two tabs: **Attack Storm Fortresses** and **Mead replace**.
 
 {% terms_on_page /%}
 
@@ -33,11 +33,11 @@ This tab is an attack {% term id="plugin" %}plugin{% /term %}, so it counts towa
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.autofill" /%} sends 3 waves. It puts troops on the left and right flanks of each wave, and wall tools on the left flank of the first wave. It waits until the castle holds at least 100 troops.
+{% ui key="client:army.mode.autofill" /%} sends 3 {% term id="wave" %}waves{% /term %}. It puts troops on the left and right {% term id="flank" %}flanks{% /term %} of each wave, and wall {% term id="tool" %}tools{% /term %} on the left flank of the first wave. It waits until the castle holds at least 100 troops.
 
 {% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
 
-For the horse, **Use fast horse feathers** spends one feather on each attack, and the troops go without one when you have none. **Use a coin horse** needs a stable in the castle.
+For the horse, **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack, and the troops go without one when you have none. **Use a coin horse** needs a stable in the castle.
 
 ## Spend aquamarine {% #aquamarine %}
 
@@ -57,16 +57,16 @@ The bot checks about every 30 minutes. **Most coins spent on them in one check**
 
 ## Send wood and stone {% #resource-send %}
 
-Turn on **Send wood and stone from the Storm Islands to your other castles**. When the bot starts, and then every 30 minutes, it sends the Storm Islands castle's wood and stone to your main castle and your kingdom castles, as much as each one has room for. It sends nothing to Berimond.
+Turn on **Send wood and stone from the Storm Islands to your other castles**. When the bot starts, and then every 30 minutes, it sends the Storm Islands castle's wood and stone to your {% term id="main-castle" %}main castle{% /term %} and your {% term id="kingdom" %}kingdom{% /term %} castles, as much as each one has room for. It sends nothing to {% term id="berimond" %}Berimond{% /term %}.
 
 ## Mead replace {% #mead-replace %}
 
-The **Mead replace** tab sends mead from your main castle in the Great Empire to your Storm Islands castle, so the mead there does not run out.
+The **Mead replace** tab sends mead from your main castle in the {% term id="great-empire" %}Great Empire{% /term %} to your Storm Islands castle, so the mead there does not run out.
 
 1. The bot works out how many hours of mead the Storm Islands castle has left.
 2. When that drops below **Send mead when it lasts less than**, it sends mead to fill the castle.
 3. If **Mead the main castle keeps** is above 0, it sends only the mead your main castle holds beyond that amount.
-4. If a mead shipment on its way would land too late, the bot may spend a time skip on it.
+4. If a mead shipment on its way would land too late, the bot may spend a {% term id="time-skip" %}time skip{% /term %} on it.
 5. After each shipment, it checks again about 15 minutes later.
 
 If the Storm Islands castle can't store mead for more than about 3 hours, the {% term id="log" %}log{% /term %} warns you that your mead may run out and you could lose troops.

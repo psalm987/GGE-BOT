@@ -10,7 +10,9 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="calendar" size=32 /%}Let the bot handle the small jobs you do every day. Daily chores has three {% term id="plugin" %}plugins{% /term %}, one below another on the module page. Switch on the ones you want.
+{% icon id="calendar" size=32 /%}Let the bot handle the small jobs you do every day. Daily chores has three {% term id="plugin" %}plugins{% /term %}, one below another on the {% term id="module" %}module{% /term %} page. Switch on the ones you want.
+
+{% terms_on_page /%}
 
 - **Daily login bonus** claims your login reward once a day.
 - **Tax collector** sends the tax collector out and collects the taxes, again and again.
@@ -23,7 +25,7 @@ The game offers three rewards each day, and a different three the next day. You 
 1. A few minutes after your bot signs in, it reads today's offer.
 2. If today's bonus is already claimed, it writes **Today's daily login bonus was already claimed** to your {% term id="log" %}log{% /term %} and waits for the next day.
 3. Otherwise it picks the reward you prefer from the three on offer and claims it.
-4. It claims one time per day, even if the game does not answer. The next claim comes in the next day, counted in UTC.
+4. It claims one time per day, even if the game does not answer. The next claim comes in the next day, counted in {% term id="utc" %}UTC{% /term %}.
 
 **Reward to pick** sets the kind of reward you want most. The choices are:
 
@@ -35,7 +37,7 @@ The game offers three rewards each day, and a different three the next day. You 
 
 If your kind is not on offer today, the bot goes down this list in this order and takes the first kind it finds. If two offered rewards are the same kind, it takes the first one the game shows.
 
-The bot does not claim the special alliance or VIP rewards. It claims only one of the three normal rewards.
+The bot does not claim the special alliance or {% term id="vip" %}VIP{% /term %} rewards. It claims only one of the three normal rewards.
 
 {% settings plugin="loginBonus" /%}
 

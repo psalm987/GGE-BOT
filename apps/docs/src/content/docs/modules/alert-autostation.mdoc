@@ -10,20 +10,22 @@ sources:
   - packages/contracts/src/notifications.ts
 ---
 
-{% icon id="siren" size=32 /%}Under attack while you sleep? The Auto Station {% term id="plugin" %}plugin{% /term %} watches your castles for attacks by other players. When one comes, it alerts you and moves the castle's troops to a protected alliance castle just before the attack lands. When the attack is over, it calls them home.
+{% icon id="siren" size=32 /%}Under attack while you sleep? The **Auto Station** {% term id="plugin" %}plugin{% /term %} watches your castles for attacks by other players. When one comes, it alerts you and moves the castle's troops to a protected alliance castle just before the attack lands. When the attack is over, it calls them home.
+
+{% terms_on_page /%}
 
 Use it to save your troops from attacks you can't answer in time.
 
 {% aside type="caution" id="breaks-peace" %}
-The plugin carries the {% ui key="client:plugins.breaksPeace" /%} tag. {% ui key="client:plugins.breaksPeaceBody" /%} Sending troops to another player's castle counts as support, and support ends that protection.
+The plugin carries the {% ui key="client:plugins.breaksPeace" /%} tag. {% ui key="client:plugins.breaksPeaceBody" /%} Sending troops to another player's castle counts as support, and support ends that {% term id="protection" %}protection{% /term %}.
 {% /aside %}
 
 ## How it works {% #how-it-works %}
 
 1. The bot watches the castles you choose for attacks by players.
-2. When a player attacks one of them, you get an alert in the {% ui key="client:notifications.title" /%} bell. The module page shows when the troops leave.
+2. When a player attacks one of them, you get an alert in the {% ui key="client:notifications.title" /%} bell. The {% term id="module" %}module{% /term %} page shows when the troops leave.
 3. 30 seconds before the troops leave, the bot stops sending new attacks from that castle.
-4. At the time in **Move the troops out this long before the attack lands**, the bot sends the troops to an alliance castle as a station. A {% term id="commander-game" %}commander{% /term %} from your list leads them. The default is 60 seconds before the first attack lands.
+4. At the time in **Move the troops out this long before the attack lands**, the bot sends the troops to an alliance castle as a {% term id="station" %}station{% /term %}. A {% term id="commander-game" %}commander{% /term %} from your list leads them. The default is 60 seconds before the first attack lands.
 5. You get a second alert that says whether the troops got out.
 6. The bot calls the troops home 60 seconds after the last attack on that castle lands. Attacks from the castle start again.
 
@@ -48,13 +50,13 @@ The plugin acts only on attacks on your own castles. Attacks on your alliance me
 - **Every troop** sends all soldiers.
 - **Attack troops only** sends soldiers whose attack is higher than their defence. Your defenders stay home.
 
-**Troops kept home in each castle** is a table. Each row has a **Castle**, a **Troop** and a **Kept home** amount. The bot leaves that many of that troop in that castle. Tools always stay home.
+**Troops kept home in each castle** is a table. Each row has a **Castle**, a **Troop** and a **Kept home** amount. The bot leaves that many of that troop in that castle. {% term id="tool" %}Tools{% /term %} always stay home.
 
 ## Choose where the troops go {% #destination %}
 
 **Where the troops go** has two choices.
 
-**Auto: the nearest alliance castle under protection** picks castles of your alliance members in the same kingdom, nearest first. The owner must have at least the protection in **Auto: the castle's owner must have at least this much protection left**. The default is 1 hour. Turn on **Auto: alliance outposts may take the troops too** to allow their outposts as well. Auto needs you to be in an alliance.
+**Auto: the nearest alliance castle under protection** picks castles of your alliance members in the same {% term id="kingdom" %}kingdom{% /term %}, nearest first. The owner must have at least the protection in **Auto: the castle's owner must have at least this much protection left**. The default is 1 hour. Turn on **Auto: alliance outposts may take the troops too** to allow their {% term id="outpost" %}outposts{% /term %} as well. Auto needs you to be in an alliance.
 
 **Fixed: the castles listed below** uses your own list in **Fixed: castles to send the troops to, tried in this order**. Each row has a **Kingdom**, an **X** and a **Y**. For an attack in one kingdom, the bot tries only the rows for that kingdom, from the top down.
 
@@ -65,18 +67,18 @@ In both cases, the bot tries up to 3 castles. If the game refuses one, it tries 
 If no alliance castle takes the troops, the bot can open the castle gates instead. Set **If no alliance castle takes the troops, open the gates** to **Open the gates for 6 hours** or **Open the gates for 12 hours**. The default is **Off**.
 
 {% aside type="caution" id="gates-cost-rubies" %}
-Opening the gates costs rubies, from 450 to 56,700 each time. The price rises every time you open the gates of that castle. The bot opens them only if one opening costs no more than **Most rubies one gate opening may cost** (default 700), and only if you have the rubies.
+{% term id="open-gates" %}Opening the gates{% /term %} costs {% term id="ruby" %}rubies{% /term %}, from 450 to 56,700 each time. The price rises every time you open the gates of that castle. The bot opens them only if one opening costs no more than **Most rubies one gate opening may cost** (default 700), and only if you have the rubies.
 {% /aside %}
 
-The bot never opens the gates in Berimond. It also keeps them shut if the attack has already landed.
+The bot never opens the gates in {% term id="berimond" %}Berimond{% /term %}. It also keeps them shut if the attack has already landed.
 
 ## Commanders {% #commanders %}
 
-Pick the commanders in the {% ui key="client:plugins.commanderPicker.title" /%} card on the module page. The bot sends them in the order you click them. With none picked, it may use any of your commanders.
+Pick the commanders in the {% ui key="client:plugins.commanderPicker.title" /%} card on the module page. The bot sends them in the order you pick them. With none picked, it may use any of your commanders.
 
 **Most commanders away on stations at once** stops the bot from tying up all your commanders. The default is 2. If no commander from your list is free, the bot can't station the troops, and your {% term id="log" %}log{% /term %} says so. It opens the gates instead if you allowed that.
 
-The daily VIP cap is saved, but the bot does not use VIP commanders yet.
+The daily {% term id="vip" %}VIP{% /term %} cap is saved, but the bot does not use VIP commanders yet.
 
 ## If the bot can't call the troops home {% #station-hours %}
 
@@ -109,4 +111,4 @@ The {% ui key="client:module.status" /%} card shows what the plugin is doing now
 
 ## Related errors {% #errors %}
 
-[CASTLE_LOCKED](/errors/#castle-locked) shows when an attack plugin wants to attack from a castle while Auto Station moves its troops out. Wait. Attacks from the castle start again by themselves.
+[CASTLE_LOCKED](/errors/#castle-locked) shows when an attack plugin wants to attack from a castle while **Auto Station** moves its troops out. Wait. Attacks from the castle start again by themselves.

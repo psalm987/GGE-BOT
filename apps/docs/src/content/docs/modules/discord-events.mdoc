@@ -10,15 +10,17 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="trumpet-flag" size=32 /%}A live board for your alliance. Discord event alerts has three {% term id="plugin" %}plugins{% /term %}, each on its own tab of the module page. Each one keeps a single Discord message up to date with what is open on the map.
+{% icon id="trumpet-flag" size=32 /%}A live board for your alliance. Discord event alerts has three {% term id="plugin" %}plugins{% /term %}, each on its own tab of the {% term id="module" %}module{% /term %} page. Each one keeps a single Discord message up to date with what is open on the map.
 
-- **Fortress** lists the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks.
-- **Aquamarine Islands** lists the free islands in the Storm Islands.
+{% terms_on_page /%}
+
+- **Fortress** lists the {% term id="fortress" %}fortresses{% /term %} in Burning Sands, Everwinter Glacier and Fire Peaks.
+- **Aquamarine Islands** lists the free islands in the {% term id="storm-islands" %}Storm Islands{% /term %}.
 - **Aquamarine Towers** lists the towers in the Storm Islands that are open now.
 
 ## How the message stays up to date {% #how-it-works %}
 
-1. When your bot signs in, each plugin searches the map around your castle in the kingdoms it covers.
+1. When your bot signs in, each plugin searches the map around your castle in the {% term id="kingdom" %}kingdoms{% /term %} it covers.
 2. It writes the list into one message in its channel.
 3. Every few seconds, it updates the times in that message.
 4. If the newest message in the channel is not from GGE Command, the plugin posts a new message and updates that one from then on. New messages arrive without a notification sound.
@@ -53,7 +55,7 @@ This plugin also needs the Storm Islands unlocked.
 
 ## Connect a Discord channel {% #channel-id %}
 
-Each plugin has its own **Channel ID**. Paste the ID of the channel where its message should go, then save. The steps to find a channel ID are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
+Each plugin has its own **Channel ID**. Paste the ID of the channel where its message should go, then save. The steps to find a {% term id="channel-id" %}channel ID{% /term %} are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
 
 ## Tips and limits {% #tips %}
 

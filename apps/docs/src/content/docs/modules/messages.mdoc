@@ -8,7 +8,9 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="envelope" size=32 /%}Keep up with your alliance from Discord. The Messages module runs the Chat {% term id="plugin" %}plugin{% /term %}. It copies your alliance chat to a Discord channel, and it sends what people write in that channel back to the game.
+{% icon id="envelope" size=32 /%}Keep up with your alliance from Discord. The Messages {% term id="module" %}module{% /term %} runs the Chat {% term id="plugin" %}plugin{% /term %}. It copies your alliance chat to a Discord channel, and it sends what people write in that channel back to the game.
+
+{% terms_on_page /%}
 
 Use it when your alliance talks on Discord and you want both chats in one place.
 
@@ -44,7 +46,7 @@ Turn on **Hide your Discord name** to send Discord messages to the game without 
 ## Set up the channel {% #setup %}
 
 1. Pick a text channel in your Discord for the alliance chat. The GGE Command Discord bot must be able to see and post in it.
-2. Copy the channel ID. The steps are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
+2. Copy the {% term id="channel-id" %}channel ID{% /term %}. The steps are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
 3. Paste the ID into **Channel ID** and save.
 4. Start the bot. New alliance chat messages appear in the channel from then on. Older messages are not copied.
 

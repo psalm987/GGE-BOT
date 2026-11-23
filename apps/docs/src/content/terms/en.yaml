@@ -5,9 +5,9 @@ terms:
     category: bot
     short: One job your bot does, such as collecting taxes or sending attacks. You switch each plugin on or off.
     long: >-
-      A plugin is one task the bot knows how to do. Each plugin has its own switch and its own settings. You can run several at once, and attack plugins count toward your attack cap.
+      A plugin is one task the bot knows how to do. Each plugin has its own switch and its own settings. You can run several at once, and attack plugins count toward your attack cap. A module page in the sidebar edits one or more plugins.
       Think of it like apps on a phone. The phone does nothing special until you open one, and each app does a single thing.
-    seeAlso: [attack-cap]
+    seeAlso: [module, attack-cap]
   - id: log
     image: all-seeing-eye
     term: Log
@@ -16,7 +16,7 @@ terms:
     long: >-
       Each move your bot makes gets a line in the log, with the time and the game account it belongs to. Open the Logs page to read them live, filter by account, or download them as text.
       Think of it like a ship's log. If you want to know what happened while you were away, you read it.
-    seeAlso: [run]
+    seeAlso: [run, not-now, log-only]
   - id: game-account
     image: castle
     term: Game account
@@ -24,9 +24,9 @@ terms:
     category: account
     short: Your player in Goodgame Empire. You add it to GGE Command so the bot can sign in and play it for you.
     long: >-
-      Your game account is the one you play in the game. It is separate from your GGE Command account, which holds your email and plan. You can add a game account to GGE Command by giving its name, server and game password.
+      Your game account is the one you play in the game. It is separate from your GGE Command account, which holds your email and plan. You add a game account to GGE Command by giving its name, server and game password.
       Think of it like a key and a lock. Your GGE Command account holds the key, and the game account is the lock it opens.
-    seeAlso: [server]
+    seeAlso: [gge-command-account, server, event-twin]
   - id: server
     image: magic-portal
     term: Server
@@ -36,43 +36,43 @@ terms:
     long: >-
       Goodgame Empire runs many separate worlds, called servers. Your game account exists on exactly one of them. When you add an account, the server you pick must match the one you play on.
       Think of it like a city with the same name in many countries. You need to say which country.
-    seeAlso: [game-account]
+    seeAlso: [game-account, event-twin]
   - id: attack-cap
     image: battle-gear
     term: Attack cap
     aliases: [attack plugin limit]
     category: bot
-    short: The most attack plugins one account may run at once. The Plugins list shows yours, and it can differ per account.
+    short: The most attack plugins one game account may have on at once. GGE Command sets it for your user, as 4, 6 or no limit.
     long: >-
-      Attack plugins send armies, so GGE Command limits how many can be on together. The limit is 4, 6 or none, and it is set per account. If you turn on more than your cap allows, the settings will not save, and the bot will not start.
+      Attack plugins send armies, so GGE Command limits how many can be on together. Your cap is 4 unless GGE Command set 6 or no limit for you. It does not depend on your plan. It applies to each of your game accounts on its own, so two accounts with a cap of 4 can each have 4 attack plugins on. If you switch on more than the cap allows, the settings do not save. An account that already has too many does not start.
       Think of it like seats at a table. Everyone is welcome, but only so many can sit down at once.
-    seeAlso: [plugin]
+    seeAlso: [plugin, daily-attack-limit]
   - id: proxy
     image: cloaked-figure-on-horseback
     term: Proxy
     aliases: [proxies]
     category: tech
-    short: A middle server your bot connects through, so the game sees its traffic coming from another address.
+    short: A middle server your bot connects through on its way to the game. GGE Command sets it up when an account needs one.
     long: >-
-      A proxy sits between the bot and the game. Your bot talks to the proxy, and the proxy talks to the game. Some accounts need one, and GGE Command assigns it for you. You do not set one up yourself.
-      Think of it like a post office box. Letters go through it and the sender's address is the box.
+      A proxy sits between the bot and the game. Your bot talks to the proxy, and the proxy talks to the game. GGE Command assigns one to an account when it is needed. You do not set one up yourself.
+      Think of it like a post office box. Letters go through it on their way to you.
     seeAlso: [run]
   - id: run
     image: trumpet-flag
     term: Bot run
     category: bot
-    short: One stretch of your bot working, from the moment you press Start until it stops.
+    short: One stretch of your bot working, from the moment it signs in until it stops.
     long: >-
-      A run begins when you press Start. The bot signs in, does the jobs its plugins ask for, and carries on until you stop it, a timer stops it, or something goes wrong. Pressing Start again begins a new run.
+      A run begins when the bot signs in. It does the jobs its plugins ask for and carries on until you stop it, a timer or schedule stops it, or something goes wrong. The Run history tab of an account lists past runs and why each one ended.
       Think of it like a shift at work. It starts when you clock in, and it ends when you clock out or the day is done.
-    seeAlso: [log, crash-loop]
+    seeAlso: [log, crash-loop, run-schedule]
   - id: crash-loop
     image: siren
     term: Crash loop
     category: bot
     short: When your bot fails again and again in a row, so it stops trying and waits for you.
     long: >-
-      If a run fails many times in a row, GGE Command stops restarting it and sends you an alert with the last error. This protects your game account from endless failed sign-ins. Fix the cause, then press Start.
+      If a game account fails to start 8 times in a row, over at least half an hour, GGE Command stops restarting it and sends you an alert with the last error. This protects your game account from endless failed sign-ins. Problems on the game's side, such as an outage, do not count. Fix the cause, then press Start.
       Think of it like a car that will not start. After a few tries you stop and look under the hood.
     seeAlso: [run, log]
   - id: two-factor
@@ -84,41 +84,530 @@ terms:
     long: >-
       Two-factor sign-in, also called 2FA, adds a second check after your password. An authenticator app on your phone makes a new six-digit code every 30 seconds, called a TOTP code or authenticator code. Player accounts on GGE Command do not use it. Staff sign in this way.
       Think of it like a door with two locks. A thief needs both keys.
-    seeAlso: []
+    seeAlso: [gge-command-account]
   - id: trial
     image: calendar
     term: Free trial
     aliases: [trial]
     category: account
-    short: A short time to run your bots for free before you pick a plan. Each game account gets one.
+    short: Free days of the Basic plan once plans start. Each player gets one trial, and each game account can be on only one.
     long: >-
-      The free trial lets you try the bot on a real game account. It starts once, per game account, and ends on its own. You get an alert when it starts, and another before it ends.
+      Plans are not on sale yet, so nobody needs a trial today. Once plans start, your trial begins when you confirm your email address and lasts 7 days, unless GGE Command sets another length. You get one trial for your GGE Command account. A game account can also run on only one trial, whoever adds it. If another player's trial already ran it, you need a plan to run it. You get an alert when your trial starts, and messages before it ends.
       Think of it like a test drive. You get the keys for a short while, and then you decide.
-    seeAlso: [game-account]
+    seeAlso: [gge-command-account, game-account]
   - id: khan-camp
     image: wolf-head
     term: Khan camp
     category: game
-    short: An event camp of Khan's army on the map. Your bot can attack it for event points and loot.
+    short: A camp of the Khan's army on the map during the Khan event. Your bot can attack it for tablets and event points.
     long: >-
-      In the Khan event, camps of Khan's army appear on the map and defend themselves in waves. The Attack Khan plugin sends your armies against them. Higher difficulty camps are harder and pay better.
+      In the Khan event, camps of the Khan's army appear on the map of the Great Empire. The Khan module attacks them from your main castle. The event difficulty decides how hard the camps are. Attacks with rage tools fill the rage bar, which lets you taunt the Khan.
       Think of it like a boss room in a dungeon. You bring your best troops, and the reward is worth the trip.
-    seeAlso: [commander-game, attack-cap]
+    seeAlso: [taunt, rage, tablet, commander-game]
   - id: commander-game
     image: overlord-helm
     term: Commander
     category: game
     short: A named hero in the game who leads your army in attacks. This is not the Commander plugin.
     long: >-
-      In the game, a commander is a hero you assign to lead an attack. Each commander has its own skills and number. The Commander plugin is a different thing. It is a GGE Command job that manages which commanders go on which attacks.
+      In the game, a commander is a hero you assign to lead an attack or a station. Each commander has its own number and bonuses. On every attack module, the Commanders card lets you pick which commanders the bot may send, and in which order.
       Think of it like a team captain. The captain leads the team on the field.
-    seeAlso: [commander-plugin, khan-camp]
+    seeAlso: [commander-plugin, vip]
   - id: commander-plugin
     image: cog
     term: Commander plugin
     category: bot
-    short: The GGE Command job that decides which commanders lead your bot's attacks. It is not a hero in the game.
+    short: A built-in GGE Command job that tracks which commanders are out, so two attacks never use the same one. It has no switch.
     long: >-
-      The Commander plugin is a GGE Command setting, not a game feature. It picks which of your commanders go on each attack and keeps them from clashing. The word commander in the game means the hero itself.
+      The Commander plugin is part of GGE Command, not a game feature. It always runs and has no settings of its own. It notes which of your commanders are marching and hands the next free one to the plugin that wants it. You choose the commanders on the Commanders card of each attack module.
       Think of it like a coach who writes the line-up. The coach does not play.
     seeAlso: [commander-game, plugin]
+  - id: module
+    image: cog
+    term: Module
+    category: bot
+    short: One page in the sidebar of GGE Command. Each module edits one or more plugins, such as Towers or Daily chores.
+    long: >-
+      Modules group the plugins by what they do. Pick a module in the sidebar, pick the game account at the top, change the settings and save. A module marked Soon is not built yet.
+      Think of it like a room in a house. Each room holds the tools for one kind of job.
+    seeAlso: [plugin]
+  - id: run-schedule
+    image: calendar
+    term: Run schedule
+    aliases: [schedule]
+    category: bot
+    short: The days and hours a started bot may play. Outside them, the bot signs out and shows Sleeping until.
+    long: >-
+      You set a schedule on the Schedule tab of a game account. It holds up to 14 windows, each with its days and its start and end time, in the time zone you pick. Inside a window the bot runs, and outside one it sleeps. A schedule works only while the bot is started.
+      Think of it like opening hours for a shop. The shop is still yours when it is closed.
+    seeAlso: [shutoff-timer, run]
+  - id: shutoff-timer
+    image: siren
+    term: Shutoff timer
+    category: bot
+    short: An account setting that stops the bot a set number of hours after it signs in. You get an alert when it does.
+    long: >-
+      Switch on Shutoff timer on the Account settings tab of a game account and type the number of hours. When the time is up, the bot stops and stays stopped until you press Start.
+      Think of it like a kitchen timer. It rings once, and then you decide what to do next.
+    seeAlso: [run-schedule, run]
+  - id: log-only
+    image: erlenmeyer
+    term: Log only
+    aliases: [dry run]
+    category: bot
+    short: A module setting that makes the bot write each attack or order to the log instead of sending it to the game.
+    long: >-
+      With Log only on, the bot builds everything as usual and writes it to the log, but nothing reaches the game. Nothing is sent, bought or spent. Use it to check new settings, then turn it off and save.
+      Think of it like a fire drill. Everyone walks the route, and nothing is on fire.
+    seeAlso: [log]
+  - id: not-now
+    image: stone-wall
+    term: Game said not now
+    aliases: [not now]
+    category: bot
+    short: A log level for an action the game refused for now, such as during a cooldown. It passes by itself and is not an error.
+    long: >-
+      The game sometimes says no because of its own state: a wait is still running, a queue is full, or a castle has too few resources. The bot marks these lines Game said not now and carries on with other work. In a downloaded log file they show as LATER.
+      Think of it like a closed door with a sign that says back in five minutes.
+    seeAlso: [log]
+  - id: daily-attack-limit
+    image: crossed-axes
+    term: Daily attack limit
+    aliases: [daily cap]
+    category: bot
+    short: The most attacks one game account sends in 24 hours, across all its attack modules. It is 3,500 unless you change it.
+    long: >-
+      Set it on the Account settings tab of a game account. It counts the attacks of every attack module together, and it can never go above 4,000, the game's own limit for 24 hours. When the bot reaches it, it stops attacking for the day. Some modules also have a daily limit of their own.
+      Think of it like a daily step goal. Once you reach it, you sit down for the day.
+    seeAlso: [attack-cap]
+  - id: event-twin
+    image: magic-portal
+    term: Event twin
+    aliases: [event account]
+    category: account
+    short: A copy of a game account that plays a temporary event server. It does not count toward the number of bots you can run.
+    long: >-
+      Some events run on a server of their own for a short time. Choose Add event twin on the account's row of the Overview page. The new account copies the name and server and has External event account switched on. A twin counts as part of the account it copies.
+      Think of it like a holiday home. You visit for a while, and your real home stays where it is.
+    seeAlso: [game-account, server]
+  - id: gge-command-account
+    image: envelope
+    term: GGE Command account
+    category: account
+    short: Your login for GGE Command, with your username, email and password. It holds your game accounts.
+    long: >-
+      You make a GGE Command account when you sign up. It is not your game login. Each GGE Command account runs one bot for now, so with several game accounts the oldest one runs. The Settings page holds its language, emails and password.
+      Think of it like a garage. Your game accounts are the cars parked inside.
+    seeAlso: [game-account, event-twin]
+  - id: command-palette
+    image: all-seeing-eye
+    term: Command palette
+    aliases: [palette]
+    category: bot
+    short: A search box that finds any page, game account or plugin setting. Open it with Ctrl+K, or Cmd+K on a Mac.
+    long: >-
+      Type a few letters and choose a result to jump there. The palette also switches the language and signs you out.
+      Think of it like the search bar on your phone. You type a word instead of opening every app.
+    seeAlso: [module]
+  - id: virtual-preset
+    image: battle-gear
+    term: Virtual preset
+    category: bot
+    short: A set of attack waves saved in GGE Command under a name. Any attack module of the same game account can send it.
+    long: >-
+      Virtual presets live in GGE Command, not in the game, which is why they are called virtual. Each game account keeps up to 30. When you edit a preset, every module that sends it gets the change.
+      Think of it like a saved playlist. You make it once and play it from any speaker in the house.
+    seeAlso: [wave, autofill]
+  - id: autofill
+    image: swordman
+    term: Autofill
+    category: bot
+    short: An Army choice that lets the bot fill each attack from the castle's troops and tools. The other choice, Waves, sends your own waves.
+    long: >-
+      With Autofill, the module's settings steer what goes where, such as sides, waves and tools. With Waves, the bot sends exactly the waves you write, or a virtual preset.
+      Think of it like a meal kit versus your own recipe. One picks the parts for you, and the other follows your list.
+    seeAlso: [wave, virtual-preset]
+  - id: source-castle
+    image: castle
+    term: Source castle
+    category: bot
+    short: The castle an attack leaves from. Some modules let you pick it, and others always use a fixed castle.
+    long: >-
+      On Towers and on Nomads, Samurai and Daimyo, you pick it in Castle to attack from. Left empty, the bot uses the main castle. Other modules always leave from a fixed castle, such as your Storm Islands castle.
+      Think of it like a bus depot. Every trip starts there.
+    seeAlso: [main-castle]
+  - id: resource-floor
+    image: coins-pile
+    term: Resource floor
+    aliases: [coin floor]
+    category: bot
+    short: The least of a resource, or of coins, an order may leave you with. The bot waits instead of going below it.
+    long: >-
+      Modules that buy or build things have settings such as Keep at least this many coins and Keep at least this much of each resource. Those amounts are your floors. The coin floor is the same idea for coins.
+      Think of it like money you keep for the bus home. You never spend that part.
+    seeAlso: [tool]
+  - id: channel-id
+    image: trumpet-flag
+    term: Channel ID
+    category: tech
+    short: The long number Discord gives each channel. A Discord module needs it to know where to post.
+    long: >-
+      Turn on Developer Mode in Discord, right-click a channel and choose Copy Channel ID. Paste the number into the module. A channel name or a link does not work.
+      Think of it like a house number. A street name alone does not get the letter to the right door.
+    seeAlso: []
+  - id: utc
+    image: calendar
+    term: UTC
+    category: tech
+    short: World time with no time zone and no summer time. Some daily counts in the bot start again at midnight UTC.
+    long: >-
+      UTC is the same everywhere on Earth. Midnight UTC can be a different hour where you live, so a daily count may start again in the middle of your day.
+      Think of it like the clock in an airport control tower. Every pilot uses the same one.
+    seeAlso: []
+  - id: json
+    image: cog
+    term: JSON
+    category: tech
+    short: A plain text file format that programs can read. Your data download is a JSON file.
+    long: >-
+      A JSON file holds names and values as text. Any text editor can open it, though it is written for programs more than for people.
+      Think of it like a form filled in by a machine. Every box has a label.
+    seeAlso: []
+  - id: redeem-code
+    image: banknote
+    term: Redeem code
+    category: account
+    short: A single-use code from a friend's Team package. You type it on the Plan page to add days of a plan.
+    long: >-
+      A code looks like GGE-XXXX-XXXX-XXXX and works once. Dashes and letter case do not matter. A friend can also send a link that redeems the code for you.
+      Think of it like a gift card. It is worth something once, to whoever uses it first.
+    seeAlso: [trial]
+  - id: kingdom
+    image: stone-wall
+    term: Kingdom
+    category: game
+    short: One of the four map regions of the game, from the Great Empire to Fire Peaks. Each has its own map and castles.
+    long: >-
+      The four kingdoms are the Great Empire, Burning Sands, Everwinter Glacier and Fire Peaks. You start in the Great Empire and unlock the others as you grow. Each kingdom has its own map, castles and targets, so many modules have one setting or tab per kingdom. The Storm Islands and Berimond are separate worlds with rules of their own.
+      Think of it like the levels of a game. Each one has its own map, and you carry your name into all of them.
+    seeAlso: [great-empire, main-castle, storm-islands, berimond]
+  - id: great-empire
+    image: castle
+    term: Great Empire
+    category: game
+    short: The first kingdom of the game, where your first castle stands. The event camps the bot attacks appear here.
+    long: >-
+      The Great Empire is the green kingdom. Khan, Nomad, Samurai and invasion event camps appear on its map, so those modules attack from your main castle there.
+      Think of it like your home town. You travel elsewhere, but this is where you started.
+    seeAlso: [kingdom, main-castle]
+  - id: main-castle
+    image: castle
+    term: Main castle
+    category: game
+    short: Your chief castle in a kingdom. Many modules attack from it when you pick no other castle.
+    long: >-
+      Each kingdom you play has one main castle. In the Great Empire it is the castle you started with. Outposts and captured castles are your other castles.
+      Think of it like a head office. Branches come and go, but the head office stays.
+    seeAlso: [outpost, source-castle, kingdom]
+  - id: outpost
+    image: stone-tower
+    term: Outpost
+    category: game
+    short: An extra castle you hold in a kingdom, apart from your main castle.
+    long: >-
+      Outposts give you more room to make resources and send troops. Some modules let you pick an outpost as the castle an attack leaves from, or watch your outposts for attacks.
+      Think of it like a second shop in a town nearby. It is smaller, but it is still yours.
+    seeAlso: [main-castle]
+  - id: storm-islands
+    image: sinking-ship
+    term: Storm Islands
+    category: game
+    short: A sea world of the game with its own castle, fortresses and aquamarine. You unlock it in the game.
+    long: >-
+      Your Storm Islands castle has its own food, mead and aquamarine. The Storms module attacks the fortresses there and keeps the castle supplied with mead. Several modules leave the Storm Islands alone.
+      Think of it like an island holiday home. It needs its own supplies, shipped from the mainland.
+    seeAlso: [aquamarine, mead, fortress, kingdom]
+  - id: berimond
+    image: sword-clash
+    term: Berimond
+    category: game
+    short: A separate world of the game with its own map and two factions. Several modules leave your castles there alone.
+    long: >-
+      Feasts, open gates and wood and stone shipments from the Storm Islands never touch a castle in Berimond. It is not the same as the Berimond Invasion event, which runs in the Great Empire.
+      Think of it like a war zone with its own rules. What works at home may not work there.
+    seeAlso: [berimond-invasion, kingdom]
+  - id: berimond-invasion
+    image: viking-helmet
+    term: Berimond Invasion
+    category: game
+    short: An event in which red and blue camps appear in the Great Empire. The Green Berimond module attacks them with event tools.
+    long: >-
+      Each side of camps has its own rewards. Attacks with event tools earn event points, or reputation if you choose. The event runs in the Great Empire, not in the world of Berimond.
+      Think of it like two rival teams setting up tents in your town. You choose which tents to raid.
+    seeAlso: [berimond, tool, great-empire]
+  - id: robber-baron
+    image: stone-tower
+    term: Robber Baron
+    aliases: [Baron]
+    category: game
+    short: A castle run by the game that you can attack again and again for loot. The Towers module calls them towers.
+    long: >-
+      Robber Baron castles stand in every kingdom. Victories raise a tower's level until it is maxed, and after each attack it waits before it can be attacked again.
+      Think of it like a training dummy that hits back harder each round.
+    seeAlso: [kingdom, time-skip]
+  - id: fortress
+    image: locked-fortress
+    term: Fortress
+    category: game
+    short: A stronghold run by the game on the map of Burning Sands, Everwinter Glacier, Fire Peaks or the Storm Islands. You attack it for loot.
+    long: >-
+      After each attack, a fortress waits before it can be attacked again. The Fortress module attacks the ones in the three kingdoms, and the Storms module attacks the ones in the Storm Islands, where each has a level and hits left.
+      Think of it like a mine that needs time to fill up again after you dig.
+    seeAlso: [kingdom, storm-islands]
+  - id: nomad
+    image: cloaked-figure-on-horseback
+    term: Nomad
+    category: game
+    short: Riders whose camps appear in the Great Empire during the Nomad event. The Nomad camps share their event with the Khan camps.
+    long: >-
+      You attack Nomad camps for event points. The Nomads tab of the Nomads, Samurai and Daimyo module does it for you. The event difficulty you set applies to the Nomad and Khan camps alike.
+      Think of it like a travelling army that sets up camp near your walls.
+    seeAlso: [khan-camp, samurai]
+  - id: samurai
+    image: swordman
+    term: Samurai
+    category: game
+    short: Warriors whose camps appear in the Great Empire during the Samurai event. You attack them for event points.
+    long: >-
+      The Samurai tab of the Nomads, Samurai and Daimyo module attacks Samurai camps while the event runs.
+      Think of it like the Nomad event with a different army and different rewards.
+    seeAlso: [nomad, daimyo]
+  - id: daimyo
+    image: overlord-helm
+    term: Daimyo
+    category: game
+    short: Samurai lords whose castles appear during the Samurai event. GGE Command cannot attack Daimyo castles yet.
+    long: >-
+      The module carries the name Nomads, Samurai and Daimyo, but only the Nomad and Samurai tabs work today.
+      Think of it like a door on the map that is still locked.
+    seeAlso: [samurai]
+  - id: foreign-lord
+    image: crossed-axes
+    term: Foreign Lord
+    category: game
+    short: An invader whose camps appear in the Great Empire during the Foreign Invasion event. Attacks on them earn event points and glory.
+    long: >-
+      The Invasion events module has a tab for this event. It can pick a difficulty, dethrone camps and use glory banners.
+      Think of it like a foreign army camped outside your walls, with fame for whoever beats it.
+    seeAlso: [bloodcrow, glory, dethrone]
+  - id: bloodcrow
+    image: raven
+    term: Bloodcrow
+    category: game
+    short: An invader whose camps appear in the Great Empire during the Bloodcrow event. Attacks on them earn event points and glory.
+    long: >-
+      The Invasion events module has a tab for this event, with the same settings as the Foreign Lords tab.
+      Think of it like the Foreign Lords with darker banners.
+    seeAlso: [foreign-lord, glory]
+  - id: glory
+    image: rank-3
+    term: Glory
+    category: game
+    short: Fame you earn in the Foreign Lord and Bloodcrow events. Glory banners in your attacks raise how much an attack earns.
+    long: >-
+      Each attack on an invasion camp earns event points and glory. The Invasion events module puts glory banners in the tool slots of the later waves, strongest first unless you set an order.
+      Think of it like medals from a tournament. Better gear wins more of them.
+    seeAlso: [foreign-lord, bloodcrow, tool]
+  - id: dethrone
+    image: imperial-crown
+    term: Dethrone
+    category: game
+    short: Paying once to dethrone an invasion camp before you attack it. Exile costs coins, Fortify costs rubies, and each one costs more.
+    long: >-
+      Dethroning needs player level 70 or higher, and the event must allow it. The Invasion events module dethrones only if you set its spending limits above 0.
+      Think of it like paying to knock the king off his chair before the battle starts.
+    seeAlso: [foreign-lord, ruby]
+  - id: khan-chain
+    image: wolf-head
+    term: Khan chain
+    category: game
+    short: Taunting the Khan again and again while your defence holds. Each defended Khan attack brings many event points.
+    long: >-
+      A defended Khan attack fills the rage bar again, so the next taunt can follow. The Khan module can pause hits while too many Khan attacks are on their way, and can refill your defence after each one.
+      Think of it like a boxer who keeps calling for the next opponent while he is still standing.
+    seeAlso: [taunt, rage, khan-camp]
+  - id: rage
+    image: siren
+    term: Rage
+    category: game
+    short: The Khan's bar that fills as your attacks on Khan camps carry rage tools. A full bar lets you taunt the Khan.
+    long: >-
+      Each attack with rage tools adds to the bar. The Khan module puts rage tools in the waves after the first one, as many waves as you set.
+      Think of it like poking a bear. Poke enough times and it comes for you.
+    seeAlso: [taunt, khan-camp]
+  - id: taunt
+    image: wolf-head
+    term: Taunt
+    category: game
+    short: Calling the Khan to attack your castle once the rage bar is full. Defending against that attack earns the most event points.
+    long: >-
+      A taunt sends a real Khan attack at your main castle, so fill your defence first. The Khan module taunts by itself unless you choose Tablets only, or your defence is short.
+      Think of it like ringing the bell for the final round. Make sure you are ready to fight.
+    seeAlso: [rage, khan-chain]
+  - id: tablet
+    image: open-treasure-chest
+    term: Tablet
+    category: game
+    short: The loot of the Khan event. Tablet chests in your attacks raise how many tablets an attack brings home.
+    long: >-
+      Attacks on Khan camps loot tablets. The Khan module can put tablet chests in some waves, and with Tablets only on it attacks camps for tablets without ever taunting.
+      Think of it like coins in an arcade game. You collect them on every run.
+    seeAlso: [khan-camp, tool]
+  - id: time-skip
+    image: tornado
+    term: Time skip
+    category: game
+    short: An item that cuts a wait short, such as a 5-hour or 24-hour skip. Some modules spend them on camp and tower waits.
+    long: >-
+      The game hands out time skips in many sizes. The Time skips setting on the Account settings tab decides which skips the bot may spend, and a module can narrow that list for itself.
+      Think of it like a fast pass at a theme park. You skip the queue, but each pass is used up.
+    seeAlso: [daily-attack-limit]
+  - id: station
+    image: tower-bridge
+    term: Station
+    category: game
+    short: Sending troops to defend an alliance member's castle for a set time. Auto Station uses it to move troops out of an attack's way.
+    long: >-
+      A station of 12 hours or less is free. Sending troops on a station while you have beginner or peace protection ends that protection. The troops come home when you call them back, or when the hours end.
+      Think of it like sending your family to stay with a neighbour while a storm passes.
+    seeAlso: [open-gates, protection]
+  - id: open-gates
+    image: locked-fortress
+    term: Open the gates
+    aliases: [open your gates, opening the gates]
+    category: game
+    short: A game action, paid in rubies, that opens a castle's gates for 6 or 12 hours. Auto Station can use it as a last resort.
+    long: >-
+      Opening the gates costs rubies, from 450 to 56,700 each time, and the price rises each time you do it in that castle. Auto Station opens them only if you allow it and the price is under your limit. It never opens them in Berimond.
+      Think of it like an emergency exit. It costs a lot, so you use it only when nothing else works.
+    seeAlso: [station, ruby]
+  - id: protection
+    image: healing-shield
+    term: Protection
+    category: game
+    short: A time when other players cannot attack you, such as beginner protection or peace protection. Attacking or supporting another player ends it.
+    long: >-
+      New players start with beginner protection, and peace protection can be bought. Attacking or stationing troops at another player's castle can end it, so some modules wait until it is over unless you allow them to go ahead.
+      Think of it like a shield in a game of tag. Once you tag someone, the shield is gone.
+    seeAlso: [station]
+  - id: pro-mode
+    image: tarot-10-wheel-of-fortune
+    term: Pro mode
+    category: game
+    short: A wheel setting in the game that costs ten times the tickets per spin. The bot never spins while it is on.
+    long: >-
+      If a wheel is in Pro mode, the Wheel spin module stops and tells you. Turn Pro mode off in the game, and the bot spins again on its next check.
+      Think of it like a slot machine set to the high-stakes table. The bot stays away from it.
+    seeAlso: []
+  - id: aquamarine
+    image: coins-pile
+    term: Aquamarine
+    category: game
+    short: The resource of the Storm Islands. You spend it in the Storm Islands shop on coins, decorations, skips and more.
+    long: >-
+      You collect aquamarine in the Storm Islands. The Aquamarine Islands and Aquamarine Towers are map spots there. The Storms module spends aquamarine in the shop before your store fills up.
+      Think of it like a local currency. It only buys things on the islands.
+    seeAlso: [storm-islands]
+  - id: mead
+    image: bread
+    term: Mead
+    category: game
+    short: A drink that some troops need instead of food. If a castle runs out of mead, it can lose those troops.
+    long: >-
+      Troops eat food or mead. Many module settings can leave out the troops that eat mead. The Mead replace tab of the Storms module ships mead to your Storm Islands castle so it does not run out.
+      Think of it like fuel for a car. Without it, the car does not go anywhere.
+    seeAlso: [storm-islands]
+  - id: ruby
+    image: open-treasure-chest
+    term: Ruby
+    aliases: [rubies]
+    category: game
+    short: The game's premium currency, bought with real money. Most modules never spend rubies, and the others only after you change their settings.
+    long: >-
+      Rubies pay for things like open gates, rented difficulties and Fortify. Every module that can spend rubies has a setting that is off or 0 until you change it.
+      Think of it like a credit card in your wallet. It is easy to spend, so you keep it in a safe pocket.
+    seeAlso: [open-gates, dethrone]
+  - id: vip
+    image: imperial-crown
+    term: VIP
+    category: game
+    short: A status in the game with levels and extras, such as VIP commanders you may use a few times a day.
+    long: >-
+      You raise your VIP level with VIP points and keep it active with VIP time. GGE Command saves a daily VIP commander cap, but it does not send VIP commanders yet.
+      Think of it like a club card. Higher levels open more doors.
+    seeAlso: [commander-game]
+  - id: wave
+    image: sword-clash
+    term: Wave
+    category: game
+    short: One group of troops and tools in an attack. An attack sends its waves one after another.
+    long: >-
+      Each wave has slots on the left flank, the front and the right flank. How many waves you can send depends on your level and your commander. The courtyard wave fights last.
+      Think of it like rows of players in a tug of war. The next row steps up when the one in front tires.
+    seeAlso: [flank, courtyard, autofill, virtual-preset]
+  - id: flank
+    image: crossed-axes
+    term: Flank
+    category: game
+    short: One side of an attack or a castle wall. Every attack hits the left flank, the front and the right flank.
+    long: >-
+      Each wave puts troops and tools on the sides you choose. Some modules call them sides. The front is the middle, where the gate is.
+      Think of it like the left wing, centre and right wing of a football team.
+    seeAlso: [wave, courtyard]
+  - id: courtyard
+    image: stone-wall
+    term: Courtyard
+    category: game
+    short: The space inside a castle's walls. An attack can send a courtyard wave that fights there after the other waves.
+    long: >-
+      Defenders in the courtyard fight the attackers that get past the walls. Many modules can fill a courtyard wave for you, and some commanders bring support troops that take its place.
+      Think of it like the last line of defence behind the city walls.
+    seeAlso: [wave, flank]
+  - id: tool
+    image: anvil
+    term: Tool
+    aliases: [siege tool]
+    category: game
+    short: An item a wave or a defence carries, such as ladders, rams or mantlets. Event tools earn extra event points.
+    long: >-
+      Siege tools help an attack break walls, gates and shields. Event tools work only in their event and raise its points. Support tools go with the whole attack, and defence tools strengthen your own castle. You buy tools from the armourer or build them in workshops.
+      Think of it like the gear a climber packs. The right gear gets you over the wall.
+    seeAlso: [wave, resource-floor]
+  - id: coin-horse
+    image: cloaked-figure-on-horseback
+    term: Coin horse
+    category: game
+    short: A horse that makes a march faster and costs coins. It needs a stable in the castle.
+    long: >-
+      Without a horse, the troops walk. A coin horse is the cheap way to ride. A fast horse feather is quicker but spends an item.
+      Think of it like a bus ticket. It is cheaper than a taxi and still faster than walking.
+    seeAlso: [horse-feather]
+  - id: horse-feather
+    image: tornado
+    term: Fast horse feather
+    aliases: [horse feather, feather]
+    category: game
+    short: An item that makes one march much faster. Each attack that uses one spends it.
+    long: >-
+      Some modules can spend a feather on every attack, or only on targets farther than a distance you set. Without feathers, those attacks get the coin horse.
+      Think of it like a taxi. It gets you there fast, and you pay every ride.
+    seeAlso: [coin-horse, click]
+  - id: click
+    image: tower-bridge
+    term: Click
+    category: game
+    short: The game's unit of distance on the map, one square. GGE Command measures search radius and attack distance in clicks.
+    long: >-
+      A target 10 clicks away is 10 squares from your castle. Search radius and Feather beyond on the attack modules are set in clicks.
+      Think of it like blocks in a city. Three blocks away is closer than ten.
+    seeAlso: [horse-feather, source-castle]

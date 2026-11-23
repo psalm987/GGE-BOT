@@ -22,7 +22,7 @@ A row of tiles sums up all your accounts:
 {% screenshot id="overview" alt="The Overview page: tiles for accounts, accounts online, attacks, errors, coins, rubies and accounts that need attention, then the Top accounts table." /%}
 
 {% aside type="note" id="counted-from-logs" %}
-Attacks and errors are counted from the {% term id="log" %}log{% /term %} lines GGE Command keeps for each account: the newest 500, and none older than 7 days. A plus after a number means some lines may have been dropped, so the real figure is at least that. Lines the game said "not now" to are not errors.
+Attacks and errors are counted from the {% term id="log" %}log{% /term %} lines GGE Command keeps for each account: the newest 500, and none older than 7 days. A plus after a number means some lines may have been dropped, so the real figure is at least that. Lines the game said "{% term id="not-now" %}not now{% /term %}" to are not errors.
 {% /aside %}
 
 A dash in a tile means no account has reported that figure yet. If the counts fail to load, they try again within a minute.
@@ -35,7 +35,7 @@ With more than one account, {% ui key="client:dashboard.top.title" /%} lists the
 
 The {% ui key="client:dashboard.roster" /%} lists every account, 20 to a page. Each row shows:
 
-- {% ui key="client:dashboard.col.account" /%}: the name and the {% term id="server" %}server{% /term %}. An event account also says **event**.
+- {% ui key="client:dashboard.col.account" /%}: the name and the {% term id="server" %}server{% /term %}. An {% term id="event-twin" %}event account{% /term %} also says **event**.
 - {% ui key="common:field.status" /%}: what the bot is doing now.
 - {% ui key="client:dashboard.col.plugins" /%}: how many {% term id="plugin" %}plugins{% /term %} are on.
 - {% ui key="client:dashboard.col.lastSeen" /%}: when the bot last reported. Hover for the exact time.
@@ -51,7 +51,7 @@ The buttons at the end of each row are {% ui key="common:action.start" /%} or {%
 - {% ui key="ui:status.banned" /%}: the game banned the account. See [banned](/troubleshooting/#banned).
 - {% ui key="ui:status.error" /%}: something went wrong. Hover over the status to read the last error.
 - {% ui key="ui:status.crash_loop" /%}: the bot failed again and again, so GGE Command stopped trying. This is a {% term id="crash-loop" %}crash loop{% /term %}.
-- **Sleeping until Tue 08:07**: the bot is started, but it waits for the next window of its schedule. The time is your own.
+- **Sleeping until Tue 08:07**: the bot is started, but it waits for the next window of its {% term id="run-schedule" %}schedule{% /term %}. The time is your own.
 - {% ui key="client:dashboard.overPlan" /%}: you have more accounts than you can run, so this one cannot start. Hover for the reason.
 
 ## Start and stop a bot {% #start-stop %}
@@ -72,9 +72,9 @@ Some events run on a temporary event server. To play one, choose **Add event twi
 
 Choose the pencil on a row, or the account's name in {% ui key="client:dashboard.top.title" /%}. A panel opens with six tabs.
 
-- {% ui key="client:drawer.overview" /%}: six tiles with what the bot last read from the game: {% ui key="client:overview.figure.cash" /%}, {% ui key="client:overview.figure.gold" /%}, {% ui key="client:overview.figure.food" /%}, {% ui key="client:overview.figure.mead" /%}, {% ui key="client:overview.figure.aquamarine" /%} and {% ui key="client:overview.figure.attackDailyCount" /%}. Food, mead and aquamarine are the Storm Islands castle's. Below the tiles, {% ui key="client:overview.errors.title" /%} lists the game's most common refusals, marked {% ui key="client:overview.errors.severe" /%}, {% ui key="client:overview.errors.notNow" /%} or {% ui key="client:overview.errors.other" /%}.
-- {% ui key="common:nav.settings" /%}: the account name, the server, the game password, the event switch and the plugin list. Leave the password empty to keep the current one. {% ui key="client:drawer.openSettings" /%} next to a plugin takes you to its module page. Choose {% ui key="client:drawer.saveChanges" /%} when you are done.
-- {% ui key="client:drawer.accountSettings" /%}: the pause between attacks, the **Daily attack limit**, which time skips the bot may use, and the **Shutoff timer**. This tab has its own save bar. The gear on the roster opens it directly.
+- {% ui key="client:drawer.overview" /%}: six tiles with what the bot last read from the game: {% ui key="client:overview.figure.cash" /%}, {% ui key="client:overview.figure.gold" /%}, {% ui key="client:overview.figure.food" /%}, {% ui key="client:overview.figure.mead" /%}, {% ui key="client:overview.figure.aquamarine" /%} and {% ui key="client:overview.figure.attackDailyCount" /%}. Food, {% term id="mead" %}mead{% /term %} and {% term id="aquamarine" %}aquamarine{% /term %} are the {% term id="storm-islands" %}Storm Islands{% /term %} castle's. Below the tiles, {% ui key="client:overview.errors.title" /%} lists the game's most common refusals, marked {% ui key="client:overview.errors.severe" /%}, {% ui key="client:overview.errors.notNow" /%} or {% ui key="client:overview.errors.other" /%}.
+- {% ui key="common:nav.settings" /%}: the account name, the server, the game password, the event switch and the plugin list. Leave the password empty to keep the current one. {% ui key="client:drawer.openSettings" /%} next to a plugin takes you to its {% term id="module" %}module{% /term %} page. Choose {% ui key="client:drawer.saveChanges" /%} when you are done.
+- {% ui key="client:drawer.accountSettings" /%}: the pause between attacks, the **Daily attack limit**, which {% term id="time-skip" %}time skips{% /term %} the bot may use, and the **Shutoff timer**. This tab has its own save bar. The gear on the roster opens it directly.
 - {% ui key="client:drawer.schedule" /%}: turn on {% ui key="client:schedule.toggle" /%} to let the bot work only inside the windows you set.
 - {% ui key="client:nav.logs" /%}: this account's log lines, live. See [the Logs page](/war-room/logs/#account-logs).
 - {% ui key="client:drawer.runHistory" /%}: the last 20 runs, with when each started, how long it ran and why it ended.
@@ -93,7 +93,7 @@ Removing an account stops its bot and deletes its settings. You cannot undo it.
 
 Press **⌘K** on a Mac, or **Ctrl+K** on other computers. You can also choose {% ui key="ui:palette.trigger" /%} in the header. On a phone, open your account menu and choose {% ui key="ui:palette.open" /%}.
 
-Type a few letters. The palette finds:
+Type a few letters. The {% term id="command-palette" %}palette{% /term %} finds:
 
 - {% ui key="ui:palette.group.pages" /%}: every page in the sidebar.
 - {% ui key="ui:palette.group.accounts" /%}: your game accounts. Choose one to open its panel.

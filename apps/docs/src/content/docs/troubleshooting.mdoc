@@ -70,15 +70,15 @@ Your plan decides how many bots you can run. See [plans](/plans/).
 
 **What you see:** the status shows **Sleeping until** and a day and time, such as **Sleeping until Tue 08:07**. In {% ui key="client:drawer.runHistory" /%}, the last run ended with {% ui key="ui:runs.reason.schedule" /%}.
 
-**Why:** the account has a schedule, and right now is outside its windows. The bot is still started. It signs in by itself when the next window opens, at the time shown in your own time zone.
+**Why:** the account has a {% term id="run-schedule" %}schedule{% /term %}, and right now is outside its windows. The bot is still started. It signs in by itself when the next window opens, at the time shown in your own time zone.
 
 **What to do:** nothing, if that is what you planned. To run now, open the account's {% ui key="client:drawer.schedule" /%} tab. Turn off {% ui key="client:schedule.toggle" /%}, or change the windows. Then choose {% ui key="client:drawer.saveChanges" /%}.
 
 ## A module shows Waiting {% #waiting %}
 
-**What you see:** on a module page, the status of a plugin shows {% ui key="client:plugins.state.waiting" /%}, with a reason. Or the [logs](/war-room/logs/#levels) show lines at the level {% ui key="ui:level.notNow" /%}.
+**What you see:** on a {% term id="module" %}module{% /term %} page, the status of a plugin shows {% ui key="client:plugins.state.waiting" /%}, with a reason. Or the [logs](/war-room/logs/#levels) show lines at the level {% ui key="ui:level.notNow" /%}.
 
-**Why:** the game said "not now", and it passes by itself. The reason tells you what the plugin waits for. For example, the event isn't running, the daily attack limit is reached, or troops have to come home first.
+**Why:** the game said "{% term id="not-now" %}not now{% /term %}", and it passes by itself. The reason tells you what the plugin waits for. For example, the event isn't running, the {% term id="daily-attack-limit" %}daily attack limit{% /term %} is reached, or troops have to come home first.
 
 **What to do:** usually nothing. The plugin carries on when the reason is gone. Two other states need you:
 

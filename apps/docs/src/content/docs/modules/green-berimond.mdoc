@@ -8,7 +8,7 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="viking-helmet" size=32 /%}Invaders at the gates? The Green Berimond module attacks the camps of the Berimond Invasion event in the Great Empire. It loads your event tools into the attacks to earn points, or reputation if you prefer.
+{% icon id="viking-helmet" size=32 /%}Invaders at the gates? The {% ui key="client:modules.green-berimond.name" /%} {% term id="module" %}module{% /term %} attacks the camps of the {% term id="berimond-invasion" %}Berimond Invasion{% /term %} event in the {% term id="great-empire" %}Great Empire{% /term %}. It loads your event {% term id="tool" %}tools{% /term %} into the attacks to earn points, or reputation if you prefer.
 
 {% terms_on_page /%}
 
@@ -16,30 +16,30 @@ Turn it on before the event, and the bot starts when the event starts.
 
 ## How it works {% #how-it-works %}
 
-1. When the event starts, the bot finds the invasion camps around your main castle in the Great Empire.
+1. When the event starts, the bot finds the invasion camps around your {% term id="main-castle" %}main castle{% /term %} in the Great Empire.
 2. **Camp side** decides which camps it keeps. The invasion has red camps and blue camps, and each side has its own rewards. **All camps** keeps both.
-3. The bot attacks the camps in turn. Before each attack, it spends time skips on the camp's wait. **Time skips the bot may use** picks which ones.
+3. The bot attacks the camps in turn. Before each attack, it spends {% term id="time-skip" %}time skips{% /term %} on the camp's wait. **Time skips the bot may use** picks which ones.
 4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card for each attack.
 5. If the castle is short of troops, the bot waits until one of its marches comes home.
 6. When the event ends, the bot stops and waits for the next one.
 
 If no camp is found, or none of the side you picked, the module stops. Pick **All camps**, or restart the bot to look again.
 
-The module is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}. It has no score limit of its own. The account's daily cap on the {% ui key="client:drawer.accountSettings" /%} tab still applies.
+The module is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}. It has no score limit of its own. The account's {% term id="daily-attack-limit" %}daily cap{% /term %} on the {% ui key="client:drawer.accountSettings" /%} tab still applies.
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+{% ui key="client:army.mode.waves" /%} sends exactly the {% term id="wave" %}waves{% /term %} you write, or a [virtual preset](/modules/virtual-presets/).
 
-{% ui key="client:army.mode.autofill" /%} fills every side and the courtyard. Autofill waits until the castle holds at least 100 troops. It never sends wolves.
+{% ui key="client:army.mode.autofill" /%} fills every side and the {% term id="courtyard" %}courtyard{% /term %}. {% term id="autofill" %}Autofill{% /term %} waits until the castle holds at least 100 troops. It never sends wolves.
 
 - The first wave carries wall, gate and shield tools. **Event tools from** sets the wave where the event tools for points start. Waves in between carry troops only.
 - **Earn reputation instead of points** picks the event tools that give the most reputation, instead of the most points.
 - **Use the weakest event tools first** spends your weakest event tools before the strong ones.
 - **Don't use event tools** sends no event tools at all.
-- **Food troops only** leaves out troops that eat mead.
+- **Food troops only** leaves out troops that eat {% term id="mead" %}mead{% /term %}.
 
-For the horse, **Use fast horse feathers** spends one feather on each attack. **Use a coin horse** needs a stable. With both off, the troops walk.
+For the horse, **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack. **Use a coin horse** needs a stable. With both off, the troops walk.
 
 ## Test with Log only {% #log-only %}
 

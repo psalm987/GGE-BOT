@@ -9,9 +9,11 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="healing-shield" size=32 /%}Never run short of troops again. The Recruit and tools {% term id="plugin" %}plugin{% /term %} keeps each castle's troops and tools at the stock you set. When a castle has fewer than your target, the bot orders more from that castle's barracks or workshop.
+{% icon id="healing-shield" size=32 /%}Never run short of troops again. The **Recruit and tools** {% term id="plugin" %}plugin{% /term %} keeps each castle's troops and {% term id="tool" %}tools{% /term %} at the stock you set. When a castle has fewer than your target, the bot orders more from that castle's barracks or workshop.
 
-It pays only with coins and resources, never with rubies. Use it to refill your armies and siege tools after attacks without opening the game.
+{% terms_on_page /%}
+
+It pays only with coins and resources, never with {% term id="ruby" %}rubies{% /term %}. Use it to refill your armies and siege tools after attacks without opening the game.
 
 ## How it works {% #how-it-works %}
 
@@ -19,7 +21,7 @@ It pays only with coins and resources, never with rubies. Use it to refill your 
 2. It counts what each castle holds: troops and tools at home, in production, in the queue, and out on marches.
 3. If a castle holds fewer than your target, the bot orders the difference. Each order holds at most the **Per order** amount.
 4. It orders only when the barracks or workshop has a free queue slot. It never unlocks a slot with rubies.
-5. Before each order, it checks your coin and resource floors. If an order would take you below a floor, it waits.
+5. Before each order, it checks your coin and {% term id="resource-floor" %}resource floors{% /term %}. If an order would take you below a floor, it waits.
 6. When the order in production finishes, the bot checks again. If nothing is in production, it checks again in about 15 minutes.
 
 ## Set your targets {% #targets %}
@@ -34,7 +36,7 @@ It pays only with coins and resources, never with rubies. Use it to refill your 
 The castle list is empty until your bot has signed in once. Start the bot, wait for it to sign in, then come back to add rows.
 
 {% aside type="caution" id="toolsmith-overlap" %}
-The [Refinery and toolsmith](/modules/refinery-toolsmith/) module does the same job for tools. Don't give both modules a target for the same tool.
+The [Refinery and toolsmith](/modules/refinery-toolsmith/) {% term id="module" %}module{% /term %} does the same job for tools. Don't give both modules a target for the same tool.
 {% /aside %}
 
 ## Keep coins and resources in reserve {% #floors %}

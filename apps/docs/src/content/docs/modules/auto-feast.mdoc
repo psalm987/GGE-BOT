@@ -10,13 +10,15 @@ sources:
 
 {% icon id="steak" size=32 /%}Too much food in the stores? The Feast {% term id="plugin" %}plugin{% /term %} starts feasts in your castles when they hold more food than you need.
 
+{% terms_on_page /%}
+
 Use it when your castles make more food than your troops eat, and you want the spare food used.
 
 ## How it works {% #how-it-works %}
 
 The bot checks your castles when it signs in, then every 8 minutes.
 
-1. It skips castles in the Storm Islands and in Berimond.
+1. It skips castles in the {% term id="storm-islands" %}Storm Islands{% /term %} and in {% term id="berimond" %}Berimond{% /term %}.
 2. It skips a castle whose food income, after what its people eat, is below **Lowest food income to feast**.
 3. It starts a feast if the castle holds at least **Food one feast uses**, and still holds more than **Food to keep in the castle** after the feast.
 4. It repeats step 3 in the same castle until the food is too low for another feast, with a short pause between feasts.

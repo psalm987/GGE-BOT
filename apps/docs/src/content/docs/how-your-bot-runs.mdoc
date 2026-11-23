@@ -10,7 +10,7 @@ Pressed Start and wondering what your bot is up to? This page follows a bot from
 ## From Start to running {% #start-to-running %}
 
 1. Add your {% term id="game-account" %}game account{% /term %} with its name, {% term id="server" %}server{% /term %} and game password.
-2. Switch on the {% term id="plugin" %}plugins{% /term %} you want, on the account or on each module page.
+2. Switch on the {% term id="plugin" %}plugins{% /term %} you want, on the account or on each {% term id="module" %}module{% /term %} page.
 3. Press {% ui key="common:action.start" /%}.
 
 The status changes to {% ui key="ui:status.starting" /%} while the bot signs in to the game. Once it is in, the status shows {% ui key="ui:status.running" /%}. Each plugin you switched on then does its job on its own, at its own pace, until the bot stops.
@@ -31,7 +31,7 @@ The status shows on the {% ui key="client:nav.overview" /%} page, on each module
 - {% ui key="ui:status.starting" /%}. The bot is signing in to the game.
 - {% ui key="ui:status.running" /%}. The bot is signed in and its plugins are working.
 - {% ui key="ui:status.stopped" /%}. The bot is off. Press {% ui key="common:action.start" /%} to begin a new run.
-- **Sleeping until** a day and time, such as **Sleeping until Tue 08:07**. The account runs on a schedule, and the bot waits for its next window. See [Run on a schedule](#schedule).
+- **Sleeping until** a day and time, such as **Sleeping until Tue 08:07**. The account runs on a {% term id="run-schedule" %}schedule{% /term %}, and the bot waits for its next window. See [Run on a schedule](#schedule).
 - {% ui key="ui:status.error" /%}. The last start or run failed, and the bot tries again by itself. See [When something fails](#retries).
 - {% ui key="ui:status.crash_loop" /%}. The bot failed too many times in a row and gave up. It waits for you.
 - {% ui key="ui:status.auth_failed" /%}. The game rejected the saved game password. The bot stops.
@@ -75,19 +75,19 @@ A new schedule starts as every day from 08:00 to 22:00. Change it before you sav
 
 ## Stop the bot after a set time {% #shutoff %}
 
-The shutoff timer stops the bot a set number of hours after it signs in. Open the account, choose the {% ui key="client:drawer.accountSettings" /%} tab, and switch on **Shutoff timer**. Type the number of hours. The bot stops when the time is up, and you get an alert. Start it again when you are ready.
+The {% term id="shutoff-timer" %}shutoff timer{% /term %} stops the bot a set number of hours after it signs in. Open the account, choose the {% ui key="client:drawer.accountSettings" /%} tab, and switch on **Shutoff timer**. Type the number of hours. The bot stops when the time is up, and you get an alert. Start it again when you are ready.
 
 ## Limits on attacks {% #attack-limits %}
 
 Two settings limit the attacks.
 
-The {% term id="attack-cap" %}attack cap{% /term %} is the most attack plugins one account can have switched on at once. It is 4, 6 or no limit, and it can differ per account. If you switch on more than the cap allows, the settings do not save. If an account already has too many, the bot does not start. See [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap) and [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins).
+The {% term id="attack-cap" %}attack cap{% /term %} is the most attack plugins one game account can have switched on at once. GGE Command sets it for your user as 4, 6 or no limit, and it applies to each of your game accounts on its own. It does not depend on your plan. If you switch on more than the cap allows, the settings do not save. If an account already has too many, the bot does not start. See [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap) and [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins).
 
-The daily attack limit is the most attacks the bot sends in a day, across every attack module of the account. Set it on the {% ui key="client:drawer.accountSettings" /%} tab, under **Attack**. When the bot reaches it, it stops attacking for the day. The game's own daily limit still applies.
+The {% term id="daily-attack-limit" %}daily attack limit{% /term %} is the most attacks the bot sends in a day, across every attack module of the account. Set it on the {% ui key="client:drawer.accountSettings" /%} tab, under **Attack**. When the bot reaches it, it stops attacking for the day. The game's own daily limit still applies.
 
 ## When the game says not now {% #not-now %}
 
-The game sometimes refuses an action because of the state of the game, not because of a problem. A cooldown is still running, a queue is full, or a castle has too few resources. These refusals pass by themselves.
+Sometimes the game says {% term id="not-now" %}not now{% /term %}. It refuses an action because of the state of the game, not because of a problem. A cooldown is still running, a queue is full, or a castle has too few resources. These refusals pass by themselves.
 
 The {% term id="log" %}logs{% /term %} mark these lines {% ui key="ui:level.notNow" /%}. They are not errors, and the Overview page does not count them as errors. The bot carries on with its other work.
 

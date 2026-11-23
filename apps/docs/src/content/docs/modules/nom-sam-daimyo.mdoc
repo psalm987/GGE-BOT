@@ -12,16 +12,16 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This module attacks Nomad camps and Samurai camps in the Great Empire while their events run. It has one tab for Nomads and one for Samurai.
+{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This {% term id="module" %}module{% /term %} attacks {% term id="nomad" %}Nomad{% /term %} camps and {% term id="samurai" %}Samurai{% /term %} camps in the {% term id="great-empire" %}Great Empire{% /term %} while their events run. It has one tab for Nomads and one for Samurai.
 
 {% terms_on_page /%}
 
-Turn on the tab of the event you play, and the bot starts when the event starts. Daimyo castles are not supported yet. {% status kind="planned" /%}
+Turn on the tab of the event you play, and the bot starts when the event starts. {% term id="daimyo" %}Daimyo{% /term %} castles are not supported yet. {% status kind="planned" /%}
 
 ## How it works {% #how-it-works %}
 
 1. The bot waits for the event. When the event starts with no difficulty set, the bot sets the one in **Event difficulty**.
-2. It finds the camps around the castle in **Castle to attack from**. Left empty, that is your main castle.
+2. It finds the camps around the castle in **Castle to attack from**. Left empty, that is your {% term id="main-castle" %}main castle{% /term %}.
 3. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and attacks the next camp, as **Camps to attack** says.
 4. It goes on until the event ends, your score reaches **Stop at this score**, or it has sent **Attacks per run**. Then the tab stops until the next event.
 
@@ -35,7 +35,7 @@ The Nomad camps and the [Khan](/modules/khan/) camps are part of the same event.
 
 **Camps to attack** has three modes:
 
-- **Cycle mode with time skips (classic)** attacks every camp near the castle in turn. It spends time skips on each camp's wait. This is what the module always did.
+- **Cycle mode with time skips (classic)** attacks every camp near the castle in turn. It spends {% term id="time-skip" %}time skips{% /term %} on each camp's wait. This is what the module always did.
 - **Cycle mode: every camp nearby, no skips** attacks every camp near the castle in turn, but only camps whose wait is over. It spends no time skips.
 - **Skip mode: one camp, uses time skips** attacks only the camp at **Camp X** and **Camp Y**, and spends time skips on its wait. Copy the coordinates from the map in the game.
 
@@ -52,7 +52,7 @@ If no camp is found near the castle, the tab stops. Restart the bot to look agai
 - **Stop at this score** stops the tab once you have that many event points. 0 means no limit.
 - **Attacks per run** stops the tab after that many attacks. The count starts again when the event or the bot restarts. 0 means no limit.
 - **Time skips a day** caps the skips, as above.
-- The account's daily cap on the {% ui key="client:drawer.accountSettings" /%} tab counts these attacks too.
+- The account's {% term id="daily-attack-limit" %}daily cap{% /term %} on the {% ui key="client:drawer.accountSettings" /%} tab counts these attacks too.
 
 ## The All events card {% #all-events %}
 
@@ -60,19 +60,19 @@ The {% ui key="client:module.global.titleEvents" /%} card shows the account's da
 
 ## Horse {% #horse %}
 
-**Horse** is **No horse** by default. **Coin horse** needs a stable. **Feather** spends one fast horse feather on each attack. **By distance** rides the coin horse to near camps and spends a feather on camps farther than **Feather beyond**. Without feathers, far camps get the coin horse.
+**Horse** is **No horse** by default. **Coin horse** needs a stable. **Feather** spends one {% term id="horse-feather" %}fast horse feather{% /term %} on each attack. **By distance** rides the {% term id="coin-horse" %}coin horse{% /term %} to near camps and spends a feather on camps farther than **Feather beyond**. Without feathers, far camps get the coin horse.
 
 The button {% ui key="client:plugins.copyToAllEvents" /%} under **Horse** copies the choice into both tabs. Save to keep the copy.
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.autofill" /%} fills each attack from the castle. {% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+{% ui key="client:army.mode.autofill" /%} fills each attack from the castle. {% ui key="client:army.mode.waves" /%} sends exactly the {% term id="wave" %}waves{% /term %} you write, or a [virtual preset](/modules/virtual-presets/).
 
-With Autofill:
+With {% term id="autofill" %}Autofill{% /term %}:
 
-- **Tools** decides what goes with the troops. **Wave 1 tools only** sends wall, gate and shield tools in the first wave, the event's own kinds first. **Wave 1 tools and event boosters** also puts event boosters in the later waves, which raise the points of an attack. **No tools** sends troops only.
+- **Tools** decides what goes with the troops. **Wave 1 tools only** sends wall, gate and shield {% term id="tool" %}tools{% /term %} in the first wave, the event's own kinds first. **Wave 1 tools and event boosters** also puts event boosters in the later waves, which raise the points of an attack. **No tools** sends troops only.
 - **Waves** is **All waves** by default, as many as your level and commander allow.
-- All four sides are on by default. Untick a side to leave it empty. If left, middle and right are all off, the bot fills every side and the courtyard.
+- All four sides are on by default. Untick a side to leave it empty. If left, middle and right are all off, the bot fills every side and the {% term id="courtyard" %}courtyard{% /term %}.
 - **Minimum troops** makes the bot wait until the castle holds that many attack troops. It never attacks with fewer than 100.
 - **Use the weakest event tools first** spends your weakest event tools before the strong ones.
 - The Nomads tab also has **Wall tools before event tools** and **Use food troops**.

@@ -10,11 +10,11 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="stone-tower" size=32 /%}Barons to farm? The Towers module attacks Robber Baron towers in the Great Empire, Burning Sands, Everwinter Glacier and Fire Peaks. Each kingdom has its own switch and its own settings.
+{% icon id="stone-tower" size=32 /%}{% term id="robber-baron" %}Barons{% /term %} to farm? The Towers {% term id="module" %}module{% /term %} attacks Robber Baron towers in the {% term id="great-empire" %}Great Empire{% /term %}, Burning Sands, Everwinter Glacier and Fire Peaks. Each {% term id="kingdom" %}kingdom{% /term %} has its own switch and its own settings.
 
 {% terms_on_page /%}
 
-Use it to farm towers for loot all day, or to level towers up with time skips.
+Use it to farm towers for loot all day, or to level towers up with {% term id="time-skip" %}time skips{% /term %}.
 
 {% screenshot id="towers" alt="The Towers page: the Status card with the attack plugin count, the All kingdoms card with the account daily cap and three settings marked Coming soon, and the Commanders card with numbered commander tiles." /%}
 
@@ -30,7 +30,7 @@ If the account has no castle in a kingdom, its panel shows a message instead of 
 
 For each kingdom that is on, the bot does this:
 
-1. It picks the castle the attacks leave from. That is **Castle to attack from**, or the kingdom's main castle when you leave it empty. If the castle you picked is gone, the bot uses the main castle and the status tells you.
+1. It picks the castle the attacks leave from. That is **Castle to attack from**, or the kingdom's {% term id="main-castle" %}main castle{% /term %} when you leave it empty. If the castle you picked is gone, the bot uses the main castle and the status tells you.
 2. It reads the map around that castle, out to **Search radius**. It keeps the towers that pass **Tower filter**, nearest first. It reads the map again every 30 to 40 minutes, so new towers come in.
 3. It takes the next free {% term id="commander-game" %}commander{% /term %} from the list on the {% ui key="client:plugins.commanderPicker.title" /%} card.
 4. It attacks the nearest tower whose wait is over and that none of your armies is already marching to.
@@ -46,7 +46,7 @@ Four limits can stop a kingdom for a while. The one that lasts longest is the on
 - **Most attacks a day** is the most attacks this kingdom sends in any 24 hours. 0 leaves only the account's cap.
 - **Attacks an hour** is the most attacks this kingdom sends in an hour. 0 sets no limit.
 - Every attack module of the account shares a limit of 600 attacks an hour.
-- The account's daily cap counts the attacks of every attack module. You set it on the {% ui key="client:drawer.accountSettings" /%} tab of the account.
+- The account's {% term id="daily-attack-limit" %}daily cap{% /term %} counts the attacks of every attack module. You set it on the {% ui key="client:drawer.accountSettings" /%} tab of the account.
 
 The kingdom limits remember the last 24 hours. Stopping and starting the bot does not reset them.
 
@@ -58,7 +58,7 @@ The card also lists settings that are still to come: **Loot priority**, **Stop a
 
 ## Horse, skips and troops {% #horse-skips-troops %}
 
-**Horse** decides how the troops travel. **No horse** walks. **Coin horse** needs a stable. **Feather** spends one fast horse feather on each attack. **By distance** rides the coin horse to near towers and spends a feather on towers farther than **Feather beyond**. When you run out of feathers, far towers get the coin horse until you have feathers again. The button {% ui key="client:plugins.copyToAll" /%} under the setting copies it into every kingdom. Save to keep the copy.
+**Horse** decides how the troops travel. **No horse** walks. **Coin horse** needs a stable. **Feather** spends one {% term id="horse-feather" %}fast horse feather{% /term %} on each attack. **By distance** rides the {% term id="coin-horse" %}coin horse{% /term %} to near towers and spends a feather on towers farther than **Feather beyond**. When you run out of feathers, far towers get the coin horse until you have feathers again. The button {% ui key="client:plugins.copyToAll" /%} under the setting copies it into every kingdom. Save to keep the copy.
 
 **Use time skips** skips the wait before a tower can be attacked again. **Use time skips on castles that can still level up** does the same only for towers below their top level, even when **Use time skips** is off. **Time skips the bot may use** picks which skips the module spends.
 
@@ -66,18 +66,18 @@ If the castle holds fewer attack troops than **Minimum troops**, the bot waits u
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.autofill" /%} lets the bot fill each attack from the castle's troops and tools, using the settings below it. {% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+{% ui key="client:army.mode.autofill" /%} lets the bot fill each attack from the castle's troops and {% term id="tool" %}tools{% /term %}, using the settings below it. {% ui key="client:army.mode.waves" /%} sends exactly the {% term id="wave" %}waves{% /term %} you write, or a [virtual preset](/modules/virtual-presets/).
 
-With Autofill:
+With {% term id="autofill" %}Autofill{% /term %}:
 
 - **Tools** sets the tools of the first wave. **Ladders only** sends wall tools. **Ladders, rams and mantlets** also sends gate tools on the front and shields beside them.
 - **Waves** is 2 waves in the Great Empire and **All waves** in the other kingdoms. **All waves** sends as many as your level allows.
-- Leave **Attack left flank**, **Attack middle** and **Attack right flank** all off, and the bot attacks all three sides and the courtyard.
-- **Send wolves only** sends wolves and keeps other troops home. **Food troops only** leaves out troops that eat mead.
+- Leave **Attack left flank**, **Attack middle** and **Attack right flank** all off, and the bot attacks all three sides and the {% term id="courtyard" %}courtyard{% /term %}.
+- **Send wolves only** sends wolves and keeps other troops home. **Food troops only** leaves out troops that eat {% term id="mead" %}mead{% /term %}.
 
 ## Buy tools from the armourer {% #auto-buy %}
 
-Turn on **Auto-buy from the armourer** and the bot keeps the source castle stocked with the tools that **Tools** sends. When the castle holds fewer than **Minimum tools** of a tool, the bot buys the difference with coins. It checks about every 5 minutes.
+Turn on **Auto-buy from the armourer** and the bot keeps the {% term id="source-castle" %}source castle{% /term %} stocked with the tools that **Tools** sends. When the castle holds fewer than **Minimum tools** of a tool, the bot buys the difference with coins. It checks about every 5 minutes.
 
 **Most coins spent on them in one check** caps one check. The bot never buys if it would leave you with fewer coins than **Coins to keep**.
 

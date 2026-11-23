@@ -10,7 +10,7 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="locked-fortress" size=32 /%}Fortresses on the map? The Fortress module attacks the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks. Each kingdom has its own tab, its own switch and its own settings.
+{% icon id="locked-fortress" size=32 /%}{% term id="fortress" %}Fortresses{% /term %} on the map? The Fortress {% term id="module" %}module{% /term %} attacks the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks. Each {% term id="kingdom" %}kingdom{% /term %} has its own tab, its own switch and its own settings.
 
 {% terms_on_page /%}
 
@@ -27,23 +27,23 @@ Each kingdom that is on runs on its own:
 5. When every fortress is waiting, the bot waits until the next one is ready, and then goes on.
 6. If the castle is short of troops, the bot waits until one of its marches comes home.
 
-Each kingdom is its own {% term id="plugin" %}plugin{% /term %}. Each kingdom that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}, and its attacks count toward the account's daily cap.
+Each kingdom is its own {% term id="plugin" %}plugin{% /term %}. Each kingdom that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}, and its attacks count toward the account's {% term id="daily-attack-limit" %}daily cap{% /term %}.
 
 ## Army: Autofill or Waves {% #army %}
 
-{% ui key="client:army.mode.autofill" /%} fills each attack from the castle's troops. It puts troops on the left flank of each wave and in the courtyard. It fills up to 3 waves in Burning Sands and Everwinter Glacier, and up to 5 waves in Fire Peaks.
+{% ui key="client:army.mode.autofill" /%} fills each attack from the castle's troops. It puts troops on the left {% term id="flank" %}flank{% /term %} of each {% term id="wave" %}wave{% /term %} and in the {% term id="courtyard" %}courtyard{% /term %}. It fills up to 3 waves in Burning Sands and Everwinter Glacier, and up to 5 waves in Fire Peaks.
 
-Autofill needs at least 100 troops for the waves and 500 more for the courtyard before it attacks. If your commander brings support troops of its own, the bot leaves the courtyard empty and needs only the 100. In Fire Peaks, Autofill leaves wolves at home, unless the commander brings support troops.
+{% term id="autofill" %}Autofill{% /term %} needs at least 100 troops for the waves and 500 more for the courtyard before it attacks. If your commander brings support troops of its own, the bot leaves the courtyard empty and needs only the 100. In Fire Peaks, Autofill leaves wolves at home, unless the commander brings support troops.
 
-{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/). Autofill sends no tools, so use Waves if you want tools in your fortress attacks.
+{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/). Autofill sends no {% term id="tool" %}tools{% /term %}, so use Waves if you want tools in your fortress attacks.
 
 {% screenshot id="army-editor" alt="The army setting of the Fortress page set to Waves: the Written here and Virtual preset switch, a note on how waves repeat, and wave 1 open with tool and troop slots for the left flank, the front and the right flank." /%}
 
 ## Horse and troop order {% #horse-and-order %}
 
-**Horse** is **Feather** by default. A feather is spent only while you have one. **Coin horse** needs a stable, and **No horse** walks.
+**Horse** is **Feather** by default. A {% term id="horse-feather" %}feather{% /term %} is spent only while you have one. **Coin horse** needs a stable, and **No horse** walks.
 
-**Unit order** is **Fastest first** by default, so the quickest troops go first and the marches are short. **Troop supply** limits Autofill to troops that eat food, or troops that eat mead.
+**Unit order** is **Fastest first** by default, so the quickest troops go first and the marches are short. **Troop supply** limits Autofill to troops that eat food, or troops that eat {% term id="mead" %}mead{% /term %}.
 
 ## Settings {% #settings %}
 

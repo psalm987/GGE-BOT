@@ -9,7 +9,9 @@ sources:
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="anvil" size=32 /%}Running low on ladders? The Armourer module buys siege tools from the armourer with coins. It tops up each castle you list whenever it holds fewer tools than the minimum you set.
+{% icon id="anvil" size=32 /%}Running low on ladders? The Armourer {% term id="module" %}module{% /term %} buys {% term id="tool" %}siege tools{% /term %} from the armourer with coins. It tops up each castle you list whenever it holds fewer tools than the minimum you set.
+
+{% terms_on_page /%}
 
 Use it so your attack modules never stop for lack of tools. It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
 
@@ -25,7 +27,7 @@ A row with a minimum of 0 buys nothing.
 
 ## A castle that isn't the main one {% #other-castles %}
 
-The game delivers a purchase to the kingdom, not to the castle you chose. For a castle that is not the kingdom's main castle, the bot checks that the tools showed up there. If they did not, it stops buying for that row, and the status says so. The tools may be in another castle of that kingdom.
+The game delivers a purchase to the {% term id="kingdom" %}kingdom{% /term %}, not to the castle you chose. For a castle that is not the kingdom's {% term id="main-castle" %}main castle{% /term %}, the bot checks that the tools showed up there. If they did not, it stops buying for that row, and the status says so. The tools may be in another castle of that kingdom.
 
 ## Spend coins above a limit {% #overflow %}
 

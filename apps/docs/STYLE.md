@@ -49,7 +49,7 @@ Plain first, with a light gamer flavour in two places only: the opening line of 
 
 - Every claim about what the bot does must match the code in `packages/bot-core/plugins/` and the option text in `packages/bot-core/locales/en`. Don't describe a setting the plugin doesn't have.
 - Unfinished parts get `{% status kind="beta" /%}`. Modules marked Soon in the app get no page.
-- Anything about plans or prices goes inside `{% plan_gate %}`. Until billing is live, each account runs one bot.
+- Anything about plans or prices goes inside `{% plan_gate %}`. Until billing is live, each GGE Command account runs one bot: its oldest game account runs, the others show **Over plan limit**, and event twins don't count.
 - How the bot avoids detection stays out of the docs.
 
 ## Pictures

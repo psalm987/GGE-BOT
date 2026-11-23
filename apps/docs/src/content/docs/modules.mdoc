@@ -9,13 +9,13 @@ sources:
   - packages/bot-core/army.js
 ---
 
-Welcome to the war table. A module is one page in the sidebar of GGE Command. Each module edits one or more {% term id="plugin" %}plugins{% /term %}, the jobs your bot does. Pick a module, pick the account at the top, change its settings and save.
+Welcome to the war table. A {% term id="module" %}module{% /term %} is one page in the sidebar of GGE Command. Each module edits one or more {% term id="plugin" %}plugins{% /term %}, the jobs your bot does. Pick a module, pick the account at the top, change its settings and save.
 
 {% terms_on_page /%}
 
 {% screenshot id="sidebar" alt="The sidebar of GGE Command with the Attacks and gear group open. Each module is one page, and a Soon tag marks a module that is not built yet." /%}
 
-A module with several plugins shows them as tabs, as a panel for each kingdom, or one below the other. Each plugin keeps its own switch on the {% ui key="client:module.status" /%} card or in its panel.
+A module with several plugins shows them as tabs, as a panel for each {% term id="kingdom" %}kingdom{% /term %}, or one below the other. Each plugin keeps its own switch on the {% ui key="client:module.status" /%} card or in its panel.
 
 ## Account manager {% #account-manager %}
 
@@ -24,14 +24,14 @@ A module with several plugins shows them as tabs, as a panel for each kingdom, o
 
 ## Attacks and gear {% #attacks-and-gear %}
 
-- [Towers](/modules/towers/) attacks Robber Baron towers in all four kingdoms, each kingdom with its own switch.
-- [Fortress](/modules/fortress/) attacks the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks.
-- [Nomads, Samurai and Daimyo](/modules/nom-sam-daimyo/) attacks Nomad and Samurai camps during their events.
-- [Storms](/modules/storms/) attacks the Storm Islands fortresses and sends mead to your Storm Islands castle.
-- [Khan](/modules/khan/) attacks {% term id="khan-camp" %}Khan camps{% /term %} during the Khan event, taunts the Khan and can refill your defence.
-- [Green Berimond](/modules/green-berimond/) attacks the camps of the Berimond Invasion event with event tools.
-- [Invasion events](/modules/invasion-events/) attacks Foreign Lords and Bloodcrow camps for glory.
-- [Virtual presets](/modules/virtual-presets/) saves attack waves under a name, so any attack module can send them.
+- [Towers](/modules/towers/) attacks {% term id="robber-baron" %}Robber Baron{% /term %} towers in all four kingdoms, each kingdom with its own switch.
+- [Fortress](/modules/fortress/) attacks the {% term id="fortress" %}fortresses{% /term %} in Burning Sands, Everwinter Glacier and Fire Peaks.
+- [Nomads, Samurai and Daimyo](/modules/nom-sam-daimyo/) attacks {% term id="nomad" %}Nomad{% /term %} and {% term id="samurai" %}Samurai{% /term %} camps during their events.
+- [Storms](/modules/storms/) attacks the {% term id="storm-islands" %}Storm Islands{% /term %} fortresses and sends {% term id="mead" %}mead{% /term %} to your Storm Islands castle.
+- [Khan](/modules/khan/) attacks {% term id="khan-camp" %}Khan camps{% /term %} during the Khan event, {% term id="taunt" %}taunts{% /term %} the Khan and can refill your defence.
+- [Green Berimond](/modules/green-berimond/) attacks the camps of the {% term id="berimond-invasion" %}Berimond Invasion{% /term %} event with event {% term id="tool" %}tools{% /term %}.
+- [Invasion events](/modules/invasion-events/) attacks {% term id="foreign-lord" %}Foreign Lords{% /term %} and {% term id="bloodcrow" %}Bloodcrow{% /term %} camps for {% term id="glory" %}glory{% /term %}.
+- [Virtual presets](/modules/virtual-presets/) saves attack {% term id="wave" %}waves{% /term %} under a name, so any attack module can send them.
 - [Armourer](/modules/armourer/) buys siege tools with coins when a castle runs low.
 
 ## Utilities {% #utilities %}
@@ -49,11 +49,11 @@ A module with several plugins shows them as tabs, as a panel for each kingdom, o
 ## Discord {% #discord %}
 
 - [Discord attack alerts](/modules/discord-attacks/) posts attacks on you, and your own attacks, to Discord channels.
-- [Discord event alerts](/modules/discord-events/) keeps one Discord message up to date each for the fortresses, the Aquamarine Islands and the Aquamarine Towers.
+- [Discord event alerts](/modules/discord-events/) keeps one Discord message up to date each for the fortresses, the {% term id="aquamarine" %}Aquamarine{% /term %} Islands and the Aquamarine Towers.
 
 ## Account settings are not a module {% #account-settings %}
 
-The pause between attacks, the daily attack limit, the time skips the bot may spend and the shutoff timer belong to the account, not to a module. Edit them on the {% ui key="client:drawer.accountSettings" /%} tab of the account. See [Open an account](/war-room/dashboard/#account-drawer).
+The pause between attacks, the {% term id="daily-attack-limit" %}daily attack limit{% /term %}, the {% term id="time-skip" %}time skips{% /term %} the bot may spend and the {% term id="shutoff-timer" %}shutoff timer{% /term %} belong to the account, not to a module. Edit them on the {% ui key="client:drawer.accountSettings" /%} tab of the account. See [Open an account](/war-room/dashboard/#account-drawer).
 
 ## The attack cap {% #attack-cap %}
 
@@ -63,9 +63,9 @@ The cap counts plugins, not modules. Several modules share it because many modul
 
 - Towers has one attack plugin for each kingdom, so up to 4.
 - Fortress has one for each kingdom, so up to 3.
-- Nomads, Samurai and Daimyo has 2, and Invasion events has 2.
-- Storms, Khan and Green Berimond have 1 each. The **Mead replace** tab of Storms does not count.
-- Armourer, Virtual presets and the modules outside Attacks and gear do not count.
+- Nomads, Samurai and {% term id="daimyo" %}Daimyo{% /term %} has 2, and Invasion events has 2.
+- Storms, Khan and {% ui key="client:modules.green-berimond.name" /%} have 1 each. The **Mead replace** tab of Storms does not count.
+- Armourer, {% term id="virtual-preset" %}Virtual presets{% /term %} and the modules outside Attacks and gear do not count.
 
 So with a cap of 4, all four Towers kingdoms leave room for nothing else. The {% ui key="client:module.status" /%} card of each attack module shows how many attack plugins are on and your cap. When you reach the cap, the other switches lock and show {% ui key="client:plugins.attackLimitReached" /%}.
 
@@ -75,20 +75,20 @@ If you save more attack plugins than the cap allows, the save fails. If an accou
 
 ### Source castle {% #source-castle %}
 
-The source castle is the castle an attack leaves from. On Towers and on Nomads, Samurai and Daimyo, you pick it in **Castle to attack from**. Left empty, the bot uses the main castle there. If the castle you picked is gone, the bot falls back to the main castle and the status tells you.
+The {% term id="source-castle" %}source castle{% /term %} is the castle an attack leaves from. On Towers and on Nomads, Samurai and Daimyo, you pick it in **Castle to attack from**. Left empty, the bot uses the {% term id="main-castle" %}main castle{% /term %} there. If the castle you picked is gone, the bot falls back to the main castle and the status tells you.
 
-Other modules leave from a fixed castle. Fortress uses your castle in each kingdom, and Storms uses your Storm Islands castle. Khan, Green Berimond and Invasion events use your main castle in the Great Empire.
+Other modules leave from a fixed castle. Fortress uses your castle in each kingdom, and Storms uses your Storm Islands castle. Khan, {% ui key="client:modules.green-berimond.name" /%} and Invasion events use your main castle in the {% term id="great-empire" %}Great Empire{% /term %}.
 
 ### Commanders {% #commanders %}
 
 Every attack module has one {% ui key="client:plugins.commanderPicker.title" /%} card. It holds one list for every attack on the page.
 
-- Click the tiles in the order the bot should send each {% term id="commander-game" %}commander{% /term %}. Click a picked tile again to take it out.
+- Choose the tiles in the order the bot should send each {% term id="commander-game" %}commander{% /term %}. Choose a picked tile again to take it out.
 - {% ui key="client:plugins.commanderPicker.all" /%} picks every commander, and {% ui key="client:plugins.commanderPicker.clear" /%} picks none. With none picked, the bot sends any of your commanders, in the order that suits each attack.
 - Dimmed numbers are commanders you don't have yet. The bot skips them until you do.
 - The bot uses each commander for one attack at a time. While a commander marches, the next free one in your list goes.
 
-The picker also has a VIP tile and a {% ui key="client:plugins.commanderPicker.vipCap" /%}, the most VIP commanders the bot may use each day. It never goes beyond the free daily allowance of your VIP level. The bot saves the cap now but does not use VIP commanders yet. {% status kind="planned" /%}
+The picker also has a {% term id="vip" %}VIP{% /term %} tile and a {% ui key="client:plugins.commanderPicker.vipCap" /%}, the most VIP commanders the bot may use each day. It never goes beyond the free daily allowance of your VIP level. The bot saves the cap now but does not use VIP commanders yet. {% status kind="planned" /%}
 
 ### Army: Autofill or Waves {% #army %}
 
@@ -97,7 +97,7 @@ Every attack module has an **Army** setting with two choices.
 - {% ui key="client:army.mode.autofill" /%} lets the bot fill each attack from the castle's troops and tools. The settings below it, such as sides, waves, tools and **Unit order**, steer how it fills.
 - {% ui key="client:army.mode.waves" /%} sends exactly the waves you write. Write them on the page, or pick a [virtual preset](/modules/virtual-presets/) to reuse the same waves on several pages.
 
-A plan in Waves is never swapped for Autofill behind your back. If the waves can't be sent as written, the module stops and the status says why.
+A plan in Waves is never swapped for {% term id="autofill" %}Autofill{% /term %} behind your back. If the waves can't be sent as written, the module stops and the status says why.
 
 ### Tools {% #tools %}
 
@@ -105,11 +105,11 @@ Most attack modules put siege tools in the first wave, and event tools in later 
 
 ### Log only {% #log-only %}
 
-Khan, Storms, Green Berimond, Invasion events and Nomads, Samurai and Daimyo have a **Log only** setting. With it on, the bot builds each attack and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. Towers and Fortress don't have it. See [Test with Log only first](/playing-it-safe/#log-only).
+Khan, Storms, {% ui key="client:modules.green-berimond.name" /%}, Invasion events and Nomads, Samurai and Daimyo have a {% term id="log-only" %}**Log only**{% /term %} setting. With it on, the bot builds each attack and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. Towers and Fortress don't have it. See [Test with Log only first](/playing-it-safe/#log-only).
 
 ### Distances in clicks {% #clicks %}
 
-GGE Command measures map distances in clicks, one square of the map. **Search radius** on Towers is how far from the source castle the bot looks for targets. With **Horse** set to **By distance**, targets farther than **Feather beyond** get a fast horse feather and nearer ones get the coin horse.
+GGE Command measures map distances in {% term id="click" %}clicks{% /term %}, one square of the map. **Search radius** on Towers is how far from the source castle the bot looks for targets. With **Horse** set to **By distance**, targets farther than **Feather beyond** get a {% term id="horse-feather" %}fast horse feather{% /term %} and nearer ones get the {% term id="coin-horse" %}coin horse{% /term %}.
 
 ### Daily caps and other limits {% #limits %}
 
