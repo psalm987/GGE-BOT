@@ -74,7 +74,7 @@ events.on("incoming:new", async (/** @type {import("../incoming.js").IncomingAtt
         console.warn(e)
     }
 
-    const channel = attack.kingdom != 4 ? channelAlert : channelAquaAlert
+    const channel = attack.kingdom == KingdomID.stormIslands && pluginOptions.stormChannelID ? channelAquaAlert : channelAlert
     
     if (channel == undefined)
         return

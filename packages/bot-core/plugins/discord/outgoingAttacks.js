@@ -29,11 +29,9 @@ const posted = new Set()
 movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
     if (![0, 25, 31, 24, 29].includes(movement.type))
         return
-    if (movement.sourceOwner.ownerID < 0)
+    if (movement.owner.ownerID != playerInfo.playerID)
         return
     if (movement.targetOwner.ownerID < 0)
-        return
-    if (movement.sourceOwner.allianceID != playerInfo.alliance.id)
         return
     if (movement.targetOwner.allianceID == playerInfo.alliance.id)
         return
@@ -65,10 +63,9 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
 
     const data = {}
     data.content = "```ansi\n" +
-        `${movement.targetOwner.name} (${movement.targetAttack.extraData[7]})` +
-        `${i18n.__("incomingFrom")}${movement.targetOwner.allianceName}` +
-        `${i18n.__("incomingIsAttacking")}${movement.sourceOwner.name}` +
-        ` (${movement.sourceAttack.extraData[7]})${i18n.__("incomingIn")}` +
+        `${movement.sourceOwner.name} (${movement.sourceAttack.extraData[7]})` +
+        `${i18n.__("incomingIsAttacking")}${movement.targetOwner.name} (${movement.targetAttack.extraData[7]})` +
+        `${i18n.__("incomingFrom")}${movement.targetOwner.allianceName}${i18n.__("incomingIn")}` +
         `${kingdomName[movement.kingdomID]} ${clicks}${i18n.__("incomingClicks")}` +
         "```" +
         `<t:${Math.round(arrivesAt / 1000)}:R>`
