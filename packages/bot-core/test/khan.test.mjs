@@ -375,6 +375,25 @@ describe("Khan taunts and the battle report", () => {
     })
 })
 
+describe("the castle Khan attacks leave from", () => {
+    afterEach(() => vi.restoreAllMocks())
+    const outpost = () => ({ id: 55, kingdomID: 0, areaInfo: { type: 4, x: 200, y: 210, extraData: Object.assign([], { 7: "Watch" }) }, unlockedHorses: [1, 2], unitInventory: inventory() })
+
+    test("a picked outpost sends the hits, and the defence kept is still the main castle's, where the Khan's attacks land", async () => {
+        const { cra, frames } = await khan({ sourceCastle: { kingdom: 0, id: 55 }, keepDefence: true }, { castles: [outpost()] })
+        expect([cra.SX, cra.SY]).toEqual([200, 210])
+        expect(frames.filter(([command]) => command == "dfc")).toEqual([["dfc", { CX: 100, CY: 100, AID: 1, KID: -1 }]])
+    })
+
+    test("a picked castle the account no longer holds falls back to the main castle, logs it and says so", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { cra, statuses } = await khan({ sourceCastle: { kingdom: 0, id: 55 } })
+        expect([cra.SX, cra.SY]).toEqual([100, 100])
+        expect(warn).toHaveBeenCalledWith("campSourceCastleGone", "100:100")
+        expect(statuses).toContainEqual(expect.objectContaining({ state: "running", reasonKey: "statusCampCastleFallback", params: { castle: "100:100" } }))
+    })
+})
+
 describe("Khan defence keeper option", () => {
     test("it sits right after the defence stock label and is off by default", () => {
         const keys = options.map(option => option.key)

@@ -28,13 +28,14 @@ function commanderPool(bot, movementEvents, count, effects) {
  * Runs a shared attack builder through its first attack against a stand-in game and returns the `cra` it built, or
  * undefined when it sent none. The real attack engine builds the frame; the map, the queue and the send are stood in.
  * `start` gets the loaded builder and starts it. `presets` is the game's `gas` reply. `movements` are the marches on the map, and a skip's reply lands once
- * `skipLands` resolves. With `commanders` set, the real commander pool hands out that many commanders; without it, one
+ * `skipLands` resolves. `castles` are the player's castles beside the kingdom's main one (id 1 at 100:100), and `scans` in
+ * the result holds the tile each map scan centred on. With `commanders` set, the real commander pool hands out that many commanders; without it, one
  * stand-in commander (lord id 9) goes out once.
  */
 async function firstCra(relPath, start, {
     kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
     movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {}, commanders,
-    presets = { S: [] },
+    presets = { S: [] }, castles = [],
 }) {
     const bot = fakeBot()
     // The game lists the player's in-game presets (`gas`) as `presets`.
@@ -49,7 +50,7 @@ async function firstCra(relPath, start, {
     const allResources = { pegasusTicket: 5, coins: 0, ...resources }
     const castle = { id: 1, kingdomID, areaInfo: { type: kingdomID == 0 ? MAIN : OUTPOST, x: 100, y: 100 }, unlockedHorses: [1, 2], unitInventory: inventory }
     const protocols = {
-        castles: [castle], movements, movementEvents, resources: allResources, ClassTypes: {},
+        castles: [castle, ...castles], movements, movementEvents, resources: allResources, ClassTypes: {},
         AreaType: { barron: BARON, fortress: FORTRESS, mainCastle: MAIN, externalKingdom: OUTPOST },
         KingdomID: { greatEmpire: 0, burningSands: 1, everWinterGlacier: 2, firePeaks: 3, 0: "greatEmpire", 1: "burningSands", 2: "everWinterGlacier", 3: "firePeaks" },
         ClientCommands: {
@@ -58,6 +59,7 @@ async function firstCra(relPath, start, {
         },
     }
     const skipped = []
+    const scans = []
     const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols } }).mod
     const sent = []
     const statuses = []
@@ -80,14 +82,14 @@ async function firstCra(relPath, start, {
                 waitForCommanderAvailable: () => handedOut++ ? new Promise(() => {}) : Promise.resolve({ lordID: 9, getEffects: () => effects }),
                 freeCommander() {}, useCommander() {},
             },
-            "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async () => [area], wholeMapRects: () => [], areasAround: async () => [area] },
+            "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]), wholeMapRects: () => [], areasAround: async () => [area] },
         },
     })
     const stopped = []
     Promise.resolve(start(mod)).catch(error => stopped.push(error))
     for (let i = 0; i < 50 && sent.length == 0 && stopped.length == 0; i++)
         await new Promise(resolve => setTimeout(resolve, 1))
-    return { cra: sent[0], skipped, statuses, stopped, castle }
+    return { cra: sent[0], skipped, statuses, stopped, castle, scans }
 }
 
 const barons = (options, game) => firstCra("plugins/attack/sharedBarronAttackLogic.js",

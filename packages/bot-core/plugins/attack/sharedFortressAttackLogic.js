@@ -13,6 +13,7 @@ const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
 const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 
 const err = require('../../err.json')
 
@@ -31,7 +32,13 @@ async function fortressHit(kingdomID, level, options, filename) {
 
     const areas = []
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.externalKingdom)
+    const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.externalKingdom])
+    const castle = source.castle
+    if (source.fellBack) {
+        const from = castleName(castle)
+        console.warn("towersSourceCastleGone", from)
+        report("running", "statusTowersCastleFallback", { castle: from })
+    }
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList,
             undefined,

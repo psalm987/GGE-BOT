@@ -36,6 +36,9 @@ function pickSourceCastle(castles, kingdomID, ref, mainTypes) {
     return { castle: picked ?? own.find(castle => mainTypes.includes(castle.areaInfo.type)), fellBack: Boolean(ref) && !picked }
 }
 
+/** A castle as the log and the status name it: its name in the game, else its position. */
+const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
+
 /**
  * Amounts counted over the last `span` milliseconds: attacks sent, or tools put into them. A plugin asks how much the
  * window holds and when it will have room again.
@@ -89,4 +92,4 @@ function horseByDistance(distance, threshold, feathers) {
 }
 
 module.exports = {
-    RollingWindow, DAY, HOUR, GAME_DAILY_ATTACKS, toolsIn, horseByDistance, TOP_LEVELS, BASE_LEVELS, TOWER_FILTERS, towerLevel, matchesFilter, tilesApart, marchDistance, pickSourceCastle }
+    RollingWindow, DAY, HOUR, GAME_DAILY_ATTACKS, toolsIn, horseByDistance, TOP_LEVELS, BASE_LEVELS, TOWER_FILTERS, towerLevel, matchesFilter, tilesApart, marchDistance, pickSourceCastle, castleName }

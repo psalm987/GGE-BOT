@@ -2,6 +2,7 @@ if (require('node:worker_threads').isMainThread)
     return module.exports = {
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 3, default: null },
             ...require("../../commanderOptions.js").commanderOptions(),
             ...require("../../army.js").fortressOptions(5)
         ]

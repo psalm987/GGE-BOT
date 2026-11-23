@@ -90,7 +90,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
-const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
+const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, castleName, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
 
 const { boxMullerRandom, sleep } = require("../../pacing.js")
 const { topUp } = require("../../armourer.js")
@@ -117,8 +117,6 @@ const DAILY_LIMIT_RECHECK_MS = 30 * 60_000
 const STATUS_STEPS = { attacks: 10 }
 /** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
 const TROOPS_RECHECK_MS = 10 * 60_000
-
-const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
 
 /** `filename` is the plugin's file, which its status goes by. */
 async function barronHit(type, kingdomID, stored, maxLevel, filename) {

@@ -28,6 +28,7 @@ if (require('node:worker_threads').isMainThread)
             ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 0, default: null },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
@@ -64,6 +65,7 @@ const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
 const { areasAround } = require("../../mapScan.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require('../../ggeBot.js')
 
 
@@ -132,7 +134,10 @@ events.on("eventStart", async eventInfo => {
     if (!army || !await presetsListed(army, reportStatus))
         return
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    const source = pickSourceCastle(castles, kingdomID, pluginOptions.sourceCastle, [AreaType.mainCastle])
+    const castle = source.castle
+    if (source.fellBack)
+        console.warn("campSourceCastleGone", castleName(castle))
 
     const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
         .filter(ai => campOwner === undefined || ai.extraData[4] == campOwner)
@@ -142,7 +147,10 @@ events.on("eventStart", async eventInfo => {
     }
 
     quit = false
-    reportStatus("running")
+    if (source.fellBack)
+        reportStatus("running", "statusCampCastleFallback", { castle: castleName(castle) })
+    else
+        reportStatus("running")
 
     while (!quit) {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)

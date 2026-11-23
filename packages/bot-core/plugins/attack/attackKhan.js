@@ -21,6 +21,7 @@ if (require('node:worker_threads').isMainThread)
                 ],
                 default: "4"
             },
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 0, default: null },
             ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
@@ -78,6 +79,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { keepDefence } = require("../../khanDefence.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
@@ -280,17 +282,23 @@ events.on("eventStart", async ({ EID, EDID }) => {
     if ([-1, 0].includes(EDID))
         classic = true
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    // The Khan's attacks land on the main castle, so its defence is kept there wherever the hits leave from.
+    const main = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    const source = pickSourceCastle(castles, kingdomID, pluginOptions.sourceCastle, [AreaType.mainCastle])
+    const castle = source.castle
+    const fallback = source.fellBack ? ["statusCampCastleFallback", { castle: castleName(castle) }] : []
+    if (source.fellBack)
+        console.warn("campSourceCastleGone", castleName(castle))
 
     const army = readArmy(pluginOptions, reportStatus)
     if (!army || !await presetsListed(army, reportStatus))
         return
 
     quit = false
-    reportStatus("running")
+    reportStatus("running", ...fallback)
     if (khan.keepDefence) {
         defence ??= keepDefence({
-            castle, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun,
+            castle: main, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun,
             onChecked: ({ missing }) => {
                 defenceShort = missing > 0
                 tryTaunt()
@@ -309,7 +317,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
             await new Promise(resolve => setTimeout(resolve, TAUNT_RECHECK_MS).unref())
             continue
         }
-        reportStatus("running")
+        reportStatus("running", ...fallback)
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
         try {
             const attackInfo = await waitToAttack(async () => {
