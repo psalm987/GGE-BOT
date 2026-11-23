@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Bot bu kadar puana ulaşınca bu etkinlik için durur. Sınır olmasın diye 0 bırak.",
     "attackSamurai.scoreShutoff.help": "Bot bu kadar puana ulaşınca bu etkinlik için durur. Sınır olmasın diye 0 bırak.",
     "attackKhan.eventWallToolsFirst.help": "Öfke dalgaları öfke aleti olmadan gider, bu yüzden yalnızca birlik taşır.",
-    "attackNomads.eventWallToolsFirst.help": "Sıradan duvar aletlerini etkinlik aletlerine tercih eder.",
+    "attackNomads.eventWallToolsFirst.help": "Dalgalar önce etkinliğin duvar, kalkan ve kapı aletlerini, sonra sıradan duvar ve kalkan aletlerini kullanır. Etkinliğin diğer aletleri kullanılmaz.",
     "attackBerimondInvasion.reputation.help": "En çok puan yerine en çok şöhret veren etkinlik aletlerini seçer.",
     "attackBerimondInvasion.useCoin.help": "Madeni paraya mal olan bir ata biner. Kalede bir ahır gerekir. Yoksa birlikler yürür.",
     "attackBerimondInvasion.useFeather.help": "Her saldırı için bir hızlı at tüyü kullanır. Hiç tüyün yoksa birlikler tüysüz gider.",

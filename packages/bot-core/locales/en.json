@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "The bot stops for this event once it reaches this many points. Leave it at 0 for no limit.",
     "attackSamurai.scoreShutoff.help": "The bot stops for this event once it reaches this many points. Leave it at 0 for no limit.",
     "attackKhan.eventWallToolsFirst.help": "The rage waves go without rage tools, so they carry troops only.",
-    "attackNomads.eventWallToolsFirst.help": "Prefers ordinary wall tools over event tools.",
+    "attackNomads.eventWallToolsFirst.help": "Waves use the event wall, shield and gate tools first, then ordinary wall and shield tools. The other event tools are left unused.",
     "attackBerimondInvasion.reputation.help": "Picks the event tools that give the most reputation instead of the most points.",
     "attackBerimondInvasion.useCoin.help": "Rides a horse that costs coins. Needs a stable in the castle. Without one, the troops walk.",
     "attackBerimondInvasion.useFeather.help": "Uses one fast horse feather for each attack. When you have none, the troops go without one.",

@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Botti lopettaa tämän tapahtuman, kun se saavuttaa näin monta pistettä. Jätä arvoksi 0, jos et halua rajaa.",
     "attackSamurai.scoreShutoff.help": "Botti lopettaa tämän tapahtuman, kun se saavuttaa näin monta pistettä. Jätä arvoksi 0, jos et halua rajaa.",
     "attackKhan.eventWallToolsFirst.help": "Raivoaallot lähtevät ilman raivotyökaluja, joten ne kantavat vain joukkoja.",
-    "attackNomads.eventWallToolsFirst.help": "Suosii tavallisia muurityökaluja tapahtumatyökalujen sijaan.",
+    "attackNomads.eventWallToolsFirst.help": "Aallot käyttävät ensin tapahtuman muuri-, suoja- ja porttityökaluja ja sitten tavallisia muuri- ja suojatyökaluja. Muut tapahtumatyökalut jäävät käyttämättä.",
     "attackBerimondInvasion.reputation.help": "Valitsee tapahtumatyökalut, jotka antavat eniten mainetta eniten pisteitä antavien sijaan.",
     "attackBerimondInvasion.useCoin.help": "Ratsastaa kolikoita maksavalla hevosella. Vaatii linnaan tallin. Ilman sitä joukot kävelevät.",
     "attackBerimondInvasion.useFeather.help": "Käyttää yhden nopean hevosen höyhenen jokaiseen hyökkäykseen. Kun sinulla ei ole yhtään, joukot lähtevät ilman.",

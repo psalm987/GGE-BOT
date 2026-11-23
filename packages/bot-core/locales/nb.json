@@ -464,7 +464,7 @@
     "attackKhan.useCoin.help": "Rir en hest som koster mynter. Krever en stall i slottet. Uten stall går troppene til fots.",
     "attackKhan.useFeather.help": "Bruker ett raskt hestefjær for hvert angrep. Når du ikke har noe, går troppene uten.",
     "attackKhan.eventWallToolsFirst.help": "Raseribølgene sendes uten raseriverktøy, så de har bare tropper.",
-    "attackNomads.eventWallToolsFirst.help": "Foretrekker vanlige slottsmurverktøy framfor eventverktøy.",
+    "attackNomads.eventWallToolsFirst.help": "Bølgene bruker først eventens slottsmur-, skjold- og slottsportverktøy, deretter vanlige slottsmur- og skjoldverktøy. De andre eventverktøyene blir ikke brukt.",
     "attackBerimondInvasion.reputation.help": "Velger eventverktøyene som gir mest aktelse i stedet for flest poeng.",
     "attackBerimondInvasion.useCoin.help": "Rir en hest som koster mynter. Krever en stall i slottet. Uten stall går troppene til fots.",
     "attackBerimondInvasion.useFeather.help": "Bruker ett raskt hestefjær for hvert angrep. Når du ikke har noe, går troppene uten.",

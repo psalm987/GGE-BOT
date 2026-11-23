@@ -468,7 +468,7 @@
     "attackKhan.useCoin.help": "يركب حصانًا يكلف عملات. يحتاج إلى إسطبل في القلعة. بدونه يسير الجنود.",
     "attackKhan.useFeather.help": "تستخدم ريشة خيل سريعة واحدة لكل هجوم. عندما لا تملك أيًّا منها، يذهب الجنود بدونها.",
     "attackKhan.eventWallToolsFirst.help": "تخرج موجات الغضب بلا أدوات غضب، فلا تحمل إلا الجنود.",
-    "attackNomads.eventWallToolsFirst.help": "يفضّل أدوات الجدار العادية على أدوات الحدث.",
+    "attackNomads.eventWallToolsFirst.help": "تستخدم الموجات أدوات الجدار والدروع والبوابة الخاصة بالحدث أولًا، ثم أدوات الجدار والدروع العادية. أدوات الحدث الأخرى لا تُستخدم.",
     "attackBerimondInvasion.reputation.help": "يختار أدوات الحدث التي تعطي أكبر قدر من السمعة بدل أكبر قدر من النقاط.",
     "attackBerimondInvasion.useCoin.help": "يركب حصانًا يكلف عملات. يحتاج إلى إسطبل في القلعة. بدونه يسير الجنود.",
     "attackBerimondInvasion.useFeather.help": "تستخدم ريشة خيل سريعة واحدة لكل هجوم. عندما لا تملك أيًّا منها، يذهب الجنود بدونها.",

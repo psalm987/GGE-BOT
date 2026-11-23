@@ -465,7 +465,7 @@
     "attackKhan.useCoin.help": "Jaše konja koji košta novčiće. Treba stajaću u dvorcu. Bez nje trupe idu pješice.",
     "attackKhan.useFeather.help": "Koristi jedno pero brzog konja za svaki napad. Kad ih nemaš, trupe idu bez njega.",
     "attackKhan.eventWallToolsFirst.help": "Valovi bijesa idu bez alata bijesa, pa nose samo trupe.",
-    "attackNomads.eventWallToolsFirst.help": "Daje prednost običnim zidnim alatima pred događajnim alatima.",
+    "attackNomads.eventWallToolsFirst.help": "Valovi prvo koriste događajne zidne alate, štitove i alate za vrata, zatim obične zidne alate i štitove. Ostali događajni alati ostaju neiskorišteni.",
     "attackBerimondInvasion.reputation.help": "Bira događajne alate koji daju najviše ugleda umjesto najviše bodova.",
     "attackBerimondInvasion.useCoin.help": "Jaše konja koji košta novčiće. Treba stajaću u dvorcu. Bez nje trupe idu pješice.",
     "attackBerimondInvasion.useFeather.help": "Koristi jedno pero brzog konja za svaki napad. Kad ih nemaš, trupe idu bez njega.",

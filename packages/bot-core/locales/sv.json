@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Botten stoppar för det här eventet när den når så här många poäng. Lämna på 0 för ingen gräns.",
     "attackSamurai.scoreShutoff.help": "Botten stoppar för det här eventet när den når så här många poäng. Lämna på 0 för ingen gräns.",
     "attackKhan.eventWallToolsFirst.help": "Raserivågorna går utan raseriverktyg, så de bär bara trupper.",
-    "attackNomads.eventWallToolsFirst.help": "Föredrar vanliga slottsmursverktyg framför eventverktyg.",
+    "attackNomads.eventWallToolsFirst.help": "Vågorna använder först eventets slottsmurs-, sköld- och slottsportsverktyg, sedan vanliga slottsmurs- och sköldverktyg. De andra eventverktygen används inte.",
     "attackBerimondInvasion.reputation.help": "Väljer de eventverktyg som ger mest anseende i stället för flest poäng.",
     "attackBerimondInvasion.useCoin.help": "Rider en häst som kostar mynt. Kräver ett stall i slottet. Utan stall går trupperna till fots.",
     "attackBerimondInvasion.useFeather.help": "Använder en snabb hästfjäder för varje anfall. När du inte har någon går trupperna utan.",

@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "De bot stopt voor dit event zodra hij zoveel punten heeft. Laat het op 0 staan voor geen limiet.",
     "attackSamurai.scoreShutoff.help": "De bot stopt voor dit event zodra hij zoveel punten heeft. Laat het op 0 staan voor geen limiet.",
     "attackKhan.eventWallToolsFirst.help": "De razernijgolven gaan zonder razernijtuigen en nemen alleen troepen mee.",
-    "attackNomads.eventWallToolsFirst.help": "Geeft de voorkeur aan gewone muurtuigen boven eventtuigen.",
+    "attackNomads.eventWallToolsFirst.help": "De golven gebruiken eerst de muur-, schild- en poorttuigen van het event en daarna gewone muur- en schildtuigen. De andere eventtuigen blijven ongebruikt.",
     "attackBerimondInvasion.reputation.help": "Kiest de eventtuigen die de meeste reputatie opleveren in plaats van de meeste punten.",
     "attackBerimondInvasion.useCoin.help": "Rijdt op een paard dat munten kost. Vereist een stal in het kasteel. Zonder stal lopen de troepen.",
     "attackBerimondInvasion.useFeather.help": "Gebruikt voor elke aanval één veer voor snelle paarden. Heb je er geen, dan gaan de troepen zonder.",

@@ -466,7 +466,7 @@
     "attackKhan.useCoin.help": "Jede na koni, který stojí zlaťáky. Vyžaduje stáj v hradu. Bez ní jednotky jdou pěšky.",
     "attackKhan.useFeather.help": "Použije na každý útok jedno pero rychlého koně. Když žádné nemáte, jednotky vyrazí bez něj.",
     "attackKhan.eventWallToolsFirst.help": "Vlny zuřivosti jdou bez nástrojů zuřivosti, takže nesou jen jednotky.",
-    "attackNomads.eventWallToolsFirst.help": "Dává přednost běžným nástrojům na hradby před nástroji události.",
+    "attackNomads.eventWallToolsFirst.help": "Vlny použijí nejdřív nástroje události na hradby, štíty a bránu, potom obyčejné nástroje na hradby a štíty. Ostatní nástroje události zůstanou nepoužité.",
     "attackBerimondInvasion.reputation.help": "Vybírá nástroje události, které dávají nejvíc reputace místo nejvíc bodů.",
     "attackBerimondInvasion.useCoin.help": "Jede na koni, který stojí zlaťáky. Vyžaduje stáj v hradu. Bez ní jednotky jdou pěšky.",
     "attackBerimondInvasion.useFeather.help": "Použije na každý útok jedno pero rychlého koně. Když žádné nemáte, jednotky vyrazí bez něj.",

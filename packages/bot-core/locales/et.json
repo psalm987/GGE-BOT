@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Bot peatab selle sündmuse, kui jõuab nii paljude punktideni. Jäta 0, kui piirangut ei soovi.",
     "attackSamurai.scoreShutoff.help": "Bot peatab selle sündmuse, kui jõuab nii paljude punktideni. Jäta 0, kui piirangut ei soovi.",
     "attackKhan.eventWallToolsFirst.help": "Raevulained lähevad ilma raevutööriistadeta ja kannavad ainult vägesid.",
-    "attackNomads.eventWallToolsFirst.help": "Eelistab tavalisi müüritööriistu sündmuse tööriistadele.",
+    "attackNomads.eventWallToolsFirst.help": "Lained kasutavad kõigepealt sündmuse müüri-, kilbi- ja väravatööriistu, seejärel tavalisi müüri- ja kilbitööriistu. Muud sündmuse tööriistad jäävad kasutamata.",
     "attackBerimondInvasion.reputation.help": "Valib sündmuse tööriistad, mis annavad kõige rohkem mainet kõige rohkemate punktide asemel.",
     "attackBerimondInvasion.useCoin.help": "Ratsutab hobusega, mis maksab münte. Vajab lossis tallu. Ilma selleta lähevad väed jalgsi.",
     "attackBerimondInvasion.useFeather.help": "Kasutab iga rünnaku jaoks ühe kiire hobuse sule. Kui sul pole ühtegi, lähevad väed ilma.",

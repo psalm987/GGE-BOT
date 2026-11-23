@@ -465,7 +465,7 @@
     "attackKhan.useCoin.help": "Monte un cheval qui coûte des pièces. Nécessite une écurie au château. Sans écurie, les troupes marchent.",
     "attackKhan.useFeather.help": "Utilise une plume de cheval rapide pour chaque attaque. Quand vous n'en avez plus, les troupes partent sans.",
     "attackKhan.eventWallToolsFirst.help": "Les vagues de rage partent sans engins de rage et ne portent que des troupes.",
-    "attackNomads.eventWallToolsFirst.help": "Préfère les engins de mur ordinaires aux engins d'événement.",
+    "attackNomads.eventWallToolsFirst.help": "Les vagues prennent d'abord les engins de mur, de bouclier et de porte de l'événement, puis les engins de mur et de bouclier ordinaires. Les autres engins d'événement restent inutilisés.",
     "attackBerimondInvasion.reputation.help": "Choisit les engins d'événement qui donnent le plus de réputation plutôt que le plus de points.",
     "attackBerimondInvasion.useCoin.help": "Monte un cheval qui coûte des pièces. Nécessite une écurie au château. Sans écurie, les troupes marchent.",
     "attackBerimondInvasion.useFeather.help": "Utilise une plume de cheval rapide pour chaque attaque. Quand vous n'en avez plus, les troupes partent sans.",

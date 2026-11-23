@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Der Bot stoppt dieses Event, sobald er so viele Punkte erreicht. Lasst 0 stehen für keine Grenze.",
     "attackSamurai.scoreShutoff.help": "Der Bot stoppt dieses Event, sobald er so viele Punkte erreicht. Lasst 0 stehen für keine Grenze.",
     "attackKhan.eventWallToolsFirst.help": "Die Wutwellen ziehen ohne Wutwerkzeuge los und tragen nur Truppen.",
-    "attackNomads.eventWallToolsFirst.help": "Bevorzugt gewöhnliche Mauerwerkzeuge gegenüber Event-Werkzeugen.",
+    "attackNomads.eventWallToolsFirst.help": "Die Wellen nehmen zuerst die Mauer-, Schild- und Torwerkzeuge des Events, danach gewöhnliche Mauer- und Schildwerkzeuge. Die übrigen Event-Werkzeuge bleiben ungenutzt.",
     "attackBerimondInvasion.reputation.help": "Wählt die Event-Werkzeuge, die am meisten Prestige statt der meisten Punkte bringen.",
     "attackBerimondInvasion.useCoin.help": "Reitet ein Pferd, das Münzen kostet. Setzt einen Stall in der Burg voraus. Ohne einen gehen die Truppen zu Fuß.",
     "attackBerimondInvasion.useFeather.help": "Verwendet für jeden Angriff eine Feder für schnelle Pferde. Habt Ihr keine, gehen die Truppen ohne.",

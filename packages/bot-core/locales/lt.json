@@ -466,7 +466,7 @@
     "attackKhan.useCoin.help": "Joja žirgu, kuris kainuoja monetų. Reikia arklidės pilyje. Be jos kariai eina pėsčiomis.",
     "attackKhan.useFeather.help": "Naudoja vieną greito žirgo plunksną kiekvienam puolimui. Kai jų neturite, kariai eina be jos.",
     "attackKhan.eventWallToolsFirst.help": "Įsiūčio bangos siunčiamos be įsiūčio įrankių, todėl gabena tik karius.",
-    "attackNomads.eventWallToolsFirst.help": "Teikia pirmenybę įprastiems sienų įrankiams, o ne renginio įrankiams.",
+    "attackNomads.eventWallToolsFirst.help": "Bangos pirmiausia naudoja renginio sienų, skydų ir vartų įrankius, paskui įprastus sienų ir skydų įrankius. Kiti renginio įrankiai lieka nenaudojami.",
     "attackBerimondInvasion.reputation.help": "Pasirenka renginio įrankius, kurie duoda daugiausia reputacijos, o ne daugiausia taškų.",
     "attackBerimondInvasion.useCoin.help": "Joja žirgu, kuris kainuoja monetų. Reikia arklidės pilyje. Be jos kariai eina pėsčiomis.",
     "attackBerimondInvasion.useFeather.help": "Naudoja vieną greito žirgo plunksną kiekvienam puolimui. Kai jų neturite, kariai eina be jos.",

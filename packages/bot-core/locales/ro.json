@@ -473,7 +473,7 @@
     "attackNomads.scoreShutoff.help": "Botul se oprește pentru acest eveniment când atinge atâtea puncte. Lasă 0 pentru fără limită.",
     "attackSamurai.scoreShutoff.help": "Botul se oprește pentru acest eveniment când atinge atâtea puncte. Lasă 0 pentru fără limită.",
     "attackKhan.eventWallToolsFirst.help": "Valurile de furie pleacă fără unelte de furie, deci duc doar trupe.",
-    "attackNomads.eventWallToolsFirst.help": "Preferă uneltele obișnuite pentru zid în loc de uneltele de eveniment.",
+    "attackNomads.eventWallToolsFirst.help": "Valurile folosesc mai întâi uneltele de zid, scuturile și uneltele de poartă ale evenimentului, apoi uneltele obișnuite de zid și scuturile. Celelalte unelte de eveniment rămân nefolosite.",
     "attackBerimondInvasion.reputation.help": "Alege uneltele de eveniment care dau cea mai multă reputație în loc de cele mai multe puncte.",
     "attackBerimondInvasion.useCoin.help": "Călărește un cal care costă monede. Are nevoie de o herghelie în castel. Fără ea, trupele merg pe jos.",
     "attackBerimondInvasion.useFeather.help": "Folosește o pană de călătorie rapidă la fiecare atac. Dacă nu ai niciuna, trupele pleacă fără ea.",

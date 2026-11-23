@@ -465,7 +465,7 @@
     "attackKhan.useCoin.help": "Jāj ar zirgu, kas maksā monētas. Vajadzīga stalla pilī. Bez tā karavīri iet kājām.",
     "attackKhan.useFeather.help": "Katram uzbrukumam izmanto vienu ātrā zirga spalvu. Kad tev to nav, karavīri iet bez tās.",
     "attackKhan.eventWallToolsFirst.help": "Dusmu viļņi dodas bez dusmu rīkiem, tāpēc nes tikai karavīrus.",
-    "attackNomads.eventWallToolsFirst.help": "Dod priekšroku parastajiem mūra rīkiem pirms pasākuma rīkiem.",
+    "attackNomads.eventWallToolsFirst.help": "Viļņi vispirms izmanto pasākuma mūra, vairogu un vārtu rīkus, tad parastos mūra un vairogu rīkus. Pārējie pasākuma rīki netiek izmantoti.",
     "attackBerimondInvasion.reputation.help": "Izvēlas pasākuma rīkus, kas dod visvairāk reputācijas, nevis visvairāk punktu.",
     "attackBerimondInvasion.useCoin.help": "Jāj ar zirgu, kas maksā monētas. Vajadzīga stalla pilī. Bez tā karavīri iet kājām.",
     "attackBerimondInvasion.useFeather.help": "Katram uzbrukumam izmanto vienu ātrā zirga spalvu. Kad tev to nav, karavīri iet bez tās.",

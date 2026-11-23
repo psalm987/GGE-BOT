@@ -465,7 +465,7 @@
     "attackKhan.useCoin.help": "Cavalca un cavallo che costa monete. Serve una scuderia nel castello. Senza, le truppe vanno a piedi.",
     "attackKhan.useFeather.help": "Usa una piuma di cavallo veloce per ogni attacco. Quando non ne hai, le truppe partono senza.",
     "attackKhan.eventWallToolsFirst.help": "Le ondate di furia partono senza strumenti di furia, quindi portano solo truppe.",
-    "attackNomads.eventWallToolsFirst.help": "Preferisce i normali strumenti per le mura agli strumenti evento.",
+    "attackNomads.eventWallToolsFirst.help": "Le ondate usano prima gli strumenti evento per le mura, per la porta e le barriere, poi gli strumenti ordinari per le mura e le barriere. Gli altri strumenti evento restano inutilizzati.",
     "attackBerimondInvasion.reputation.help": "Sceglie gli strumenti evento che danno più reputazione invece di più punti.",
     "attackBerimondInvasion.useCoin.help": "Cavalca un cavallo che costa monete. Serve una scuderia nel castello. Senza, le truppe vanno a piedi.",
     "attackBerimondInvasion.useFeather.help": "Usa una piuma di cavallo veloce per ogni attacco. Quando non ne hai, le truppe partono senza.",

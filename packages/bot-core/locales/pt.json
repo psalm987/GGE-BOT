@@ -473,7 +473,7 @@
     "attackNomads.scoreShutoff.help": "O bot para neste evento ao atingir esta quantidade de pontos. Deixe em 0 para não ter limite.",
     "attackSamurai.scoreShutoff.help": "O bot para neste evento ao atingir esta quantidade de pontos. Deixe em 0 para não ter limite.",
     "attackKhan.eventWallToolsFirst.help": "As ondas de fúria saem sem ferramentas de fúria, então levam só tropas.",
-    "attackNomads.eventWallToolsFirst.help": "Prefere as ferramentas de muralha comuns às ferramentas de evento.",
+    "attackNomads.eventWallToolsFirst.help": "As ondas usam primeiro as ferramentas de muralha, escudo e portão do evento e depois as de muralha e escudo comuns. As outras ferramentas de evento ficam sem uso.",
     "attackBerimondInvasion.reputation.help": "Escolhe as ferramentas de evento que dão mais reputação em vez de mais pontos.",
     "attackBerimondInvasion.useCoin.help": "Cavalga um cavalo que custa moedas. Precisa de um estábulo no castelo. Sem ele, as tropas vão a pé.",
     "attackBerimondInvasion.useFeather.help": "Usa uma pena de viagem rápida em cada ataque. Se você não tiver nenhuma, as tropas vão sem ela.",

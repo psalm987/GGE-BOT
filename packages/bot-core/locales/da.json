@@ -472,7 +472,7 @@
     "attackNomads.scoreShutoff.help": "Botten stopper for dette event, når den når så mange point. Lad den stå på 0 for ingen grænse.",
     "attackSamurai.scoreShutoff.help": "Botten stopper for dette event, når den når så mange point. Lad den stå på 0 for ingen grænse.",
     "attackKhan.eventWallToolsFirst.help": "Vredesbølgerne sendes uden vredesredskaber, så de kun har tropper med.",
-    "attackNomads.eventWallToolsFirst.help": "Foretrækker almindelige murredskaber frem for eventredskaber.",
+    "attackNomads.eventWallToolsFirst.help": "Bølgerne bruger først eventets mur-, skjold- og portredskaber og derefter almindelige mur- og skjoldredskaber. De øvrige eventredskaber bruges ikke.",
     "attackBerimondInvasion.reputation.help": "Vælger de eventredskaber, der giver mest omdømme i stedet for flest point.",
     "attackBerimondInvasion.useCoin.help": "Rider på en hest, der koster mønter. Kræver en stald i borgen. Uden en går tropperne til fods.",
     "attackBerimondInvasion.useFeather.help": "Bruger én fjer til hurtige heste til hvert angreb. Når du ikke har nogen, rejser tropperne uden.",

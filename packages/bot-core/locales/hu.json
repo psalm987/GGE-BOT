@@ -464,7 +464,7 @@
     "attackKhan.useCoin.help": "Pénzbe kerülő lovon lovagol. A kastélyban istálló kell hozzá. Nélküle a csapatok gyalog mennek.",
     "attackKhan.useFeather.help": "Támadásonként egy gyors lótollat használ. Ha nincs, a csapatok toll nélkül indulnak.",
     "attackKhan.eventWallToolsFirst.help": "A haraghullámok harageszközök nélkül indulnak, így csak katonákat visznek.",
-    "attackNomads.eventWallToolsFirst.help": "A szokásos várfaleszközöket részesíti előnyben az eseményeszközökkel szemben.",
+    "attackNomads.eventWallToolsFirst.help": "A hullámok előbb az esemény fal-, pajzs- és kapueszközeit használják, utána a szokásos fal- és pajzseszközöket. Az esemény többi eszköze használatlan marad.",
     "attackBerimondInvasion.reputation.help": "Azokat az eseményeszközöket választja, amelyek a legtöbb hírnevet adják a legtöbb pont helyett.",
     "attackBerimondInvasion.useCoin.help": "Pénzbe kerülő lovon lovagol. A kastélyban istálló kell hozzá. Nélküle a csapatok gyalog mennek.",
     "attackBerimondInvasion.useFeather.help": "Támadásonként egy gyors lótollat használ. Ha nincs, a csapatok toll nélkül indulnak.",

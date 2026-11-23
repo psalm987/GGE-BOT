@@ -474,7 +474,7 @@
     "attackNomads.scoreShutoff.help": "Bot se pri tem dogodku ustavi, ko doseže toliko točk. Pusti 0 za brez omejitve.",
     "attackSamurai.scoreShutoff.help": "Bot se pri tem dogodku ustavi, ko doseže toliko točk. Pusti 0 za brez omejitve.",
     "attackKhan.eventWallToolsFirst.help": "Valovi jeze gredo brez orodij jeze, zato nosijo samo čete.",
-    "attackNomads.eventWallToolsFirst.help": "Daje prednost navadnim zidnim orodjem pred dogodkovnimi orodji.",
+    "attackNomads.eventWallToolsFirst.help": "Valovi najprej uporabijo dogodkovna orodja za zid, ščite in vrata, nato navadna orodja za zid in ščite. Druga dogodkovna orodja ostanejo neuporabljena.",
     "attackBerimondInvasion.reputation.help": "Izbere dogodkovna orodja, ki dajo največ ugleda namesto največ točk.",
     "attackBerimondInvasion.useCoin.help": "Jaha konja, ki stane kovance. Potrebuje hlev v gradu. Brez njega čete pešačijo.",
     "attackBerimondInvasion.useFeather.help": "Za vsak napad uporabi eno pero hitrega konja. Ko jih nimaš, čete gredo brez njega.",

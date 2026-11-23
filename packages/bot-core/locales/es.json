@@ -465,7 +465,7 @@
     "attackKhan.useCoin.help": "Monta un caballo que cuesta monedas. Necesita un establo en el castillo. Sin él, las tropas van a pie.",
     "attackKhan.useFeather.help": "Usa una pluma de caballo rápido en cada ataque. Cuando no tienes ninguna, las tropas salen sin una.",
     "attackKhan.eventWallToolsFirst.help": "Las oleadas de furia salen sin herramientas de furia, así que llevan solo tropas.",
-    "attackNomads.eventWallToolsFirst.help": "Prefiere las herramientas de muro normales a las de evento.",
+    "attackNomads.eventWallToolsFirst.help": "Las oleadas usan primero las herramientas de muro, escudo y puerta del evento y después las de muro y escudo normales. Las demás herramientas de evento quedan sin usar.",
     "attackBerimondInvasion.reputation.help": "Elige las herramientas de evento que dan más reputación en vez de más puntos.",
     "attackBerimondInvasion.useCoin.help": "Monta un caballo que cuesta monedas. Necesita un establo en el castillo. Sin él, las tropas van a pie.",
     "attackBerimondInvasion.useFeather.help": "Usa una pluma de caballo rápido en cada ataque. Cuando no tienes ninguna, las tropas salen sin una.",
