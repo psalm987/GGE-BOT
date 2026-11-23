@@ -578,7 +578,7 @@
   "modules.recruit-tools-heal.name": "Vervēšana, rīki un dziedināšana",
   "modules.recruit-tools-heal.description": "Uztur katras pils karavīrus un rīkus tevis iestatītajā krājumā, pasūtot tos kazarmās un darbnīcās par monētām un resursiem. Dziedināšana būs pieejama drīzumā.",
   "modules.refinery-toolsmith.name": "Rafinētava un rīku kalējs",
-  "modules.refinery-toolsmith.description": "Būvē aplenkuma rīkus tavās darbnīcās, līdz katrs sasniedz tevis iestatīto krājumu.",
+  "modules.refinery-toolsmith.description": "Būvē aplenkuma un aizsardzības rīkus tavās darbnīcās, līdz katrs sasniedz tevis iestatīto krājumu.",
   "modules.auto-feast.name": "Automātisks mielasts",
   "modules.auto-feast.description": "Sāk mielastus tavās pilīs, kad tajās ir vairāk pārtikas, nekā vajag.",
   "modules.equip-sell.name": "Ekipējuma pārdošana",

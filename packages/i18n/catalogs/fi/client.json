@@ -548,7 +548,7 @@
   "modules.recruit-tools-heal.name": "Värväys, työkalut ja parannus",
   "modules.recruit-tools-heal.description": "Pitää jokaisen linnan joukot ja työkalut asettamallasi varastotasolla ja tilaa ne kasarmista ja verstaista kolikoilla ja resursseilla. Parannus on tulossa pian.",
   "modules.refinery-toolsmith.name": "Jalostamo ja työkaluseppä",
-  "modules.refinery-toolsmith.description": "Rakentaa piiritystyökaluja pajoissasi, kunnes kukin saavuttaa asettamasi varaston.",
+  "modules.refinery-toolsmith.description": "Rakentaa piiritys- ja puolustustyökaluja pajoissasi, kunnes kukin saavuttaa asettamasi varaston.",
   "modules.auto-feast.name": "Automaattiset pidot",
   "modules.auto-feast.description": "Aloittaa pidot linnoissasi, kun niissä on enemmän ruokaa kuin tarvitset.",
   "modules.equip-sell.name": "Varusteiden myynti",

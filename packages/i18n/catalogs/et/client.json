@@ -548,7 +548,7 @@
   "modules.recruit-tools-heal.name": "Värbamine, tööriistad ja ravi",
   "modules.recruit-tools-heal.description": "Hoiab iga lossi väed ja tööriistad sinu seatud varul ning tellib neid müntide ja ressurssidega kasarmust ja töökodadest. Ravi tuleb peagi.",
   "modules.refinery-toolsmith.name": "Rafineerimistehas ja tööriistasepp",
-  "modules.refinery-toolsmith.description": "Ehitab sinu töökodades piiramisvahendeid, kuni igaüks jõuab sinu seatud varuni.",
+  "modules.refinery-toolsmith.description": "Ehitab sinu töökodades piiramis- ja kaitsevahendeid, kuni igaüks jõuab sinu seatud varuni.",
   "modules.auto-feast.name": "Automaatne pidusöök",
   "modules.auto-feast.description": "Alustab sinu lossides pidusööke, kui neis on rohkem toitu, kui vajad.",
   "modules.equip-sell.name": "Varustuse müük",

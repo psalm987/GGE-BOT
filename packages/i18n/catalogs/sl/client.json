@@ -608,7 +608,7 @@
   "modules.recruit-tools-heal.name": "Novačenje, orodja in zdravljenje",
   "modules.recruit-tools-heal.description": "Ohranja čete in orodja vsakega gradu na zalogi, ki jo nastaviš, in jih s kovanci in viri naroča v vojašnici in delavnicah. Zdravljenje prihaja kmalu.",
   "modules.refinery-toolsmith.name": "Rafinerija in orodjar",
-  "modules.refinery-toolsmith.description": "Izdeluje obleganska orodja v tvojih delavnicah, dokler vsako ne doseže nastavljene zaloge.",
+  "modules.refinery-toolsmith.description": "Izdeluje obleganska in obrambna orodja v tvojih delavnicah, dokler vsako ne doseže nastavljene zaloge.",
   "modules.auto-feast.name": "Samodejna pojedina",
   "modules.auto-feast.description": "Začne pojedine v tvojih gradovih, ko imajo več hrane, kot je potrebno.",
   "modules.equip-sell.name": "Prodaja opreme",

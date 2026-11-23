@@ -638,7 +638,7 @@
   "modules.recruit-tools-heal.name": "Reklutaġġ, għodda u fejqan",
   "modules.recruit-tools-heal.description": "Iżomm it-truppi u l-għodda ta' kull kastell fil-maħżen li tissettja, billi jordnahom mill-kwartieri u mill-workshops bil-muniti u r-riżorsi. Il-fejqan ġej dalwaqt.",
   "modules.refinery-toolsmith.name": "Raffinerija u ħaddied tal-għodda",
-  "modules.refinery-toolsmith.description": "Jibni għodda tal-assedju fil-workshops tiegħek sakemm kull waħda tilħaq il-maħżen li issettjajt.",
+  "modules.refinery-toolsmith.description": "Jibni għodda tal-assedju u tad-difiża fil-workshops tiegħek sakemm kull waħda tilħaq il-maħżen li issettjajt.",
   "modules.auto-feast.name": "Festa awtomatika",
   "modules.auto-feast.description": "Jibda festi fil-kasteli tiegħek meta jkollhom iktar ikel milli għandek bżonn.",
   "modules.equip-sell.name": "Bejgħ tat-tagħmir",

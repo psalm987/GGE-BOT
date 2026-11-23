@@ -578,7 +578,7 @@
   "modules.recruit-tools-heal.name": "Recrutement, engins et soins",
   "modules.recruit-tools-heal.description": "Maintient les troupes et les engins de chaque château au stock que vous fixez, en les commandant à la caserne et aux ateliers avec des pièces et des ressources. Les soins arrivent bientôt.",
   "modules.refinery-toolsmith.name": "Raffinerie et outilleur",
-  "modules.refinery-toolsmith.description": "Fabrique des engins de siège dans vos ateliers jusqu'à ce que chacun atteigne le stock que vous fixez.",
+  "modules.refinery-toolsmith.description": "Fabrique des engins de siège et de défense dans vos ateliers jusqu'à ce que chacun atteigne le stock que vous fixez.",
   "modules.auto-feast.name": "Banquets auto",
   "modules.auto-feast.description": "Lance des banquets dans vos châteaux quand ils ont plus de nourriture que nécessaire.",
   "modules.equip-sell.name": "Vente d'équipement",

@@ -578,7 +578,7 @@
   "modules.recruit-tools-heal.name": "Reclutar, herramientas y curar",
   "modules.recruit-tools-heal.description": "Mantiene las tropas y herramientas de cada castillo en las existencias que fijes, con pedidos a las barracas y los talleres pagados con monedas y recursos. La curación llegará pronto.",
   "modules.refinery-toolsmith.name": "Refinería y forja de herramientas",
-  "modules.refinery-toolsmith.description": "Fabrica herramientas de asedio en tus talleres hasta que cada una alcanza la reserva que fijes.",
+  "modules.refinery-toolsmith.description": "Fabrica herramientas de asedio y de defensa en tus talleres hasta que cada una alcanza la reserva que fijes.",
   "modules.auto-feast.name": "Banquete automático",
   "modules.auto-feast.description": "Inicia banquetes en tus castillos cuando tienen más comida de la que necesitas.",
   "modules.equip-sell.name": "Venta de equipo",

@@ -548,7 +548,7 @@
   "modules.recruit-tools-heal.name": "Rekruttering, redskaber og helbredelse",
   "modules.recruit-tools-heal.description": "Holder hver borgs tropper og redskaber på det lager, du sætter, og bestiller fra kasernen og værkstederne for mønter og ressourcer. Helbredelse kommer snart.",
   "modules.refinery-toolsmith.name": "Raffinaderi og værktøjsmager",
-  "modules.refinery-toolsmith.description": "Bygger belejringsredskaber i dine værksteder, indtil hvert når det lager, du sætter.",
+  "modules.refinery-toolsmith.description": "Bygger belejrings- og forsvarsredskaber i dine værksteder, indtil hvert når det lager, du sætter.",
   "modules.auto-feast.name": "Auto-gæstebud",
   "modules.auto-feast.description": "Starter gæstebud i dine borge, når de har mere mad, end du har brug for.",
   "modules.equip-sell.name": "Salg af udstyr",

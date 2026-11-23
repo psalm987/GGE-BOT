@@ -567,7 +567,7 @@
   "modules.recruit-tools-heal.name": "Recruit, tools and heal",
   "modules.recruit-tools-heal.description": "Keeps each castle's troops and tools at the stock you set, ordering from the barracks and the workshops with coins and resources. Healing is coming soon.",
   "modules.refinery-toolsmith.name": "Refinery and toolsmith",
-  "modules.refinery-toolsmith.description": "Builds siege tools in your workshops until each one reaches the stock you set.",
+  "modules.refinery-toolsmith.description": "Builds siege and defence tools in your workshops until each one reaches the stock you set.",
   "modules.auto-feast.name": "Auto-feast",
   "modules.auto-feast.description": "Starts feasts in your castles when they hold more food than you need.",
   "modules.equip-sell.name": "Equip sell",

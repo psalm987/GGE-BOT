@@ -548,7 +548,7 @@
   "modules.recruit-tools-heal.name": "Rekruttering, verktøy og helbredelse",
   "modules.recruit-tools-heal.description": "Holder troppene og verktøyene i hvert slott på lageret du har satt, og bestiller fra kasernen og verkstedene med mynter og ressurser. Helbredelse kommer snart.",
   "modules.refinery-toolsmith.name": "Raffineri og verktøysmed",
-  "modules.refinery-toolsmith.description": "Bygger beleiringsverktøy i verkstedene dine til hvert verktøy når lageret du satte.",
+  "modules.refinery-toolsmith.description": "Bygger beleirings- og forsvarsverktøy i verkstedene dine til hvert verktøy når lageret du satte.",
   "modules.auto-feast.name": "Autofest",
   "modules.auto-feast.description": "Starter fester i slottene dine når de har mer mat enn du trenger.",
   "modules.equip-sell.name": "Utstyrssalg",

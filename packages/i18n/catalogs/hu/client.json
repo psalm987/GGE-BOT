@@ -548,7 +548,7 @@
   "modules.recruit-tools-heal.name": "Toborzás, eszközök és gyógyítás",
   "modules.recruit-tools-heal.description": "Minden kastélyban a megadott készleten tartja a csapatokat és az eszközöket, pénzért és erőforrásért rendelve a barakkban és a műhelyekben. A gyógyítás hamarosan érkezik.",
   "modules.refinery-toolsmith.name": "Finomító és eszközkovács",
-  "modules.refinery-toolsmith.description": "Ostromeszközöket épít a műhelyeidben, amíg mindegyik el nem éri a megadott készletet.",
+  "modules.refinery-toolsmith.description": "Ostrom- és védelmi eszközöket épít a műhelyeidben, amíg mindegyik el nem éri a megadott készletet.",
   "modules.auto-feast.name": "Automatikus lakoma",
   "modules.auto-feast.description": "Lakomát indít a kastélyaidban, ha több élelem van bennük a szükségesnél.",
   "modules.equip-sell.name": "Felszerelés eladása",
