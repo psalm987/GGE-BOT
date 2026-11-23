@@ -27,7 +27,7 @@ const Env = z.object({
     RESEND_API_KEY: optional,
     /** Cloudflare Turnstile secret. Without it, signup asks for no captcha. */
     TURNSTILE_SECRET_KEY: optional,
-    /** Sender, e.g. "GGE Bot <noreply@example.com>"; the domain must be verified in Resend. */
+    /** Sender, e.g. "GGE Command <noreply@example.com>"; the domain must be verified in Resend. */
     EMAIL_FROM: optional,
     /** Paystack secret key (sk_test_ or sk_live_). Without it, billing can't go live. */
     PAYSTACK_SECRET_KEY: optional,
