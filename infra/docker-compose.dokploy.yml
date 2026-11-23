@@ -133,6 +133,7 @@ services:
       args:
         CADDYFILE: infra/Caddyfile.dokploy
         VITE_CLIENT_URL: https://app.${DOMAIN}
+        VITE_DOCS_URL: https://docs.${DOMAIN}
         VITE_GRAFANA_URL: https://grafana.${DOMAIN}
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}

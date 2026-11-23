@@ -1,2 +1,4 @@
-/** PLACEHOLDER. No Discord invite exists in the repo yet. Replace this with the real invite before the coming-soon pages ship. */
-export const DISCORD_INVITE_URL = "https://discord.com/invite/REPLACE_WITH_REAL_INVITE"
+/** Public URL of the docs site, for links that leave the player app. */
+const DOCS_URL = (import.meta.env.VITE_DOCS_URL as string | undefined) ?? "http://localhost:4321"
+
+export const DOCS_CONTACT_URL = `${DOCS_URL}/contact/`

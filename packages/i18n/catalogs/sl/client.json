@@ -648,7 +648,7 @@
   "moved.body": "Vsak modul ima zdaj svojo stran. Izberi ga v stranski vrstici, na vrhu izberi račun in vse uredi na eni strani.",
   "moved.dismiss": "Razumem",
   "module.soon.tag": "Kmalu na voljo",
-  "module.soon.discord": "Prosi zanj na Discordu",
+  "module.soon.contact": "Prosi zanj",
   "modules.dev-preview.name": "Predogled nastavitev (samo za razvoj)",
   "modules.dev-preview.description": "Vse vrste možnosti na enem mestu, za preizkušanje obrazcev nastavitev v razvojnem okolju.",
   "credits.title": "Zasluge",

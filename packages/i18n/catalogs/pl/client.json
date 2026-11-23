@@ -648,7 +648,7 @@
   "moved.body": "Każdy moduł ma teraz własną stronę. Wybierz go na pasku bocznym, wskaż konto na górze i zmieniaj wszystko na jednej stronie.",
   "moved.dismiss": "Rozumiem",
   "module.soon.tag": "Już wkrótce",
-  "module.soon.discord": "Poproś o to na Discordzie",
+  "module.soon.contact": "Poproś o to",
   "modules.dev-preview.name": "Podgląd ustawień (tylko dla programistów)",
   "modules.dev-preview.description": "Każdy typ opcji w jednym miejscu, do testowania formularzy ustawień w środowisku programistycznym.",
   "credits.title": "Podziękowania",

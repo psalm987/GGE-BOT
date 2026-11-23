@@ -618,7 +618,7 @@
   "moved.body": "Chaque module a maintenant sa propre page. Choisissez-le dans la barre latérale, sélectionnez un compte en haut et modifiez tout sur une seule page.",
   "moved.dismiss": "Compris",
   "module.soon.tag": "Bientôt disponible",
-  "module.soon.discord": "Demandez-le sur Discord",
+  "module.soon.contact": "Demandez-le",
   "modules.dev-preview.name": "Aperçu des réglages (développement uniquement)",
   "modules.dev-preview.description": "Tous les types d'option au même endroit, pour essayer les formulaires de réglages sur une pile de développement.",
   "credits.title": "Crédits",

@@ -1297,10 +1297,10 @@ async function driveSidebar(page) {
     await page.screenshot({ path: `${out}/60-sidebar-1440.png` })
 
     await sidebar(page, "Castle manager")
-    await page.getByRole("link", { name: "Ask for it on Discord" }).waitFor()
+    await page.getByRole("link", { name: "Ask for it" }).waitFor()
     await page.getByText("Coming soon", { exact: true }).waitFor()
     assert(await page.getByRole("switch").count() === 0 && await page.locator(".gge-content form").count() === 0, "a coming-soon page has no form and no switches")
-    assert(await page.getByRole("link", { name: "Ask for it on Discord" }).count() === 1, "a coming-soon page links to Discord")
+    assert(await page.getByRole("link", { name: "Ask for it" }).count() === 1 && (await page.getByRole("link", { name: "Ask for it" }).getAttribute("href")).endsWith("/contact/"), "a coming-soon page links to the docs Contact page")
     await axe(page, "coming soon page 1440")
     await page.screenshot({ path: `${out}/61-coming-soon-1440.png` })
 
@@ -2250,7 +2250,7 @@ async function driveRecruitTools(page) {
     await page.setViewportSize(WIDE_VIEW)
     await openModule(page, "Recruit, tools and heal")
     const troops = table("Troop targets"), tools = table("Tool targets")
-    assert(await page.getByText("Ask for it on Discord").count() === 0 && await page.getByRole("switch", { name: "Recruit and tools" }).isVisible(), "the page is live: a switch for Recruit and tools and no Discord ask")
+    assert(await page.getByText("Ask for it", { exact: true }).count() === 0 && await page.getByRole("switch", { name: "Recruit and tools" }).isVisible(), "the page is live: a switch for Recruit and tools and no ask link")
     const heal = page.locator("[data-soon=heal]")
     assert((await heal.innerText()).startsWith("Healing") && (await heal.innerText()).includes("Coming soon"), "healing is listed as coming soon")
     assert(await page.getByText("Still to come", { exact: true }).isVisible(), "under a Still to come card")

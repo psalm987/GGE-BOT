@@ -588,7 +588,7 @@
   "moved.body": "Jokaisella moduulilla on nyt oma sivunsa. Valitse se sivupalkista, valitse tili ylhäältä ja muokkaa kaikkea yhdellä sivulla.",
   "moved.dismiss": "Selvä",
   "module.soon.tag": "Tulossa pian",
-  "module.soon.discord": "Pyydä sitä Discordissa",
+  "module.soon.contact": "Pyydä sitä",
   "modules.dev-preview.name": "Asetusten esikatselu (vain kehitys)",
   "modules.dev-preview.description": "Kaikki asetustyypit yhdessä paikassa asetuslomakkeiden kokeilemiseen kehitysympäristössä.",
   "credits.title": "Tekijät",

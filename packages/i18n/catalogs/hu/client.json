@@ -588,7 +588,7 @@
   "moved.body": "Mostantól minden modulnak saját oldala van. Válaszd ki az oldalsávban, fent válassz fiókot, és mindent egy oldalon szerkeszthetsz.",
   "moved.dismiss": "Értem",
   "module.soon.tag": "Hamarosan érkezik",
-  "module.soon.discord": "Kérd Discordon",
+  "module.soon.contact": "Kérd",
   "modules.dev-preview.name": "Beállítások előnézete (csak fejlesztőknek)",
   "modules.dev-preview.description": "Minden beállítástípus egy helyen, a beállítási űrlapok kipróbálásához fejlesztői környezetben.",
   "credits.title": "Közreműködők",

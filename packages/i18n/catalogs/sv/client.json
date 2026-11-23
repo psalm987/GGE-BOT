@@ -588,7 +588,7 @@
   "moved.body": "Varje modul har nu en egen sida. Välj den i sidofältet, välj ett konto högst upp och redigera allt på en sida.",
   "moved.dismiss": "Uppfattat",
   "module.soon.tag": "Kommer snart",
-  "module.soon.discord": "Be om den på Discord",
+  "module.soon.contact": "Be om den",
   "modules.dev-preview.name": "Förhandsvisning av inställningar (endast utveckling)",
   "modules.dev-preview.description": "Alla alternativtyper på ett ställe, för att prova inställningsformulären i en utvecklingsmiljö.",
   "credits.title": "Erkännanden",
