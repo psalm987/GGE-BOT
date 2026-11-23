@@ -78,3 +78,85 @@ test.each(["-5", "0", "99", "abc", "", "7"])("a stored run size of %j sells as m
 test("a run size that is not a whole number is refused when saved", () => {
     expect(() => normalizePluginSettings(catalog, saved({ sellMaxPerRun: "2.5" }))).toThrow(PluginSettingsError)
 })
+
+const piece = (id, rarity, setID = -1) => [id, 0, 0, rarity, "", 0, 0, setID]
+const gemRows = [[9, 2], [8, 3]]
+const setGem = { gemID: 8, setID: 4 }
+
+/** The commands one run sends for this storage, with a run size big enough not to cap it. */
+async function run(options, rows, { logs = [] } = {}) {
+    vi.useFakeTimers()
+    const log = vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args.join(" ")))
+    const bot = fakeBot()
+    bot.sendXT = async (cmd, params) => {
+        bot.sent.push([cmd, JSON.parse(params)])
+        if (cmd == "gei") queueMicrotask(() => bot.xtHandler.emit("gei", { I: rows }, 0))
+        if (cmd == "ggm") queueMicrotask(() => bot.xtHandler.emit("ggm", { GEM: gemRows }, 0))
+    }
+    bot.botConfig.plugins.sellStoredEquipment = { sellStartDelayMinutes: "1", sellMaxPerRun: "50", ...options }
+    loadModule("plugins/sellStoredEquipment.js", { bot, items: { gems: [...gems, setGem] } })
+    bot.events.emit("load")
+    await vi.advanceTimersByTimeAsync(4 * 60_000 + 60_000)
+    log.mockRestore()
+    const sold = bot.sent.filter(([cmd]) => cmd == "seq" || cmd == "sge")
+    return {
+        bot,
+        equipment: sold.filter(([cmd]) => cmd == "seq").map(([, p]) => p.EID),
+        gems: sold.filter(([cmd]) => cmd == "sge").map(([, p]) => p.GID),
+    }
+}
+
+const rarityIds = [0, 1, 2, 3, 4, 5]
+const storage = rarityIds.flatMap(rarity => [piece(rarity, rarity), piece(rarity + 10, rarity + 10)])
+const nothing = { sellGrey: false, sellGreen: false, sellPurple: false, sellOrange: false, sellRed: false, sellRelic: false, sellLooseGems: false }
+const ascending = list => [...list].sort((a, b) => a - b)
+
+test("by default it sells grey and green equipment and loose gems, and keeps the rest", async () => {
+    const { equipment, gems: soldGems } = await run({}, storage)
+    expect(ascending(equipment)).toEqual([1, 2, 11, 12])
+    expect(soldGems).toEqual([9, 9])
+})
+
+test.each([
+    ["sellGrey", [1, 11]],
+    ["sellGreen", [2, 12]],
+    ["sellPurple", [3, 13]],
+    ["sellOrange", [4, 14]],
+    ["sellRed", [0, 10]],
+    ["sellRelic", [5, 15]],
+])("%s alone sells that colour and its hero variant", async (key, expected) => {
+    const { equipment, gems: soldGems } = await run({ ...nothing, [key]: true }, storage)
+    expect(ascending(equipment)).toEqual(expected)
+    expect(soldGems).toEqual([])
+})
+
+test("a piece in a set is never sold, whatever colours are ticked", async () => {
+    const all = { ...nothing, sellGrey: true, sellGreen: true, sellPurple: true, sellOrange: true, sellRed: true, sellRelic: true }
+    const { equipment } = await run(all, [piece(1, 1, 3), piece(2, 2), piece(3, 13, 7), piece(4, 5, 1)])
+    expect(equipment).toEqual([2])
+})
+
+test("a gem in a set is not sold, and gems off sells none", async () => {
+    const on = await run({ ...nothing, sellLooseGems: true }, [])
+    expect(on.gems).toEqual([9, 9])
+    const off = await run({ sellLooseGems: false }, storage)
+    expect(off.gems).toEqual([])
+    expect(off.equipment.length).toBeGreaterThan(0)
+})
+
+test("with no colour and no gems ticked it sends nothing and says why", async () => {
+    const logs = []
+    const { bot } = await run(nothing, storage, { logs })
+    expect(bot.sent).toEqual([])
+    expect(logs).toEqual(["sellNothingSelected"])
+})
+
+test("ticking only gems does not read the equipment", async () => {
+    const { bot } = await run({ ...nothing, sellLooseGems: true }, storage)
+    expect(bot.sent.some(([cmd]) => cmd == "gei")).toBe(false)
+})
+
+test("a new install defaults to grey, green and gems", () => {
+    const defaults = effectivePluginConfig(catalog, saved({})).sellStoredEquipment
+    expect(defaults).toMatchObject({ sellGrey: true, sellGreen: true, sellPurple: false, sellOrange: false, sellRed: false, sellRelic: false, sellLooseGems: true })
+})

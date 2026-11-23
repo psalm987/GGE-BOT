@@ -1,6 +1,14 @@
 const optionDefs = [
     { type: "Number", key: "sellStartDelayMinutes", min: 1, max: 60, step: 1, unit: "minutes", default: 2, legacy: "text" },
     { type: "Number", key: "sellMaxPerRun", min: 1, max: 50, step: 1, default: 20, legacy: "text" },
+    { type: "Label", key: "sellRarities" },
+    { type: "Checkbox", key: "sellGrey", default: true },
+    { type: "Checkbox", key: "sellGreen", default: true },
+    { type: "Checkbox", key: "sellPurple", default: false },
+    { type: "Checkbox", key: "sellOrange", default: false },
+    { type: "Checkbox", key: "sellRed", default: false },
+    { type: "Checkbox", key: "sellRelic", default: false },
+    { type: "Checkbox", key: "sellLooseGems", default: true },
 ]
 
 if (require('node:worker_threads').isMainThread)
@@ -16,21 +24,18 @@ const startDelayMinutes = Number(pluginOptions.sellStartDelayMinutes) || 2
 const maxPerRun = Number(pluginOptions.sellMaxPerRun) || 20
 const runIntervalMs = 1000 * 60 * 5
 
-const equipmentType = {
-    unique : 0,
-    common : 1,
-    rare : 2,
-    epic : 3,
-    legendary : 4,
-    relic : 5,
-    heroUnique : 10,
-    heroCommon : 11,
-    heroRare : 12,
-    heroEpic : 13,
-    heroLegendary : 14,
-    heroRelic : 15
+// Rarity ids from the game's equipment_rarenesses table. Hero variants are the normal id plus 10.
+const rarityGroups = {
+    sellGrey: [1, 11],
+    sellGreen: [2, 12],
+    sellPurple: [3, 13],
+    sellOrange: [4, 14],
+    sellRed: [0, 10],
+    sellRelic: [5, 15],
 }
-const keptRarities = [equipmentType.relic, equipmentType.heroRelic, equipmentType.unique, equipmentType.heroUnique]
+const option = key => pluginOptions[key] ?? optionDefs.find(def => def.key == key).default
+const soldRarities = Object.entries(rarityGroups).filter(([key]) => option(key)).flatMap(([, ids]) => ids)
+const sellGems = Boolean(option("sellLooseGems"))
 
 const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
     const gem = gems.find(g => g.gemID == id)
@@ -41,7 +46,7 @@ const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
 
 // Equipment rows: [id, slotType, lordType, rarity, name, ?, objectID, setID, ...]
 const equipmentSales = e => Array.from(e.I ?? [])
-    .filter(item => !keptRarities.includes(item[3]) && item[7] == -1)
+    .filter(item => soldRarities.includes(item[3]) && item[7] == -1)
     .map(item => ["seq", { EID: item[0], LID: -1, EX: 0, LFID: -1 }])
 
 async function fetch(cmd) {
@@ -52,8 +57,8 @@ async function fetch(cmd) {
 }
 
 async function sellRun() {
-    const equipment = equipmentSales(await fetch("gei"))
-    const gemList = gemSales(await fetch("ggm"))
+    const equipment = soldRarities.length ? equipmentSales(await fetch("gei")) : []
+    const gemList = sellGems ? gemSales(await fetch("ggm")) : []
     const sales = [...equipment, ...gemList].slice(0, maxPerRun)
     for (let i = 0; i < sales.length; i++) {
         if (i > 0)
@@ -68,7 +73,14 @@ async function sellRun() {
         console.log(sales.length - equipmentSold, "gemsSold")
 }
 
+const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
+
 events.once("load", async () => {
+    if (!soldRarities.length && !sellGems) {
+        console.log("sellNothingSelected")
+        reportStatus("waiting", "statusSellNothingSelected")
+        return
+    }
     await pause(startDelayMinutes * 60_000, (startDelayMinutes + 3) * 60_000)
     while (true) {
         try {
