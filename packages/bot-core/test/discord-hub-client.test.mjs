@@ -157,12 +157,13 @@ function loadAttackPlugin(name, hub, options) {
             "imageGen.js": { createLayout: (...waves) => (layouts.push(waves), Readable.from([Buffer.from(PNG)])) },
         },
     })
-    return { movementEvents, layouts }
+    return { movementEvents, layouts, bot }
 }
 
-/** A bot in alliance 9 running `name`, fed real `gam` frames: by default Raider (alliance 2) attacking Ada (alliance 9). */
+/** Ada's bot (player 5, alliance 9) running `name`, fed real `gam` frames: by default Raider (alliance 2) attacking Ada. */
 function loadWithMovementList(name, hub, options) {
     const bot = underRunner({ [name]: options })
+    bot.playerInfo.playerID = 5
     bot.playerInfo.alliance = { id: 9 }
     loadModule(`plugins/discord/${name}.js`, {
         bot, parentPort: hub.port,
@@ -286,6 +287,17 @@ describe("incoming attack alerts", () => {
         expect(hub.contents("2")).toHaveLength(1)
     })
 
+    test("a storm attack goes to the first channel when no storm channel is set", async () => {
+        const hub = fakeDiscordHub({ channelIds: ["1", "2"] })
+        const { movementEvents } = loadAttackPlugin("incomingAttacks", hub, { channelID: "1", stormChannelID: "" })
+
+        movementEvents.emit("outgoing", attack({ kingdomID: 4 }))
+        await settle()
+
+        expect(hub.contents("1")).toHaveLength(1)
+        expect(hub.contents("2")).toEqual([])
+    })
+
     test("a target who is away is pinged again as the attack nears, until they come online", async () => {
         vi.useFakeTimers()
         const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "idle" }] })
@@ -317,20 +329,25 @@ describe("incoming attack alerts", () => {
 })
 
 describe("outgoing attack posts", () => {
-    test("an attack by an alliance member is posted with its army picture", async () => {
+    test("the player's own attack is posted with the player as the attacker and its army picture", async () => {
         const hub = fakeDiscordHub()
-        const { movementEvents } = loadAttackPlugin("outgoingAttacks", hub, { channelID: "1" })
-
-        movementEvents.emit("outgoing", attack({
-            sourceOwner: { ownerID: 5, allianceID: 9, name: "Ada", allianceName: "Lambs" },
+        const { movementEvents, bot } = loadAttackPlugin("outgoingAttacks", hub, { channelID: "1" })
+        bot.playerInfo.playerID = 5
+        const raid = by => attack({
+            owner: { ownerID: by.ownerID }, sourceOwner: by,
             targetOwner: { ownerID: 1, allianceID: 2, name: "Raider", allianceName: "Wolves" },
-        }))
-        movementEvents.emit("outgoing", attack())
+            sourceAttack: { x: 0, y: 0, extraData: [, , , , , , , `${by.name}'s Keep`] },
+            targetAttack: { x: 3, y: 4, extraData: [, , , , , , , "Wolf Den"] },
+        })
+
+        movementEvents.emit("outgoing", raid({ ownerID: 5, allianceID: 9, name: "Ada", allianceName: "Lambs" }))
+        movementEvents.emit("outgoing", raid({ ownerID: 3, allianceID: 9, name: "Friend", allianceName: "Lambs" }))
+        movementEvents.emit("outgoing", attack({ owner: { ownerID: 1 } }))
         await settle()
 
         const sends = hub.sent("channelSend")
         expect(sends).toHaveLength(1)
-        expect(sends[0].payload.content).toMatch(/^```ansi\nRaider \(Ada's Keep\) from Wolves is attacking Ada \(Wolf Den\) incoming in .* 5 clicks```<t:\d+:R>$/)
+        expect(sends[0].payload.content).toMatch(/^```ansi\nAda \(Ada's Keep\) is attacking Raider \(Wolf Den\) from Wolves incoming in .* 5 clicks```<t:\d+:R>$/)
         expect(sends[0].payload.files.map(f => [f.name, [...f.data]])).toEqual([["attack.png", PNG]])
     })
 
