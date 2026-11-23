@@ -60,6 +60,10 @@ admin.{$DOMAIN} {
 docs.{$DOMAIN} {
 	import security
 	encode zstd gzip
+	handle /api/contact {
+		rewrite * /contact
+		reverse_proxy api:3000
+	}
 	root * /srv/docs
 	@assets path /_astro/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"

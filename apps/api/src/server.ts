@@ -10,6 +10,7 @@ import type { Ctx } from "./context.ts"
 import type { Env } from "./env.ts"
 import { adminRouter } from "./routers/admin.ts"
 import { clientRouter } from "./routers/client.ts"
+import { contactRoute } from "./routers/contact.ts"
 import { paystackWebhook } from "./routers/paystack-webhook.ts"
 import { createGeoip } from "./services/geoip.ts"
 import { clientLink } from "./services/email.ts"
@@ -40,7 +41,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
     const app = Fastify({ logger, trustProxy: true })
     Sentry.setupFastifyErrorHandler(app)
     await app.register(cookie)
-    // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc, /webhooks and /healthz.
+    // /metrics is for Prometheus on the internal network; Caddy only routes /rpc, /admin/rpc, /webhooks, /healthz and the docs site's /api/contact (as /contact).
     await app.register(metricsPlugin.default, { endpoint: "/metrics", routeMetrics: { routeBlacklist: ["/metrics", "/healthz"] } })
     // oRPC reads the raw body itself.
     app.addContentTypeParser("*", (_req, _payload, done) => done(null, undefined))
@@ -66,6 +67,8 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
         detect: createRateLimiter({ max: 60, windowMs: 60_000 }),
         redeemCode: createRateLimiter({ max: 10, windowMs: 15 * 60_000 }),
         checkout: createRateLimiter({ max: 5, windowMs: 10 * 60_000 }),
+        contact: createRateLimiter({ max: 3, windowMs: 10 * 60_000 }),
+        contactDay: createRateLimiter({ max: 10, windowMs: 24 * 60 * 60_000 }),
     }
     const lookupCountry = createGeoip({ url: env.GEOIP_URL })
     const paystack = env.PAYSTACK_SECRET_KEY ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL }) : undefined
@@ -91,6 +94,7 @@ export async function buildServer({ db, env, logger = true, mailer: givenMailer,
 
     mount("/rpc", new RPCHandler(clientRouter, { interceptors: [onError(logServerError)] }), env.CLIENT_ORIGINS)
     mount("/admin/rpc", new RPCHandler(adminRouter, { interceptors: [onError(logServerError)] }), env.ADMIN_ORIGINS)
+    await app.register(contactRoute({ env, mailer, limits: { short: limits.contact, day: limits.contactDay } }))
     await app.register(paystackWebhook({ db, secretKey: env.PAYSTACK_SECRET_KEY, paystack }))
 
     app.get("/healthz", async () => {

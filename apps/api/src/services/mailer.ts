@@ -3,8 +3,10 @@ import { Resend } from "resend"
 export type MailMessage = {
     to: string
     subject: string
+    /** Empty sends the plain text alone. */
     html: string
     text: string
+    replyTo?: string
     /** Template kind, sent to Resend as a tag so deliveries can be filtered by it. */
     tag: string
 }
@@ -17,8 +19,8 @@ type ResendClient = { emails: { send(payload: Record<string, unknown>): Promise<
 
 export function resendMailer({ apiKey, from, client = new Resend(apiKey) as unknown as ResendClient }: { apiKey: string; from: string; client?: ResendClient }): Mailer {
     return {
-        async send({ to, subject, html, text, tag }) {
-            const { error } = await client.emails.send({ from, to, subject, html, text, tags: [{ name: "kind", value: tag }] })
+        async send({ to, subject, html, text, replyTo, tag }) {
+            const { error } = await client.emails.send({ from, to, subject, ...html && { html }, text, ...replyTo && { replyTo }, tags: [{ name: "kind", value: tag }] })
             if (error)
                 throw new Error(`Resend rejected the message: ${error.message}`)
         },

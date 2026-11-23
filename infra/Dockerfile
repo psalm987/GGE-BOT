@@ -28,6 +28,8 @@ ARG VITE_CLIENT_URL
 ARG VITE_GRAFANA_URL
 ARG VITE_SENTRY_DSN
 ARG VITE_TURNSTILE_SITE_KEY
+# The docs contact form shows the same Turnstile widget as signup.
+ARG PUBLIC_TURNSTILE_SITE_KEY
 ARG VITE_GGE_VERSION
 # 1 marks every docs page noindex, for a docs site that is up but not launched yet.
 ARG DOCS_NOINDEX

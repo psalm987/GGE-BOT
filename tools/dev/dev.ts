@@ -28,9 +28,12 @@ const portShift = Number(process.env.GGE_DEV_PORT_SHIFT ?? 0)
 const API_PORT = 3000 + portShift
 const CLIENT_PORT = 5173 + portShift
 const ADMIN_PORT = 5174 + portShift
+const DOCS_PORT = 4321 + portShift
 const CENTRIFUGO_PORT = 8000 + portShift
 const CLIENT_ORIGIN = `http://localhost:${CLIENT_PORT}`
 const ADMIN_ORIGIN = `http://localhost:${ADMIN_PORT}`
+// The docs dev server (pnpm --filter @gge/docs dev --port <this>) isn't started here; its contact form posts to the API.
+const DOCS_ORIGIN = `http://localhost:${DOCS_PORT}`
 const centrifugoBin = process.env.CENTRIFUGO_BIN
     ?? process.env.PATH?.split(path.delimiter).map(dir => path.join(dir, "centrifugo")).find(existsSync)
 // The seeded admin's authenticator secret, so a person or a script can sign in without enrolling.
@@ -144,6 +147,7 @@ const env = {
     TOTP_ENCRYPTION_KEY: totpKey,
     CLIENT_ORIGINS: CLIENT_ORIGIN,
     ADMIN_ORIGINS: ADMIN_ORIGIN,
+    DOCS_ORIGINS: DOCS_ORIGIN,
     PORT: String(API_PORT),
     HOST: "127.0.0.1",
     COOKIE_SECURE: "false",

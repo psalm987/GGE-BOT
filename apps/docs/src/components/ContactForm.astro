@@ -1,0 +1,320 @@
+---
+const t = Astro.locals.t
+const TOPICS = ["account", "bot", "modules", "billing", "bug", "other"] as const
+const LIMITS = { name: 80, messageMin: 20, messageMax: 5000 }
+const siteKey: string | undefined = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || undefined
+
+const strings = {
+    sending: t("gge.contact.sending"),
+    submit: t("gge.contact.submit"),
+    sent: t("gge.contact.sent"),
+    failed: t("gge.contact.failed"),
+    unavailable: t("gge.contact.unavailable"),
+    rateLimited: t("gge.contact.rateLimited"),
+    captchaFailed: t("gge.contact.captchaFailed"),
+    errorsFound: t("gge.contact.errorsFound"),
+    count: t("gge.contact.count", { n: "%n", max: LIMITS.messageMax }),
+    email: t("gge.contact.error.email"),
+    name: t("gge.contact.error.name", { max: LIMITS.name }),
+    topic: t("gge.contact.error.topic"),
+    messageShort: t("gge.contact.error.messageShort", { min: LIMITS.messageMin }),
+    messageLong: t("gge.contact.error.messageLong", { max: LIMITS.messageMax }),
+    captcha: t("gge.contact.error.captcha"),
+}
+---
+
+<noscript><p class="gge-contact__noscript">{t("gge.contact.noscript")}</p></noscript>
+<form
+    class="gge-contact not-content"
+    novalidate
+    aria-label={t("gge.contact.label")}
+    data-endpoint="/api/contact"
+    data-site-key={siteKey}
+    data-limits={JSON.stringify(LIMITS)}
+    data-strings={JSON.stringify(strings)}
+>
+    <div class="gge-contact__field">
+        <label for="contact-email">{t("gge.contact.email")}</label>
+        <input id="contact-email" name="email" type="email" required autocomplete="email" maxlength="200" aria-describedby="contact-email-hint contact-email-error" />
+        <p class="gge-contact__hint" id="contact-email-hint">{t("gge.contact.emailHint")}</p>
+        <p class="gge-contact__error" id="contact-email-error" hidden></p>
+    </div>
+    <div class="gge-contact__field">
+        <label for="contact-name">{t("gge.contact.name")}</label>
+        <input id="contact-name" name="name" type="text" autocomplete="name" aria-describedby="contact-name-error" />
+        <p class="gge-contact__error" id="contact-name-error" hidden></p>
+    </div>
+    <div class="gge-contact__field">
+        <label for="contact-topic">{t("gge.contact.topic")}</label>
+        <select id="contact-topic" name="topic" required aria-describedby="contact-topic-error">
+            <option value="">{t("gge.contact.topicPick")}</option>
+            {TOPICS.map(topic => <option value={topic}>{t(`gge.contact.topic.${topic}`)}</option>)}
+        </select>
+        <p class="gge-contact__error" id="contact-topic-error" hidden></p>
+    </div>
+    <div class="gge-contact__field">
+        <label for="contact-message">{t("gge.contact.message")}</label>
+        <textarea id="contact-message" name="message" required rows="8" aria-describedby="contact-message-hint contact-message-count contact-message-error"></textarea>
+        <p class="gge-contact__hint" id="contact-message-hint">{t("gge.contact.messageHint", { min: LIMITS.messageMin })}</p>
+        <p class="gge-contact__hint gge-contact__count" id="contact-message-count">{strings.count.replace("%n", "0")}</p>
+        <p class="gge-contact__error" id="contact-message-error" hidden></p>
+    </div>
+    <div class="gge-contact__trap" aria-hidden="true">
+        <label for="contact-website">Website</label>
+        <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+    </div>
+    {siteKey && (
+        <div class="gge-contact__field">
+            <p class="gge-contact__captcha-label" id="contact-captcha-label">{t("gge.contact.captcha")}</p>
+            <div data-turnstile aria-labelledby="contact-captcha-label"></div>
+            <p class="gge-contact__error" id="contact-captcha-error" hidden></p>
+        </div>
+    )}
+    <button type="submit" class="gge-contact__submit">{t("gge.contact.submit")}</button>
+    <p class="gge-contact__status" role="status" aria-live="polite" data-status></p>
+</form>
+
+<style>
+    .gge-contact__noscript {
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--gge-rule);
+        border-inline-start: 0.25rem solid var(--gge-caution-accent);
+        border-radius: 0.25rem;
+        background: var(--gge-caution-ground);
+    }
+
+    .gge-contact {
+        display: none;
+        max-inline-size: var(--gge-measure);
+        margin-block: 1.5rem;
+    }
+
+    :global(.gge-js) .gge-contact {
+        display: block;
+    }
+
+    .gge-contact__field {
+        margin-block-end: 1.25rem;
+    }
+
+    .gge-contact label,
+    .gge-contact__captcha-label {
+        display: block;
+        margin-block-end: 0.25rem;
+        font-weight: 700;
+        color: var(--gge-heading);
+    }
+
+    .gge-contact input,
+    .gge-contact select,
+    .gge-contact textarea {
+        box-sizing: border-box;
+        inline-size: 100%;
+        min-block-size: 2.75rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--gge-control);
+        border-radius: 0.25rem;
+        background: var(--gge-surface);
+        color: var(--gge-text);
+        font: inherit;
+    }
+
+    .gge-contact textarea {
+        resize: vertical;
+    }
+
+    .gge-contact [aria-invalid="true"] {
+        border-color: var(--gge-danger-accent);
+        border-width: 2px;
+    }
+
+    .gge-contact__hint {
+        margin-block: 0.25rem 0;
+        color: var(--gge-muted);
+        font-size: 0.9375rem;
+    }
+
+    .gge-contact__error {
+        margin-block: 0.25rem 0;
+        color: var(--gge-danger-accent);
+        font-weight: 700;
+    }
+
+    .gge-contact__trap {
+        position: absolute;
+        inset-inline-start: -10000px;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+    }
+
+    .gge-contact__submit {
+        min-inline-size: 2.75rem;
+        min-block-size: 2.75rem;
+        padding-inline: 1.5rem;
+        border: 1px solid var(--gge-accent);
+        border-radius: 0.25rem;
+        background: var(--gge-accent-fill);
+        color: var(--gge-on-accent-fill);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .gge-contact__submit:disabled {
+        opacity: 0.7;
+        cursor: progress;
+    }
+
+    .gge-contact__status {
+        min-block-size: 1.6em;
+        margin-block: 1rem 0;
+        font-weight: 700;
+    }
+
+    .gge-contact__status[data-kind="ok"] {
+        color: var(--gge-accent);
+    }
+
+    .gge-contact__status[data-kind="error"] {
+        color: var(--gge-danger-accent);
+    }
+</style>
+
+<script>
+    type Strings = Record<string, string>
+    type Limits = { name: number; messageMin: number; messageMax: number }
+    type TurnstileApi = { render(el: HTMLElement, options: Record<string, unknown>): string; reset(id?: string): void }
+    declare global { interface Window { turnstile?: TurnstileApi } }
+
+    const FIELDS = ["email", "name", "topic", "message"] as const
+    type Field = (typeof FIELDS)[number]
+
+    const form = document.querySelector<HTMLFormElement>("form.gge-contact")
+    if (form) {
+        const strings = JSON.parse(form.dataset.strings ?? "{}") as Strings
+        const limits = JSON.parse(form.dataset.limits ?? "{}") as Limits
+        const siteKey = form.dataset.siteKey
+        const status = form.querySelector<HTMLElement>("[data-status]")!
+        const submit = form.querySelector<HTMLButtonElement>("button[type=submit]")!
+        const count = form.querySelector<HTMLElement>("#contact-message-count")!
+        const control = (field: Field) => form.elements.namedItem(field) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+        const errorEl = (field: string) => form.querySelector<HTMLElement>(`#contact-${field}-error`)!
+
+        let token: string | undefined
+        let widget: string | undefined
+        if (siteKey) {
+            const el = document.createElement("script")
+            el.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            el.async = true
+            el.onload = () => {
+                widget = window.turnstile!.render(form.querySelector<HTMLElement>("[data-turnstile]")!, {
+                    sitekey: siteKey,
+                    callback: (value: string) => { token = value; setError("captcha", undefined) },
+                    "expired-callback": () => { token = undefined },
+                    "error-callback": () => { token = undefined },
+                })
+            }
+            document.head.append(el)
+        }
+
+        const setError = (field: Field | "captcha", message: string | undefined) => {
+            const el = errorEl(field)
+            el.textContent = message ?? ""
+            el.hidden = !message
+            if (field !== "captcha")
+                control(field).setAttribute("aria-invalid", String(Boolean(message)))
+        }
+
+        const setStatus = (message: string, kind: "ok" | "error" | "") => {
+            status.textContent = message
+            status.dataset.kind = kind
+        }
+
+        const updateCount = () => { count.textContent = strings.count!.replace("%n", String(control("message").value.length)) }
+        control("message").addEventListener("input", updateCount)
+
+        const validate = (): Field | "captcha" | undefined => {
+            const email = control("email").value.trim()
+            const message = control("message").value.trim()
+            const problems: [Field | "captcha", string | undefined][] = [
+                ["email", control("email").validity.valid && email ? undefined : strings.email],
+                ["name", control("name").value.trim().length > limits.name ? strings.name : undefined],
+                ["topic", control("topic").value ? undefined : strings.topic],
+                ["message", message.length < limits.messageMin ? strings.messageShort : message.length > limits.messageMax ? strings.messageLong : undefined],
+            ]
+            if (siteKey)
+                problems.push(["captcha", token ? undefined : strings.captcha])
+            for (const [field, text] of problems) setError(field, text)
+            return problems.find(([, text]) => text)?.[0]
+        }
+
+        const resetCaptcha = () => {
+            token = undefined
+            if (widget) window.turnstile?.reset(widget)
+        }
+
+        const referrerPath = () => {
+            try {
+                const url = new URL(document.referrer)
+                return url.origin === location.origin && url.pathname.length <= 200 ? url.pathname : undefined
+            } catch {
+                return undefined
+            }
+        }
+
+        const send = async () => {
+            const body = {
+                email: control("email").value.trim(),
+                name: control("name").value.trim() || undefined,
+                topic: control("topic").value,
+                message: control("message").value.trim(),
+                page: referrerPath(),
+                website: (form.elements.namedItem("website") as HTMLInputElement).value,
+                turnstileToken: token,
+            }
+            const response = await fetch(form.dataset.endpoint!, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+            if (response.ok) return "ok" as const
+            const reply = await response.json().catch(() => ({})) as { error?: string; fields?: string[] }
+            if (response.status === 503) return "unavailable" as const
+            if (response.status === 429) return "rateLimited" as const
+            if (reply.error === "CAPTCHA_FAILED") return "captchaFailed" as const
+            if (reply.error === "INVALID_BODY") {
+                for (const field of reply.fields ?? []) if ((FIELDS as readonly string[]).includes(field)) setError(field as Field, strings[field === "message" ? "messageShort" : field])
+                return "invalid" as const
+            }
+            return "failed" as const
+        }
+
+        form.addEventListener("submit", async event => {
+            event.preventDefault()
+            if (submit.disabled) return
+            setStatus("", "")
+            const invalid = validate()
+            if (invalid) {
+                setStatus(strings.errorsFound!, "error")
+                if (invalid !== "captcha") control(invalid).focus()
+                return
+            }
+            submit.disabled = true
+            submit.textContent = strings.sending!
+            setStatus(strings.sending!, "")
+            let outcome: Awaited<ReturnType<typeof send>> = "failed"
+            try {
+                outcome = await send()
+            } catch {
+                outcome = "failed"
+            }
+            submit.disabled = false
+            submit.textContent = strings.submit!
+            if (outcome === "ok") {
+                form.reset()
+                updateCount()
+                setStatus(strings.sent!, "ok")
+            } else {
+                setStatus(outcome === "invalid" ? strings.errorsFound! : strings[outcome]!, "error")
+            }
+            resetCaptcha()
+        })
+    }
+</script>

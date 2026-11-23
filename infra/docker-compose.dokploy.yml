@@ -55,6 +55,8 @@ services:
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?set TOTP_ENCRYPTION_KEY in Dokploy's Environment tab}
       CLIENT_ORIGINS: https://app.${DOMAIN}
       ADMIN_ORIGINS: https://admin.${DOMAIN}
+      DOCS_ORIGINS: https://docs.${DOMAIN}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
@@ -134,6 +136,7 @@ services:
         VITE_GRAFANA_URL: https://grafana.${DOMAIN}
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
+        PUBLIC_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
         VITE_GGE_VERSION: ${GGE_VERSION:-latest}
         DOCS_NOINDEX: ${DOCS_NOINDEX:-}
       secrets: [sentry_auth_token]

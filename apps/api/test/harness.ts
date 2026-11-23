@@ -14,6 +14,7 @@ import { buildServer } from "../src/server.ts"
 
 export const CLIENT_ORIGIN = "https://app.test"
 export const ADMIN_ORIGIN = "https://admin.test"
+export const DOCS_ORIGIN = "https://docs.test"
 export const PASSWORD = "correct horse battery"
 
 /** The code an authenticator holding `secret` shows at `step`; the current step when omitted. */
@@ -71,7 +72,7 @@ export async function startApi(env: Partial<Env> = {}) {
     }
     const app = await buildServer({
         db, logger: false, mailer, workers: false,
-        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, TOTP_ENCRYPTION_KEY: totpKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
+        env: { DATABASE_URL: inject("databaseUrl"), SEAL_PUBLIC_KEY: keys.publicKey, TOTP_ENCRYPTION_KEY: totpKey, CLIENT_ORIGINS: [CLIENT_ORIGIN], ADMIN_ORIGINS: [ADMIN_ORIGIN], DOCS_ORIGINS: [DOCS_ORIGIN], HOST: "127.0.0.1", PORT: 0, COOKIE_SECURE: false, ...env },
     })
     await app.listen({ host: "127.0.0.1", port: 0 })
     const baseUrl = `http://127.0.0.1:${(app.server.address() as { port: number }).port}`

@@ -76,6 +76,10 @@ http://admin.{$DOMAIN} {
 http://docs.{$DOMAIN} {
 	import security
 	encode zstd gzip
+	handle /api/contact {
+		rewrite * /contact
+		import api
+	}
 	root * /srv/docs
 	@assets path /_astro/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"

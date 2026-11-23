@@ -12,6 +12,8 @@ export default defineConfig({
     redirects: { "/plugins/attack-khan/": "/modules/khan/" },
     vite: {
         ssr: { external: ["canvaskit-wasm"] },
+        // Caddy sends /api/contact to the API as /contact; the dev server does the same.
+        server: { proxy: { "/api/contact": { target: process.env.GGE_DEV_API_URL ?? "http://127.0.0.1:3000", rewrite: () => "/contact" } } },
         // A house icon is used on many pages. As a file it is cached once; inlined it would be repeated in every page.
         build: { assetsInlineLimit: file => (file.endsWith(".svg") ? false : undefined) },
     },

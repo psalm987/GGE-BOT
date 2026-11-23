@@ -115,6 +115,10 @@ export default defineMarkdocConfig({
             render: component("./src/components/Status.astro"),
             attributes: { kind: { type: String, required: true, matches: ["beta", "planned"] } },
         },
+        contact_form: {
+            selfClosing: true,
+            render: component("./src/components/ContactForm.astro"),
+        },
         plan_gate: {
             render: component("./src/components/PlanGate.astro"),
         },

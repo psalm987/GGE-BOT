@@ -15,6 +15,10 @@ const Env = z.object({
     /** Origins allowed to call /rpc and /admin/rpc, e.g. https://app.example.com. Links in emails point at the first client origin. */
     CLIENT_ORIGINS: origins.pipe(z.array(z.url()).min(1)),
     ADMIN_ORIGINS: origins,
+    /** Origins of the docs site, allowed to POST /contact, e.g. https://docs.example.com. Empty refuses every contact form. */
+    DOCS_ORIGINS: origins.pipe(z.array(z.url())).optional(),
+    /** The inbox the docs contact form mails to. Without it, /contact answers 503 and the form says contact is unavailable. */
+    SUPPORT_EMAIL: optional.pipe(z.email().optional()),
     HOST: z.string().default("0.0.0.0"),
     PORT: z.coerce.number().int().default(3000),
     /** Secure cookies need HTTPS; only turn off for local http development. */

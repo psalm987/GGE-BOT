@@ -52,6 +52,7 @@ CENTRIFUGO_TOKEN_SECRET=
 MAXMIND_ACCOUNT_ID=
 MAXMIND_LICENSE_KEY=
 PAYSTACK_SECRET_KEY=
+SUPPORT_EMAIL=
 MAX_ACCOUNTS=50
 START_GAP_MS=2000
 GAME_CLIENT_VERSION=
@@ -65,6 +66,8 @@ BACKUP_KEEP_MONTHS=12
 ```
 
 The `GDRIVE_*` and `BACKUP_PASSPHRASE` lines turn on encrypted copies to Google Drive; leave them empty to start, and follow [backup-restore.md](backup-restore.md#off-site-copies-on-google-drive) to fill them.
+
+The Contact form on the docs site mails `SUPPORT_EMAIL`. It needs that variable and a working `RESEND_API_KEY` with a verified `EMAIL_FROM` domain; without either the form tells visitors contact is unavailable.
 
 Generate the two passwords with `openssl rand -hex 32`. Every variable is explained in [env.md](env.md); `ACME_EMAIL` is not needed here because Dokploy handles certificates.
 

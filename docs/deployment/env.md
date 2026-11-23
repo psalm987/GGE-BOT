@@ -28,8 +28,9 @@
 | `DISCORD_TOKEN` | runner | no | Discord bot token. Enables the Discord plugins. The runner opens one Discord connection with it for all bots; the bots never receive the token ([architecture.md](../architecture.md#discord)). |
 | `RESEND_API_KEY` | api | no | Resend API key. Without it the API logs each email (link included) instead of sending it, so verification and reset links only reach the log. |
 | `EMAIL_FROM` | api | with the key | Sender, e.g. `GGE Bot <noreply@example.com>`. Its domain must be verified in Resend. |
-| `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup. Empty turns the captcha off. |
-| `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app at build time. Empty hides the widget, so leave both unset or set both. |
+| `SUPPORT_EMAIL` | api | no | Inbox the docs site's Contact form mails to. The mail goes out through Resend, so it needs a working `RESEND_API_KEY`. Empty: `POST /contact` answers 503 and the form says contact is unavailable. |
+| `TURNSTILE_SECRET_KEY` | api | no | Cloudflare Turnstile secret. Set it together with `VITE_TURNSTILE_SITE_KEY` to require a captcha on signup and on the docs Contact form. Empty turns the captcha off. |
+| `VITE_TURNSTILE_SITE_KEY` | web (build) | no | Turnstile site key, baked into the player app and the docs site at build time (compose also passes it to the docs build as `PUBLIC_TURNSTILE_SITE_KEY`). Empty hides the widget, so leave both unset or set both. |
 | `PAYSTACK_SECRET_KEY` | api | no | Paystack secret key (`sk_test_…` or `sk_live_…`). Without it an admin can't turn billing on, so every player stays on the free limit (`users.max_bots`), and nobody can pay online. Setup and the go-live steps are in [dokploy.md](dokploy.md#paystack). |
 | `PAYSTACK_BASE_URL` | api | no | Testing only. Where the API sends Paystack calls; default `https://api.paystack.co`. The test suite points it at a stub. The compose files don't pass it, so setting it in `infra/.env` changes nothing. |
 | `MAXMIND_ACCOUNT_ID` | geoip | no | MaxMind account ID. With the license key, lets the `geoip` service download GeoLite2-Country ([dokploy.md](dokploy.md#ip-language-detection)). |
@@ -52,6 +53,7 @@
 |---|---|---|
 | `DATABASE_URL` | api, runner, migrate | `postgres://gge@postgres:5432/gge`, with the password passed separately as `PGPASSWORD` so any characters work |
 | `CLIENT_ORIGINS`, `ADMIN_ORIGINS` | api | `https://app.<DOMAIN>`, `https://admin.<DOMAIN>`. Requests from any other origin get 403. Emailed links point at the first client origin. |
+| `DOCS_ORIGINS` | api | `https://docs.<DOMAIN>`. The only origin allowed to `POST /contact`; any other gets 403. Caddy serves it to the docs site as `/api/contact`. |
 | `PORT` | api | 3000 (internal) |
 | `CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY` | centrifugo | The value of `CENTRIFUGO_TOKEN_SECRET` |
 | `CENTRIFUGO_CLIENT_ALLOWED_ORIGINS` | centrifugo | `https://app.<DOMAIN> https://admin.<DOMAIN>`, separated by a space. A socket from any other origin is refused. |
