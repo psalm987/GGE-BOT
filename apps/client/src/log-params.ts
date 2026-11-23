@@ -7,7 +7,7 @@ const distinct = (values: string[], max: number) => [...new Set(values.filter(Bo
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
- * The Logs page's filters as its URL holds them: `account` and `tag` repeat, `level` is one of 0, 1 or 2, and `q` is the text.
+ * The Logs page's filters as its URL holds them: `account` and `tag` repeat, `level` is one of 0, 1, 2 or 3, and `q` is the text.
  * Anything else is ignored, and the lists are cut to what the feed accepts.
  */
 export function readLogParams(params: URLSearchParams): LogFilters {
