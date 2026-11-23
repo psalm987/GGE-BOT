@@ -695,6 +695,7 @@
     "khanDefenceRefused": "The game refused a defence change: ",
     "khanDefenceHeld": "The defence held against a Khan attack",
     "khanDefenceLost": "The defence was lost to a Khan attack",
+    "khanTauntRewards": "The defended Khan attack paid: ",
     "khanTauntHeldDefenceShort": "Khan taunts are held until the defence is filled again",
     "khanTauntHeldDefenceLost": "A defence was lost, so Khan taunts are held until the event starts again",
     "khanTauntsResumed": "Khan taunts resume",

@@ -697,6 +697,7 @@
     "khanDefenceRefused": "Igra je zavrnila spremembo obrambe: ",
     "khanDefenceHeld": "Obramba je zdržala napad Kana",
     "khanDefenceLost": "Obramba je podlegla napadu Kana",
+    "khanTauntRewards": "Odbiti kanov napad je prinesel: ",
     "khanTauntHeldDefenceShort": "Izzivanje Kana je ustavljeno, dokler se obramba spet ne dopolni",
     "khanTauntHeldDefenceLost": "Ena obramba je bila izgubljena, zato je izzivanje Kana ustavljeno, dokler se dogodek spet ne začne",
     "khanTauntsResumed": "Izzivanje Kana se nadaljuje",

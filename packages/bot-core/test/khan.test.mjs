@@ -325,6 +325,24 @@ describe("Khan taunts and the battle report", () => {
         expect(logged(info, "khanDefenceHeld")).toHaveLength(1)
         expect(taunts()).toHaveLength(1)
     })
+    test("a defence that held logs what the taunt paid, once its reward pushes are in", async () => {
+        const capture = require("./fixtures/protocol/khan-rewards-20261122.json")
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { run, sne } = await game()
+        const push = pushes => pushes.forEach(([command, reply]) => command != "sne" && run.bot.xtHandler.emit(command, reply, 0))
+        push(capture.landings.first)
+        vi.useFakeTimers()
+        try {
+            run.movementEvents.emit("outgoing", march(1))
+            sne("1+2+1#0+7+BlackBuck")
+            push(capture.landings.second)
+            expect(logged(info, "khanTauntRewards")).toEqual([])
+            vi.advanceTimersByTime(3000)
+        } finally {
+            vi.useRealTimers()
+        }
+        expect(logged(info, "khanTauntRewards")).toEqual([["khanTauntRewards", "construction item 30482 +1, construction item 30472 +1, mystery box 8 +1"]])
+    })
     test("a report with no recent taunt changes nothing", async () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         const { sne, rage, taunts } = await game()

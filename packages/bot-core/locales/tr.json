@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Oyun savunmada bir değişikliği reddetti: ",
     "khanDefenceHeld": "Savunma bir Han saldırısına dayandı",
     "khanDefenceLost": "Savunma bir Han saldırısına yenildi",
+    "khanTauntRewards": "Püskürtülen Han saldırısı şunu kazandırdı: ",
     "khanTauntHeldDefenceShort": "Han'ı kışkırtma, savunma yeniden doldurulana kadar beklemede",
     "khanTauntHeldDefenceLost": "Bir savunma kaybedildi, bu yüzden Han'ı kışkırtma etkinlik yeniden başlayana kadar beklemede",
     "khanTauntsResumed": "Han'ı kışkırtma yeniden başlıyor",

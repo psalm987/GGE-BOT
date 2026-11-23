@@ -695,6 +695,7 @@
     "khanDefenceRefused": "A játék elutasította a védelem módosítását: ",
     "khanDefenceHeld": "A védelem kitartott egy Kán-támadás ellen",
     "khanDefenceLost": "A védelem elbukott egy Kán-támadás ellen",
+    "khanTauntRewards": "A visszavert Kán-támadás ezt hozta: ",
     "khanTauntHeldDefenceShort": "A Kán kigúnyolása szünetel, amíg a védelem újra fel nem töltődik",
     "khanTauntHeldDefenceLost": "Egy védelem elveszett, ezért a Kán kigúnyolása szünetel, amíg az esemény újra el nem indul",
     "khanTauntsResumed": "A Kán kigúnyolása folytatódik",

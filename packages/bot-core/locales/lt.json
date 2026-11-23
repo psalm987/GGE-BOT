@@ -697,6 +697,7 @@
     "khanDefenceRefused": "Žaidimas atmetė gynybos pakeitimą: ",
     "khanDefenceHeld": "Gynyba atlaikė Chano puolimą",
     "khanDefenceLost": "Gynyba pralaimėjo Chano puolimui",
+    "khanTauntRewards": "Atremta chano ataka davė: ",
     "khanTauntHeldDefenceShort": "Chano erzinimas sustabdytas, kol gynyba vėl bus papildyta",
     "khanTauntHeldDefenceLost": "Viena gynyba prarasta, todėl Chano erzinimas sustabdytas, kol įvykis prasidės iš naujo",
     "khanTauntsResumed": "Chano erzinimas tęsiamas",

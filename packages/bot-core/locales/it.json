@@ -696,6 +696,7 @@
     "khanDefenceRefused": "Il gioco ha rifiutato una modifica della difesa: ",
     "khanDefenceHeld": "La difesa ha retto a un attacco del Khan",
     "khanDefenceLost": "La difesa ha ceduto a un attacco del Khan",
+    "khanTauntRewards": "L'attacco del Khan respinto ha fruttato: ",
     "khanTauntHeldDefenceShort": "Le provocazioni al Khan sono sospese finché la difesa non è di nuovo ripristinata",
     "khanTauntHeldDefenceLost": "Una difesa è andata persa, quindi le provocazioni al Khan sono sospese finché l'evento non riparte",
     "khanTauntsResumed": "Le provocazioni al Khan riprendono",

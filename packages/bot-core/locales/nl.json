@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Het spel weigerde een wijziging van de verdediging: ",
     "khanDefenceHeld": "De verdediging hield stand tegen een Khan-aanval",
     "khanDefenceLost": "De verdediging is bezweken onder een Khan-aanval",
+    "khanTauntRewards": "De afgeslagen Khan-aanval leverde op: ",
     "khanTauntHeldDefenceShort": "Het uitdagen van de Khan ligt stil tot de verdediging weer is aangevuld",
     "khanTauntHeldDefenceLost": "Een verdediging is verloren, dus het uitdagen van de Khan ligt stil tot het evenement opnieuw begint",
     "khanTauntsResumed": "Het uitdagen van de Khan gaat weer verder",

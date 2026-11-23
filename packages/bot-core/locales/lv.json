@@ -696,6 +696,7 @@
     "khanDefenceRefused": "Spēle noraidīja aizsardzības izmaiņu: ",
     "khanDefenceHeld": "Aizsardzība izturēja Hana uzbrukumu",
     "khanDefenceLost": "Aizsardzība zaudēja Hana uzbrukumā",
+    "khanTauntRewards": "Atvairītais hana uzbrukums deva: ",
     "khanTauntHeldDefenceShort": "Hana izaicināšana ir apturēta, līdz aizsardzība atkal būs papildināta",
     "khanTauntHeldDefenceLost": "Viena aizsardzība tika zaudēta, tāpēc Hana izaicināšana ir apturēta, līdz notikums atkal sāksies",
     "khanTauntsResumed": "Hana izaicināšana atsākas",

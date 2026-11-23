@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Spillet afviste en ændring af forsvaret: ",
     "khanDefenceHeld": "Forsvaret holdt mod et Khan-angreb",
     "khanDefenceLost": "Forsvaret faldt for et Khan-angreb",
+    "khanTauntRewards": "Det afviste Khan-angreb gav: ",
     "khanTauntHeldDefenceShort": "Provokationer af khanen er sat på pause, indtil forsvaret er fyldt op igen",
     "khanTauntHeldDefenceLost": "Et forsvar blev tabt, så provokationer af khanen er sat på pause, indtil eventet starter igen",
     "khanTauntsResumed": "Provokationer af khanen genoptages",

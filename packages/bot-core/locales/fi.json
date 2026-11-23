@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Peli hylkäsi puolustuksen muutoksen: ",
     "khanDefenceHeld": "Puolustus kesti kaanin hyökkäyksen",
     "khanDefenceLost": "Puolustus murtui kaanin hyökkäykseen",
+    "khanTauntRewards": "Torjuttu kaanin hyökkäys tuotti: ",
     "khanTauntHeldDefenceShort": "Kaanin pilkkaaminen on pidossa, kunnes puolustus on taas täydennetty",
     "khanTauntHeldDefenceLost": "Puolustus menetettiin, joten kaanin pilkkaaminen on pidossa, kunnes tapahtuma alkaa uudelleen",
     "khanTauntsResumed": "Kaanin pilkkaaminen jatkuu",

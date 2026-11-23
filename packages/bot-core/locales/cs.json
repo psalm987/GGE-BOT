@@ -697,6 +697,7 @@
     "khanDefenceRefused": "Hra odmítla změnu obrany: ",
     "khanDefenceHeld": "Obrana odolala útoku chána",
     "khanDefenceLost": "Obrana podlehla útoku chána",
+    "khanTauntRewards": "Odražený útok chána přinesl: ",
     "khanTauntHeldDefenceShort": "Provokace chána jsou pozastaveny, dokud se obrana znovu nedoplní",
     "khanTauntHeldDefenceLost": "Jedna obrana byla ztracena, proto jsou provokace chána pozastaveny, dokud událost znovu nezačne",
     "khanTauntsResumed": "Provokace chána pokračují",

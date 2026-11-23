@@ -97,6 +97,7 @@ const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
+const { holdingsOf, gained, loadRewardNames, rewardLine } = require("../../khanRewards.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
@@ -206,13 +207,37 @@ movementEvents.on("outgoing", (/** @type {import("../../protocols.js").ClassType
     landings.expect(Date.now() + Math.max(0, march.totalTime - (march.deltaTime - Date.now())))
 })
 
+/** The player's mystery boxes, keys and construction items as the game last listed them, by the command that lists each. */
+const holdings = {}
+for (const command of ["gls", "gii"])
+    xtHandler.on(command, (reply, result) => {
+        if (Number(result) == 0)
+            holdings[command] = holdingsOf(command, reply)
+    })
+/** How long after a battle report its reward pushes have all come in, in milliseconds. They came within 0.2 s. */
+const REWARDS_SETTLE_MS = 3000
+let rewardNames
+/** Logs what a defended taunt paid: how far the holdings rose from the battle report to a moment after it. */
+function logTauntRewards() {
+    const before = { ...holdings }
+    setTimeout(() => {
+        const gains = Object.keys(holdings).flatMap(command => gained(before[command], holdings[command]))
+        if (gains.length == 0)
+            return
+        rewardNames ??= loadRewardNames()
+        console.info("khanTauntRewards", rewardLine(gains, rewardNames))
+    }, REWARDS_SETTLE_MS).unref?.()
+}
+
 xtHandler.on("sne", ({ MSG }) => {
     for (const message of Array.isArray(MSG) ? MSG : []) {
         const result = defenceResult(message, playerInfo.playerID)
         if (!result || !landings.claim(Date.now()))
             continue
-        if (result == "held")
+        if (result == "held") {
             console.info("khanDefenceHeld")
+            logTauntRewards()
+        }
         else {
             console.warn("khanDefenceLost")
             defenceLost = true

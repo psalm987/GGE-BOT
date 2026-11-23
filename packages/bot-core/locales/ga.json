@@ -698,6 +698,7 @@
     "khanDefenceRefused": "Dhiúltaigh an cluiche d'athrú ar an gcosaint: ",
     "khanDefenceHeld": "Sheas an chosaint in aghaidh ionsaí ón Khan",
     "khanDefenceLost": "Cailleadh an chosaint in aghaidh ionsaí ón Khan",
+    "khanTauntRewards": "Thug an t-ionsaí ón Khan a cosnaíodh: ",
     "khanTauntHeldDefenceShort": "Tá griogadh an Khan ar sos go dtí go mbeidh an chosaint líonta arís",
     "khanTauntHeldDefenceLost": "Cailleadh cosaint, mar sin tá griogadh an Khan ar sos go dtí go dtosóidh an ócáid arís",
     "khanTauntsResumed": "Tosaíonn griogadh an Khan arís",

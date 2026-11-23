@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Das Spiel hat eine Änderung der Verteidigung abgelehnt: ",
     "khanDefenceHeld": "Die Verteidigung hat einem Khan-Angriff standgehalten",
     "khanDefenceLost": "Die Verteidigung ist einem Khan-Angriff unterlegen",
+    "khanTauntRewards": "Der abgewehrte Khan-Angriff brachte: ",
     "khanTauntHeldDefenceShort": "Das Verhöhnen des Khans ruht, bis die Verteidigung wieder aufgefüllt ist",
     "khanTauntHeldDefenceLost": "Eine Verteidigung ging verloren, daher ruht das Verhöhnen des Khans, bis das Event wieder startet",
     "khanTauntsResumed": "Das Verhöhnen des Khans geht weiter",

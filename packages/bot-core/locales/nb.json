@@ -695,6 +695,7 @@
     "khanDefenceRefused": "Spillet avviste en endring i forsvaret: ",
     "khanDefenceHeld": "Forsvaret holdt mot et Khan-angrep",
     "khanDefenceLost": "Forsvaret falt for et Khan-angrep",
+    "khanTauntRewards": "Det avverget Khan-angrepet ga: ",
     "khanTauntHeldDefenceShort": "Provosering av Khanen er satt på vent til forsvaret er fylt opp igjen",
     "khanTauntHeldDefenceLost": "Et forsvar gikk tapt, så provosering av Khanen er satt på vent til arrangementet starter igjen",
     "khanTauntsResumed": "Provosering av Khanen fortsetter",
