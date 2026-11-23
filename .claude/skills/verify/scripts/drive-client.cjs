@@ -242,7 +242,7 @@ async function driveTowers(page) {
     assert(await green.locator("[data-army-summary]").innerText() === "L·F·R+CY · 4w · Ladders, rams and mantlets", `the army line sums the old config up: ${await green.locator("[data-army-summary]").innerText()}`)
 
     const castles = await optionsOf(green, "Castle to attack from")
-    assert(castles.length === 2 && castles.every(text => text.includes("Great Empire")) && !castles.some(text => text.includes("Frostgate")), `Green's source castle lists only its own castles: ${castles.join(" | ")}`)
+    assert(castles.length === 2 && castles[0].startsWith("Main castle · Ironhold (412:288)") && castles[1].startsWith("Outpost · Ironhold Watch (430:301)") && !castles.some(text => text.includes("Frostgate")), `Green's source castle lists only its own castles, each named by what it is: ${castles.join(" | ")}`)
     await pickOption(green, "Castle to attack from", "Ironhold Watch")
 
     const radius = green.locator(".ant-form-item", { has: page.getByText("Search radius", { exact: true }) })
@@ -530,7 +530,7 @@ async function driveEventCamps(page) {
     await difficulties.waitFor({ state: "hidden" })
     assert(await chosen("Event difficulty") === "Keep the game's current difficulty", "the difficulty list ends with keeping the game's own difficulty")
     const castles = await optionsOf("Castle to attack from")
-    assert(castles.length === 2 && castles.every(text => text.includes("Great Empire")), `the source castle lists only the Great Empire's castles: ${castles.join(" | ")}`)
+    assert(castles.length === 2 && castles[0].startsWith("Main castle · Ironhold") && castles[1].startsWith("Outpost · Ironhold Watch"), `the source castle lists only the Great Empire's castles: ${castles.join(" | ")}`)
     await pickOption("Castle to attack from", "Ironhold Watch")
     await number("Attacks per run").fill("5")
 
@@ -582,7 +582,7 @@ async function driveEventCamps(page) {
 
     await open()
     assert(await chosen("Camps to attack") === "Skip mode: one camp, uses time skips" && await number("Camp X").inputValue() === "640" && await number("Camp Y").inputValue() === "12", "the mode and the camp come back after a reload")
-    assert(await chosen("Event difficulty") === "Keep the game's current difficulty" && (await chosen("Castle to attack from")).startsWith("Ironhold Watch"), "the difficulty and the source castle come back")
+    assert(await chosen("Event difficulty") === "Keep the game's current difficulty" && (await chosen("Castle to attack from")).startsWith("Outpost · Ironhold Watch"), "the difficulty and the source castle come back")
     assert(await chosen("Horse") === "By distance" && await chosen("Tools") === "No tools" && await chosen("Waves") === "2 waves" && await number("Minimum troops").inputValue() === "300" && await number("Attacks per run").inputValue() === "5",
         "the horse, tools, waves, minimum troops and attacks per run come back")
     assert(!(await tab().getByRole("checkbox", { name: "Attack courtyard" }).isChecked()) && await tab().getByRole("checkbox", { name: "Attack left flank" }).isChecked(), "the sides come back: courtyard off, left on")
@@ -2173,7 +2173,7 @@ async function driveUxArmourer(page) {
     await openModule(page, "Armourer")
     assert(await form.getByText("Keep at least", { exact: true }).first().isVisible() && await form.getByText("Castle", { exact: true }).first().isVisible(), "the rows have Castle and Keep at least columns")
     assert(await form.getByText("Kingdom", { exact: true }).count() === 0, "no Kingdom column is left")
-    assert(/^Ironhold /.test(await shown("Castle, row 1")) && !(await shown("Castle, row 1")).includes("Watch"), `a stored kingdom row shows that kingdom's main castle: ${await shown("Castle, row 1")}`)
+    assert((await shown("Castle, row 1")).startsWith("Main castle · Ironhold (412:288) · Great Empire"), `a stored kingdom row shows that kingdom's main castle: ${await shown("Castle, row 1")}`)
     assert(/ladder/i.test(await shown("Tool, row 1")), `and its tool: ${await shown("Tool, row 1")}`)
     assert(await form.getByLabel("Keep at least, row 1").inputValue() === "5,000" || await form.getByLabel("Keep at least, row 1").inputValue() === "5000", "and its stock as the minimum")
     assert(await form.getByText("A minimum of 0 buys nothing", { exact: false }).isVisible(), "the help says what the minimum does and that 0 buys nothing")
@@ -2201,7 +2201,7 @@ async function driveUxArmourer(page) {
         `the new rows are saved by castle: ${JSON.stringify(rows.slice(1))}`)
 
     await openArmourer()
-    assert((await shown("Castle, row 2")).includes("Ironhold Watch") && (await shown("Castle, row 3")).includes("Frostgate") && /^Ironhold /.test(await shown("Castle, row 1")),
+    assert((await shown("Castle, row 2")).includes("Ironhold Watch") && (await shown("Castle, row 3")).includes("Frostgate") && (await shown("Castle, row 1")).startsWith("Main castle · Ironhold ("),
         "after a reload each row shows its castle")
     assert(await form.getByLabel("Keep at least, row 2").inputValue() === "1,200" || await form.getByLabel("Keep at least, row 2").inputValue() === "1200", "and its minimum")
 
@@ -2253,7 +2253,7 @@ async function driveRecruitTools(page) {
     const heal = page.locator("[data-soon=heal]")
     assert((await heal.innerText()).startsWith("Healing") && (await heal.innerText()).includes("Coming soon"), "healing is listed as coming soon")
     assert(await page.getByText("Still to come", { exact: true }).isVisible(), "under a Still to come card")
-    assert(/^Ironhold Watch/.test(await shown(troops, "Castle, row 1")) && /halberdier/i.test(await shown(troops, "Troop, row 1")), `the stored troop row shows its castle and troop: ${await shown(troops, "Castle, row 1")} / ${await shown(troops, "Troop, row 1")}`)
+    assert((await shown(troops, "Castle, row 1")).startsWith("Outpost · Ironhold Watch") && /halberdier/i.test(await shown(troops, "Troop, row 1")), `the stored troop row shows its castle and troop: ${await shown(troops, "Castle, row 1")} / ${await shown(troops, "Troop, row 1")}`)
     assert(await troops.getByLabel("Stock, row 1").inputValue() === "500" && await troops.getByLabel("Per order, row 1").inputValue() === "50", "and its stock and per-order amount")
     assert(await form.getByLabel("Keep at least this many coins").inputValue().then(v => v.replace(/\D/g, "")) === "250000", "the coin floor shows what was stored")
 

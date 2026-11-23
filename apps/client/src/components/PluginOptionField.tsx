@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
+import { castleKey, castleOptions, toCastle } from "../castle-options.ts"
 import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
 
@@ -43,27 +44,18 @@ export function useKingdomName() {
     return (kingdom: number) => t(`plugins.kingdom.${kingdom}`, { defaultValue: t("plugins.kingdom.other", { id: kingdom }) })
 }
 
-const castleKey = (ref: CastleRef) => `${ref.kingdom}:${ref.id}`
-const toCastle = (key: string): CastleRef => {
-    const [kingdom, id] = key.split(":").map(Number)
-    return { kingdom: kingdom!, id: id! }
-}
-
-function useCastleOptions(castles: AccountCastle[]) {
-    const { t } = useTranslation("client")
-    const kingdomName = useKingdomName()
-    return castles.map(c => ({ value: castleKey(c), label: t("plugins.castle.option", { name: c.name, kingdom: kingdomName(c.kingdom), x: c.x, y: c.y }) }))
-}
-
 /** One castle of the account, by kingdom and id. A picked castle the account no longer lists shows as nothing picked. */
 function CastleSelect({ castles, value, onChange, placeholder, ...aria }: {
     castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; placeholder?: string; "aria-label"?: string; id?: string
 }) {
-    const options = useCastleOptions(castles)
+    const { t } = useTranslation("client")
+    const options = castleOptions(castles, t, useKingdomName())
+    const chosen = new Map(options.flatMap(o => "options" in o ? o.options : [o]).map(o => [o.value, o.chosen]))
     const found = value && (value.id === MAIN_CASTLE
         ? castles.find(c => c.kingdom === value.kingdom && MAIN_CASTLE_AREA_TYPES.includes(c.type))
         : castles.find(c => c.kingdom === value.kingdom && c.id === value.id))
-    return <Select {...aria} allowClear disabled={!castles.length} options={options} value={found ? castleKey(found) : undefined} placeholder={placeholder}
+    return <Select {...aria} allowClear showSearch={{ optionFilterProp: "search" }} disabled={!castles.length} options={options} value={found ? castleKey(found) : undefined}
+        labelRender={({ value: key }) => chosen.get(String(key))} placeholder={placeholder}
         status={value && castles.length && !found ? "warning" : undefined} onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
 }
 
