@@ -1445,9 +1445,19 @@ async function driveGamePresets(page) {
         await box.click()
         const options = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
         await options.first().waitFor()
-        const texts = await options.allInnerTexts()
+        // antd draws only the options in view, so the list is read one option at a time with the arrow keys.
+        const active = page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option-active")
+        // It opens on the picked option and wraps at the end, so it goes round once and is put back in list order.
+        const seen = [await active.innerText()]
+        for (let i = 0; i < 60; i++) {
+            await page.keyboard.press("ArrowDown")
+            const text = await active.innerText()
+            if (text === seen[0]) break
+            seen.push(text)
+        }
         await page.keyboard.press("Escape")
-        return texts
+        const first = Math.max(0, seen.indexOf("Empty (no troops)"))
+        return [...seen.slice(first), ...seen.slice(0, first)]
     }
 
     await page.setViewportSize(WIDE_VIEW)
@@ -1472,7 +1482,8 @@ async function driveGamePresets(page) {
     assert(options.armyMode === "waves" && JSON.stringify(options.waves.waves[0]) === JSON.stringify({ kind: "preset", preset: 4 }), "the API stores wave 1 as preset 4")
 
     const naming9 = { ...options, waves: { ...options.waves, waves: [{ kind: "preset", preset: 9 }, ...options.waves.waves.slice(1)] } }
-    const updated = await rpc(page, "accounts/update", { id: ironhold.id, plugins: { ...before, [plugin]: { ...before[plugin], options: naming9 } } })
+    const saved = (await rpc(page, "accounts/list")).find(a => a.id === ironhold.id).plugins
+    const updated = await rpc(page, "accounts/update", { id: ironhold.id, plugins: { ...saved, [plugin]: { ...saved[plugin], options: naming9 } } })
     assert(updated?.plugins?.[plugin]?.options?.waves?.waves?.[0]?.preset === 9, `a plan naming preset 9 is stored through the API (${JSON.stringify(updated).slice(0, 300)})`)
     await page.reload()
     form = await openFortress()
@@ -1494,7 +1505,11 @@ async function driveGamePresets(page) {
     assert(await form.locator(".ant-alert-warning").count() === 0, "with no presets read, a named preset brings no warning")
     await form.locator(".ant-collapse-header").nth(0).click()
     assert(await form.getByText("The bot hasn't read this account's in-game presets yet.", { exact: false }).isVisible(), "an account whose presets aren't read says when the bot reads them")
-    const unread = await choicesOf(form.getByRole("combobox", { name: "In-game preset for wave 1", exact: true }))
+    const unreadBox = form.getByRole("combobox", { name: "In-game preset for wave 1", exact: true })
+    const waveOne = form.locator(".ant-collapse-header").nth(0)
+    if (await waveOne.getAttribute("aria-expanded") !== "true") await waveOne.click()
+    await unreadBox.waitFor()
+    const unread = await choicesOf(unreadBox)
     assert(unread.length === 31 && unread[1] === "Preset 1" && unread[30] === "Preset 30", `before the bot has read the game's list, every slot is offered by number (${unread.length} choices: ${unread.slice(0, 3).join(", ")} … ${unread.at(-1)})`)
     await pick(form, "In-game preset for wave 1", "Preset 7")
     assert(await form.locator(".ant-collapse-header").nth(0).locator(".ant-tag").innerText() === "Preset 7", "wave 1's tag shows the picked slot")
