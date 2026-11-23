@@ -20,6 +20,94 @@ async function axe(page, name) {
     console.log(`axe ${name}: ${result.length ? "\n  " + result.join("\n  ") : "no WCAG A/AA violations"}`)
 }
 
+const selectShown = box => box.locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText().then(t => t.replace(/\s+/g, " ").trim())
+
+/**
+ * Opens the antd Select behind this combobox and returns its dropdown once it has settled. antd places the dropdown
+ * after it mounts (it can flip from top to bottom) and slides it in, and a click that lands in that window hits where
+ * the row used to be, so the dropdown stays open with the old value.
+ */
+async function openSelect(page, box, name) {
+    await box.scrollIntoViewIfNeeded()
+    await box.click()
+    // A select that has just closed can swallow the click while its list fades out.
+    const handle = await box.elementHandle()
+    const expanded = () => page.waitForFunction(el => el.getAttribute("aria-expanded") === "true", handle, { timeout: 1500 }).then(() => true, () => false)
+    if (!(await expanded()) && (await box.getAttribute("aria-expanded")) !== "true") { await box.click(); await expanded() }
+    const controls = await box.getAttribute("aria-controls")
+    const dropdown = controls ? page.locator(`.ant-select-dropdown:has([id="${controls}"])`) : page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden)").last()
+    await dropdown.waitFor()
+    await settled(dropdown, name)
+    return dropdown
+}
+
+/** Waits until the dropdown runs no motion and has kept its box and placement for a few frames. */
+async function settled(dropdown, name) {
+    const ok = await dropdown.evaluate(el => new Promise(resolve => {
+        const deadline = performance.now() + 5000
+        let last = "", still = 0
+        const tick = () => {
+            const r = el.getBoundingClientRect()
+            const key = [r.x, r.y, r.width, r.height, el.className.match(/ant-select-dropdown-placement-\w+/)].join()
+            const moving = /\bant-(slide|zoom)-\S+-(appear|enter|leave)\b/.test(el.className)
+            still = !moving && key === last ? still + 1 : 0
+            last = key
+            if (still >= 3) return resolve(true)
+            if (performance.now() > deadline) return resolve(false)
+            requestAnimationFrame(tick)
+        }
+        tick()
+    }))
+    if (!ok) throw new Error(`FAILED: the dropdown of ${name} kept moving for 5 s`)
+}
+
+const isHidden = (dropdown, timeout) => dropdown.waitFor({ state: "hidden", timeout }).then(() => true, () => false)
+
+/**
+ * Picks an option of an antd Select by its text (the first one when text is empty) and checks that the select then
+ * shows it. A click that leaves the dropdown open with the old value is retried once. Returns the option's text.
+ * `type` types the text into the search box first.
+ */
+async function selectOption(page, box, name, text, { type = false } = {}) {
+    const what = `"${text || "first option"}" in ${name}`
+    const dropdown = await openSelect(page, box, name)
+    if (type)
+        await page.keyboard.type(text)
+    // The list only draws the rows around the current choice, so start from its top.
+    await dropdown.locator(".rc-virtual-list-holder").evaluate(el => { el.scrollTop = 0 }).catch(() => {})
+    const options = dropdown.locator(".ant-select-item-option")
+    const option = text ? options.filter({ hasText: text }).first() : options.first()
+    let label
+    for (let attempt = 0; ; attempt++) {
+        label = (await option.innerText()).trim()
+        await option.click()
+        if (await isHidden(dropdown, 3000))
+            break
+        if (attempt === 1) {
+            await page.keyboard.press("Escape")
+            throw new Error(`FAILED: picking ${what}: the dropdown stayed open after two clicks and the select shows "${await selectShown(box)}"`)
+        }
+        await settled(dropdown, name)
+    }
+    const shown = await selectShown(box)
+    if (!shown.includes(label.replace(/\s+/g, " ")))
+        throw new Error(`FAILED: picking ${what}: the select shows "${shown}", not "${label}"`)
+    return label
+}
+
+/** The option texts of an antd Select. Leaves the dropdown closed. */
+async function selectOptions(page, box, name) {
+    const dropdown = await openSelect(page, box, name)
+    const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
+    await page.keyboard.press("Escape")
+    if (!(await isHidden(dropdown, 3000))) {
+        await page.keyboard.press("Escape")
+        if (!(await isHidden(dropdown, 3000)))
+            throw new Error(`FAILED: the dropdown of ${name} stayed open after Escape`)
+    }
+    return texts
+}
+
 let adminCookie
 /** Sets a player's bot limit through the admin API, as the seeded admin (signed in once per run). */
 async function setMaxBots(username, maxBots) {
@@ -124,25 +212,8 @@ async function driveTowers(page) {
 
     const panel = short => page.locator(`section.gge-kingdom[aria-label="${short}"]`)
     const chosen = async (scope, name) => (await scope.getByRole("combobox", { name, exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
-    const pickOption = async (scope, name, text) => {
-        const box = scope.getByRole("combobox", { name, exact: true })
-        await box.scrollIntoViewIfNeeded()
-        await box.click()
-        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
-        await dropdown.waitFor()
-        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
-        await dropdown.waitFor({ state: "hidden" })
-    }
-    const optionsOf = async (scope, name) => {
-        const box = scope.getByRole("combobox", { name, exact: true })
-        await box.click()
-        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
-        await dropdown.waitFor()
-        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
-        await page.keyboard.press("Escape")
-        await dropdown.waitFor({ state: "hidden" })
-        return texts
-    }
+    const pickOption = (scope, name, text) => selectOption(page, scope.getByRole("combobox", { name, exact: true }), name, text)
+    const optionsOf = (scope, name) => selectOptions(page, scope.getByRole("combobox", { name, exact: true }), name)
     const open = async () => {
         await page.goto(`${CLIENT_URL}/m/towers?account=${ironhold.id}`)
         await page.locator("section.gge-kingdom").first().waitFor()
@@ -296,15 +367,7 @@ async function drivePhaseC(page) {
         await storePluginSettings({ accountName: "Ironhold", plugin, enabled: false, options })
 
     const chosen = async name => (await page.getByRole("combobox", { name, exact: true }).first().locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
-    const pickOption = async (name, text) => {
-        const box = page.getByRole("combobox", { name, exact: true }).first()
-        await box.scrollIntoViewIfNeeded()
-        await box.click()
-        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
-        await dropdown.waitFor()
-        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
-        await dropdown.waitFor({ state: "hidden" })
-    }
+    const pickOption = (name, text) => selectOption(page, page.getByRole("combobox", { name, exact: true }).first(), name, text)
     const number = label => page.locator(".ant-form-item:visible", { has: page.getByText(label, { exact: true }) }).getByRole("spinbutton").first()
     const save = async () => {
         await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
@@ -418,26 +481,9 @@ async function driveEventCamps(page) {
 
     const tab = () => page.getByRole("tabpanel")
     const chosen = async name => (await tab().getByRole("combobox", { name, exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).trim()
-    const dropdownOf = async name => {
-        const box = tab().getByRole("combobox", { name, exact: true })
-        await box.scrollIntoViewIfNeeded()
-        await box.click()
-        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
-        await dropdown.waitFor()
-        return dropdown
-    }
-    const pickOption = async (name, text) => {
-        const dropdown = await dropdownOf(name)
-        await dropdown.locator(".ant-select-item-option", { hasText: text }).first().click()
-        await dropdown.waitFor({ state: "hidden" })
-    }
-    const optionsOf = async name => {
-        const dropdown = await dropdownOf(name)
-        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
-        await page.keyboard.press("Escape")
-        await dropdown.waitFor({ state: "hidden" })
-        return texts
-    }
+    const dropdownOf = name => openSelect(page, tab().getByRole("combobox", { name, exact: true }), name)
+    const pickOption = (name, text) => selectOption(page, tab().getByRole("combobox", { name, exact: true }), name, text)
+    const optionsOf = name => selectOptions(page, tab().getByRole("combobox", { name, exact: true }), name)
     const field = label => tab().locator(".ant-form-item", { has: page.getByText(label, { exact: true }) })
     const number = label => field(label).getByRole("spinbutton").first()
     const shown = label => tab().getByText(label, { exact: true }).first().isVisible()
@@ -1356,24 +1402,7 @@ async function driveGlorySettings(page) {
 /** What the army drivers share on Ironhold's Fortress page: the select and segmented pickers, the save bar and opening the module. */
 function armyHelpers(page) {
     /** Picks an option of the select with this accessible name: by its text, or the first one. Returns the option's text. */
-    const pick = async (scope, name, text) => {
-        const box = scope.getByRole("combobox", { name, exact: true })
-        await box.scrollIntoViewIfNeeded()
-        await box.click()
-        // A select that has just closed can swallow the click while its list fades out.
-        const handle = await box.elementHandle()
-        const opened = () => page.waitForFunction(el => el.getAttribute("aria-expanded") === "true", handle, { timeout: 1500 }).then(() => true, () => false)
-        if (!(await opened())) { await box.click(); await opened() }
-        const dropdown = page.locator(`.ant-select-dropdown:has([id="${await box.getAttribute("aria-controls")}"])`)
-        await dropdown.waitFor()
-        // The list only draws the rows around the current choice, so start from its top.
-        await dropdown.locator(".rc-virtual-list-holder").evaluate(el => { el.scrollTop = 0 }).catch(() => {})
-        const option = text ? dropdown.locator(".ant-select-item-option", { hasText: text }).first() : dropdown.locator(".ant-select-item-option").first()
-        const label = (await option.innerText()).trim()
-        await option.click()
-        await dropdown.waitFor({ state: "hidden" })
-        return label
-    }
+    const pick = (scope, name, text) => selectOption(page, scope.getByRole("combobox", { name, exact: true }), name, text)
     const segment = (scope, group, text) => scope.locator(`[aria-label="${group}"] .ant-segmented-item`, { hasText: text })
     const saveBar = page.locator(".gge-savebar")
     const save = async () => {
@@ -2036,12 +2065,7 @@ async function driveUxArmourer(page) {
         await page.waitForTimeout(300)
     }
     const shown = async label => (await form.getByLabel(label).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).replace(/\s+/g, " ").trim()
-    const pick = async (label, text, type = false) => {
-        await form.getByLabel(label).click()
-        if (type)
-            await page.keyboard.type(text)
-        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: text }).first().click()
-    }
+    const pick = (label, text, type = false) => selectOption(page, form.getByLabel(label), label, text, { type })
 
     await page.setViewportSize(WIDE_VIEW)
     await openModule(page, "Armourer")
@@ -2118,12 +2142,7 @@ async function driveRecruitTools(page) {
         await page.waitForTimeout(300)
     }
     const shown = async (scope, label) => (await scope.getByLabel(label).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).replace(/\s+/g, " ").trim()
-    const pick = async (scope, label, text, type = false) => {
-        await scope.getByLabel(label).click()
-        if (type)
-            await page.keyboard.type(text)
-        await page.locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option", { hasText: text }).first().click()
-    }
+    const pick = (scope, label, text, type = false) => selectOption(page, scope.getByLabel(label), label, text, { type })
 
     await page.setViewportSize(WIDE_VIEW)
     await openModule(page, "Recruit, tools and heal")
