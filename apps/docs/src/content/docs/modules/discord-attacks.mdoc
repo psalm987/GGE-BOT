@@ -1,6 +1,6 @@
 ---
 title: Discord attack alerts
-description: Post attacks on you and your alliance, and attacks from your alliance, to Discord channels, with a countdown and a picture of the army.
+description: Post attacks on you and your alliance, and the attacks you send, to Discord channels, with a countdown and a picture of the army.
 appRoute: /m/discord-attacks
 plugin: incomingAttacks
 sources:
@@ -15,7 +15,7 @@ sources:
 {% terms_on_page /%}
 
 - **Incoming attacks** posts a message when a player attacks you or your alliance.
-- **Outgoing attacks** posts the attacks your alliance sends.
+- **Outgoing attacks** posts the attacks you send.
 
 ## Incoming attacks {% #incoming %}
 
@@ -44,15 +44,15 @@ Ask your alliance members to set their Discord nickname to their game name. Then
 
 ### Storm Islands channel {% #storm-channel %}
 
-Attacks on the Storm Islands go to **Storm Islands channel ID**, not to the first channel. If you leave it empty, the bot does not post Storm Islands attacks at all.
+Attacks on the Storm Islands go to **Storm Islands channel ID**, not to the first channel. If you leave it empty, Storm Islands attacks go to the first channel with the others.
 
 {% settings plugin="incomingAttacks" /%}
 
 ## Outgoing attacks {% #outgoing %}
 
-The bot posts each attack that leaves your alliance for a player outside it. That includes your own attacks and the attacks of your alliance members that your bot can see.
+The bot posts each attack you send to a player outside your alliance. It does not post the attacks of your alliance members. It also skips attacks on targets the game runs, such as {% term id="robber-baron" %}Robber Baron{% /term %} castles.
 
-Each message names the two players and their castles, the alliance of the player under attack, the kingdom, the distance in clicks, and a live countdown. It always comes with a picture of the attacking army's layout. The bot posts each attack one time.
+Each message names you and the castle the attack left from, the player under attack, their castle and their alliance. It also names the kingdom, the distance in clicks and a live countdown. It always comes with a picture of your army's layout. The bot posts each attack one time.
 
 {% settings plugin="outgoingAttacks" /%}
 

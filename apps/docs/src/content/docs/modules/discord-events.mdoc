@@ -35,6 +35,8 @@ Give each plugin a channel of its own, where nobody else writes. Then the board 
 
 The message lists each fortress with its kingdom, its coordinates and the time left. The list is sorted by time left. Everwinter Glacier shows at most 15 fortresses.
 
+The plugin searches only the kingdoms where you have a castle. If you have no castle in Burning Sands, Everwinter Glacier or Fire Peaks, the plugin stops. The {% ui key="client:module.status" /%} card then says **This account has no castle in Burning Sands, Everwinter Glacier or Fire Peaks.**
+
 {% settings plugin="fortress" /%}
 
 ## Aquamarine Islands {% #aqua-islands %}
@@ -50,6 +52,8 @@ The plugin needs the Storm Islands unlocked on your account. If they are locked,
 The message lists each tower that is open now, with its coordinates, its level, whether it is Easy or Hard, and the hits left out of 10.
 
 This plugin also needs the Storm Islands unlocked.
+
+Both Storm Islands plugins search the map around your castle there. If you have no castle in the Storm Islands, the plugin stops. The {% ui key="client:module.status" /%} card then says **This account has no castle in the Storm Islands yet.** Restart the bot once you have one.
 
 {% settings plugin="aquaTower" /%}
 

@@ -44,9 +44,9 @@ A sale cannot be undone. Before you turn the plugin on, check your storage. Anyt
 
 {% settings plugin="sellStoredEquipment" /%}
 
-**Minutes to wait after login before selling** sets how long the bot waits after it signs in before the first sale. The range is 1 to 60 minutes.
+**Minutes to wait after login before selling** sets how long the bot waits after it signs in before the first sale. It takes whole minutes, from 1 to 60.
 
-**Items sold per run** is how many items one round sells, from 1 to 50.
+**Items sold per run** is how many items one round sells. It takes a whole number from 1 to 50.
 
 ## Tips and limits {% #tips %}
 
@@ -55,4 +55,4 @@ A sale cannot be undone. Before you turn the plugin on, check your storage. Anyt
 
 ## Related errors {% #errors %}
 
-If a number is outside its range when you save, the app shows [PLUGIN_OPTION_RANGE](/errors/#plugin-option-range).
+If a number is outside its range when you save, the app shows [PLUGIN_OPTION_RANGE](/errors/#plugin-option-range). If it is not a whole number, the app shows [PLUGIN_OPTION_STEP](/errors/#plugin-option-step).
