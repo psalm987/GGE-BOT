@@ -44,7 +44,7 @@ The same editor appears on the attack pages when **Army** is set to {% ui key="c
 
 An amount above what a side can hold fills the side. The bot waits while the castle holds less than a slot needs.
 
-{% status kind="beta" /%} Each wave can also come from an {% ui key="client:waves.kind.preset" /%}, one of the presets you saved in the game. The list shows each preset by name. The bot reads it from the game a few minutes after it starts, or with its first attack, so an account that hasn't run yet shows no presets.
+{% status kind="beta" /%} Each wave can also come from an {% ui key="client:waves.kind.preset" /%}, one of the presets you saved in the game. The list always offers slots 1 to 30, so you can set up your waves before the bot's first run. Pick the slot by the number the game shows for it. The bot reads your presets from the game a few minutes after it starts, or with its first attack. After that, the list shows each saved preset by name and marks the slots the game didn't list.
 
 The bot sends what the preset holds at the time of each attack. If you change a preset in the game, the next attack after the bot's next read uses the change. A module whose waves name a preset the game no longer lists does not start, and says which preset is missing.
 
