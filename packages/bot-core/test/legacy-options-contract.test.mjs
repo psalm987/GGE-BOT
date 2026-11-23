@@ -28,6 +28,14 @@ const STORED = [
     [{ attackWaves: 3, horse: 3, tools: 2 }, { attackWaves: 3, horse: 3, tools: 2 }],
     [{ horse: 0, useFeather: true }, { horse: 0 }],
     [{ useDogs: true, commanderWhiteList: "1-3", useCoin: false }, { useDogs: true, commanderWhiteList: "1-3", horse: 0 }],
+    [{ supply: 0, foodTroopsOnly: true }, { supply: 1 }],
+    [{ foodTroopsOnly: true }, { supply: 1 }],
+    [{ foodTroopsOnly: false }, { supply: 0 }],
+    [{ supply: 2, foodTroopsOnly: true }, { supply: 2 }],
+    [{ supply: "2", foodTroopsOnly: true }, { supply: 2 }],
+    [{ supply: 1, foodTroopsOnly: false }, { supply: 1 }],
+    [{ supply: 2 }, { supply: 2 }],
+    [{ attackWaves: 2, supply: 0, foodTroopsOnly: true, useFeather: true }, { attackWaves: 2, supply: 1, horse: 2 }],
 ]
 
 describe("options stored before the horse, tool and wave Selects", () => {
@@ -76,7 +84,15 @@ const STORED_CAMPS = [
     [{ scoreShutoff: "-5" }, { scoreShutoff: 0 }],
     [{ scoreShutoff: "99999999999" }, { scoreShutoff: 999_999_999 }],
     [{ scoreShutoff: 700 }, { scoreShutoff: 700 }],
-    [{ lowValueChests: true, foodTroopsOnly: true, noChests: true, useCoin: true, scoreShutoff: "120000" }, { lowValueChests: true, foodTroopsOnly: true, tools: 1, horse: 1, scoreShutoff: 120000 }],
+    [{ lowValueChests: true, foodTroopsOnly: true, noChests: true, useCoin: true, scoreShutoff: "120000" }, { lowValueChests: true, supply: 1, tools: 1, horse: 1, scoreShutoff: 120000 }],
+    [{ supply: 0, foodTroopsOnly: true }, { supply: 1 }],
+    [{ supply: 0, useFood: false }, { supply: 2 }],
+    [{ useFood: false }, { supply: 2 }],
+    [{ useFood: true }, { supply: 0 }],
+    [{ supply: 2, foodTroopsOnly: true }, { supply: 2 }],
+    [{ supply: 1, useFood: false }, { supply: 1 }],
+    [{ foodTroopsOnly: true, useFood: false }, { supply: 1 }],
+    [{ supply: 2, minTroops: 300 }, { supply: 2, minTroops: 300 }],
 ]
 
 describe("event camp options stored before the horse and tools Selects and the numeric score", () => {
@@ -104,6 +120,15 @@ describe("event camp options stored before the horse and tools Selects and the n
     test("an old choice beats the new default on the way to the bot", () => {
         const config = effectivePluginConfig([{ key: "camps", force: false, hidden: false, options: nomads }], { camps: { enabled: true, options: { noChests: true, useFeather: true, scoreShutoff: "2500" } } })
         expect(config.camps).toMatchObject({ tools: 1, horse: 2, scoreShutoff: 2500 })
+    })
+    test("the food switches reach the bot as the troop supply they meant, and not as themselves", () => {
+        const read = stored => effectivePluginConfig([{ key: "camps", force: false, hidden: false, options: nomads }], { camps: { enabled: true, options: stored } }).camps
+        expect(read({ supply: 0, foodTroopsOnly: true })).toMatchObject({ supply: 1 })
+        expect(read({ useFood: false })).toMatchObject({ supply: 2 })
+        expect(read({ supply: 2, foodTroopsOnly: true })).toMatchObject({ supply: 2 })
+        expect(read({})).toMatchObject({ supply: 0 })
+        for (const stored of [{ foodTroopsOnly: true }, { useFood: false }])
+            expect(Object.keys(read(stored)).filter(key => key in stored)).toEqual([])
     })
 })
 

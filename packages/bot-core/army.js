@@ -38,7 +38,22 @@ const parseAutofill = (options, { unitOrder = "castle" } = {}) => ({
 
 const unitOrderOption = (unitOrder = "castle") =>
     ({ type: "Select", key: "unitOrder", selection: UNIT_ORDER_CHOICES, default: UNIT_ORDERS.indexOf(unitOrder), army: "autofill" })
-const supplyOption = () => ({ type: "Select", key: "supply", selection: SUPPLY_CHOICES, default: 0, army: "autofill" })
+const FOOD = TROOP_SUPPLIES.indexOf("food"), MEAD = TROOP_SUPPLIES.indexOf("mead")
+/**
+ * The `legacy` rule of a troop supply that replaced the "Food troops only" and "Use food troops" switches: the first on
+ * reads as Food only and the second off as Mead only. A Food only or Mead only stored beside them stays, whether it
+ * was stored as a number or as its digits, which normalizePluginSettings also accepts.
+ */
+const SUPPLY_SWITCHES = {
+    from: { supply: 0, foodTroopsOnly: false, useFood: true },
+    cases: [
+        ...[FOOD, MEAD].flatMap(supply => [[{ supply }, supply], [{ supply: String(supply) }, supply]]),
+        [{ foodTroopsOnly: true }, FOOD],
+        [{ useFood: false }, MEAD],
+    ],
+    otherwise: 0,
+}
+const supplyOption = legacy => ({ type: "Select", key: "supply", selection: SUPPLY_CHOICES, default: 0, ...(legacy && { legacy }), army: "autofill" })
 const horseOption = horse => ({ type: "Select", key: "horse", selection: HORSE_CHOICES, default: horse })
 
 const MIN_WAVES = 1
@@ -254,5 +269,5 @@ module.exports = {
     ARMY_MODES, UNIT_ORDERS, TROOP_SUPPLIES, HORSES, ArmyProblem,
     orderUnits, eats, choice, parseAutofill, parseArmy, readArmy, isManualPlan, fillFromPlan,
     presetsNamed, presetsOf, rememberPresets, knownPresets,
-    unitOrderOption, supplyOption, armyOptions, fortressOptions,
+    unitOrderOption, supplyOption, SUPPLY_SWITCHES, armyOptions, fortressOptions,
 }

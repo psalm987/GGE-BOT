@@ -270,10 +270,8 @@ function eventCampAttacks(profile, stored, filename) {
                             else if (unit.unitInfo.defRangeBonus)
                                 attackerShieldTools.push(unit)
                         }
-                        else if (profile.isTroop(unit.unitInfo, options)) {
+                        else if (profile.isTroop(unit.unitInfo)) {
                             if (!eats(autofill.supply, unit.unitInfo))
-                                continue
-                            if(options.foodTroopsOnly && unit.unitInfo.meadSupply)
                                 continue
                             if (unit.unitInfo.role == "melee")
                                 attackerMeleeTroops.push(unit)

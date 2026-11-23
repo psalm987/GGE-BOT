@@ -18,6 +18,17 @@ describe("rage waves, stored as wavesTillChests before", () => {
         expect(readLegacy(options, stored)).toEqual(read)
         expect(contractsRead(options, stored)).toEqual(read)
     })
+    test.each([
+        [{ supply: 0, foodTroopsOnly: true }, { supply: 1 }],
+        [{ useFood: false }, { supply: 2 }],
+        [{ supply: 0, useFood: true, foodTroopsOnly: false }, { supply: 0 }],
+        [{ supply: 2, foodTroopsOnly: true }, { supply: 2 }],
+        [{ supply: 1, useFood: false }, { supply: 1 }],
+        [{ supply: 2 }, { supply: 2 }],
+    ])("the food switches %j read as the troop supply %j, for the bot and the contracts alike", (stored, read) => {
+        expect(readLegacy(options, stored)).toEqual(read)
+        expect(contractsRead(options, stored)).toEqual(read)
+    })
     test("the old default and the new defaults mean the same waves", () => {
         const read = stored => effectivePluginConfig([{ key: "khan", force: false, hidden: false, options }], { khan: { enabled: true, options: stored } }).khan
         expect(read({ wavesTillChests: "4" })).toEqual(read({}))
@@ -39,7 +50,7 @@ const inventory = () => [
 ]
 const camp = () => ({ type: 35, x: 110, y: 105, extraData: [0, 0, 0, 0, 0, 0, 5] })
 const items = { eventAutoScalingCamps: [{ eventAutoScalingCampID: 5, camplevel: "50", playerRageCap: "1500" }] }
-const khan = (stored, game = {}) => runEvent("attackKhan", { commanderWhiteList: "1-99", useFood: true, ...stored }, { inventory: inventory(), areas: [camp()], start: { EDID: 3 }, items, ...game })
+const khan = (stored, game = {}) => runEvent("attackKhan", { commanderWhiteList: "1-99", ...stored }, { inventory: inventory(), areas: [camp()], start: { EDID: 3 }, items, ...game })
 const toolsOf = wave => [...new Set([...wave.L.T, ...wave.R.T, ...wave.M.T].map(([wodID]) => wodID).filter(wodID => wodID != -1))]
 
 describe("Khan waves", () => {
@@ -66,6 +77,13 @@ describe("Khan waves", () => {
         const { cra } = await khan({ armyMode: "waves", waves: { kind: "manual", waves: [first, none, none, none], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] } })
         expect(cra.A[0].L).toEqual({ T: [[106, 5], [-1, 0]], U: [[603, 40], [-1, 0]] })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[], [], []])
+    })
+    test("a stored Use food troops switched off sends the mead troops, as Mead only does", async () => {
+        const troops = cra => new Set(cra.A.flatMap(wave => [...wave.L.U, ...wave.M.U, ...wave.R.U]).map(([wodID]) => wodID).filter(wodID => wodID != -1))
+        const game = { inventory: [...inventory(), melee(602, 5000, { meleeAttack: "140", foodSupply: undefined, meadSupply: "2" })] }
+        expect([...troops((await khan({ useFood: false }, game)).cra)]).toEqual([602])
+        expect([...troops((await khan({ supply: 2 }, game)).cra)]).toEqual([602])
+        expect(troops((await khan({ foodTroopsOnly: true }, game)).cra).has(602)).toBe(false)
     })
 })
 

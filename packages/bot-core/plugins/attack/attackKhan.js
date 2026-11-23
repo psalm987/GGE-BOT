@@ -53,20 +53,8 @@ if (require('node:worker_threads').isMainThread)
                 army: "autofill",
                 default: false
             },
-            {
-                type: "Checkbox",
-                key: "useFood",
-                army: "autofill",
-                default: true
-            },
-            {
-                type: "Checkbox",
-                key: "foodTroopsOnly",
-                army: "autofill",
-                default: false
-            },
             require("../../army.js").unitOrderOption(),
-            require("../../army.js").supplyOption(),
+            require("../../army.js").supplyOption(require("../../army.js").SUPPLY_SWITCHES),
             {
                 type: "Text",
                 key: "scoreShutoff",
@@ -93,12 +81,12 @@ const { keepDefence } = require("../../khanDefence.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
-const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, supplyOption, SUPPLY_SWITCHES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
 const { holdingsOf, gained, loadRewardNames, rewardLine } = require("../../khanRewards.js")
-const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
+const pluginOptions = readLegacy([...khanWaveOptions(), supplyOption(SUPPLY_SWITCHES)], botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
@@ -387,11 +375,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
                         if (!eats(autofill.supply, unit.unitInfo))
                             continue
-                        if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
-                            continue
                         if (troopBlackList.includes(unit.unitInfo.wodID))
-                            continue
-                        if (unit.unitInfo.foodSupply && !pluginOptions.useFood)
                             continue
 
                         if (unit.unitInfo.role == "melee")

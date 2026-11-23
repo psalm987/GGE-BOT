@@ -48,12 +48,6 @@ if (require('node:worker_threads').isMainThread)
                 army: "autofill",
                 default: false
             },
-            {
-                type: "Checkbox",
-                key: "foodTroopsOnly",
-                default: false,
-                army: "autofill"
-            },
             require("../../army.js").unitOrderOption(),
             require("../../army.js").supplyOption(),
             {
