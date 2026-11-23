@@ -161,6 +161,19 @@ describe("starting and stopping", () => {
         expect(data("ok-fresh").attackHistory).toEqual({})
     })
 
+    test("a bot starts with the wheel spins its last status report counted, so the day's spin limit carries on", async () => {
+        const a = await addAccount("ok-wheel")
+        const b = await addAccount("ok-nowheel")
+        const wheelSpins = { day: 20_413, count: 7 }
+        await db.insert(botStatus).values({ accountId: a, actualState: "stopped", resources: { level: 70, wheelSpins } })
+        await reconcile()
+
+        await until(async () => (await status(a))?.actualState === "running" && (await status(b))?.actualState === "running")
+        const data = (name: string) => spawned.find(d => d.name === name)!
+        expect(data("ok-wheel").wheelSpins).toEqual(wheelSpins)
+        expect(data("ok-nowheel")).not.toHaveProperty("wheelSpins")
+    })
+
     test("starts every wanted account with its decrypted password and plugins, one login at a time", async () => {
         const a = await addAccount("ok-a")
         const b = await addAccount("ok-b")

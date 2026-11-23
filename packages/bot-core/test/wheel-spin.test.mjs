@@ -4,7 +4,7 @@ import { PluginCatalogEntry } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
 const { loadModule, fakeBot } = require("./harness/load.cjs")
-const { PluginStatus } = require("../actions.json")
+const { PluginStatus, StatusUser } = require("../actions.json")
 const en = require("../locales/en.json")
 const captured = require("./fixtures/protocol/daily-20261121.json").lws_1
 
@@ -23,17 +23,18 @@ afterEach(() => vi.useRealTimers())
 const wheelEvent = (EID, RS = 11 * 3600, extra = {}) => ({ EID, RS, OP: [0], OR: [-1], CWC: 1, WCP: 0, HFS: 0, HVPM: 0, JSID: 2, JHID: 2, PMA: 0, ...extra })
 
 /**
- * The plugin, logged in at 10:00 UTC, against a game that holds `tickets` ([SLWT, LWT]) and answers each `lws` the way
+ * The plugin, logged in at `at` (10:00 UTC by default), against a game that holds `tickets` ([SLWT, LWT]) and answers each `lws` the way
  * the capture did: the ticket count drops, comes back by the prize, then the reply. `prize` is what a spin wins,
- * `answer` replaces the reply's result code (or silences it with null).
+ * `answer` replaces the reply's result code (or silences it with null). `carried` is the bot status a run starts with,
+ * as ggeBot.js seeds it from what the runner hands over.
  */
-function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)], prize = ["SLWT", 1], answer = 0, extra = {}, stopping = () => false } = {}) {
+function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)], prize = ["SLWT", 1], answer = 0, extra = {}, stopping = () => false, at = "2026-11-21T10:00:00Z", carried = {} } = {}) {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date("2026-11-21T10:00:00Z"))
-    const bot = fakeBot({ stopping })
+    vi.setSystemTime(new Date(at))
+    const bot = fakeBot({ stopping, status: { ...carried } })
     bot.botConfig.plugins.wheelSpin = { state: true, ...options }
     const held = { SLWT: tickets[0], LWT: tickets[1] }
-    const reports = [], logs = [], sentAt = []
+    const reports = [], statusReports = [], logs = [], sentAt = []
     const cost = { 0: ["LWT", 30], 1: ["SLWT", 1] }
     bot.sendXT = async (cmd, params) => {
         const p = JSON.parse(params)
@@ -54,7 +55,10 @@ function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)]
             bot.xtHandler.emit("lws", answer == 0 ? { ...captured.reply.payload, LWET: p.LWET, R: [prize], ...extra } : {}, answer)
         }, 300)
     }
-    const parentPort = { postMessage: message => message[0] == PluginStatus && reports.push(message[1]), on() {} }
+    const parentPort = {
+        postMessage: message => message[0] == PluginStatus ? reports.push(message[1]) : message[0] == StatusUser && statusReports.push(structuredClone(message[1])),
+        on() {},
+    }
     vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args))
     vi.spyOn(console, "warn").mockImplementation((...args) => logs.push(args))
     loadModule("plugins/wheelSpin.js", { bot, parentPort, items: { currencies } })
@@ -62,7 +66,7 @@ function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)]
     bot.xtHandler.emit("sce", [["SLWT", held.SLWT], ["LWT", held.LWT]], 0)
     bot.xtHandler.emit("sei", { E: events }, 0)
     const spins = () => bot.sent.filter(([cmd]) => cmd == "lws").map(([, p]) => p)
-    return { bot, spins, held, logs, sentAt, status: () => reports.at(-1) }
+    return { bot, spins, held, logs, sentAt, status: () => reports.at(-1), lastReport: () => statusReports.at(-1) }
 }
 
 describe("the catalog entry", () => {
@@ -197,6 +201,37 @@ describe("the daily limit", () => {
 
         await vi.advanceTimersByTimeAsync(6 * HOUR)
         expect(spins().length).toBe(8)
+    })
+
+    test("counts the spins of an earlier run that day, carried in the bot's status, so a restart doesn't hand the limit back", async () => {
+        const options = { wheelMaxPerDay: 4 }
+        const first = run({ tickets: [2, 0], options, prize: ["STO", 1000] })
+        await vi.advanceTimersByTimeAsync(2 * HOUR)
+        expect(first.spins().length).toBe(2)
+        first.bot.events.emit("unload")
+
+        const second = run({ tickets: [500, 0], options, prize: ["STO", 1000], at: "2026-11-21T18:00:00Z", carried: first.lastReport() })
+        await vi.advanceTimersByTimeAsync(4 * HOUR)
+        expect(second.spins().length).toBe(2)
+        expect(second.status()).toMatchObject({ reasonKey: "statusWheelSpinDayLimit", params: { limit: 4 } })
+    })
+
+    test("starts again from nothing on a new UTC day, whatever the last run of the day before carried", async () => {
+        const options = { wheelMaxPerDay: 4 }
+        const first = run({ tickets: [500, 0], options, prize: ["STO", 1000], at: "2026-11-21T20:00:00Z" })
+        await vi.advanceTimersByTimeAsync(HOUR)
+        expect(first.spins().length).toBe(4)
+        first.bot.events.emit("unload")
+        const carried = first.lastReport()
+
+        const sameDay = run({ tickets: [500, 0], options, prize: ["STO", 1000], at: "2026-11-21T23:00:00Z", carried })
+        await vi.advanceTimersByTimeAsync(50 * MINUTE)
+        expect(sameDay.spins()).toEqual([])
+        sameDay.bot.events.emit("unload")
+
+        const nextDay = run({ tickets: [500, 0], options, prize: ["STO", 1000], at: "2026-11-22T00:30:00Z", carried })
+        await vi.advanceTimersByTimeAsync(4 * HOUR)
+        expect(nextDay.spins().length).toBe(4)
     })
 })
 
