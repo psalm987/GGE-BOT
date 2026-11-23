@@ -65,7 +65,7 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
     data.content = "```ansi\n" +
         `${movement.sourceOwner.name} (${movement.sourceAttack.extraData[7]})` +
         `${i18n.__("incomingIsAttacking")}${movement.targetOwner.name} (${movement.targetAttack.extraData[7]})` +
-        `${i18n.__("incomingFrom")}${movement.targetOwner.allianceName}${i18n.__("incomingIn")}` +
+        `${movement.targetOwner.allianceName ? `${i18n.__("incomingFrom")}${movement.targetOwner.allianceName}` : ""}${i18n.__("incomingIn")}` +
         `${kingdomName[movement.kingdomID]} ${clicks}${i18n.__("incomingClicks")}` +
         "```" +
         `<t:${Math.round(arrivesAt / 1000)}:R>`

@@ -351,6 +351,23 @@ describe("outgoing attack posts", () => {
         expect(sends[0].payload.files.map(f => [f.name, [...f.data]])).toEqual([["attack.png", PNG]])
     })
 
+    test("an attack on a player with no alliance leaves out the from part", async () => {
+        const hub = fakeDiscordHub()
+        const { movementEvents, bot } = loadAttackPlugin("outgoingAttacks", hub, { channelID: "1" })
+        bot.playerInfo.playerID = 5
+        movementEvents.emit("outgoing", attack({
+            owner: { ownerID: 5 }, sourceOwner: { ownerID: 5, allianceID: 9, name: "Ada", allianceName: "Lambs" },
+            targetOwner: { ownerID: 1, name: "Loner" },
+            sourceAttack: { x: 0, y: 0, extraData: [, , , , , , , "Ada's Keep"] },
+            targetAttack: { x: 3, y: 4, extraData: [, , , , , , , "Loner's Keep"] },
+        }))
+        await settle()
+
+        const sends = hub.sent("channelSend")
+        expect(sends).toHaveLength(1)
+        expect(sends[0].payload.content).toMatch(/^```ansi\nAda \(Ada's Keep\) is attacking Loner \(Loner's Keep\) incoming in .* 5 clicks```<t:\d+:R>$/)
+    })
+
     test("an attack is posted once, however often the game lists it again", async () => {
         const hub = fakeDiscordHub()
         const gam = loadWithMovementList("outgoingAttacks", hub, { channelID: "1" })
