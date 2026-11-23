@@ -121,6 +121,22 @@ The `dql` push lists the day's tasks. On 2026-11-21 there were 12, and the miles
 | Perform a successful sabotage | spy movement | not planned: it attacks other players |
 | Spend rubies | any | never |
 
+## Pushes no feature reads yet
+
+The 2026-11-22 traces hold these game messages, and nothing in the project uses them. All but `klh` and `kss` came from the server unasked. The meanings are best guesses from the trace and the items file, so check them in the next trace before building on them.
+
+| Command | Shape seen | When | Best guess | To confirm |
+|---|---|---|---|---|
+| `klh` | sent `{}`, reply `[[63,0],[64,6],[67,0],[68,4]]` | Opening the Nomad event's ranking, next to `hgh` | The ranking window's reward tiers or the player's standing in each | Open the ranking with a marker and compare the window with the reply |
+| `kss` | sent `{KLS:1, KLSE:1}`, empty reply | The same window, after `kli` | Marks something in that window as seen | Same step |
+| `gho` | `{H:1606, RP:44}` | Each defended taunt | Honour (`H`) and a rank or reputation figure (`RP`) | Compare with the profile's honour before and after a taunt |
+| `esl` | `{E:-1, G:0, TE:400, TG:480}` | The first defended taunt | Unknown | Record it again and look for the same numbers in the event window |
+| `sin` | `[{SID:1, RD:[[id, count, flag], …]}]` | The first defended taunt | A storage list (`SID` 1) of items and counts | Compare the ids with the items file |
+| `msp` | `{P:[{POP, VAL:{R:[[kind, n]], OP, RID, SID}}]}` | 79 times, often in bursts with `sce` | Progress pushes of several kinds (`POP` 23, 61, 84). `POP` 61 carries a reward id and the event points (`OP` 227,537 matches `pep`) | Group by `POP` across a longer trace |
+| `irc` | `{G:[["S",5]]}`, `[["C1",12]]`, `[["F",10]]` | 40 times | Small resource gains: stone, coins, food | Compare with the castle's resources before and after |
+| `qst`, `qpg`, `qfi` | `{QIDS:[3290]}`, `{P:[3487]}`, `{QID:3289, IC:0, GEQ:[]}` | During play | A quest started, progressed and finished. The bot reads only the quest list, `qli` | A quest reward claim, which neither trace holds |
+| `ahd` | `{LID:23087}` | 58 times | An alliance help request answered. The help requests plugin handles `ahh` | Answer one help request with a marker |
+
 ## Checklist for the next trace
 
 Record on the second test account with the recorder, add a marker before each step, and stop after the last one. Every step is free unless marked.
@@ -140,3 +156,4 @@ Record on the second test account with the recorder, add a marker before each st
 13. Queue two small troop orders back to back, so `spl` shows a filled slot.
 14. Pick troops on a login bonus day that offers them.
 15. Spin the classic Wheel of Fortune once while it runs, outside Pro mode.
+16. During a Nomad Invasion only: open the event ranking window, then defend one Khan taunt after the profile and the mystery box window have been opened once, so the pushes under "Pushes no feature reads yet" have totals to compare with.

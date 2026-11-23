@@ -117,6 +117,21 @@ The taunt lands at the time `M.TT` gives. No movement-removal push names it. Its
 
 A defended taunt also fills the rage bar again: after the second defence `PCRP` was back at 2460. A plugin that taunts at a full bar keeps the chain going while the defence holds.
 
+### What a defended taunt pays
+
+Right after the battle report of a defended taunt the game pushes the player's mystery boxes, keys and construction items. Each push lists running totals, not the reward, so the reward is how far a total rose across the landing.
+
+| Push | Shape | Meaning |
+|---|---|---|
+| `gls` | `{ALL: [{ID, AMT}], KEY: [{ID, AMT}]}` | `ALL` is the player's mystery boxes by `lootBoxID` in the items file's `lootBoxes`. `KEY` is the keys, by an `ID` from 1 |
+| `gii` | `{CI: [[constructionItemID, count], …]}` | The construction items in storage, by `constructionItemID` in `constructionItems` |
+
+In the trace the second defended taunt raised `ALL` by one box 8 (a legendary silver mystery box) and `CI` by one 30482 (Pirates' woodcutter 3) and one 30472 (Pirates' tavern 3). The game's English names are `mysteryBox_boxName_<name>_<rarity>` and `ci_appearance_<name>` in `lang/en.json`. `KEY` held 5 of `ID` 1 throughout. The bot takes key IDs to follow the box rarities (1 common, 2 rare, 3 epic, 4 legendary), which no capture has confirmed.
+
+The first landing pushed `gls` twice, with box 4 at 1 and then 2. The trace began mid-session, so it holds no totals from before that landing. `packages/bot-core/khanRewards.js` reads the pushes, and the Khan plugin logs the rises 3 seconds after a held defence. It reports nothing for a list it has no earlier totals for.
+
+The same moment also brings pushes no feature reads yet: `gho`, `esl`, `sin` and `msp`. [capture-backlog.md](capture-backlog.md) lists them.
+
 ### Battle report
 
 A taunt that lands pushes `sne {MSG: [[messageID, type, header, "", -1, 0, 0, 0, 0]]}`. The trace's entry was `[324182170, 6, "1+2+1#0+2190967+BlackBuck", "", -1, 0, 0, 0, 0]`. Type 6 is `MESSAGE_TYPE_BATTLE_LOG`. The client reads the header with `MessageBattleLogVO.parseMessageHeader` as `left#right`:
