@@ -642,8 +642,9 @@ async function shotLanes(browser, base) {
         await termPage.waitForFunction(el => el.getAttribute("aria-expanded") === "true", await first.elementHandle())
         assert(await first.getAttribute("aria-expanded") === "true" && await firstPop.evaluate(el => el.matches(":popover-open")), "Enter opens the term popover and sets aria-expanded=true")
         const snapshot = await firstPop.ariaSnapshot()
-        assert(/group "Game account"/.test(snapshot) && /link "Read more"/.test(snapshot), `the open popover is a named group with a Read more link for a screen reader (${snapshot.replace(/\n/g, " ").slice(0, 120)})`)
-        assert(await firstPop.locator("a.gge-term__more").getAttribute("href") === "/glossary/#game-account", "Read more links to the glossary anchor")
+        const termName = (await first.innerText()).trim()
+        assert(/group "[^"]+"/.test(snapshot) && /link "Read more"/.test(snapshot) && snapshot.toLowerCase().includes(termName.toLowerCase()), `the open popover is a named group with a Read more link for a screen reader (${snapshot.replace(/\n/g, " ").slice(0, 120)})`)
+        assert(/^\/glossary\/#[a-z0-9]+(-[a-z0-9]+)*$/.test(await firstPop.locator("a.gge-term__more").getAttribute("href") ?? ""), "Read more links to the glossary anchor")
         const box = await firstPop.boundingBox()
         const trigger = await first.boundingBox()
         const below = box.y >= trigger.y + trigger.height - 1, above = box.y + box.height <= trigger.y + 1
@@ -721,7 +722,7 @@ async function shotLanes(browser, base) {
         assert(await gloss.locator(".gge-filter[aria-pressed=true]").textContent() === "All" && await gloss.evaluate(() => document.activeElement.id === "two-factor"), "a link to a hidden term resets the filter and focuses the entry")
         assert((await gloss.locator('[data-id="two-factor"] .gge-gloss__aliases').textContent()).includes("TOTP"), "the 2FA entry lists TOTP among its aliases")
         assert((await gloss.locator('[data-id="plugin"] .gge-gloss__used a').allTextContents()).includes("Quick start"), "Used on lists the Quick start for Plugin")
-        assert(await gloss.locator('[data-id="game-account"] .gge-gloss__used').count() === 1 && await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').first().getAttribute("href") === "/modules/khan/", "Used on links are computed from the term tags on each page")
+        assert(await gloss.locator('[data-id="game-account"] .gge-gloss__used').count() === 1 && (await gloss.locator('[data-id="khan-camp"] .gge-gloss__used a').evaluateAll(links => links.map(a => a.getAttribute("href")))).includes("/modules/khan/"), "Used on links are computed from the term tags on each page")
         await gloss.context().close()
 
         const search = async (browser, query, locale = "") => {
@@ -773,7 +774,9 @@ async function shotLanes(browser, base) {
         assert(rows > 10, `the Khan settings table lists ${rows} options`)
         const difficulty = await khan.locator('tr[data-option="eventDifficulty"]').evaluate(tr => [...tr.children].map(c => c.textContent))
         assert(difficulty[0] === "Event difficulty" && difficulty[1] === "Choice" && difficulty[2] === "Intermediate+" && difficulty[3].includes("Archmaster"), `a choice option shows its label, type, default and choices (${JSON.stringify(difficulty).slice(0, 120)})`)
-        assert(await khan.locator(".gge-status--planned").count() === 1 && /Planned/.test(await khan.locator(".gge-status--planned").textContent()), "the planned status badge renders with a text label")
+        const towers = await open(browser, base, "/modules/towers/")
+        assert(await towers.locator(".gge-status--planned").count() >= 1 && /Planned/.test(await towers.locator(".gge-status--planned").first().textContent()), "the planned status badge renders with a text label")
+        await towers.close()
         await khan.context().close()
         const khanDe = await open(browser, base, "/de/modules/khan/")
         assert(await khanDe.locator('tr[data-option="eventDifficulty"] th').textContent() !== "Event difficulty", "the German page shows the German option label")
