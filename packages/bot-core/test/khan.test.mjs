@@ -47,6 +47,10 @@ describe("Khan waves", () => {
         const { cra } = await khan({ rageWaves: 1, boosterWaves: 1 })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[563], [164], []])
     })
+    test("Wall tools before event tools sends the rage waves without rage tools and leaves the chest waves alone", async () => {
+        const { cra } = await khan({ rageWaves: 1, boosterWaves: 1, eventWallToolsFirst: true })
+        expect(cra.A.slice(1).map(toolsOf)).toEqual([[], [164], []])
+    })
     test("picked rage tools are the only ones used, in the order picked", async () => {
         const { cra } = await khan({ rageWaves: 1, boosterWaves: 0, rageTools: [106] })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[106], [], []])

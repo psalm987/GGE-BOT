@@ -24,7 +24,7 @@ describe("attack plugin cap", () => {
         const p = await api.player()
         expect(await p.api.plugins.attackLimit()).toBe(4)
         expect(await errorOf(p.api.accounts.create(withAttackPlugins(5))))
-            .toMatchObject({ code: "BAD_REQUEST", message: "Your plan allows 4 attack plugins at once. Turn some off to save." })
+            .toMatchObject({ code: "BAD_REQUEST", message: "This account allows 4 attack plugins at once. Turn some off to save." })
         expect(await errorOf(p.api.accounts.create(withAttackPlugins(4)))).toBeNull()
     })
 

@@ -42,6 +42,14 @@ describe("the Berimond invasion", () => {
         expect((await berimond({ eventToolsFrom: 2 })).cra.A.map(hasTools)).toEqual([false, false, false, true])
     })
 
+    test("the first wave carries the event's wall tools, and the waves before Event tools from carry none", async () => {
+        const wallTool = unit(902, 500, { fightType: 0, typ: "Attack", slotTypes: "1,2,9", pointBonus: "4", wallBonus: "10" })
+        const { cra } = await berimond({ eventToolsFrom: 2 }, { inventory: [...inventory(), wallTool] })
+        const toolsOf = wave => [...wave.L.T, ...wave.R.T, ...wave.M.T].map(([wodID]) => wodID).filter(wodID => wodID != -1)
+        expect(toolsOf(cra.A[0])).toContain(902)
+        expect(cra.A.slice(1, 3).map(toolsOf)).toEqual([[], []])
+    })
+
     test("Waves sends the written plan", async () => {
         const slot = (item, amount) => ({ item, amount })
         const none = { kind: "preset", preset: 0 }

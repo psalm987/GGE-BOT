@@ -223,7 +223,7 @@ describe("emailing notifications", () => {
         await api.mailTick()
 
         const [digest] = digestsTo(alice.email)
-        expect(digest!.subject).toBe("2 updates on your GGE Bot account")
+        expect(digest!.subject).toBe("2 updates on your GGE Command account")
         expect(digest!.text).toContain("Ironhold was banned (India 1)")
         expect(digest!.text).toContain("Your plan ends in 1 day\n")
         expect(digest!.text).not.toContain("undefined")
