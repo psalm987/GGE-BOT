@@ -456,6 +456,7 @@
   "plugins.list.removed": "{{name}} usunięto.",
   "plugins.list.unknownItem": "Pozycja {{id}}",
   "plugins.list.bonus": "+{{value}}% chwały",
+  "plugins.item.level": "Poziom {{level}}",
   "plugins.variant.jade": "Nefryt {{tier}}",
   "plugins.variant.battleground": "Pole bitwy",
   "plugins.variant.version": "wersja {{step}}",

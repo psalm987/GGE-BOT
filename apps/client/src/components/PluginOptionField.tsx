@@ -6,11 +6,27 @@ import { useTranslation } from "react-i18next"
 import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
-import { itemLabel } from "../item-names.ts"
+import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
 
 const KIND: Record<ItemCatalog, GameItemKind> = { banners: "banner", tools: "tool", troops: "troop", supportTools: "supportTool" }
 const COLUMN_KIND = { tool: "tool", troop: "troop" } as const
+
+/** `label` is the option's accessible name and search text, name and code; `text` and `code` are what the open list shows apart. */
+export type ItemOption = { value: number; label: string; text?: string; code?: number }
+
+/** An item select's search, over each option's label: name, level, "#403" and "403". */
+export const itemSearch = { showSearch: { filterOption: itemOptionFilter } }
+
+/** An option of an item select: the name, then the code muted at the right edge. */
+export const renderItemOption = (option: { data: ItemOption }) => option.data.code === undefined
+    ? option.data.label
+    : (
+        <span style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <span>{option.data.text}</span>
+            <span aria-hidden style={{ color: palette.muted, fontVariantNumeric: "tabular-nums" }}>{itemCode(option.data.code)}</span>
+        </span>
+    )
 
 export function useGameItems(kind: GameItemKind) {
     const { t } = useTranslation("game")
@@ -18,7 +34,8 @@ export function useGameItems(kind: GameItemKind) {
     const items = useQuery({ ...orpc.catalog.gameItems.queryOptions({ input: { kind } }), staleTime: Infinity }).data ?? []
     // Levels of one item share its name in the game's strings, so the level tells them apart, and the variant tells apart what still shares both.
     const nameOf = (item: GameItem) => itemLabel(t(item.nameKey, { defaultValue: item.name }), item, tc)
-    return { items, nameOf, byId: new Map(items.map(item => [item.id, item])) }
+    const optionOf = (item: GameItem): ItemOption => ({ value: item.id, label: itemOptionLabel(nameOf(item), item.id), text: nameOf(item), code: item.id })
+    return { items, nameOf, optionOf, byId: new Map(items.map(item => [item.id, item])) }
 }
 
 export function useKingdomName() {
@@ -82,10 +99,10 @@ function CopyToAllButton({ optionKey, label }: { optionKey: string; label: strin
  */
 function OrderedList({ catalog, value = [], onChange, id }: { catalog: ItemCatalog; value?: number[]; onChange?: (v: number[]) => void; id?: string }) {
     const { t } = useTranslation("client")
-    const { items, nameOf, byId } = useGameItems(KIND[catalog])
+    const { items, nameOf, optionOf, byId } = useGameItems(KIND[catalog])
     const [said, say] = useState("")
     const rows = useRef(new Map<number, HTMLLIElement>())
-    const name = (itemId: number) => { const item = byId.get(itemId); return item ? nameOf(item) : t("plugins.list.unknownItem", { id: itemId }) }
+    const name = (itemId: number) => { const item = byId.get(itemId); return item ? itemOptionLabel(nameOf(item), itemId) : t("plugins.list.unknownItem", { id: itemId }) }
 
     function move(from: number, to: number, focus: "up" | "down" | "row") {
         if (to < 0 || to >= value.length)
@@ -124,7 +141,8 @@ function OrderedList({ catalog, value = [], onChange, id }: { catalog: ItemCatal
                             tabIndex={0} onKeyDown={onKey(index)} aria-label={`${index + 1}. ${name(itemId)}`}
                             style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 4px 0 10px", borderBottom: `1px solid ${palette.rule}` }}>
                             <span aria-hidden style={{ width: 22, color: palette.muted, fontVariantNumeric: "tabular-nums" }}>{index + 1}</span>
-                            <span style={{ flex: 1 }}>{name(itemId)}</span>
+                            <span style={{ flex: 1 }}>{byId.has(itemId) ? nameOf(byId.get(itemId)!) : name(itemId)}</span>
+                            {byId.has(itemId) ? <span aria-hidden style={{ color: palette.muted, fontVariantNumeric: "tabular-nums" }}>{itemCode(itemId)}</span> : null}
                             {bonus(itemId) ? <span style={{ color: palette.muted, fontVariantNumeric: "tabular-nums" }}>{t("plugins.list.bonus", { value: bonus(itemId) })}</span> : null}
                             <Button type="text" data-move="up" icon={<ArrowUpOutlined />} disabled={index === 0} onClick={() => move(index, index - 1, "up")}
                                 aria-label={t("plugins.list.moveUp", { name: name(itemId) })} style={{ minWidth: 44, height: 44 }} />
@@ -136,9 +154,9 @@ function OrderedList({ catalog, value = [], onChange, id }: { catalog: ItemCatal
                     ))}
                 </ol>}
             <Typography.Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 8 }}>{t("plugins.list.hint")}</Typography.Paragraph>
-            <Select showSearch={{ optionFilterProp: "label" }} value={null} aria-label={t("plugins.list.add")} placeholder={t("plugins.list.add")}
+            <Select {...itemSearch} value={null} aria-label={t("plugins.list.add")} placeholder={t("plugins.list.add")}
                 suffixIcon={<PlusOutlined />} style={{ width: "100%" }} disabled={!addable.length}
-                options={addable.map(item => ({ value: item.id, label: nameOf(item) }))}
+                options={addable.map(optionOf)} optionRender={renderItemOption}
                 onChange={(itemId: number) => {
                     onChange?.([...value, itemId])
                     say(t("plugins.list.added", { name: name(itemId), position: value.length + 1 }))
@@ -154,9 +172,9 @@ export const rowsComplete = (columns: RowColumn[], rows: RowValue[] = []) => row
 
 /** `orderable` lists only what a plugin may order with coins or resources. */
 function ItemSelect({ kind, orderable, value, onChange, label }: { kind: GameItemKind; orderable?: boolean; value?: number; onChange: (v: number | undefined) => void; label: string }) {
-    const { items, nameOf } = useGameItems(kind)
-    return <Select showSearch={{ optionFilterProp: "label" }} aria-label={label} value={value} onChange={onChange} style={{ width: "100%" }}
-        options={items.filter(item => !orderable || item.orderList !== null).map(item => ({ value: item.id, label: nameOf(item) }))} />
+    const { items, optionOf } = useGameItems(kind)
+    return <Select {...itemSearch} aria-label={label} value={value} onChange={onChange} style={{ width: "100%" }} optionRender={renderItemOption}
+        options={items.filter(item => !orderable || item.orderList !== null).map(optionOf)} />
 }
 
 function KingdomSelect({ value, onChange, label }: { value?: number; onChange: (v: number | undefined) => void; label: string }) {

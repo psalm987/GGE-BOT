@@ -6,17 +6,16 @@ import {
     type ArmySlot, type GameItem, type GamePreset, type ManualPlan, type Wave,
 } from "@gge/contracts"
 import { filledSlots, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
-import { useGameItems } from "./PluginOptionField.tsx"
+import { itemSearch, renderItemOption, useGameItems, type ItemOption } from "./PluginOptionField.tsx"
 import "./army.css"
 
-type ItemOption = { value: number; label: string }
 const TOOL_AMOUNT = 10
 const TROOP_AMOUNT = 100
 
 type Catalog = ReturnType<typeof useGameItems>
 /** The choices of an item select: the catalogs' items by name, plus the slot's own item when they lack it. */
 function itemOptions(unknown: (id: number) => string, ...catalogs: Catalog[]) {
-    const options: ItemOption[] = catalogs.flatMap(({ items, nameOf }) => items.map((item: GameItem) => ({ value: item.id, label: nameOf(item) })))
+    const options: ItemOption[] = catalogs.flatMap(({ items, optionOf }) => items.map((item: GameItem) => optionOf(item)))
     const known = new Set(options.map(option => option.value))
     return (current: number | null | undefined) =>
         current === null || current === undefined || known.has(current) ? options : [...options, { value: current, label: unknown(current) }]
@@ -24,7 +23,7 @@ function itemOptions(unknown: (id: number) => string, ...catalogs: Catalog[]) {
 
 function ItemPicker({ options, value, onChange, label, disabled }: { options: ItemOption[]; value: number | null; onChange: (item: number | null) => void; label: string; disabled?: boolean }) {
     const { t } = useTranslation("client")
-    return <Select allowClear showSearch={{ optionFilterProp: "label" }} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled}
+    return <Select allowClear {...itemSearch} optionRender={renderItemOption} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled}
         value={value ?? undefined} options={options} onChange={(item?: number) => onChange(item ?? null)} style={{ width: "100%", minWidth: 0 }} />
 }
 

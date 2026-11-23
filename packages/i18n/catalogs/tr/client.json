@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} kaldırıldı.",
   "plugins.list.unknownItem": "Öğe {{id}}",
   "plugins.list.bonus": "+%{{value}} şöhret",
+  "plugins.item.level": "Seviye {{level}}",
   "plugins.variant.jade": "Yeşim {{tier}}",
   "plugins.variant.battleground": "Savaş meydanı",
   "plugins.variant.version": "sürüm {{step}}",

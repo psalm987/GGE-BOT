@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} eltávolítva.",
   "plugins.list.unknownItem": "{{id}} tárgy",
   "plugins.list.bonus": "+{{value}}% dicsőség",
+  "plugins.item.level": "Szint {{level}}",
   "plugins.variant.jade": "Jáde {{tier}}",
   "plugins.variant.battleground": "Csatamező",
   "plugins.variant.version": "{{step}}. verzió",

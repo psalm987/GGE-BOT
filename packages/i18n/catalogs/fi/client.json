@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} poistettu.",
   "plugins.list.unknownItem": "Esine {{id}}",
   "plugins.list.bonus": "+{{value}} % mainetta",
+  "plugins.item.level": "Taso {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Taistelukenttä",
   "plugins.variant.version": "versio {{step}}",

@@ -483,6 +483,7 @@
   "plugins.list.removed": "Baineadh {{name}}.",
   "plugins.list.unknownItem": "Mír {{id}}",
   "plugins.list.bonus": "+{{value}}% glóire",
+  "plugins.item.level": "Leibhéal {{level}}",
   "plugins.variant.jade": "Seide {{tier}}",
   "plugins.variant.battleground": "Machaire catha",
   "plugins.variant.version": "leagan {{step}}",

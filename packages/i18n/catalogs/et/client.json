@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} eemaldati.",
   "plugins.list.unknownItem": "Ese {{id}}",
   "plugins.list.bonus": "+{{value}}% au",
+  "plugins.item.level": "Tase {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Lahinguväli",
   "plugins.variant.version": "versioon {{step}}",

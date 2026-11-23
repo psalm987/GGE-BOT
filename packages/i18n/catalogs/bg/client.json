@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} е премахнат.",
   "plugins.list.unknownItem": "Предмет {{id}}",
   "plugins.list.bonus": "+{{value}}% слава",
+  "plugins.item.level": "Ниво {{level}}",
   "plugins.variant.jade": "Нефрит {{tier}}",
   "plugins.variant.battleground": "Бойно поле",
   "plugins.variant.version": "версия {{step}}",

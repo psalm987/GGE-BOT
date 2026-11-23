@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} togs bort.",
   "plugins.list.unknownItem": "Objekt {{id}}",
   "plugins.list.bonus": "+{{value}} % ära",
+  "plugins.item.level": "Nivå {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Slagfält",
   "plugins.variant.version": "version {{step}}",

@@ -456,6 +456,7 @@
   "plugins.list.removed": "{{name}} pašalinta.",
   "plugins.list.unknownItem": "Elementas {{id}}",
   "plugins.list.bonus": "+{{value}}% šlovės",
+  "plugins.item.level": "Lygis {{level}}",
   "plugins.variant.jade": "Nefritas {{tier}}",
   "plugins.variant.battleground": "Mūšio laukas",
   "plugins.variant.version": "{{step}} versija",

@@ -456,6 +456,7 @@
   "plugins.list.removed": "{{name}} bol odstránený.",
   "plugins.list.unknownItem": "Položka {{id}}",
   "plugins.list.bonus": "+{{value}} % slávy",
+  "plugins.item.level": "Úroveň {{level}}",
   "plugins.variant.jade": "Nefrit {{tier}}",
   "plugins.variant.battleground": "Bojisko",
   "plugins.variant.version": "verzia {{step}}",

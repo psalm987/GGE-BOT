@@ -483,6 +483,7 @@
   "plugins.list.removed": "{{name}} tneħħa.",
   "plugins.list.unknownItem": "Oġġett {{id}}",
   "plugins.list.bonus": "+{{value}}% glorja",
+  "plugins.item.level": "Livell {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Għalqa tal-battalja",
   "plugins.variant.version": "verżjoni {{step}}",

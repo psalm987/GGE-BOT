@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} removed.",
   "plugins.list.unknownItem": "Item {{id}}",
   "plugins.list.bonus": "+{{value}}% glory",
+  "plugins.item.level": "Level {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Battleground",
   "plugins.variant.version": "version {{step}}",

@@ -429,6 +429,7 @@
   "plugins.list.removed": "{{name}} noņemts.",
   "plugins.list.unknownItem": "Vienums {{id}}",
   "plugins.list.bonus": "+{{value}}% slavas",
+  "plugins.item.level": "Līmenis {{level}}",
   "plugins.variant.jade": "Nefrīts {{tier}}",
   "plugins.variant.battleground": "Kaujas lauks",
   "plugins.variant.version": "{{step}}. versija",

@@ -456,6 +456,7 @@
   "plugins.list.removed": "{{name}} je odstranjen.",
   "plugins.list.unknownItem": "Element {{id}}",
   "plugins.list.bonus": "+{{value}}% slave",
+  "plugins.item.level": "Raven {{level}}",
   "plugins.variant.jade": "Žad {{tier}}",
   "plugins.variant.battleground": "Bojišče",
   "plugins.variant.version": "različica {{step}}",

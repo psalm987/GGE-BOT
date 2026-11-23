@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} ble fjernet.",
   "plugins.list.unknownItem": "Element {{id}}",
   "plugins.list.bonus": "+{{value}} % heder",
+  "plugins.item.level": "Nivå {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Slagmark",
   "plugins.variant.version": "versjon {{step}}",

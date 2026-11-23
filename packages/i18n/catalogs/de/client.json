@@ -402,6 +402,7 @@
   "plugins.list.removed": "{{name}} entfernt.",
   "plugins.list.unknownItem": "Gegenstand {{id}}",
   "plugins.list.bonus": "+{{value}} % Ruhm",
+  "plugins.item.level": "Stufe {{level}}",
   "plugins.variant.jade": "Jade {{tier}}",
   "plugins.variant.battleground": "Schlachtfeld",
   "plugins.variant.version": "Version {{step}}",

@@ -429,6 +429,7 @@
   "plugins.list.removed": "{{name}} je uklonjen.",
   "plugins.list.unknownItem": "Stavka {{id}}",
   "plugins.list.bonus": "+{{value}}% slave",
+  "plugins.item.level": "Razina {{level}}",
   "plugins.variant.jade": "Žad {{tier}}",
   "plugins.variant.battleground": "Bojno polje",
   "plugins.variant.version": "verzija {{step}}",

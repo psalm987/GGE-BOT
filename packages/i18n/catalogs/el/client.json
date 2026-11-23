@@ -402,6 +402,7 @@
   "plugins.list.removed": "Το {{name}} αφαιρέθηκε.",
   "plugins.list.unknownItem": "Στοιχείο {{id}}",
   "plugins.list.bonus": "+{{value}}% δόξα",
+  "plugins.item.level": "Επίπεδο {{level}}",
   "plugins.variant.jade": "Νεφρίτης {{tier}}",
   "plugins.variant.battleground": "Πεδίο μάχης",
   "plugins.variant.version": "έκδοση {{step}}",

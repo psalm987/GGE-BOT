@@ -429,6 +429,7 @@
   "plugins.list.removed": "{{name}} a fost eliminat.",
   "plugins.list.unknownItem": "Elementul {{id}}",
   "plugins.list.bonus": "+{{value}}% glorie",
+  "plugins.item.level": "Nivel {{level}}",
   "plugins.variant.jade": "Jad {{tier}}",
   "plugins.variant.battleground": "Câmpul de luptă",
   "plugins.variant.version": "versiunea {{step}}",

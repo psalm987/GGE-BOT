@@ -510,6 +510,7 @@
   "plugins.list.removed": "تمت إزالة {{name}}.",
   "plugins.list.unknownItem": "العنصر {{id}}",
   "plugins.list.bonus": "+{{value}}% مجد",
+  "plugins.item.level": "المستوى {{level}}",
   "plugins.variant.jade": "اليشم {{tier}}",
   "plugins.variant.battleground": "ساحة المعركة",
   "plugins.variant.version": "الإصدار {{step}}",

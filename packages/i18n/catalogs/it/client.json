@@ -429,6 +429,7 @@
   "plugins.list.removed": "{{name}} rimosso.",
   "plugins.list.unknownItem": "Oggetto {{id}}",
   "plugins.list.bonus": "+{{value}}% gloria",
+  "plugins.item.level": "Livello {{level}}",
   "plugins.variant.jade": "Giada {{tier}}",
   "plugins.variant.battleground": "Campo di battaglia",
   "plugins.variant.version": "versione {{step}}",
