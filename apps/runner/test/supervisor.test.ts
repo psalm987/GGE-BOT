@@ -126,6 +126,8 @@ describe("plugin states", () => {
         const state = { state: "running", reasonKey: "statusAttacksToday", params: { used: 3, limit: 10 } }
         await until(() => reports.length)
         await until(async () => (await status(id))?.actualState === "running")
+        // The report's write isn't awaited by the worker's message handler, so a loaded machine can read before it lands.
+        await until(async () => Object.keys((await status(id))?.pluginStates ?? {}).length > 0)
         expect(reports).toEqual([[id, "attack", state]])
         expect((await status(id))!.pluginStates).toEqual({ attack: state })
         expect(warnings).toHaveLength(1)
