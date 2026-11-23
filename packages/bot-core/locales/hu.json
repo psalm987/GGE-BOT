@@ -630,6 +630,8 @@
     "towersNoCastle": "Ennek a fióknak nincs kastélya ebben a királyságban, ezért itt nem támad tornyokat.",
     "towersSourceCastleGone": "A mentett kiinduló kastély már nincs a fiókban. Helyette a főkastélyból támad: ",
     "statusTowersNoCastle": "Ennek a fióknak nincs kastélya ebben a királyságban. Oldd fel a királyságot a játékban, majd indítsd újra a botot.",
+    "statusFortressNoCastle": "Ennek a fióknak nincs kastélya az Égő homok földjén, az Örök tél gleccseren vagy a Tűzcsúcsokon. Oldd fel valamelyiket a játékban, majd indítsd újra a botot.",
+    "statusStormNoCastle": "Ennek a fióknak még nincs kastélya a Vihar Szigeteken. Indítsd újra a botot, amint lesz neki.",
     "statusTowersCastleFallback": "A mentett kiinduló kastély megszűnt, ezért a támadások a főkastélyból indulnak: {{castle}}. Válassz újra kastélyt a beállításokban.",
     "statusTowersAttacking": "Támadás innen: {{castle}}. {{found}} torony van hatótávon belül. Az elmúlt 24 órában: {{attacks}} támadás.",
     "statusTowersNoTroops": "{{castle}}: túl kevés a katona egy támadáshoz. Várakozás a csapatok hazaérkezésére.",

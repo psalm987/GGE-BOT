@@ -630,6 +630,8 @@
     "towersNoCastle": "Dit account heeft geen kasteel in dit koninkrijk, dus hier worden geen torens aangevallen.",
     "towersSourceCastleGone": "Het opgeslagen vertrekkasteel staat niet meer op het account. In plaats daarvan wordt aangevallen vanuit het hoofdkasteel: ",
     "statusTowersNoCastle": "Dit account heeft geen kasteel in dit koninkrijk. Ontgrendel het koninkrijk in het spel en herstart daarna de bot.",
+    "statusFortressNoCastle": "Dit account heeft geen kasteel in Brandend Zand, De Eeuwige Gletsjer of Vuurtoppen. Ontgrendel er een van in het spel en herstart daarna de bot.",
+    "statusStormNoCastle": "Dit account heeft nog geen kasteel op De Stormeilanden. Herstart de bot zodra het er een heeft.",
     "statusTowersCastleFallback": "Het opgeslagen vertrekkasteel is weg, dus de aanvallen vertrekken vanuit het hoofdkasteel, {{castle}}. Kies opnieuw een kasteel in de instellingen.",
     "statusTowersAttacking": "Aanvallen vanuit {{castle}}. Torens binnen bereik: {{found}}. In de laatste 24 uur: {{attacks}} aanvallen.",
     "statusTowersNoTroops": "{{castle}} heeft te weinig troepen voor een aanval. Wachten tot er troepen thuiskomen.",

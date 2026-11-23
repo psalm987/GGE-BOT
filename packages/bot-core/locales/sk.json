@@ -632,6 +632,8 @@
     "towersNoCastle": "Tento účet nemá v tomto kráľovstve hrad, preto sa tu na žiadne veže neútočí.",
     "towersSourceCastleGone": "Uložený východiskový hrad už na účte nie je. Namiesto neho útočím z hlavného hradu: ",
     "statusTowersNoCastle": "Tento účet nemá v tomto kráľovstve hrad. Odomkni kráľovstvo v hre a potom reštartuj bota.",
+    "statusFortressNoCastle": "Tento účet nemá hrad v Horiacich pieskoch, v Ľadovci Everwinter ani v Ohnivých štítoch. Odomkni jedno z nich v hre a potom reštartuj bota.",
+    "statusStormNoCastle": "Tento účet zatiaľ nemá hrad na Storm Islands. Keď ho bude mať, reštartuj bota.",
     "statusTowersCastleFallback": "Uložený východiskový hrad zmizol, preto útoky vychádzajú z hlavného hradu {{castle}}. Vyber hrad znova v nastaveniach.",
     "statusTowersAttacking": "Útočím z {{castle}}. Veže v dosahu: {{found}}. Za posledných 24 hodín: útoky {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} má na útok príliš málo vojska. Čakám, kým sa vojsko vráti domov.",

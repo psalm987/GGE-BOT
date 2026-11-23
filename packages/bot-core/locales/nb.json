@@ -630,6 +630,8 @@
     "towersNoCastle": "Denne kontoen har ikke noe slott i dette kongeriket, så ingen tårn angripes her.",
     "towersSourceCastleGone": "Det lagrede avreiseslottet finnes ikke lenger på kontoen. Angriper fra hovedslottet i stedet: ",
     "statusTowersNoCastle": "Denne kontoen har ikke noe slott i dette kongeriket. Lås opp kongeriket i spillet, og start boten på nytt.",
+    "statusFortressNoCastle": "Denne kontoen har ikke noe slott i Ildsanden, De tusen vintrers land eller Flammetoppene. Lås opp ett av dem i spillet, og start boten på nytt.",
+    "statusStormNoCastle": "Denne kontoen har ennå ikke noe slott på Stormøyene. Start boten på nytt når den har et.",
     "statusTowersCastleFallback": "Det lagrede avreiseslottet er borte, så angrepene går ut fra hovedslottet, {{castle}}. Velg et slott på nytt i innstillingene.",
     "statusTowersAttacking": "Angriper fra {{castle}}. {{found}} tårn innen rekkevidde. Siste 24 timer: {{attacks}} angrep.",
     "statusTowersNoTroops": "{{castle}} har for få tropper til et angrep. Venter på at tropper skal komme hjem.",

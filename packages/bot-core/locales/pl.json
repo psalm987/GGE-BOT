@@ -632,6 +632,8 @@
     "towersNoCastle": "To konto nie ma zamku w tym królestwie, więc żadne wieże nie są tu atakowane.",
     "towersSourceCastleGone": "Zapisanego zamku wyjściowego nie ma już na koncie. Zamiast tego atakuję z zamku głównego: ",
     "statusTowersNoCastle": "To konto nie ma zamku w tym królestwie. Odblokuj królestwo w grze, a potem uruchom bota ponownie.",
+    "statusFortressNoCastle": "To konto nie ma zamku na Płonących Piaskach, w Krainie Wiecznych Lodów ani na Ognistych Szczytach. Odblokuj jedno z nich w grze, a potem uruchom bota ponownie.",
+    "statusStormNoCastle": "To konto nie ma jeszcze zamku w Archipelagu Sztormu. Uruchom bota ponownie, gdy już go będzie miało.",
     "statusTowersCastleFallback": "Zapisanego zamku wyjściowego już nie ma, więc ataki wychodzą z zamku głównego {{castle}}. Wybierz zamek ponownie w ustawieniach.",
     "statusTowersAttacking": "Atakuję z zamku {{castle}}. Wieże w zasięgu: {{found}}. W ostatnich 24 godzinach: ataki {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} ma za mało wojsk na atak. Czekam na powrót wojsk.",

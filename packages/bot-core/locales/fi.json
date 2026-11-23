@@ -630,6 +630,8 @@
     "towersNoCastle": "Tällä tilillä ei ole linnaa tässä kuningaskunnassa, joten täällä ei hyökätä torneihin.",
     "towersSourceCastleGone": "Tallennettu lähtölinna ei ole enää tilillä. Hyökätään sen sijaan päälinnasta: ",
     "statusTowersNoCastle": "Tällä tilillä ei ole linnaa tässä kuningaskunnassa. Avaa kuningaskunta pelissä ja käynnistä botti uudelleen.",
+    "statusFortressNoCastle": "Tällä tilillä ei ole linnaa Polttavilla hiekoilla, Ikitalven jäätiköllä eikä Tulihuipuilla. Avaa yksi niistä pelissä ja käynnistä botti uudelleen.",
+    "statusStormNoCastle": "Tällä tilillä ei ole vielä linnaa Myrskysaarilla. Käynnistä botti uudelleen, kun sillä on sellainen.",
     "statusTowersCastleFallback": "Tallennettu lähtölinna on poissa, joten hyökkäykset lähtevät päälinnasta {{castle}}. Valitse linna uudelleen asetuksissa.",
     "statusTowersAttacking": "Hyökätään linnasta {{castle}}. Torneja kantamalla: {{found}}. Viimeiset 24 tuntia: hyökkäykset {{attacks}}.",
     "statusTowersNoTroops": "Linnassa {{castle}} on liian vähän joukkoja hyökkäykseen. Odotetaan joukkojen paluuta.",

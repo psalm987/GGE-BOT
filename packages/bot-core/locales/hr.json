@@ -631,6 +631,8 @@
     "towersNoCastle": "Ovaj račun nema dvorac u ovom kraljevstvu, pa se ovdje ne napadaju tornjevi.",
     "towersSourceCastleGone": "Spremljenog polaznog dvorca više nema na računu. Umjesto njega napada se iz glavnog dvorca: ",
     "statusTowersNoCastle": "Ovaj račun nema dvorac u ovom kraljevstvu. Otključaj kraljevstvo u igri, pa ponovno pokreni bota.",
+    "statusFortressNoCastle": "Ovaj račun nema dvorac u Gorućim pustinjama, Ledenjaku vječne zime ni Vatrenim vrhovima. Otključaj jedno od njih u igri, pa ponovno pokreni bota.",
+    "statusStormNoCastle": "Ovaj račun još nema dvorac na Olujnim otocima. Ponovno pokreni bota kad ga bude imao.",
     "statusTowersCastleFallback": "Spremljenog polaznog dvorca više nema, pa napadi polaze iz glavnog dvorca, {{castle}}. Ponovno odaberi dvorac u postavkama.",
     "statusTowersAttacking": "Napadam iz {{castle}}. Tornjeva u dometu: {{found}}. U zadnja 24 sata napada: {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} ima premalo trupa za napad. Čekam da se trupe vrate kući.",

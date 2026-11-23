@@ -631,6 +631,8 @@
     "towersNoCastle": "Esta conta não tem castelo neste reino, então nenhuma torre é atacada aqui.",
     "towersSourceCastleGone": "O castelo de origem salvo não está mais na conta. Atacando a partir do castelo principal: ",
     "statusTowersNoCastle": "Esta conta não tem castelo neste reino. Desbloqueie o reino no jogo e reinicie o bot.",
+    "statusFortressNoCastle": "Esta conta não tem castelo nas Areias Escaldantes, no Glaciar do Inverno Eterno nem nos Picos do Fogo. Desbloqueie um deles no jogo e reinicie o bot.",
+    "statusStormNoCastle": "Esta conta ainda não tem castelo nas Ilhas da Tempestade. Reinicie o bot quando tiver um.",
     "statusTowersCastleFallback": "O castelo de origem salvo sumiu, então os ataques saem do castelo principal, {{castle}}. Escolha um castelo de novo nas configurações.",
     "statusTowersAttacking": "Atacando a partir de {{castle}}. Torres ao alcance: {{found}}. Nas últimas 24 horas, ataques: {{attacks}}; ferramentas:.",
     "statusTowersNoTroops": "{{castle}} tem poucas tropas para um ataque. Aguardando as tropas voltarem.",

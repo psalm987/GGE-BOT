@@ -631,6 +631,8 @@
     "towersNoCastle": "Ce compte n'a aucun château dans ce royaume, donc aucune tour n'y est attaquée.",
     "towersSourceCastleGone": "Le château de départ enregistré n'est plus sur le compte. Attaque depuis le château principal à la place : ",
     "statusTowersNoCastle": "Ce compte n'a aucun château dans ce royaume. Débloquez le royaume dans le jeu, puis redémarrez le bot.",
+    "statusFortressNoCastle": "Ce compte n'a aucun château dans les Sables brûlants, le Glacier éternel ou les Pics du feu. Débloquez l'un d'eux dans le jeu, puis redémarrez le bot.",
+    "statusStormNoCastle": "Ce compte n'a pas encore de château dans les Îles orageuses. Redémarrez le bot dès qu'il en a un.",
     "statusTowersCastleFallback": "Le château de départ enregistré a disparu, les attaques partent donc du château principal, {{castle}}. Choisissez à nouveau un château dans les réglages.",
     "statusTowersAttacking": "Attaque depuis {{castle}}. Tours à portée : {{found}}. Dernières 24 heures : attaques {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} n'a pas assez de troupes pour une attaque. En attente du retour des troupes.",

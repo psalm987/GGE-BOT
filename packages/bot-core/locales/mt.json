@@ -633,6 +633,8 @@
     "towersNoCastle": "Dan il-kont m'għandu ebda kastell f'dan ir-renju, mela ma jiġu attakkati ebda torrijiet hawn.",
     "towersSourceCastleGone": "Il-kastell issejvjat li minnu tattakka m'għadux fuq il-kont. Qed jattakka mill-kastell prinċipali minflok: ",
     "statusTowersNoCastle": "Dan il-kont m'għandu ebda kastell f'dan ir-renju. Iftaħ ir-renju fil-logħba, imbagħad erġa' ibda l-bot.",
+    "statusFortressNoCastle": "Dan il-kont m'għandu ebda kastell fir-Ramel Jaħraq, fil-Glaċier tax-Xitwa Dejjiema jew fil-Quċċijiet tan-Nar. Iftaħ wieħed minnhom fil-logħba, imbagħad erġa' ibda l-bot.",
+    "statusStormNoCastle": "Dan il-kont għad m'għandux kastell fil-Gżejjer tat-Tempesti. Erġa' ibda l-bot meta jkollu wieħed.",
     "statusTowersCastleFallback": "Il-kastell issejvjat li minnu tattakka m'għadux hemm, mela l-attakki jitilqu mill-kastell prinċipali, {{castle}}. Erġa' agħżel kastell fl-issettjar.",
     "statusTowersAttacking": "Qed jattakka minn {{castle}}. Torrijiet fil-medda: {{found}}. Fl-aħħar 24 siegħa, attakki: {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} għandu ftit wisq truppi għal attakk. Qed jistenna li jiġu d-dar it-truppi.",

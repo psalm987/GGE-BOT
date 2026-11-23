@@ -630,6 +630,8 @@
     "towersNoCastle": "Det här kontot har inget slott i det här kungadömet, så inga torn anfalls här.",
     "towersSourceCastleGone": "Det sparade utgångsslottet finns inte längre på kontot. Anfaller från huvudslottet i stället: ",
     "statusTowersNoCastle": "Det här kontot har inget slott i det här kungadömet. Lås upp kungadömet i spelet och starta sedan om botten.",
+    "statusFortressNoCastle": "Det här kontot har inget slott i Brinnande öknen, Vinterglaciären eller Eldbergen. Lås upp ett av dem i spelet och starta sedan om botten.",
+    "statusStormNoCastle": "Det här kontot har ännu inget slott på Stormöarna. Starta om botten när det har ett.",
     "statusTowersCastleFallback": "Det sparade utgångsslottet är borta, så anfallen utgår från huvudslottet, {{castle}}. Välj ett slott igen i inställningarna.",
     "statusTowersAttacking": "Anfaller från {{castle}}. {{found}} torn inom räckhåll. Under de senaste 24 timmarna: {{attacks}} anfall.",
     "statusTowersNoTroops": "{{castle}} har för få trupper för ett anfall. Väntar på att trupper ska komma hem.",

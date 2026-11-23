@@ -13,6 +13,7 @@ const { events, botConfig } = require("../../ggeBot.js")
 const { ClientCommands: { preSpyInfo, getAreaInfo }, spiralCoordinates, castles, AreaType } = require("../../protocols")
 
 const { client } = require("./discord.js")
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const type = 11
@@ -21,8 +22,13 @@ events.once("load", async () => {
     /** @type {Array<import("../../protocols.js").Types.GAAAreaInfo>} */
     const areas = []
 
-    for (let kingdomID = 1; kingdomID < 4; kingdomID++) {
-        const castle = castles.find(e => e.kingdomID == kingdomID && [AreaType.externalKingdom, AreaType.mainCastle].includes(e.areaInfo.type))
+    const homes = [1, 2, 3].map(kingdomID => castles.find(e => e.kingdomID == kingdomID && [AreaType.externalKingdom, AreaType.mainCastle].includes(e.areaInfo.type)))
+        .filter(castle => castle)
+    if (homes.length == 0)
+        return reportStatus("stopped", "statusFortressNoCastle")
+
+    for (const castle of homes) {
+        const kingdomID = castle.kingdomID
         done:
         for (let i = 0, j = 0; i < 13 * 13; i++) {
             let rX, rY

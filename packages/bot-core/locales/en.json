@@ -630,6 +630,8 @@
     "towersNoCastle": "This account has no castle in this kingdom, so no towers are attacked here.",
     "towersSourceCastleGone": "The saved source castle is no longer on the account. Attacking from the main castle instead: ",
     "statusTowersNoCastle": "This account has no castle in this kingdom. Unlock the kingdom in the game, then restart the bot.",
+    "statusFortressNoCastle": "This account has no castle in Burning Sands, Everwinter Glacier or Fire Peaks. Unlock one of them in the game, then restart the bot.",
+    "statusStormNoCastle": "This account has no castle in the Storm Islands yet. Restart the bot once it has one.",
     "statusTowersCastleFallback": "The saved source castle is gone, so attacks leave from the main castle, {{castle}}. Pick a castle again in the settings.",
     "statusTowersAttacking": "Attacking from {{castle}}. {{found}} towers in range. In the last 24 hours: {{attacks}} attacks.",
     "statusTowersNoTroops": "{{castle}} has too few troops for an attack. Waiting for troops to come home.",

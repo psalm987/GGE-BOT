@@ -630,6 +630,8 @@
     "towersNoCastle": "Bu hesabın bu krallıkta kalesi yok, bu yüzden burada hiçbir kuleye saldırılmaz.",
     "towersSourceCastleGone": "Kaydedilen çıkış kalesi artık hesapta değil. Bunun yerine ana kaleden saldırılıyor: ",
     "statusTowersNoCastle": "Bu hesabın bu krallıkta kalesi yok. Krallığı oyunda aç, sonra botu yeniden başlat.",
+    "statusFortressNoCastle": "Bu hesabın Yanan Kumlar, Herdem Buzul veya Ateş Zirvesi'nde kalesi yok. Bunlardan birini oyunda aç, sonra botu yeniden başlat.",
+    "statusStormNoCastle": "Bu hesabın henüz Fırtına Adaları'nda kalesi yok. Bir kalesi olduğunda botu yeniden başlat.",
     "statusTowersCastleFallback": "Kaydedilen çıkış kalesi yok, bu yüzden saldırılar ana kaleden çıkıyor: {{castle}}. Ayarlardan yeniden bir kale seç.",
     "statusTowersAttacking": "Çıkış kalesi: {{castle}}. Menzilde {{found}} kule var. Son 24 saatte: {{attacks}} saldırı.",
     "statusTowersNoTroops": "{{castle}} kalesinde saldırı için çok az birlik var. Birliklerin eve dönmesi bekleniyor.",

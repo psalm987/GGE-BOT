@@ -631,6 +631,8 @@
     "towersNoCastle": "Questo account non ha castelli in questo regno, quindi qui non si attaccano torri.",
     "towersSourceCastleGone": "Il castello di partenza salvato non è più nell'account. Si attacca invece dal castello principale: ",
     "statusTowersNoCastle": "Questo account non ha castelli in questo regno. Sblocca il regno nel gioco, poi riavvia il bot.",
+    "statusFortressNoCastle": "Questo account non ha castelli nelle Sabbie Ardenti, nel Ghiacciaio Semprinverno o nelle Vette della Fiamma. Sbloccane uno nel gioco, poi riavvia il bot.",
+    "statusStormNoCastle": "Questo account non ha ancora un castello nelle Isole della Tempesta. Riavvia il bot quando ne avrà uno.",
     "statusTowersCastleFallback": "Il castello di partenza salvato non c'è più, quindi gli attacchi partono dal castello principale, {{castle}}. Scegli di nuovo un castello nelle impostazioni.",
     "statusTowersAttacking": "Attacchi da {{castle}}. Torri a portata: {{found}}. Nelle ultime 24 ore: attacchi {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} ha troppo poche truppe per un attacco. In attesa che le truppe tornino a casa.",

@@ -630,6 +630,8 @@
     "towersNoCastle": "Kontoen har ingen borg i dette kongerige, så her angribes ingen tårne.",
     "towersSourceCastleGone": "Den gemte udgangsborg er ikke længere på kontoen. Angriber i stedet fra hovedborgen: ",
     "statusTowersNoCastle": "Kontoen har ingen borg i dette kongerige. Lås kongeriget op i spillet, og genstart botten.",
+    "statusFortressNoCastle": "Kontoen har ingen borg i De brændende sletter, Altidvinter-gletsjeren eller Ildtinder. Lås et af dem op i spillet, og genstart botten.",
+    "statusStormNoCastle": "Kontoen har endnu ingen borg på Stormøerne. Genstart botten, når den har en.",
     "statusTowersCastleFallback": "Den gemte udgangsborg er væk, så angrebene udgår fra hovedborgen, {{castle}}. Vælg en borg igen i indstillingerne.",
     "statusTowersAttacking": "Angriber fra {{castle}}. {{found}} tårne inden for rækkevidde. De seneste 24 timer: {{attacks}} angreb.",
     "statusTowersNoTroops": "{{castle}} har for få tropper til et angreb. Venter på, at tropperne kommer hjem.",

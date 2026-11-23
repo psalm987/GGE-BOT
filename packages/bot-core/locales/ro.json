@@ -631,6 +631,8 @@
     "towersNoCastle": "Acest cont nu are castel în acest regat, așa că aici nu se atacă niciun turn.",
     "towersSourceCastleGone": "Castelul de plecare salvat nu mai este în cont. Se atacă în schimb din castelul principal: ",
     "statusTowersNoCastle": "Acest cont nu are castel în acest regat. Deblochează regatul în joc, apoi repornește botul.",
+    "statusFortressNoCastle": "Acest cont nu are castel în Nisipurile în Flăcări, Ghețarul Iernii Veșnice sau Piscurile de Foc. Deblochează unul dintre ele în joc, apoi repornește botul.",
+    "statusStormNoCastle": "Acest cont nu are încă un castel în Insulele Furtunii. Repornește botul după ce are unul.",
     "statusTowersCastleFallback": "Castelul de plecare salvat nu mai există, așa că atacurile pleacă din castelul principal, {{castle}}. Alege din nou un castel în setări.",
     "statusTowersAttacking": "Se atacă din {{castle}}. Turnuri în rază: {{found}}. În ultimele 24 de ore, atacuri: {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} nu are destule trupe pentru un atac. Se așteaptă întoarcerea trupelor acasă.",

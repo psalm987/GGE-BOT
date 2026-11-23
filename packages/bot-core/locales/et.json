@@ -630,6 +630,8 @@
     "towersNoCastle": "Sellel kontol pole selles kuningriigis lossi, nii et siin torne ei rünnata.",
     "towersSourceCastleGone": "Salvestatud lähteloss pole enam kontol. Rünnatakse hoopis põhilossist: ",
     "statusTowersNoCastle": "Sellel kontol pole selles kuningriigis lossi. Ava kuningriik mängus ja taaskäivita bot.",
+    "statusFortressNoCastle": "Sellel kontol pole lossi Põlevates liivades, Igatalve liustikul ega Tulemägedes. Ava üks neist mängus ja taaskäivita bot.",
+    "statusStormNoCastle": "Sellel kontol pole veel Tormisaartel lossi. Taaskäivita bot, kui see on olemas.",
     "statusTowersCastleFallback": "Salvestatud lähteloss on kadunud, nii et rünnakud lähtuvad põhilossist {{castle}}. Vali seadetes uuesti loss.",
     "statusTowersAttacking": "Rünnatakse lossist {{castle}}. Torne ulatuses: {{found}}. Viimase 24 tunni jooksul: rünnakud {{attacks}}.",
     "statusTowersNoTroops": "Lossis {{castle}} on rünnakuks liiga vähe vägesid. Oodatakse vägede kojutulekut.",

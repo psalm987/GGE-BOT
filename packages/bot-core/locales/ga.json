@@ -633,6 +633,8 @@
     "towersNoCastle": "Níl caisleán ag an gcuntas seo sa ríocht seo, mar sin ní ionsaítear aon túr anseo.",
     "towersSourceCastleGone": "Níl an caisleán sábháilte as a n-ionsaítear ar an gcuntas a thuilleadh. Ag ionsaí ón bpríomhchaisleán ina ionad: ",
     "statusTowersNoCastle": "Níl caisleán ag an gcuntas seo sa ríocht seo. Díghlasáil an ríocht sa chluiche, ansin atosaigh an bot.",
+    "statusFortressNoCastle": "Níl caisleán ag an gcuntas seo sa Ghaineamh Lasrach, in Oighearshruth an Gheimhridh Shíoraí ná i mBinn Tine. Díghlasáil ceann acu sa chluiche, ansin atosaigh an bot.",
+    "statusStormNoCastle": "Níl caisleán ag an gcuntas seo in Oileáin na Stoirme fós. Atosaigh an bot nuair a bheidh ceann aige.",
     "statusTowersCastleFallback": "Tá an caisleán sábháilte as a n-ionsaítear imithe, mar sin imíonn ionsaithe ón bpríomhchaisleán, {{castle}}. Roghnaigh caisleán arís sna socruithe.",
     "statusTowersAttacking": "Ag ionsaí ó {{castle}}. Túir faoi raon: {{found}}. Sna 24 uair an chloig deireanacha: ionsaithe: {{attacks}}.",
     "statusTowersNoTroops": "Tá ró-bheagán trúpaí ag {{castle}} le haghaidh ionsaí. Ag fanacht go dtiocfaidh trúpaí abhaile.",

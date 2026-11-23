@@ -632,6 +632,8 @@
     "towersNoCastle": "Tento účet nemá v tomto království hrad, takže se zde na věže neútočí.",
     "towersSourceCastleGone": "Uložený výchozí hrad už na účtu není. Útočí se z hlavního hradu: ",
     "statusTowersNoCastle": "Tento účet nemá v tomto království hrad. Odemkněte království ve hře a pak bota restartujte.",
+    "statusFortressNoCastle": "Tento účet nemá hrad v Hořících píscích, Ledovci věčné zimy ani v Ohnivých vrších. Odemkněte jedno z nich ve hře a pak bota restartujte.",
+    "statusStormNoCastle": "Tento účet zatím nemá hrad na Bouřlivých ostrovech. Až ho bude mít, bota restartujte.",
     "statusTowersCastleFallback": "Uložený výchozí hrad zmizel, takže útoky vycházejí z hlavního hradu {{castle}}. V nastavení znovu vyberte hrad.",
     "statusTowersAttacking": "Útoky z hradu {{castle}}. Věže v dosahu: {{found}}. Za posledních 24 hodin: útoky {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} má na útok příliš málo jednotek. Čeká se na návrat jednotek.",

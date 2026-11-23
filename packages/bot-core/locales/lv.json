@@ -631,6 +631,8 @@
     "towersNoCastle": "Šim kontam nav pils šajā karaļvalstī, tāpēc šeit torņiem netiek uzbrukts.",
     "towersSourceCastleGone": "Saglabātā izejas pils vairs nav kontā. Tā vietā uzbrūk no galvenās pils: ",
     "statusTowersNoCastle": "Šim kontam nav pils šajā karaļvalstī. Atbloķē karaļvalsti spēlē un tad restartē botu.",
+    "statusFortressNoCastle": "Šim kontam nav pils Degošajos tuksnešos, Mūžziemas ledājā vai Uguns virsotnēs. Atbloķē vienu no tām spēlē un tad restartē botu.",
+    "statusStormNoCastle": "Šim kontam vēl nav pils Vētru salās. Restartē botu, kad tam tāda būs.",
     "statusTowersCastleFallback": "Saglabātās izejas pils vairs nav, tāpēc uzbrukumi dodas no galvenās pils {{castle}}. Iestatījumos izvēlies pili no jauna.",
     "statusTowersAttacking": "Uzbrūk no {{castle}}. Torņi diapazonā: {{found}}. Pēdējās 24 stundās uzbrukumi: {{attacks}}.",
     "statusTowersNoTroops": "Pilī {{castle}} ir par maz karavīru uzbrukumam. Gaida, kamēr karavīri atgriezīsies.",

@@ -630,6 +630,8 @@
     "towersNoCastle": "Dieses Konto hat keine Burg in diesem Königreich, daher werden hier keine Türme angegriffen.",
     "towersSourceCastleGone": "Die gespeicherte Ausgangsburg gehört nicht mehr zum Konto. Stattdessen wird von der Hauptburg angegriffen: ",
     "statusTowersNoCastle": "Dieses Konto hat keine Burg in diesem Königreich. Schaltet das Königreich im Spiel frei und startet den Bot dann neu.",
+    "statusFortressNoCastle": "Dieses Konto hat keine Burg in den Brennenden Sanden, im Immerwinter-Gletscher oder in den Feuergipfeln. Schaltet eines davon im Spiel frei und startet den Bot dann neu.",
+    "statusStormNoCastle": "Dieses Konto hat noch keine Burg auf den Sturminseln. Startet den Bot neu, sobald es eine hat.",
     "statusTowersCastleFallback": "Die gespeicherte Ausgangsburg ist weg, daher gehen die Angriffe von der Hauptburg {{castle}} aus. Wählt in den Einstellungen erneut eine Burg.",
     "statusTowersAttacking": "Angriffe von {{castle}}. {{found}} Türme in Reichweite. In den letzten 24 Stunden: {{attacks}} Angriffe.",
     "statusTowersNoTroops": "{{castle}} hat zu wenige Truppen für einen Angriff. Warten auf heimkehrende Truppen.",

@@ -12,17 +12,19 @@ const { events, botConfig } = require("../../ggeBot.js")
 const { ClientCommands: { preSpyInfo }, castles, spiralCoordinates, KingdomID, AreaType, ClientCommands, unlockInfoList } = require("../../protocols.js")
 
 const { client } = require("./discord.js")
+const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const type = AreaType.stormTower
 const kingdomID = KingdomID.stormIslands
 
 events.once("load", async () => {
-    const castle = castles.find(e => e.kingdomID == kingdomID && [AreaType.externalKingdom, AreaType.mainCastle].includes(e.areaInfo.type))
-
     if (!unlockInfoList.find(e => e.kingdomID == kingdomID)?.isUnlocked)
         return console.warn("wontRunWithoutStormUnlocked")
-    
+    const castle = castles.find(e => e.kingdomID == kingdomID && [AreaType.externalKingdom, AreaType.mainCastle].includes(e.areaInfo.type))
+    if (!castle)
+        return reportStatus("stopped", "statusStormNoCastle")
+
     /** @type {Array<import("../../protocols.js").Types.GAAAreaInfo>} */
     const areas = []
     done:

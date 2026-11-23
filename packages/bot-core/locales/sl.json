@@ -632,6 +632,8 @@
     "towersNoCastle": "Ta račun nima gradu v tem kraljestvu, zato se tu ne napada nobenih stolpov.",
     "towersSourceCastleGone": "Shranjenega izhodiščnega gradu ni več na računu. Namesto tega napadam iz glavnega gradu: ",
     "statusTowersNoCastle": "Ta račun nima gradu v tem kraljestvu. Odkleni kraljestvo v igri, nato znova zaženi bota.",
+    "statusFortressNoCastle": "Ta račun nima gradu v Gorečih puščavah, Ledeniku večne zime ali Ognjenih vrhovih. Odkleni enega od njih v igri, nato znova zaženi bota.",
+    "statusStormNoCastle": "Ta račun še nima gradu na Viharnih otokih. Znova zaženi bota, ko ga bo imel.",
     "statusTowersCastleFallback": "Shranjenega izhodiščnega gradu ni več, zato gredo napadi iz glavnega gradu, {{castle}}. V nastavitvah znova izberi grad.",
     "statusTowersAttacking": "Napadam iz gradu {{castle}}. Stolpi v dosegu: {{found}}. V zadnjih 24 urah: napadi {{attacks}}.",
     "statusTowersNoTroops": "{{castle}} ima premalo čet za napad. Čakam, da se čete vrnejo domov.",

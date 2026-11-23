@@ -632,6 +632,8 @@
     "towersNoCastle": "Ši paskyra neturi pilies šioje karalystėje, todėl bokštai čia nepuolami.",
     "towersSourceCastleGone": "Išsaugotos puolimų pilies paskyroje nebėra. Vietoj jos puolama iš pagrindinės pilies: ",
     "statusTowersNoCastle": "Ši paskyra neturi pilies šioje karalystėje. Atrakinkite karalystę žaidime ir paleiskite botą iš naujo.",
+    "statusFortressNoCastle": "Ši paskyra neturi pilies Degančiuose Smėlynuose, Amžinosios Žiemos Ledyne ar Ugnies Viršūnėse. Atrakinkite vieną iš jų žaidime ir paleiskite botą iš naujo.",
+    "statusStormNoCastle": "Ši paskyra dar neturi pilies Audrų salose. Paleiskite botą iš naujo, kai ji turės pilį.",
     "statusTowersCastleFallback": "Išsaugotos puolimų pilies nebėra, todėl puolimai išeina iš pagrindinės pilies ({{castle}}). Nustatymuose vėl pasirinkite pilį.",
     "statusTowersAttacking": "Puolama iš pilies {{castle}}. Bokštų paieškos spindulyje: {{found}}. Per paskutines 24 valandas: puolimų {{attacks}}.",
     "statusTowersNoTroops": "Pilyje {{castle}} per mažai karių puolimui. Laukiama, kol kariai grįš namo.",
