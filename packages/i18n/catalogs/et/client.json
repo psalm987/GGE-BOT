@@ -547,7 +547,7 @@
   "modules.mp-builder.description": "Ehitab sündmuse serveri võimsa paiga sinu konto kaksikult.",
   "modules.recruit-tools-heal.name": "Värbamine, tööriistad ja ravi",
   "modules.recruit-tools-heal.description": "Hoiab iga lossi väed ja tööriistad sinu seatud varul ning tellib neid müntide ja ressurssidega kasarmust ja töökodadest. Ravi tuleb peagi.",
-  "modules.refinery-toolsmith.name": "Rafineerimistehas ja tööriistasepp",
+  "modules.refinery-toolsmith.name": "Tööriistasepp",
   "modules.refinery-toolsmith.description": "Ehitab sinu töökodades piiramis- ja kaitsevahendeid, kuni igaüks jõuab sinu seatud varuni.",
   "modules.auto-feast.name": "Automaatne pidusöök",
   "modules.auto-feast.description": "Alustab sinu lossides pidusööke, kui neis on rohkem toitu, kui vajad.",

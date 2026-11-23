@@ -547,7 +547,7 @@
   "modules.mp-builder.description": "Baut den mächtigen Platz des Event-Servers vom Zwilling Eures Kontos aus.",
   "modules.recruit-tools-heal.name": "Rekrutieren, Werkzeuge und Heilen",
   "modules.recruit-tools-heal.description": "Hält die Truppen und Werkzeuge jeder Burg auf dem Bestand, den Ihr festlegt, und gibt dafür mit Münzen und Rohstoffen Aufträge in der Kaserne und den Werkstätten auf. Heilen folgt demnächst.",
-  "modules.refinery-toolsmith.name": "Raffinerie und Werkzeugschmied",
+  "modules.refinery-toolsmith.name": "Werkzeugschmied",
   "modules.refinery-toolsmith.description": "Baut Belagerungs- und Verteidigungswerkzeuge in Euren Werkstätten, bis jedes den Bestand erreicht, den Ihr festlegt.",
   "modules.auto-feast.name": "Auto-Festmahl",
   "modules.auto-feast.description": "Startet Festmähler in Euren Burgen, wenn sie mehr Nahrung haben, als Ihr braucht.",

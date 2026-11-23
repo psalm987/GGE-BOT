@@ -577,7 +577,7 @@
   "modules.mp-builder.description": "Constrói o lugar poderoso do servidor do evento a partir da gêmea da sua conta.",
   "modules.recruit-tools-heal.name": "Recrutar, ferramentas e curar",
   "modules.recruit-tools-heal.description": "Mantém as tropas e ferramentas de cada castelo no estoque que você definir, fazendo pedidos no quartel e nas oficinas com moedas e recursos. A cura chega em breve.",
-  "modules.refinery-toolsmith.name": "Refinaria e oficina de ferramentas",
+  "modules.refinery-toolsmith.name": "Ferreiro",
   "modules.refinery-toolsmith.description": "Fabrica ferramentas de cerco e de defesa nas suas oficinas até cada uma atingir o estoque que você definir.",
   "modules.auto-feast.name": "Banquete automático",
   "modules.auto-feast.description": "Inicia banquetes nos seus castelos quando eles têm mais comida do que o necessário.",

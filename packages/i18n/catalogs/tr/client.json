@@ -547,7 +547,7 @@
   "modules.mp-builder.description": "Hesabının ikizinden etkinlik sunucusunun kudretli yerini inşa eder.",
   "modules.recruit-tools-heal.name": "Asker, alet ve iyileştirme",
   "modules.recruit-tools-heal.description": "Her kalenin birliklerini ve aletlerini belirlediğin stokta tutar, kışladan ve atölyelerden madeni para ve kaynakla sipariş verir. İyileştirme çok yakında.",
-  "modules.refinery-toolsmith.name": "Rafineri ve aletçi",
+  "modules.refinery-toolsmith.name": "Aletçi",
   "modules.refinery-toolsmith.description": "Her biri belirlediğin stoğa ulaşana kadar atölyelerinde kuşatma ve savunma aletleri üretir.",
   "modules.auto-feast.name": "Otomatik şenlik",
   "modules.auto-feast.description": "Kalelerinde gerekenden fazla yiyecek olduğunda şenlik başlatır.",

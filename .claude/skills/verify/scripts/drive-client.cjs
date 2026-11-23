@@ -1115,7 +1115,7 @@ async function drivePluginSettings(page) {
     await axe(page, "nomads module 390")
     await page.setViewportSize({ width: 1440, height: 900 })
 
-    await openModule(page, "Refinery and toolsmith")
+    await openModule(page, "Toolsmith")
     form = page.locator(".gge-content")
     await noToggleOrChecks("the Toolsmith page")
     assert(await form.getByText("Keep at least this much of each resource").isVisible() && await form.getByText("Log only: write the orders to the log instead of sending them").isVisible(),
@@ -1139,7 +1139,7 @@ async function drivePluginSettings(page) {
     await axe(page, "armourer module 1440")
 
     await page.setViewportSize({ width: 390, height: 844 })
-    for (const [module, shot] of [["Refinery and toolsmith", "45-toolsmith-390"], ["Armourer", "46-buy-tools-390"]]) {
+    for (const [module, shot] of [["Toolsmith", "45-toolsmith-390"], ["Armourer", "46-buy-tools-390"]]) {
         await openModule(page, module)
         await page.waitForTimeout(400)
         assert(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) === 0, `no horizontal overflow at 390 on the ${module} page`)

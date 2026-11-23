@@ -607,7 +607,7 @@
   "modules.mp-builder.description": "Stavia mocné miesto eventového servera z dvojníka tvojho účtu.",
   "modules.recruit-tools-heal.name": "Verbovanie, nástroje a liečenie",
   "modules.recruit-tools-heal.description": "Udržiava vojsko a nástroje každého hradu na zásobe, ktorú nastavíš, a objednáva ich v kasárňach a dielňach za mince a suroviny. Liečenie už čoskoro.",
-  "modules.refinery-toolsmith.name": "Rafinéria a výrobca nástrojov",
+  "modules.refinery-toolsmith.name": "Výrobca nástrojov",
   "modules.refinery-toolsmith.description": "Vyrába nástroje na obliehanie a obranu v tvojich dielňach, kým každý nedosiahne zásobu, ktorú nastavíš.",
   "modules.auto-feast.name": "Automatická hostina",
   "modules.auto-feast.description": "Spúšťa hostiny v tvojich hradoch, keď majú viac jedla, než potrebuješ.",

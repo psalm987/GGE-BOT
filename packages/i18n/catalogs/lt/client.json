@@ -607,7 +607,7 @@
   "modules.mp-builder.description": "Stato renginio serverio galios vietą (MP) iš jūsų paskyros dvynio.",
   "modules.recruit-tools-heal.name": "Samdymas, įrankiai ir gydymas",
   "modules.recruit-tools-heal.description": "Palaiko kiekvienos pilies karių ir įrankių atsargas jūsų nustatyto dydžio, užsakydamas juos kareivinėse ir dirbtuvėse už monetas ir išteklius. Gydymas pasirodys netrukus.",
-  "modules.refinery-toolsmith.name": "Rafinavimo gamykla ir įrankininkas",
+  "modules.refinery-toolsmith.name": "Įrankininkas",
   "modules.refinery-toolsmith.description": "Gamina apgulties ir gynybos įrankius jūsų dirbtuvėse, kol kiekvieno atsargos pasieks jūsų nustatytą kiekį.",
   "modules.auto-feast.name": "Automatinės puotos",
   "modules.auto-feast.description": "Pradeda puotas jūsų pilyse, kai jose daugiau maisto, nei reikia.",

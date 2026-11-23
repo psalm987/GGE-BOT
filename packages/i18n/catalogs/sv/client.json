@@ -547,7 +547,7 @@
   "modules.mp-builder.description": "Bygger eventserverns mäktiga plats från ditt kontos tvilling.",
   "modules.recruit-tools-heal.name": "Rekrytering, verktyg och läkning",
   "modules.recruit-tools-heal.description": "Håller varje slotts trupper och verktyg på det lager du anger och beställer från kasernen och verkstäderna med mynt och resurser. Läkning kommer snart.",
-  "modules.refinery-toolsmith.name": "Raffinaderi och verktygssmed",
+  "modules.refinery-toolsmith.name": "Verktygssmed",
   "modules.refinery-toolsmith.description": "Bygger belägrings- och försvarsverktyg i dina verkstäder tills varje verktyg når det lager du angav.",
   "modules.auto-feast.name": "Autofest",
   "modules.auto-feast.description": "Startar fester i dina slott när de har mer mat än du behöver.",

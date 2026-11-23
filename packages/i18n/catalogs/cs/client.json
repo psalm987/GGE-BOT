@@ -607,7 +607,7 @@
   "modules.mp-builder.description": "Staví mocné místo serveru události z dvojčete vašeho účtu.",
   "modules.recruit-tools-heal.name": "Nábor, nástroje a léčení",
   "modules.recruit-tools-heal.description": "Udržuje jednotky a nástroje každého hradu na zásobě, kterou nastavíte, a objednává je v kasárnách a dílnách za zlaťáky a zdroje. Léčení přijde brzy.",
-  "modules.refinery-toolsmith.name": "Rafinerie a výrobce nástrojů",
+  "modules.refinery-toolsmith.name": "Výrobce nástrojů",
   "modules.refinery-toolsmith.description": "Vyrábí obléhací a obranné nástroje ve vašich dílnách, dokud každý nedosáhne zásoby, kterou nastavíte.",
   "modules.auto-feast.name": "Automatická hostina",
   "modules.auto-feast.description": "Pořádá hostiny ve vašich hradech, když mají víc jídla, než potřebujete.",

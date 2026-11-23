@@ -607,7 +607,7 @@
   "modules.mp-builder.description": "Будує могутнє місце подієвого сервера з двійника твого акаунта.",
   "modules.recruit-tools-heal.name": "Вербування, знаряддя й лікування",
   "modules.recruit-tools-heal.description": "Тримає війська й знаряддя кожного замку на заданому тобою запасі, замовляючи їх у казармі та майстернях за монети й ресурси. Лікування незабаром.",
-  "modules.refinery-toolsmith.name": "Переробка й майстер знарядь",
+  "modules.refinery-toolsmith.name": "Майстер знарядь",
   "modules.refinery-toolsmith.description": "Будує облогові та оборонні знаряддя у твоїх майстернях, доки кожне не досягне заданого тобою запасу.",
   "modules.auto-feast.name": "Автобенкет",
   "modules.auto-feast.description": "Починає бенкети у твоїх замках, коли в них більше їжі, ніж потрібно.",
