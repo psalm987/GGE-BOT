@@ -1,0 +1,73 @@
+---
+title: Recruit, tools and heal
+description: Keep each castle's troops and tools at the stock you set. The bot orders from the barracks and workshops with coins and resources, never rubies.
+appRoute: /m/recruit-tools-heal
+plugin: recruitTools
+sources:
+  - packages/bot-core/plugins/recruitTools.js
+  - packages/bot-core/plugins/stock.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="healing-shield" size=32 /%}Never run short of troops again. The Recruit and tools {% term id="plugin" %}plugin{% /term %} keeps each castle's troops and tools at the stock you set. When a castle has fewer than your target, the bot orders more from that castle's barracks or workshop.
+
+It pays only with coins and resources, never with rubies. Use it to refill your armies and siege tools after attacks without opening the game.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, it reads the stock of every castle in your targets.
+2. It counts what each castle holds: troops and tools at home, in production, in the queue, and out on marches.
+3. If a castle holds fewer than your target, the bot orders the difference. Each order holds at most the **Per order** amount.
+4. It orders only when the barracks or workshop has a free queue slot. It never unlocks a slot with rubies.
+5. Before each order, it checks your coin and resource floors. If an order would take you below a floor, it waits.
+6. When the order in production finishes, the bot checks again. If nothing is in production, it checks again in about 15 minutes.
+
+## Set your targets {% #targets %}
+
+**Troop targets** and **Tool targets** are tables. Choose **Add row** and fill in every column:
+
+- **Castle** is the castle that keeps the stock.
+- **Troop** or **Tool** is what to keep. The list shows only troops paid with coins, and only tools paid with coins or resources.
+- **Stock** is how many the castle should hold.
+- **Per order** is the most the bot orders at one time. A tool order holds at most 80.
+
+The castle list is empty until your bot has signed in once. Start the bot, wait for it to sign in, then come back to add rows.
+
+{% aside type="caution" id="toolsmith-overlap" %}
+The [Refinery and toolsmith](/modules/refinery-toolsmith/) module does the same job for tools. Don't give both modules a target for the same tool.
+{% /aside %}
+
+## Keep coins and resources in reserve {% #floors %}
+
+**Keep at least this many coins** is your coin floor. The bot never orders if the order would leave your account with fewer coins. The default is 100,000.
+
+**Keep at least this much of each resource** is your resource floor. It applies to each resource in the castle that pays, such as wood and stone. The default is 0.
+
+## Test with a dry run {% #dry-run %}
+
+Turn on **Log only: write the orders to the log instead of sending them** to see what the bot would do. The bot writes each order to your {% term id="log" %}log{% /term %} and sends nothing to the game. Read the [Logs](/war-room/logs/) page, check the orders, then turn the switch off.
+
+## Settings {% #settings %}
+
+{% settings plugin="recruitTools" /%}
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card on the module page tells you what the plugin is doing now:
+
+- **Every target is met.** The bot waits until a stock drops below its target.
+- **The production queue is full.** The bot waits for a free slot.
+- **Ordering** an item **would take you under your coin floor.** The bot waits until your coins are above the floor again.
+- **Not enough resources to order** an item. The bot waits until the castle has resources above your floor.
+- **A castle in your targets isn't on this account, or isn't known yet.** Check the castle in the row. The bot tries again on its next check.
+- An item **can't be ordered with coins or resources, so it is skipped.** Pick a different troop or tool.
+
+## Still to come {% #soon %}
+
+{% ui key="client:modules.recruit-tools-heal.soon.heal.name" /%} {% status kind="planned" /%} {% ui key="client:modules.recruit-tools-heal.soon.heal.description" /%} The bot does not heal troops yet.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle) means a row names a castle that isn't on this account.
+- [PLUGIN_OPTION_ITEM](/errors/#plugin-option-item) means a row names an item that isn't in the list.
+- [PLUGIN_OPTION_ROWS](/errors/#plugin-option-rows) means a table has too many rows.

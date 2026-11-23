@@ -1,0 +1,59 @@
+---
+title: Messages
+description: Copy your alliance chat to a Discord channel, and send what people write in that channel back to the game.
+appRoute: /m/messages
+plugin: chat
+sources:
+  - packages/bot-core/plugins/discord/chat.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="envelope" size=32 /%}Keep up with your alliance from Discord. The Messages module runs the Chat {% term id="plugin" %}plugin{% /term %}. It copies your alliance chat to a Discord channel, and it sends what people write in that channel back to the game.
+
+Use it when your alliance talks on Discord and you want both chats in one place.
+
+## How it works {% #how-it-works %}
+
+From the game to Discord:
+
+1. Another player writes in your alliance chat.
+2. The bot posts the message in your Discord channel, with the player's name in front.
+
+Messages that your own {% term id="game-account" %}game account{% /term %} writes are not copied. That includes the messages the bot sends from Discord, so nothing is posted twice.
+
+From Discord to the game:
+
+1. A person writes in the Discord channel. Messages from other Discord bots are skipped.
+2. The bot sends the message to your alliance chat from your game account.
+3. By default, the message starts with the writer's Discord nickname, or their display name if they have no nickname. The name shows in the colour of their Discord role.
+
+The bot changes a few things on the way so the game chat can show them:
+
+- A web address becomes a link that players can open in the game.
+- Common emoji become game smileys, such as `:)` and `:D`. Other emoji become their name between colons. Emoji without a name are left out.
+- Attached files become short TinyURL links, numbered from 0.
+
+## Choose who can post {% #who-can-post %}
+
+{% aside type="caution" id="channel-speaks-for-you" %}
+Everything a person posts in the channel shows up in your alliance chat, sent by your game account. Use a channel where only people you trust can write.
+{% /aside %}
+
+Turn on **Hide your Discord name** to send Discord messages to the game without the writer's name in front. The message then reads as if your game account wrote it.
+
+## Set up the channel {% #setup %}
+
+1. Pick a text channel in your Discord for the alliance chat. The GGE Command Discord bot must be able to see and post in it.
+2. Copy the channel ID. The steps are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
+3. Paste the ID into **Channel ID** and save.
+4. Start the bot. New alliance chat messages appear in the channel from then on. Older messages are not copied.
+
+## Settings {% #settings %}
+
+{% settings plugin="chat" /%}
+
+## Tips and limits {% #tips %}
+
+- Give the chat its own channel. Every message anyone writes in that channel goes to the game.
+- The plugin works only while your bot is online. Messages written while the bot is stopped are not copied in either direction.
+- The game chat cannot show square brackets, so the bot turns them into spaces.

@@ -1,0 +1,79 @@
+---
+title: Fortress
+description: Attack the fortresses of Burning Sands, Everwinter Glacier and Fire Peaks from your castle in each kingdom, nearest first.
+appRoute: /m/fortress
+plugin: attackFortressesBurningSands
+sources:
+  - packages/bot-core/plugins/attack/attackFortresses*.js
+  - packages/bot-core/plugins/attack/sharedFortressAttackLogic.js
+  - packages/bot-core/army.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="locked-fortress" size=32 /%}Fortresses on the map? The Fortress module attacks the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks. Each kingdom has its own tab, its own switch and its own settings.
+
+{% terms_on_page /%}
+
+Use it when you have a castle in a kingdom and want its fortresses attacked as soon as each one is ready again.
+
+## How it works {% #how-it-works %}
+
+Each kingdom that is on runs on its own:
+
+1. The attacks leave from your castle in that kingdom. This module has no setting to pick another castle.
+2. The bot reads the map around the castle and lists the fortresses, nearest first.
+3. It takes a free {% term id="commander-game" %}commander{% /term %}. If you picked commanders in an order on the {% ui key="client:plugins.commanderPicker.title" /%} card, it follows your order. If you picked none, or all of them, it takes the fastest free commander.
+4. It attacks the nearest fortress whose wait is over and that none of your armies is marching to.
+5. When every fortress is waiting, the bot waits until the next one is ready, and then goes on.
+6. If the castle is short of troops, the bot waits until one of its marches comes home.
+
+Each kingdom is its own {% term id="plugin" %}plugin{% /term %}. Each kingdom that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}, and its attacks count toward the account's daily cap.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.autofill" /%} fills each attack from the castle's troops. It puts troops on the left flank of each wave and in the courtyard. It fills up to 3 waves in Burning Sands and Everwinter Glacier, and up to 5 waves in Fire Peaks.
+
+Autofill needs at least 100 troops for the waves and 500 more for the courtyard before it attacks. If your commander brings support troops of its own, the bot leaves the courtyard empty and needs only the 100. In Fire Peaks, Autofill leaves wolves at home, unless the commander brings support troops.
+
+{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/). Autofill sends no tools, so use Waves if you want tools in your fortress attacks.
+
+{% screenshot id="army-editor" alt="The army setting of the Fortress page set to Waves: the Written here and Virtual preset switch, a note on how waves repeat, and wave 1 open with tool and troop slots for the left flank, the front and the right flank." /%}
+
+## Horse and troop order {% #horse-and-order %}
+
+**Horse** is **Feather** by default. A feather is spent only while you have one. **Coin horse** needs a stable, and **No horse** walks.
+
+**Unit order** is **Fastest first** by default, so the quickest troops go first and the marches are short. **Troop supply** limits Autofill to troops that eat food, or troops that eat mead.
+
+## Settings {% #settings %}
+
+The three tabs have the same settings.
+
+### Burning Sands {% #settings-burning-sands %}
+
+{% settings plugin="attackFortressesBurningSands" /%}
+
+### Everwinter Glacier {% #settings-everwinter-glacier %}
+
+{% settings plugin="attackFortressesEverWinterGlacier" /%}
+
+### Fire Peaks {% #settings-fire-peaks %}
+
+{% settings plugin="attackFortressesFirePeaks" /%}
+
+## Tips and limits {% #tips %}
+
+- The module has no daily limit of its own and no **Log only** setting. The account's daily cap on the {% ui key="client:drawer.accountSettings" /%} tab still applies.
+- The commander list on the {% ui key="client:plugins.commanderPicker.title" /%} card is one list for all three kingdoms.
+- If the account has no castle in a kingdom, leave that kingdom off.
+
+{% aside type="tip" id="fortress-fast-commanders" %}
+Leave the commander list on all commanders, and the bot sends the fastest free one each time. Pick an order only when you want certain commanders kept for other modules.
+{% /aside %}
+
+## Related errors {% #errors %}
+
+- [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
+- [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.
+- [CASTLE_LOCKED](/errors/#castle-locked): Alert and autostation is moving the castle's troops, so no attack leaves it for now.

@@ -1,0 +1,104 @@
+---
+title: The Overview page
+description: See all your bots at a glance, open an account for its figures, logs and runs, and start, stop, add or remove game accounts.
+appRoute: /
+---
+
+Welcome to your war room. The {% ui key="client:dashboard.title" /%} page opens when you sign in. It shows how every bot is doing, and you manage your {% term id="game-account" %}game accounts{% /term %} from here.
+
+{% terms_on_page /%}
+
+## The figures at the top {% #figures %}
+
+A row of tiles sums up all your accounts:
+
+- {% ui key="client:dashboard.stats.accounts" /%}: how many game accounts you have added.
+- {% ui key="client:dashboard.stats.online" /%}: how many bots are running right now.
+- {% ui key="client:dashboard.kpi.attacks" /%}: the attacks your bots sent in the last 24 hours.
+- {% ui key="client:dashboard.kpi.errors" /%}: the error lines of the last 7 days.
+- {% ui key="client:dashboard.kpi.coins" /%} and {% ui key="client:dashboard.kpi.rubies" /%}: the total from each account's last report.
+- {% ui key="client:dashboard.stats.attention" /%}: accounts that stopped and need you, such as a ban or a wrong password.
+
+{% screenshot id="overview" alt="The Overview page: tiles for accounts, accounts online, attacks, errors, coins, rubies and accounts that need attention, then the Top accounts table." /%}
+
+{% aside type="note" id="counted-from-logs" %}
+Attacks and errors are counted from the {% term id="log" %}log{% /term %} lines GGE Command keeps for each account: the newest 500, and none older than 7 days. A plus after a number means some lines may have been dropped, so the real figure is at least that. Lines the game said "not now" to are not errors.
+{% /aside %}
+
+A dash in a tile means no account has reported that figure yet. If the counts fail to load, they try again within a minute.
+
+## Top accounts {% #top-accounts %}
+
+With more than one account, {% ui key="client:dashboard.top.title" /%} lists the five accounts that attacked most in the last 24 hours. Each row shows the attacks, the errors and the account's status. Select a name to open that account. An account that sent no attacks is not listed.
+
+## The roster {% #roster %}
+
+The {% ui key="client:dashboard.roster" /%} lists every account, 20 to a page. Each row shows:
+
+- {% ui key="client:dashboard.col.account" /%}: the name and the {% term id="server" %}server{% /term %}. An event account also says **event**.
+- {% ui key="common:field.status" /%}: what the bot is doing now.
+- {% ui key="client:dashboard.col.plugins" /%}: how many {% term id="plugin" %}plugins{% /term %} are on.
+- {% ui key="client:dashboard.col.lastSeen" /%}: when the bot last reported. Hover for the exact time.
+
+The buttons at the end of each row are {% ui key="common:action.start" /%} or {% ui key="common:action.stop" /%}, **Add event twin** (the lightning bolt), account settings (the gear) and edit (the pencil).
+
+### What each status means {% #status %}
+
+- {% ui key="ui:status.running" /%}: the bot is signed in and working.
+- {% ui key="ui:status.starting" /%}: the bot is signing in. Bots start one after another, so this can take a short while.
+- {% ui key="ui:status.stopped" /%}: the bot is off until you start it.
+- {% ui key="ui:status.auth_failed" /%}: the game refused to let the bot sign in. See [wrong game password](/troubleshooting/#wrong-password).
+- {% ui key="ui:status.banned" /%}: the game banned the account. See [banned](/troubleshooting/#banned).
+- {% ui key="ui:status.error" /%}: something went wrong. Hover over the status to read the last error.
+- {% ui key="ui:status.crash_loop" /%}: the bot failed again and again, so GGE Command stopped trying. This is a {% term id="crash-loop" %}crash loop{% /term %}.
+- **Sleeping until Tue 08:07**: the bot is started, but it waits for the next window of its schedule. The time is your own.
+- {% ui key="client:dashboard.overPlan" /%}: you have more accounts than you can run, so this one cannot start. Hover for the reason.
+
+## Start and stop a bot {% #start-stop %}
+
+Choose {% ui key="common:action.start" /%} on the row. The bot signs in and the status changes to {% ui key="ui:status.running" /%}. Choose {% ui key="common:action.stop" /%} to end the {% term id="run" %}bot run{% /term %}. A stopped bot stays stopped until you start it again.
+
+To act on several accounts at once, tick the box at the start of each row. The box in the header ticks every account on the page. Buttons for {% ui key="common:action.start" /%}, {% ui key="common:action.stop" /%} and {% ui key="common:action.remove" /%} appear above the roster.
+
+## Add a game account {% #add-account %}
+
+Choose {% ui key="client:account.add" /%} at the top of the page. The {% ui key="client:drawer.titleNew" /%} panel opens. The [quick start](/quick-start/#add-account) walks you through each field.
+
+{% screenshot id="add-account" alt="The Add game account panel with the account name, server and game password fields, the External event account switch and the list of plugins." /%}
+
+Some events run on a temporary event server. To play one, choose **Add event twin** on the account's row. The new account copies the name and the server, and {% ui key="client:drawer.eventLabel" /%} is already on. Event twins do not count toward the number of bots you can run.
+
+## Open an account {% #account-drawer %}
+
+Choose the pencil on a row, or the account's name in {% ui key="client:dashboard.top.title" /%}. A panel opens with six tabs.
+
+- {% ui key="client:drawer.overview" /%}: six tiles with what the bot last read from the game: {% ui key="client:overview.figure.cash" /%}, {% ui key="client:overview.figure.gold" /%}, {% ui key="client:overview.figure.food" /%}, {% ui key="client:overview.figure.mead" /%}, {% ui key="client:overview.figure.aquamarine" /%} and {% ui key="client:overview.figure.attackDailyCount" /%}. Food, mead and aquamarine are the Storm Islands castle's. Below the tiles, {% ui key="client:overview.errors.title" /%} lists the game's most common refusals, marked {% ui key="client:overview.errors.severe" /%}, {% ui key="client:overview.errors.notNow" /%} or {% ui key="client:overview.errors.other" /%}.
+- {% ui key="common:nav.settings" /%}: the account name, the server, the game password, the event switch and the plugin list. Leave the password empty to keep the current one. {% ui key="client:drawer.openSettings" /%} next to a plugin takes you to its module page. Choose {% ui key="client:drawer.saveChanges" /%} when you are done.
+- {% ui key="client:drawer.accountSettings" /%}: the pause between attacks, the **Daily attack limit**, which time skips the bot may use, and the **Shutoff timer**. This tab has its own save bar. The gear on the roster opens it directly.
+- {% ui key="client:drawer.schedule" /%}: turn on {% ui key="client:schedule.toggle" /%} to let the bot work only inside the windows you set.
+- {% ui key="client:nav.logs" /%}: this account's log lines, live. See [the Logs page](/war-room/logs/#account-logs).
+- {% ui key="client:drawer.runHistory" /%}: the last 20 runs, with when each started, how long it ran and why it ended.
+
+If you change the game password, the server, the event switch or which plugins are on, a running bot signs in again. A change to a plugin's options reaches the running bot without a new sign-in.
+
+## Remove an account {% #remove-account %}
+
+Tick the account's box in the roster, then choose {% ui key="common:action.remove" /%} and confirm.
+
+{% aside type="caution" id="remove-is-final" %}
+Removing an account stops its bot and deletes its settings. You cannot undo it.
+{% /aside %}
+
+## Find anything with the command palette {% #command-palette %}
+
+Press **⌘K** on a Mac, or **Ctrl+K** on other computers. You can also choose {% ui key="ui:palette.trigger" /%} in the header. On a phone, open your account menu and choose {% ui key="ui:palette.open" /%}.
+
+Type a few letters. The palette finds:
+
+- {% ui key="ui:palette.group.pages" /%}: every page in the sidebar.
+- {% ui key="ui:palette.group.accounts" /%}: your game accounts. Choose one to open its panel.
+- {% ui key="ui:palette.group.plugins" /%}: each plugin that has settings, once per account. Choose one to open its module page with that account picked.
+- {% ui key="ui:palette.group.language" /%}: every language of the app.
+- {% ui key="ui:palette.group.session" /%}: {% ui key="ui:nav.signOut" /%}.
+
+Every word you type must match, and accents don't matter. Use the arrow keys to move, Enter to open and Esc to close.

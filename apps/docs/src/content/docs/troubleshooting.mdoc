@@ -1,0 +1,128 @@
+---
+title: Troubleshooting
+description: Fixes for common problems, from a bot that won't start or a rejected game password to attacks that don't go out and a missing email.
+---
+
+Something not working? Find what you see below. Each fix says what it means, why it happens and what to do.
+
+{% terms_on_page /%}
+
+## The bot won't start {% #bot-wont-start %}
+
+**What you see:** you choose {% ui key="common:action.start" /%}, but the bot never shows {% ui key="ui:status.running" /%}.
+
+**What to do:** check the status on the account's row of the [Overview page](/war-room/dashboard/#status).
+
+- {% ui key="ui:status.starting" /%} for a while: bots start one after another. Give it a minute.
+- {% ui key="ui:status.error" /%}: hover over the status to read the last error. The bot tries again by itself and waits a little longer after each try. If it keeps failing, see [the bot stopped after repeated crashes](#crash-loop).
+- {% ui key="ui:status.auth_failed" /%} or {% ui key="ui:status.banned" /%}: see the sections below.
+- {% ui key="client:dashboard.overPlan" /%}, with the {% ui key="common:action.start" /%} button greyed out: you have more accounts than you can run. Remove one you don't need.
+- The bot refuses to start with [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): too many attack {% term id="plugin" %}plugins{% /term %} are on. See [attacks aren't going out](#no-attacks).
+
+If the home page asks you to confirm your email, you can't run bots yet. See [no confirmation email](#no-confirmation-email).
+
+{% plan_gate %}
+Your plan decides how many bots you can run. See [plans](/plans/).
+{% /plan_gate %}
+
+## Wrong game password or login rejected {% #wrong-password %}
+
+**What you see:** the status shows {% ui key="ui:status.auth_failed" /%}, and the bell says [the account couldn't sign in](/alerts/#auth-failed).
+
+**Why:** the game refused the bot's sign-in. The bot stops and does not try again. Often the password was changed in the game.
+
+**What to do:**
+
+1. Open the account from the [Overview page](/war-room/dashboard/#account-drawer) and choose the {% ui key="common:nav.settings" /%} tab.
+2. Type the password in {% ui key="client:drawer.passwordEdit" /%}.
+3. Check the name in {% ui key="client:drawer.nameLabel" /%}. It must match the game exactly.
+4. Choose {% ui key="client:drawer.saveChanges" /%}, then {% ui key="common:action.start" /%}.
+
+## Wrong server {% #wrong-server %}
+
+**What you see:** the same {% ui key="ui:status.auth_failed" /%} status, even though the password is right.
+
+**Why:** each {% term id="game-account" %}game account{% /term %} lives on one {% term id="server" %}server{% /term %}. On any other server, your name doesn't exist, so the game refuses the sign-in.
+
+**What to do:** open the account's {% ui key="common:nav.settings" /%} tab and pick the right server in {% ui key="common:field.server" /%}. Choose {% ui key="client:drawer.saveChanges" /%}, then {% ui key="common:action.start" /%}. Not sure which server you play on? Check the server name on the game's login screen. If your server is not in the list, see [SERVER_UNKNOWN](/errors/#server-unknown).
+
+## The bot stopped after repeated crashes {% #crash-loop %}
+
+**What you see:** the status shows {% ui key="ui:status.crash_loop" /%}, and the bell says [the bot stopped after repeated crashes](/alerts/#crash-loop).
+
+**Why:** the bot failed 8 times in a row within about 30 minutes. GGE Command stops trying and waits for you. This is a {% term id="crash-loop" %}crash loop{% /term %}, and it protects your account from endless failed sign-ins.
+
+**What to do:**
+
+1. Read the last error in the notification, or hover over the status.
+2. Open the [Logs page](/war-room/logs/#filters), pick the account and the {% ui key="ui:level.error" /%} level, and read the lines just before the stop.
+3. Fix the cause, such as a wrong setting, then choose {% ui key="common:action.start" /%}. The bot does not restart by itself.
+
+## The game account is banned {% #banned %}
+
+**What you see:** the status shows {% ui key="ui:status.banned" /%}, and the bell says [the account was banned](/alerts/#banned). If the game says when the ban ends, the notification shows that time.
+
+**Why:** the game banned the account. The bot stops and does not try again. The ban is the game's decision, and we can't lift it.
+
+**What to do:** wait until the ban ends, then choose {% ui key="common:action.start" /%}. See [IS_BANNED](/errors/#is-banned), and read [playing it safe](/playing-it-safe/) before you start again.
+
+## The bot is sleeping {% #sleeping %}
+
+**What you see:** the status shows **Sleeping until** and a day and time, such as **Sleeping until Tue 08:07**. In {% ui key="client:drawer.runHistory" /%}, the last run ended with {% ui key="ui:runs.reason.schedule" /%}.
+
+**Why:** the account has a schedule, and right now is outside its windows. The bot is still started. It signs in by itself when the next window opens, at the time shown in your own time zone.
+
+**What to do:** nothing, if that is what you planned. To run now, open the account's {% ui key="client:drawer.schedule" /%} tab. Turn off {% ui key="client:schedule.toggle" /%}, or change the windows. Then choose {% ui key="client:drawer.saveChanges" /%}.
+
+## A module shows Waiting {% #waiting %}
+
+**What you see:** on a module page, the status of a plugin shows {% ui key="client:plugins.state.waiting" /%}, with a reason. Or the [logs](/war-room/logs/#levels) show lines at the level {% ui key="ui:level.notNow" /%}.
+
+**Why:** the game said "not now", and it passes by itself. The reason tells you what the plugin waits for. For example, the event isn't running, the daily attack limit is reached, or troops have to come home first.
+
+**What to do:** usually nothing. The plugin carries on when the reason is gone. Two other states need you:
+
+- {% ui key="client:plugins.state.off" /%}: turn the plugin on in the plugin list, then save.
+- {% ui key="client:plugins.state.botStopped" /%}: start the bot on the [Overview page](/war-room/dashboard/#start-stop).
+
+## Attacks aren't going out {% #no-attacks %}
+
+**What you see:** the bot is running, but the **Attacks** figure stays low and the {% term id="log" %}logs{% /term %} show no new attacks.
+
+**What to do:** check these causes in order.
+
+- **Too many attack plugins.** Each account has an {% term id="attack-cap" %}attack cap{% /term %}. The plugin list shows **Attack plugins on** with your limit. You can't save more than that ([PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap)), and the bot won't start with more ([TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins)). Turn some attack plugins off.
+- **The daily limit is reached.** The account's **Daily attack limit** is under {% ui key="client:drawer.accountSettings" /%}. When the bot reaches it, attacks pause until the next day. The game's own daily limit also applies.
+- **No commanders free.** An attack plugin sends only the {% term id="commander-game" %}commanders{% /term %} you picked for it. When all of them are out, the plugin waits until one comes home. Pick more commanders on the module page, or leave the list empty to allow any.
+- **No troops at home.** The plugin waits until enough troops come home. Its status says so.
+- **Auto Station is busy.** While [Auto Station](/modules/alert-autostation/) moves a castle's troops out of the way of an attack, no attack leaves that castle ([CASTLE_LOCKED](/errors/#castle-locked)). Attacks resume by themselves.
+- **The event isn't running.** Event modules wait until the event opens.
+
+## No confirmation email {% #no-confirmation-email %}
+
+**What you see:** the home page says {% ui key="client:emailGate.confirmTitle" /%}, and the email never came.
+
+**Why:** you can't run bots until you confirm your email. The link in the email works for 24 hours.
+
+**What to do:**
+
+1. Check your spam folder.
+2. Choose {% ui key="client:emailGate.resend" /%} and use the newest email. An old link stops working ([LINK_INVALID](/errors/#link-invalid)).
+3. Typed the wrong address? Choose {% ui key="client:emailGate.wrongAddress" /%} and type the right one.
+
+Addresses from throwaway mail sites are refused ([EMAIL_DISPOSABLE](/errors/#email-disposable)).
+
+## You can't sign in {% #cant-sign-in %}
+
+**What you see:** the sign-in page refuses your details.
+
+**What to do:**
+
+- Type your GGE Command username or email, and your GGE Command password. This is not your game login ([WRONG_CREDENTIALS](/errors/#wrong-credentials)).
+- Forgot your password? Choose {% ui key="client:login.forgot" /%}. See [forgot your password](/war-room/settings/#forgot-password).
+- After many wrong tries, wait a few minutes before you try again ([TOO_MANY_ATTEMPTS](/errors/#too-many-attempts)).
+- If the app says the account is disabled, [contact us](/contact/) with your username ([ACCOUNT_DISABLED](/errors/#account-disabled)).
+
+## Still stuck {% #still-stuck %}
+
+Search the [error codes](/errors/) for the code or the words in the message. If that doesn't help, [contact us](/contact/). Tell us your username, the game account name and what you see.

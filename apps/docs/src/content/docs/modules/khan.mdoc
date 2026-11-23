@@ -1,12 +1,93 @@
 ---
-title: Attack Khan
-description: Send your armies against Khan camps for event points and loot, and see every setting of the plugin.
+title: Khan
+description: Attack Khan camps for tablets and event points, taunt the Khan, refill your defence after each Khan attack and keep defence tools in stock.
+appRoute: /m/khan
+plugin: attackKhan
+sources:
+  - packages/bot-core/plugins/attack/attackKhan.js
+  - packages/bot-core/khan.js
+  - packages/bot-core/khanDefence.js
+  - packages/bot-core/eventDifficulty.js
+  - packages/contracts/src/modules.ts
 ---
 
-{% icon id="wolf-head" size=32 /%}The Attack Khan {% term id="plugin" %}plugin{% /term %} sends your armies at {% term id="khan-camp" %}Khan camps{% /term %} while the event runs. It counts toward your {% term id="attack-cap" %}attack cap{% /term %}.
+{% icon id="wolf-head" size=32 /%}The Khan rides again? The Khan module sends your armies at {% term id="khan-camp" %}Khan camps{% /term %} while the Khan event runs. Its attacks fill the Khan's rage bar, and a full bar lets the bot taunt the Khan into attacking your castle.
 
-Keeping your defence filled: {% status kind="beta" /%} The Khan chain earns most of its points from Khan attacks your castle defends. With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and courtyard of your main castle after each Khan attack lands. It fills them back to the layout they held when the plugin started, with tools from storage. Set your defence in the game before you start the plugin. The bot stops taunting the Khan while storage can't fill the defence, and after a Khan attack beats your defence, until the event ends.
+{% terms_on_page /%}
+
+Use it to loot tablets and earn event points. If you play the Khan chain, it can also keep your defence filled between Khan attacks.
+
+## How it works {% #how-it-works %}
+
+1. The bot waits for the event. When it starts with no difficulty set, the bot sets the one in **Event difficulty**.
+2. It asks the game for a Khan camp and attacks that camp from your main castle in the Great Empire.
+3. Before each attack, it spends time skips on the camp's wait. **Time skips the bot may use** picks which ones.
+4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and sends the attack.
+5. It goes on until the event ends or your score reaches **Stop at this score**. Leave that empty for no limit.
+
+The Khan module is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+{% aside type="note" id="khan-nomad-difficulty" %}
+Khan camps and [Nomad camps](/modules/nom-sam-daimyo/) are part of the same event. The first module to set the difficulty sets it for both.
+{% /aside %}
+
+## Rage and taunts {% #taunts %}
+
+Rage tools in your attacks fill the Khan's rage bar. When the bar is full, the bot taunts the Khan, which sends a Khan attack at your castle. In the Khan chain, most points come from Khan attacks your castle defends.
+
+- **Tablets only: never taunt the Khan** keeps attacking the camp for tablets, but never taunts.
+- **Pause hits at this many incoming Khan attacks** stops new hits while that many Khan attacks are on their way to you. Hits already marching still land. 0 turns it off.
+
+The bot also stops taunting in these cases:
+
+- **Log only** is on.
+- Your storage can't fill the defence, while **Refill the defence after each Khan attack** is on. Taunts start again once the defence is full.
+- A Khan attack beat your defence. Taunts stay off until the event ends.
+
+## Keep your defence filled {% #defence %}
+
+{% status kind="beta" /%} With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and courtyard of your main castle after each Khan attack lands. It fills them back to the layout they held when the plugin started, with tools from storage. If you put a different tool in a slot, or more of one, the bot takes that as your new layout.
+
+Set your defence in the game before you start the plugin. While storage is short, the bot looks again every 5 minutes.
+
+To keep storage full, set the tools under **Defence tools to keep in stock**: **Flaming arrows**, **Hurling rocks**, **Castle gate reinforcement** and **Sharpened stakes**. When your main castle holds fewer than the number you set, the bot buys 1,000 from the armourer with coins. It checks about every 30 minutes. **Most coins spent on them in one check** caps one check, and **Coins to keep** is the least you keep. A value of 0 buys nothing.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+
+{% ui key="client:army.mode.autofill" /%} fills every side and the courtyard, and builds the waves like this:
+
+1. The first wave carries wall, gate and shield tools, with event tools ahead of ordinary ones.
+2. The next waves, as many as **Rage waves** says, carry rage tools. The default is 3. With **Wall tools before event tools** on, these waves go without rage tools.
+3. The waves after those, as many as **Tablet chest waves** says, carry tablet chests, which multiply the tablets you loot.
+4. Any waves left carry troops only.
+
+**Rage tools, in order** and **Tablet chests, in order** let you pick the tools and their order. Left empty, the bot takes the strongest first. **Use the weakest event tools first** turns that order around. **Don't use event tools** sends troops only after the first wave.
+
+**Use food troops** and **Food troops only** decide which troops go. Autofill waits until the castle holds at least 100 troops.
+
+For the horse, **Use a coin horse** is on by default and needs a stable. **Use fast horse feathers** spends one feather on each attack.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the attacks to the log instead of sending them**. The bot builds each attack and writes it to the {% term id="log" %}log{% /term %}. It sends no attack, no time skip, no taunt and no armourer order.
 
 ## Settings {% #settings %}
 
 {% settings plugin="attackKhan" /%}
+
+## Tips {% #tips %}
+
+{% aside type="caution" id="khan-defence-first" %}
+A taunt calls a real attack on your main castle. Set and fill your defence in the game before you let the bot taunt.
+{% /aside %}
+
+- Start with **Tablets only: never taunt the Khan** on. Turn it off once your defence holds.
+- Use **Pause hits at this many incoming Khan attacks** to keep the number of Khan attacks on their way to a level your defence can take.
+
+## Related errors {% #errors %}
+
+- [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
+- [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.

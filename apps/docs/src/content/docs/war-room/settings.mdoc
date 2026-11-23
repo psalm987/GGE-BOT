@@ -1,0 +1,76 @@
+---
+title: The Settings page
+description: Pick your language, choose your emails, change your email or password, download your data or delete your GGE Command account.
+appRoute: /settings
+---
+
+Your GGE Command account lives here. Open {% ui key="common:nav.settings" /%} from the sidebar, or choose your name at the top right and then {% ui key="common:nav.settings" /%}.
+
+Everything on this page is about your GGE Command login. Your {% term id="game-account" %}game accounts{% /term %} have their own settings on the [Overview page](/war-room/dashboard/#account-drawer).
+
+{% screenshot id="settings" alt="The Settings page with the Language card open: a search box, Automatic marked as chosen with English detected, and the list of languages." /%}
+
+## Language {% #language %}
+
+Pick the language the app speaks. The list has 28 languages, and the search box finds one fast.
+
+{% ui key="common:language.automatic" /%} picks a language for you. It looks at the country your internet connection comes from and the languages your browser asks for. If nothing matches, the app uses English. The card shows which language it found, such as **English (detected)**.
+
+Your choice is saved to your account, so it follows you to other devices. You can also switch language with the globe in the header, or from the [command palette](/war-room/dashboard/#command-palette).
+
+## Email me when {% #email-switches %}
+
+The {% ui key="client:emailWhen.title" /%} card has one switch for each kind of notification. Turn a switch on to get that notification by email too. Every notification also shows under the bell, whatever you choose.
+
+The card says which address the emails go to. Emails need a confirmed address. See [notifications and emails](/war-room/alerts-and-emails/#emails) for what each kind means.
+
+## Change your email {% #change-email %}
+
+This card shows once your email is confirmed.
+
+1. Type your new address in **New email**.
+2. Type your GGE Command password in **Confirm with your password**.
+3. Choose {% ui key="client:changeEmail.submit" /%}.
+4. Open the link we send to the new address. It works for 1 hour.
+
+Your old address stays on the account until you open the link. Opening it signs you out on every device, and you sign in again with the new address. We also tell your old address that someone asked for the change.
+
+If the app shows a code, look it up: [EMAIL_IN_USE](/errors/#email-in-use), [EMAIL_DISPOSABLE](/errors/#email-disposable), [EMAIL_UNCHANGED](/errors/#email-unchanged), [PASSWORD_WRONG](/errors/#password-wrong) or [LINK_INVALID](/errors/#link-invalid).
+
+## Change your password {% #change-password %}
+
+1. Type your **Current password**.
+2. Type a **New password** of at least 10 characters, and type it again in **Confirm new password**.
+3. Choose {% ui key="client:settings.password.submit" /%}.
+
+Your other devices are signed out, and we send you an email to say the password changed. This is your GGE Command password. To change a game password, edit the account on the [Overview page](/war-room/dashboard/#account-drawer).
+
+## Forgot your password {% #forgot-password %}
+
+You can't get in to reach Settings, so start from the sign-in page.
+
+1. Choose {% ui key="client:login.forgot" /%}.
+2. Type the email on your account and choose {% ui key="client:forgot.submit" /%}.
+3. Open the link in the email. It works for 1 hour.
+4. Choose a new password.
+
+You are signed out everywhere, and you sign in with the new password. A reset link goes only to a confirmed address.
+
+## Download your data {% #download-data %}
+
+Choose {% ui key="client:export.button" /%} to save a JSON file of everything stored about you. It holds your profile, your game accounts and their settings, run history, {% term id="log" %}logs{% /term %}, notifications and your own actions. Game passwords are never in it.
+
+You can download once every 10 minutes. A second try sooner shows [EXPORT_RATE_LIMITED](/errors/#export-rate-limited).
+
+## Delete your account {% #delete-account %}
+
+{% aside type="danger" id="delete-is-final" %}
+Deleting your account stops your bots. It deletes your account, game accounts, settings, logs and notifications for good. Nobody can bring them back. Download your data first if you want a copy.
+{% /aside %}
+
+1. Choose {% ui key="client:delete.button" /%}.
+2. Type your password.
+3. Type your username to confirm.
+4. Choose {% ui key="client:delete.modalOk" /%}.
+
+We send an email to confirm the account is gone.

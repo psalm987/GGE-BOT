@@ -1,0 +1,68 @@
+---
+title: Armourer
+description: Buy siege tools from the armourer with coins whenever a castle holds fewer than the minimum you set, with coin limits.
+appRoute: /m/armourer
+plugin: buyTools
+sources:
+  - packages/bot-core/plugins/buyTools.js
+  - packages/bot-core/armourer.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="anvil" size=32 /%}Running low on ladders? The Armourer module buys siege tools from the armourer with coins. It tops up each castle you list whenever it holds fewer tools than the minimum you set.
+
+Use it so your attack modules never stop for lack of tools. It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, the bot reads your coins and the tools in your castles.
+2. It goes through **Stock targets** from the top. Each row names a castle, a tool and the least you want in stock there.
+3. When a castle holds fewer of a tool than its row asks for, the bot buys the shortfall, plus **Extra tools to buy on top of the shortfall**. It buys whole packages, so it can buy a few more.
+4. It stops buying when the next order would leave you with fewer coins than **Keep at least this many coins**, or would spend more than **Spend at most this many coins per run** in this check.
+5. It checks again about every hour.
+
+A row with a minimum of 0 buys nothing.
+
+## A castle that isn't the main one {% #other-castles %}
+
+The game delivers a purchase to the kingdom, not to the castle you chose. For a castle that is not the kingdom's main castle, the bot checks that the tools showed up there. If they did not, it stops buying for that row, and the status says so. The tools may be in another castle of that kingdom.
+
+## Spend coins above a limit {% #overflow %}
+
+Turn on **Spend coins above a limit on tools so none are lost**. When your coins are above **Start spending coins above**, the bot spends the part above that amount on the tools in your rows, from the top. It places at most 20 orders in one check.
+
+The default limit is 2,000,000,000 coins.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the orders to the log instead of sending them**. The bot works out each order and writes it to the {% term id="log" %}log{% /term %}, but buys nothing.
+
+## What the status tells you {% #status %}
+
+The {% ui key="client:module.status" /%} card shows what the module did on its last check:
+
+- **Every target is met.** Nothing to buy until a stock drops below its minimum.
+- **Bought** a number of tools **for** a number of coins.
+- **The armourer isn't selling** the tool **right now.** It buys again once the armourer sells it.
+- Buying the tool **would take you under your coin floor.** It buys again when you have more coins.
+- **The spending cap for this run is reached.** It goes on at the next check.
+- **The armourer says the storage is full**, so the tool wasn't bought.
+- **No tool targets are set.** Add a row with a castle, a tool and a minimum above 0.
+
+## Settings {% #settings %}
+
+{% settings plugin="buyTools" /%}
+
+## Tips {% #tips %}
+
+{% aside type="tip" id="armourer-coin-floor" %}
+Set **Keep at least this many coins** before you turn the module on. Then a big order can never empty your coins.
+{% /aside %}
+
+- [Towers](/modules/towers/), [Storms](/modules/storms/) and [Khan](/modules/khan/) can also buy tools from the armourer for their own castles. They buy on their own, apart from this module and its limits.
+- To build tools in your workshops instead of buying them, see [Refinery and toolsmith](/modules/refinery-toolsmith/).
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_ROW](/errors/#plugin-option-row): a row of **Stock targets** is not complete.
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): a row names a castle the account no longer has.

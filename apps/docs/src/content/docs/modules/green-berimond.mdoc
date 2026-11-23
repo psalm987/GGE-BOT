@@ -1,0 +1,64 @@
+---
+title: Green Berimond
+description: Attack the camps of the Berimond Invasion event in the Great Empire, with event tools for points or reputation.
+appRoute: /m/green-berimond
+plugin: attackBerimondInvasion
+sources:
+  - packages/bot-core/plugins/attack/attackBerimondInvasion.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="viking-helmet" size=32 /%}Invaders at the gates? The Green Berimond module attacks the camps of the Berimond Invasion event in the Great Empire. It loads your event tools into the attacks to earn points, or reputation if you prefer.
+
+{% terms_on_page /%}
+
+Turn it on before the event, and the bot starts when the event starts.
+
+## How it works {% #how-it-works %}
+
+1. When the event starts, the bot finds the invasion camps around your main castle in the Great Empire.
+2. **Camp side** decides which camps it keeps. The invasion has red camps and blue camps, and each side has its own rewards. **All camps** keeps both.
+3. The bot attacks the camps in turn. Before each attack, it spends time skips on the camp's wait. **Time skips the bot may use** picks which ones.
+4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card for each attack.
+5. If the castle is short of troops, the bot waits until one of its marches comes home.
+6. When the event ends, the bot stops and waits for the next one.
+
+If no camp is found, or none of the side you picked, the module stops. Pick **All camps**, or restart the bot to look again.
+
+The module is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}. It has no score limit of its own. The account's daily cap on the {% ui key="client:drawer.accountSettings" /%} tab still applies.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+
+{% ui key="client:army.mode.autofill" /%} fills every side and the courtyard. Autofill waits until the castle holds at least 100 troops. It never sends wolves.
+
+- The first wave carries wall, gate and shield tools. **Event tools from** sets the wave where the event tools for points start. Waves in between carry troops only.
+- **Earn reputation instead of points** picks the event tools that give the most reputation, instead of the most points.
+- **Use the weakest event tools first** spends your weakest event tools before the strong ones.
+- **Don't use event tools** sends no event tools at all.
+- **Food troops only** leaves out troops that eat mead.
+
+For the horse, **Use fast horse feathers** spends one feather on each attack. **Use a coin horse** needs a stable. With both off, the troops walk.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the attacks to the log instead of sending them**. The bot builds each attack and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. It spends no time skips either.
+
+## Settings {% #settings %}
+
+{% settings plugin="attackBerimondInvasion" /%}
+
+## Tips {% #tips %}
+
+{% aside type="caution" id="berimond-skips" %}
+The module spends time skips on every camp it attacks. Check **Time skips the bot may use** before the event, so it only spends the skips you can spare.
+{% /aside %}
+
+- Pick one **Camp side** if you want the rewards of that side only.
+
+## Related errors {% #errors %}
+
+- [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
+- [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.

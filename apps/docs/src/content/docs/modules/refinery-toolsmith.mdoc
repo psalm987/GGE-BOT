@@ -1,0 +1,68 @@
+---
+title: Refinery and toolsmith
+description: Build tools in your workshops until each one reaches the stock you set, for all your castles together or for one castle.
+appRoute: /m/refinery-toolsmith
+plugin: toolsmith
+sources:
+  - packages/bot-core/plugins/toolsmith.js
+  - packages/bot-core/plugins/stock.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="stone-crafting" size=32 /%}Keep your tool stores full. The Toolsmith {% term id="plugin" %}plugin{% /term %} builds tools in your workshops until each tool reaches the stock you set. You can set a target for all your castles together, or for one castle.
+
+Use it to keep ladders, rams and defence tools ready for the next fight.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, it reads the tool stock of your castles.
+2. It counts each tool at home, in production, in the queue, and out on marches.
+3. For each target that is short, it goes to a castle with the right workshop. Attack tools need a siege workshop. Defence tools need a defence workshop.
+4. It picks the highest level of the tool that the castle's workshop can build and that your skills in the game allow.
+5. It orders up to 80 tools at a time, while the workshop has a free queue slot and the castle can pay above your resource floor.
+6. When the order in production finishes, the bot checks again. If nothing is in production, it checks again in about 15 minutes.
+
+## Set your targets {% #targets %}
+
+There are two tables. Choose **Add row** and fill in every column.
+
+**Stock targets** count all your castles together. Pick a **Tool** and a **Stock**. The workshops build until your castles hold that many in total.
+
+**Stock targets for one castle** count one castle only. Pick a **Castle**, a **Tool** and a **Stock**. Only that castle's workshop builds for this row.
+
+For a tool with several levels, pick the tool and let the bot choose the level. It builds the highest level you can build now, and only that level counts towards the target. Tools of a lower level in storage do not count.
+
+The castle list is empty until your bot has signed in once. Start the bot, wait for it to sign in, then come back to add rows.
+
+{% aside type="caution" id="recruit-overlap" %}
+The [Recruit, tools and heal](/modules/recruit-tools-heal/) module can order tools too. Don't give both modules a target for the same tool.
+{% /aside %}
+
+## Keep resources in reserve {% #floor %}
+
+**Keep at least this much of each resource** is your resource floor. The bot never orders if the order would leave the castle with less of any resource it pays with. For levelled tools that need components, the floor applies to those components too. The default is 0.
+
+## Test with a dry run {% #dry-run %}
+
+Turn on **Log only: write the orders to the log instead of sending them** to see what the bot would build. The bot writes each order to your {% term id="log" %}log{% /term %} and sends nothing to the game. Read the [Logs](/war-room/logs/) page, check the orders, then turn the switch off.
+
+## Settings {% #settings %}
+
+{% settings plugin="toolsmith" /%}
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card on the module page tells you what the plugin is doing now:
+
+- **Every target is met.** The bot waits until a stock drops below its target.
+- **No tool targets are set.** Add a row to one of the tables and save.
+- **No castle has the workshop that builds** the tool. Build the right workshop, or pick another tool.
+- **The level of** the tool **you picked is not unlocked yet.** Unlock it in the game, or pick a tool you can build.
+- **Not enough resources to build** the tool. The bot waits until the castle has resources above your floor.
+- **The workshop queue is full.** The bot waits for a free slot.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle) means a row names a castle that isn't on this account.
+- [PLUGIN_OPTION_ITEM](/errors/#plugin-option-item) means a row names a tool that isn't in the list.
+- [PLUGIN_OPTION_ROWS](/errors/#plugin-option-rows) means a table has too many rows.

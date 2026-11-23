@@ -1,0 +1,120 @@
+---
+title: Towers
+description: Attack Robber Baron towers in all four kingdoms, each kingdom with its own switch, source castle, limits and army.
+appRoute: /m/towers
+plugin: attackBarronsGreatEmpire
+sources:
+  - packages/bot-core/plugins/attack/attackBarrons*.js
+  - packages/bot-core/plugins/attack/sharedBarronAttackLogic.js
+  - packages/bot-core/towers.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="stone-tower" size=32 /%}Barons to farm? The Towers module attacks Robber Baron towers in the Great Empire, Burning Sands, Everwinter Glacier and Fire Peaks. Each kingdom has its own switch and its own settings.
+
+{% terms_on_page /%}
+
+Use it to farm towers for loot all day, or to level towers up with time skips.
+
+{% screenshot id="towers" alt="The Towers page: the Status card with the attack plugin count, the All kingdoms card with the account daily cap and three settings marked Coming soon, and the Commanders card with numbered commander tiles." /%}
+
+## The kingdom panels {% #kingdoms %}
+
+The page has one panel for each kingdom. The header shows the kingdom's switch, its short name (Green, Sands, Ice or Fire), its full name and its kingdom id. Tick the switch to turn the kingdom on, and the panel opens. Choose the header to open or close a panel without changing the switch.
+
+Each kingdom is its own {% term id="plugin" %}plugin{% /term %}, so each kingdom that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}. With all four kingdoms on and a cap of 4, no other attack module can be on. When you reach the cap, the other switches are locked and show {% ui key="client:plugins.attackLimitReached" /%}.
+
+If the account has no castle in a kingdom, its panel shows a message instead of settings. Unlock the kingdom in the game, then start the bot once so it can see the castle.
+
+## How it works {% #how-it-works %}
+
+For each kingdom that is on, the bot does this:
+
+1. It picks the castle the attacks leave from. That is **Castle to attack from**, or the kingdom's main castle when you leave it empty. If the castle you picked is gone, the bot uses the main castle and the status tells you.
+2. It reads the map around that castle, out to **Search radius**. It keeps the towers that pass **Tower filter**, nearest first. It reads the map again every 30 to 40 minutes, so new towers come in.
+3. It takes the next free {% term id="commander-game" %}commander{% /term %} from the list on the {% ui key="client:plugins.commanderPicker.title" /%} card.
+4. It attacks the nearest tower whose wait is over and that none of your armies is already marching to.
+5. When a march comes home, the bot knows the tower's new level and its new wait. With **Use time skips** on, it spends time skips on that wait instead of waiting.
+6. It stops for a while when a limit is reached, and the status says which limit and for how long.
+
+The levels at which towers count as maxed are 81 in the Great Empire, 61 in Burning Sands, 51 in Everwinter Glacier and 71 in Fire Peaks. **Maxed only** attacks those towers. **Non-maxed only** attacks the others, which still level up.
+
+## Limits {% #limits %}
+
+Four limits can stop a kingdom for a while. The one that lasts longest is the one the status shows.
+
+- **Most attacks a day** is the most attacks this kingdom sends in any 24 hours. 0 leaves only the account's cap.
+- **Attacks an hour** is the most attacks this kingdom sends in an hour. 0 sets no limit.
+- Every attack module of the account shares a limit of 600 attacks an hour.
+- The account's daily cap counts the attacks of every attack module. You set it on the {% ui key="client:drawer.accountSettings" /%} tab of the account.
+
+The kingdom limits remember the last 24 hours. Stopping and starting the bot does not reset them.
+
+## The All kingdoms card {% #all-kingdoms %}
+
+The {% ui key="client:module.global.title" /%} card holds what applies to every kingdom. {% ui key="client:module.global.cap" /%} shows the account's daily cap, with a link to change it. If the kingdoms that are on ask for more attacks a day between them than the cap allows, the card warns you. The cap still holds.
+
+The card also lists settings that are still to come: **Loot priority**, **Stop after a defeat** and **Speed bonus**. {% status kind="planned" /%}
+
+## Horse, skips and troops {% #horse-skips-troops %}
+
+**Horse** decides how the troops travel. **No horse** walks. **Coin horse** needs a stable. **Feather** spends one fast horse feather on each attack. **By distance** rides the coin horse to near towers and spends a feather on towers farther than **Feather beyond**. When you run out of feathers, far towers get the coin horse until you have feathers again. The button {% ui key="client:plugins.copyToAll" /%} under the setting copies it into every kingdom. Save to keep the copy.
+
+**Use time skips** skips the wait before a tower can be attacked again. **Use time skips on castles that can still level up** does the same only for towers below their top level, even when **Use time skips** is off. **Time skips the bot may use** picks which skips the module spends.
+
+If the castle holds fewer attack troops than **Minimum troops**, the bot waits until a march comes home, or 10 minutes. It never attacks with fewer than 80 troops.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.autofill" /%} lets the bot fill each attack from the castle's troops and tools, using the settings below it. {% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+
+With Autofill:
+
+- **Tools** sets the tools of the first wave. **Ladders only** sends wall tools. **Ladders, rams and mantlets** also sends gate tools on the front and shields beside them.
+- **Waves** is 2 waves in the Great Empire and **All waves** in the other kingdoms. **All waves** sends as many as your level allows.
+- Leave **Attack left flank**, **Attack middle** and **Attack right flank** all off, and the bot attacks all three sides and the courtyard.
+- **Send wolves only** sends wolves and keeps other troops home. **Food troops only** leaves out troops that eat mead.
+
+## Buy tools from the armourer {% #auto-buy %}
+
+Turn on **Auto-buy from the armourer** and the bot keeps the source castle stocked with the tools that **Tools** sends. When the castle holds fewer than **Minimum tools** of a tool, the bot buys the difference with coins. It checks about every 5 minutes.
+
+**Most coins spent on them in one check** caps one check. The bot never buys if it would leave you with fewer coins than **Coins to keep**.
+
+## Settings {% #settings %}
+
+Each kingdom has the same settings. Only the default of **Waves** and the tower levels differ.
+
+### Great Empire {% #settings-great-empire %}
+
+{% settings plugin="attackBarronsGreatEmpire" /%}
+
+### Burning Sands {% #settings-burning-sands %}
+
+{% settings plugin="attackBarronsBurningSands" /%}
+
+### Everwinter Glacier {% #settings-everwinter-glacier %}
+
+{% settings plugin="attackBarronsEverWinterGlacier" /%}
+
+### Fire Peaks {% #settings-fire-peaks %}
+
+{% settings plugin="attackBarronsFirePeaks" /%}
+
+## Tips {% #tips %}
+
+{% aside type="tip" id="towers-start-with-one" %}
+Turn on one kingdom first and watch the [logs](/war-room/logs/) for an hour. When its attacks look right, turn on the next kingdom.
+{% /aside %}
+
+- A small **Search radius** finds fewer towers, but the marches are short.
+- Set **Most attacks a day** for each kingdom, so one kingdom cannot use up the account's whole daily cap.
+- Towers has no **Log only** setting. To test, start with one kingdom and a low **Most attacks a day**.
+
+## Related errors {% #errors %}
+
+- [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
+- [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): **Castle to attack from** names a castle the account no longer has.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.
+- [CASTLE_LOCKED](/errors/#castle-locked): Alert and autostation is moving the castle's troops, so no attack leaves it for now.

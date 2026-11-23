@@ -1,0 +1,93 @@
+---
+title: Invasion events
+description: Attack Foreign Lords and Bloodcrow camps for glory, with banners, a difficulty, dethrone limits and a stop before the event ends.
+appRoute: /m/invasion-events
+plugin: attackForeign
+sources:
+  - packages/bot-core/plugins/attack/attackForeign.js
+  - packages/bot-core/plugins/attack/attackBloodcrows.js
+  - packages/bot-core/plugins/attack/sharedGloryLogic.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="raven" size=32 /%}Glory up for grabs? The Invasion events module attacks the camps of the Foreign Lords and Bloodcrow events in the Great Empire. Each attack earns event points and glory. The page has one tab for each event.
+
+{% terms_on_page /%}
+
+Turn on the tab of the event you play. The bot starts when the event starts and stops before it ends.
+
+## How it works {% #how-it-works %}
+
+1. When the event starts with no difficulty set, the bot sets the one in **Difficulty**.
+2. It checks whether your account is under beginner or peace protection. An attack would end it, so the bot waits, as described below.
+3. It finds the open camps around your main castle in the Great Empire, nearest first. If it finds none, it looks again every 10 minutes.
+4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and attacks the camps in turn.
+5. Before the first attack on a camp, it can pay to dethrone the camp, if you set it up.
+6. It stops when your score reaches **Stop at this score**, or **Stop before the event ends** minutes before the end. The default is 30 minutes.
+
+Each tab is its own {% term id="plugin" %}plugin{% /term %}, so each tab that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## Difficulty {% #difficulty %}
+
+**Difficulty** is used only when the event has no difficulty yet. **Highest unlocked without rubies** never spends rubies, and it is the default.
+
+{% aside type="caution" id="rented-difficulty" %}
+The difficulties marked **rented with rubies** cost rubies. If you pick one and have enough rubies, the bot pays without asking. If you don't have enough, the tab stops.
+{% /aside %}
+
+## Attacking under protection {% #protection %}
+
+By default the bot does not attack while your account has beginner or peace protection, because the attack would end it. It checks again every 30 minutes and starts once the protection is gone.
+
+**Attack while under protection** attacks anyway.
+
+{% aside type="caution" id="protection-ends" %}
+With **Attack while under protection** on, the bot's first attack ends your beginner or peace protection. Turn it on only if you are ready to lose that protection.
+{% /aside %}
+
+## Dethrone camps {% #dethrone %}
+
+**Dethrone camps before attacking them** pays to dethrone a camp once, before its first attack. **Exile, paid in coins** costs coins. **Fortify, paid in rubies** costs rubies. The cost grows with each dethrone. Dethrone needs your level to be 70 or higher, and the event must allow it.
+
+Three limits keep the cost in check. The bot spends nothing until the first two are above 0.
+
+- **Most to spend on one dethrone** is the most coins or rubies for a single dethrone.
+- **Most to spend on dethrones in one event** is the total for the event.
+- **Always keep at least this many coins or rubies** is the least you keep.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.waves" /%} sends exactly the waves you write, or a [virtual preset](/modules/virtual-presets/).
+
+{% ui key="client:army.mode.autofill" /%} fills the left flank, the front and the right flank of each wave:
+
+- **Waves with siege tools** is how many waves, from the first, carry siege tools. The default is 2.
+- **Siege tools in each of those waves** picks **Wall, gate and moat** or **Wall, gate and mantlet**.
+- The waves after those carry glory banners in their tool slots. **Glory banners per attack** caps them, and 0 fills all the free room. **Banner order** and **Banners to use, in order** decide which banners go first.
+- **Support tools** are tools that go with the whole attack. The bot uses the first 3 on your list that you own.
+- **Send a courtyard wave** fills the courtyard too. It is on by default.
+- **Troops to keep at home** stay in the castle. The bot needs at least 100 troops to send beyond that.
+- **Soldiers to send** limits the troops to those that eat food, or those that eat mead.
+
+For the horse, **Horse** is **No horse** by default. A coin horse costs coins, and a feather uses one fast horse feather on each attack.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the attacks to the log instead of sending them**. The bot builds each attack, and each dethrone, and writes them to the {% term id="log" %}log{% /term %}. It sends nothing to the game.
+
+## Settings {% #settings %}
+
+### Foreign Lords {% #settings-foreign %}
+
+{% settings plugin="attackForeign" /%}
+
+### Bloodcrows {% #settings-bloodcrows %}
+
+{% settings plugin="attackBloodcrows" /%}
+
+## Related errors {% #errors %}
+
+- [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
+- [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.
+- [PLUGIN_OPTION_ITEM](/errors/#plugin-option-item): a banner or support tool in a list is not one the game has.

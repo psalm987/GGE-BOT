@@ -1,0 +1,82 @@
+---
+title: Playing it safe
+description: The honest risks of using a bot on Goodgame Empire, habits that keep you in control, and how GGE Command protects your game password.
+---
+
+Before you march, know the ground. This page is honest about the risk, and lists the habits that keep you in control of your bot.
+
+{% terms_on_page /%}
+
+## Using a bot can get your game account banned {% #ban-risk %}
+
+The rules of Goodgame Empire do not allow bots. Goodgame Studios can ban any {% term id="game-account" %}game account{% /term %} that uses one, for a set time or permanently. GGE Command cannot promise that this will not happen to you, and it cannot lift a ban.
+
+You decide whether to take that risk. If losing an account would hurt, think about that before you press {% ui key="common:action.start" /%}.
+
+{% aside type="danger" id="you-take-the-risk" %}
+You take the risk of a ban. A ban is the game's decision, and nobody at GGE Command can undo it.
+{% /aside %}
+
+If the game bans an account, its status shows {% ui key="ui:status.banned" /%}, the bot stops, and you get an alert. Start the bot again only after the ban ends.
+
+## Start with a few modules {% #start-small %}
+
+Switch on one or two {% term id="plugin" %}plugins{% /term %} first. Watch what they do for a day, then add more. A small start makes it easy to see which plugin did what, and to undo a setting you did not mean.
+
+## Test with Log only first {% #log-only %}
+
+Some modules have a **Log only** setting. With it on, the bot builds each attack or order and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. Use it to check your armies, targets and limits before anything real happens.
+
+These modules have it:
+
+- [Khan](/modules/khan/), [Storms](/modules/storms/), [Green Berimond](/modules/green-berimond/), [Invasion events](/modules/invasion-events/) and [Nomads, Samurai and Daimyo](/modules/nom-sam-daimyo/).
+- [Armourer](/modules/armourer/), [Recruit, tools and heal](/modules/recruit-tools-heal/) and [Refinery and toolsmith](/modules/refinery-toolsmith/).
+
+Turn **Log only** on, start the bot, and read the lines it writes. When they look right, turn it off and save.
+
+## Watch the logs on the first day {% #watch-logs %}
+
+Open the {% ui key="client:nav.logs" /%} page after you start a new plugin. Each move shows up there live. Pick the account and the level to see only the lines you care about.
+
+Look out for lines marked {% ui key="ui:level.error" /%}. Lines marked {% ui key="ui:level.notNow" /%} are normal, because the game only asked the bot to wait. The account's {% ui key="client:drawer.overview" /%} tab also lists the game's most common refusals for that bot. A {% ui key="client:overview.errors.severe" /%} refusal means you should look now. The [Logs page guide](/war-room/logs/) explains the filters.
+
+## Decide when the bot plays {% #when-it-plays %}
+
+You choose when the bot is on. Three settings help:
+
+- A **run schedule** keeps the bot to the days and hours you set, and it sleeps in between. Set it on the account's {% ui key="client:drawer.schedule" /%} tab.
+- The **shutoff timer** stops the bot a set number of hours after it signs in. Find it on the account's {% ui key="client:drawer.accountSettings" /%} tab.
+- The **daily attack limit** caps how many attacks the bot sends in a day. It is on the same tab, under **Attack**.
+
+[How your bot runs](/how-your-bot-runs/#schedule) shows how to set each one.
+
+## Keep your passwords safe {% #passwords %}
+
+You have two passwords, and each one guards something different.
+
+Your game password opens your game account. Type it only into the game and into GGE Command's add account form. Do not post it in Discord, in a chat or in a message to anyone.
+
+Your GGE Command password opens the app, and the app can start and stop your bots. Keep it strong:
+
+- Use at least 10 characters. A longer password is harder to guess.
+- Do not reuse your game password, or a password you use on any other site.
+- Confirm your email address. You need it to reset a forgotten password, and to get alert emails.
+- If you think someone knows your password, change it under {% ui key="common:nav.settings" /%} with {% ui key="client:settings.password.title" /%}. GGE Command signs out your other devices when you do.
+
+## How GGE Command protects your game password {% #how-we-protect %}
+
+GGE Command needs your game password to sign in to the game for you. Here is how it keeps it safe:
+
+- The app encrypts the password as soon as you save it.
+- Nobody can read it back, admins included. When you edit the account, the password field stays empty.
+- The part of GGE Command that stores your account cannot open the password. Only the part that signs in to the game holds the key. A stolen copy of the database alone does not reveal it.
+- {% ui key="client:export.button" /%} under {% ui key="common:nav.settings" /%} never includes a game password.
+- To change it, type a new one on the account's {% ui key="common:nav.settings" /%} tab. Leave the field empty to keep the current one.
+
+GGE Command keeps your own app password in a form that cannot be turned back into the password, so nobody can read that one either. When you delete your GGE Command account, it deletes your game accounts and their passwords with it.
+
+## Related pages {% #related %}
+
+- [How your bot runs](/how-your-bot-runs/) for statuses, schedules and limits.
+- [Your settings](/war-room/settings/) for your password, email and data.
+- [Disclaimer](/disclaimer/) for what GGE Command is and is not.

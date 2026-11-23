@@ -1,0 +1,61 @@
+---
+title: Discord event alerts
+description: Keep one Discord message up to date each for the fortresses, the Aquamarine Islands and the Aquamarine Towers.
+appRoute: /m/discord-events
+plugin: fortress
+sources:
+  - packages/bot-core/plugins/discord/fortress.js
+  - packages/bot-core/plugins/discord/aquaIsland.js
+  - packages/bot-core/plugins/discord/aquaTower.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="trumpet-flag" size=32 /%}A live board for your alliance. Discord event alerts has three {% term id="plugin" %}plugins{% /term %}, each on its own tab of the module page. Each one keeps a single Discord message up to date with what is open on the map.
+
+- **Fortress** lists the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks.
+- **Aquamarine Islands** lists the free islands in the Storm Islands.
+- **Aquamarine Towers** lists the towers in the Storm Islands that are open now.
+
+## How the message stays up to date {% #how-it-works %}
+
+1. When your bot signs in, each plugin searches the map around your castle in the kingdoms it covers.
+2. It writes the list into one message in its channel.
+3. Every few seconds, it updates the times in that message.
+4. If the newest message in the channel is not from GGE Command, the plugin posts a new message and updates that one from then on. New messages arrive without a notification sound.
+
+The plugins find the map spots one time, when the bot signs in. A spot that appears later shows up only after the bot signs in again.
+
+{% aside type="tip" id="own-channel" %}
+Give each plugin a channel of its own, where nobody else writes. Then the board stays one message, at the bottom of the channel.
+{% /aside %}
+
+## Fortress {% #fortress %}
+
+The message lists each fortress with its kingdom, its coordinates and the time left. The list is sorted by time left. Everwinter Glacier shows at most 15 fortresses.
+
+{% settings plugin="fortress" /%}
+
+## Aquamarine Islands {% #aqua-islands %}
+
+The message lists each free island with its coordinates, whether it is big or small, and the time left until it opens. Islands that a player holds are left out.
+
+The plugin needs the Storm Islands unlocked on your account. If they are locked, your {% term id="log" %}log{% /term %} shows **The Storm Islands aren't unlocked, so this plugin stays off.**
+
+{% settings plugin="aquaIsland" /%}
+
+## Aquamarine Towers {% #aqua-towers %}
+
+The message lists each tower that is open now, with its coordinates, its level, whether it is Easy or Hard, and the hits left out of 10.
+
+This plugin also needs the Storm Islands unlocked.
+
+{% settings plugin="aquaTower" /%}
+
+## Connect a Discord channel {% #channel-id %}
+
+Each plugin has its own **Channel ID**. Paste the ID of the channel where its message should go, then save. The steps to find a channel ID are on [Discord attack alerts](/modules/discord-attacks/#channel-id).
+
+## Tips and limits {% #tips %}
+
+- The message updates only while your bot is online. While the bot is stopped, the times in the message stop changing.
+- A Discord message holds about 2,000 characters. If the list is longer, the plugin cuts it at the end.

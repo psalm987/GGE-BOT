@@ -1,0 +1,81 @@
+---
+title: The Logs page
+description: Follow your bots live, filter the lines by text, level, tag and account, and download what you see as a text file.
+appRoute: /logs
+---
+
+Want to know what your bots did while you were away? The {% ui key="client:nav.logs" /%} page shows every move, from every account, as it happens.
+
+{% terms_on_page /%}
+
+## Open the logs {% #open %}
+
+Choose {% ui key="client:nav.logs" /%} in the sidebar. Each line is one thing a bot did or saw. The oldest line is at the top and the newest at the bottom. GGE Command keeps the newest 500 {% term id="log" %}log{% /term %} lines of each {% term id="game-account" %}game account{% /term %}, and none older than 7 days.
+
+{% screenshot id="logs" alt="The Logs page: the filters for text, accounts, tags and level at the top, then a list of lines, each with a time, a level, a tag in brackets, an account name and a message." /%}
+
+## Read a line {% #read-a-line %}
+
+Each line has five parts, from left to right:
+
+1. **Time**: your local time. Hover over it to see the full date.
+2. **Level**: how serious the line is. See [levels](#levels).
+3. **Tag**: the part of the bot that wrote the line, in brackets. Most tags name a {% term id="plugin" %}plugin{% /term %}, such as `[taxCollector]`. Lines about signing in and the connection carry `[ggeBot]`. Each tag keeps its own colour.
+4. **Account**: the game account the line belongs to. Hover over it to see the {% term id="server" %}server{% /term %}.
+5. **Message**: what happened, in your language.
+
+A divider marks each new day: **Today**, **Yesterday** or the date. Select a tag or an account name in a line to show only the lines with that tag or account.
+
+## The four levels {% #levels %}
+
+- {% ui key="ui:level.info" /%}: normal work, such as an attack sent or taxes collected.
+- {% ui key="ui:level.warn" /%}: the game refused something, or something may be off. The bot carries on.
+- {% ui key="ui:level.error" /%}: a serious failure or refusal. These lines count in the **Errors** tile on the [Overview page](/war-room/dashboard/#figures).
+- {% ui key="ui:level.notNow" /%}: the game refused for now, and it passes by itself. Think of a cooldown, a full queue or too few resources. These lines are not errors, and you usually have nothing to do.
+
+{% aside type="tip" id="errors-first" %}
+Something looks wrong? Pick {% ui key="ui:level.error" /%} first, then pick the account. The error codes in the messages are explained on the [error codes page](/errors/).
+{% /aside %}
+
+## Follow the lines live {% #follow-live %}
+
+While **Following live** shows above the lines, each new line appears at the bottom and the view stays on it.
+
+Scroll up to read older lines, and following stops. New lines still arrive, and a button counts them: **5 new lines · Jump to latest**. Choose it to go back to the newest line and follow again. Scrolling back to the bottom also follows again.
+
+To hold the view still, choose {% ui key="ui:log.pause" /%}. Choose {% ui key="ui:log.resume" /%} or {% ui key="ui:log.jump" /%} to follow again.
+
+## Filter the lines {% #filters %}
+
+Use the filters above the lines. Every filter you set must match.
+
+- **Filter text**: shows lines whose message or tag contains what you type. Capitals don't matter. Press **/** to jump to this box. The matching text is marked in each line.
+- **Accounts**: pick one or more accounts. Each shows how many lines it has.
+- **Tags**: pick one or more plugins.
+- **Level**: pick **All** or one level, including {% ui key="ui:level.notNow" /%}. Each level shows its count.
+
+The count below the filters says how many lines you see, such as **280 of 280 lines**. Choose {% ui key="ui:log.clearFilters" /%} to show everything again. When older lines are kept, a button at the top loads them.
+
+On a phone, choose **Filters** to open the filter panel. Then choose **Show** to see the lines.
+
+## Your filters stay in the address {% #filters-in-url %}
+
+The page writes your filters into its web address. If you reload the page, your filters are still set. Bookmark a filtered view to open it again later, and use your browser's Back button to undo the last filter you set.
+
+## Download the lines {% #download %}
+
+Choose {% ui key="client:logs.download" /%} to save the lines you see now as a text file. Your filters apply, so filter first if you want only some lines. The file lists one line per row, oldest first:
+
+```
+2026-06-15 11:44:42 ERROR [ggeBot] Brightwater: The connection closed: timedOut
+```
+
+In the file, the levels are written `INFO`, `WARN`, `ERROR` and `LATER`. `LATER` is a line the game said "not now" to.
+
+Choose {% ui key="client:logs.refresh" /%} to load the lines again.
+
+## One account's logs {% #account-logs %}
+
+Open an account from the [Overview page](/war-room/dashboard/#account-drawer) and choose its {% ui key="client:nav.logs" /%} tab. It shows the same live lines for that one account, with the text, level and tag filters.
+
+Two more ways lead to the right lines. On the account's {% ui key="client:drawer.overview" /%} tab, {% ui key="client:overview.errors.seeLogs" /%} opens this page for that account. Under the bell, {% ui key="client:notifications.viewLogs" /%} opens the lines that explain an alert. See [notifications and emails](/war-room/alerts-and-emails/#bell).

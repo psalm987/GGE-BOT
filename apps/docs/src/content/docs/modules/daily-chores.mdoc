@@ -1,0 +1,67 @@
+---
+title: Daily chores
+description: Claim the daily login bonus with the reward you prefer, keep the tax collector working, and ask your alliance for help.
+appRoute: /m/daily-chores
+plugin: loginBonus
+sources:
+  - packages/bot-core/plugins/loginBonus.js
+  - packages/bot-core/plugins/taxCollector.js
+  - packages/bot-core/plugins/helpRequests.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="calendar" size=32 /%}Let the bot handle the small jobs you do every day. Daily chores has three {% term id="plugin" %}plugins{% /term %}, one below another on the module page. Switch on the ones you want.
+
+- **Daily login bonus** claims your login reward once a day.
+- **Tax collector** sends the tax collector out and collects the taxes, again and again.
+- **Help requests** asks your alliance for help when the game offers it.
+
+## Daily login bonus {% #login-bonus %}
+
+The game offers three rewards each day, and a different three the next day. You pick one. The bot makes that pick for you.
+
+1. A few minutes after your bot signs in, it reads today's offer.
+2. If today's bonus is already claimed, it writes **Today's daily login bonus was already claimed** to your {% term id="log" %}log{% /term %} and waits for the next day.
+3. Otherwise it picks the reward you prefer from the three on offer and claims it.
+4. It claims one time per day, even if the game does not answer. The next claim comes in the next day, counted in UTC.
+
+**Reward to pick** sets the kind of reward you want most. The choices are:
+
+- **VIP time or VIP points**
+- **Troops**
+- **Time skips**
+- **Resources**
+- **Decorations**
+
+If your kind is not on offer today, the bot goes down this list in this order and takes the first kind it finds. If two offered rewards are the same kind, it takes the first one the game shows.
+
+The bot does not claim the special alliance or VIP rewards. It claims only one of the three normal rewards.
+
+{% settings plugin="loginBonus" /%}
+
+## Tax collector {% #tax-collector %}
+
+The tax collector brings in coins from your people. The bot keeps him working all the time.
+
+1. A few minutes after your bot signs in, it checks whether the tax collector is out.
+2. If he is out, the bot waits until he is back.
+3. When he is back, the bot collects the taxes and sends him out again for 10 minutes. The 10-minute run is the free one.
+4. Your log shows **Collected taxes and sent the tax collector out again** each time.
+
+If the game refuses, the bot waits and tries again. It waits longer after each refusal in a row, up to about an hour.
+
+{% settings plugin="taxCollector" /%}
+
+## Help requests {% #help-requests %}
+
+When the game offers you the chance to ask your alliance for help, the bot asks for you after a short wait.
+
+Turn on **Ask for help faster** to make the wait only a few seconds.
+
+{% settings plugin="helpRequests" /%}
+
+## Tips and limits {% #tips %}
+
+- Each plugin has its own switch, so you can run one chore without the others.
+- The tax collector has no settings. It always uses the free 10-minute run.
+- The login bonus counts days in UTC. If the game's day starts at a different hour, the first claim can be refused. After that, the bot still claims one time in every game day.

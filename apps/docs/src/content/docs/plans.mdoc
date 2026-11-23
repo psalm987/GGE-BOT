@@ -1,0 +1,53 @@
+---
+title: Plans
+description: What plans in GGE Command cover, how many bots you can run today, and how trials, points and redeem codes work once plans start.
+---
+
+Plans decide how many bots you can run, and for how long. Plans are not on sale yet. Until they are, your GGE Command account runs one bot, and plans limit nothing else.
+
+If you add more than one {% term id="game-account" %}game account{% /term %}, the oldest one runs. The others show {% ui key="client:dashboard.overPlan" /%} and cannot start. An event twin, which plays the temporary event {% term id="server" %}server{% /term %} for one of your game accounts, does not count.
+
+{% plan_gate %}
+
+## The plans {% #the-plans %}
+
+There are two plans, **Basic** and **Team**. Open the {% ui key="client:nav.plan" /%} page to see what you can buy and the current prices. Each package gives a number of days.
+
+- A **Basic** package adds days of Basic to your own account. The bots run until those days are used up.
+- A **Team** package gives you single-use codes to share with friends. Each code gives one person days of Team. Find your codes on the {% ui key="client:plan.codes.tab" /%} tab of the Plan page.
+
+The Plan page shows how many accounts your plan covers, and how many you use. If you buy more time before your plan ends, the new days start when the current ones end. The {% ui key="client:plan.current.queue" /%} list shows each stretch of time you have.
+
+If you cannot pay online yet, the Plan page says so. Contact support to buy instead.
+
+## Your free trial {% #free-trial %}
+
+Every player gets one {% term id="trial" %}free trial{% /term %} of the Basic plan. It lasts 7 days. It starts when you confirm your email address. If you confirmed it before plans started, your trial starts on the day plans start. You get an alert when it starts, and messages before it ends.
+
+A game account can have only one free trial, whoever adds it. If another player's trial already ran your game account, choose a plan to run it. See [TRIAL_GAME_ACCOUNT_USED](/errors/#trial-game-account-used).
+
+## When your plan ends {% #plan-ends %}
+
+You get a message before your plan ends. When it ends, your bots stop. There is no free plan to fall back to, so a player without a plan runs no bots.
+
+Buy more time or redeem a code to run them again. When you renew, your bots start again by themselves. See [NO_PLAN](/errors/#no-plan) and [PLAN_LIMIT](/errors/#plan-limit).
+
+## Points {% #points %}
+
+Every purchase earns points, and points never expire. Collect enough, then choose {% ui key="client:plan.points.redeem" /%} on the Plan page to swap them for free days of a plan. The {% ui key="client:plan.points.title" /%} card shows how many points you have and how many the next free days take.
+
+If a purchase is refunded, its points are taken back. Your balance can go below zero until your next purchase.
+
+## Redeem a code {% #redeem %}
+
+A friend with a Team package can give you a code. It looks like `GGE-XXXX-XXXX-XXXX`.
+
+1. Open the {% ui key="client:nav.plan" /%} page.
+2. Find {% ui key="client:plan.redeem.title" /%} and type the code. Dashes and letter case do not matter.
+3. Choose {% ui key="client:plan.redeem.submit" /%}. The days go onto your plan.
+
+Your friend can also send a link that redeems the code. Open the link, and sign in or create an account if you need to. GGE Command keeps the code until you can redeem it.
+
+A code works once. If it does not work, see [CODE_INVALID](/errors/#code-invalid), [CODE_USED](/errors/#code-used) or [CODE_REVOKED](/errors/#code-revoked).
+
+{% /plan_gate %}

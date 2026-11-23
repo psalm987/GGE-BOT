@@ -1,0 +1,80 @@
+---
+title: Virtual presets
+description: Save attack waves under a name, then send them from any attack module of the same account. Up to 30 presets per account.
+appRoute: /m/virtual-presets
+sources:
+  - apps/client/src/pages/VirtualPresets.tsx
+  - apps/client/src/components/WavePlanEditor.tsx
+  - apps/client/src/components/ArmyFields.tsx
+  - packages/contracts/src/army.ts
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="battle-gear" size=32 /%}Same army, many targets? A virtual preset is a set of attack waves saved under a name. Any attack module of the same account can send it, so you write the waves once and use them on many pages.
+
+Virtual presets live in GGE Command, not in the game. That is why they are called virtual. The page has no {% term id="plugin" %}plugin{% /term %} of its own, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+{% screenshot id="virtual-presets" alt="The Virtual presets page for one account: the New preset button, a count of 1 of 30 presets, and a preset named Ranged first with a summary of its waves and the Edit, Duplicate and Delete buttons." /%}
+
+## Make a preset {% #make %}
+
+1. Open {% ui key="client:modules.virtual-presets.name" /%} in the sidebar and pick the account at the top. Presets belong to one account.
+2. Choose {% ui key="client:presets.new" /%}.
+3. Give the preset a name, such as "Towers, ranged first". Each name can be used once per account.
+4. Write the waves in the wave editor, as described below.
+5. Choose {% ui key="common:action.save" /%}.
+
+An account keeps up to 30 presets. The page shows how many you have, and {% ui key="client:presets.new" /%} is locked when you reach 30.
+
+## The wave editor {% #wave-editor %}
+
+The same editor appears on the attack pages when **Army** is set to {% ui key="client:army.mode.waves" /%}.
+
+{% screenshot id="army-editor" alt="The wave editor on an attack page: wave 1 open on Custom slots, with tool and troop slots for the left flank, the front and the right flank, and an Archer slot with an amount of 40." /%}
+
+- Write 1 to 25 waves. A new plan starts with 4. Choose {% ui key="client:waves.add" /%} for another.
+- The last wave is sent again for each wave after it, so the castle needs troops for those waves too.
+- The game sends at most 4 waves at level 51 and above, plus any your {% term id="commander-game" %}commander{% /term %} adds. Waves past that are kept, but not sent.
+- Each wave has slots for tools and troops on the left flank, the front and the right flank. Pick an item in a slot, then type how many.
+- {% ui key="client:waves.copyRest" /%} copies a wave into every wave after it.
+- {% ui key="client:waves.support.title" /%} has 3 slots for tools that go with the whole attack.
+- {% ui key="client:waves.courtyard.title" /%} has 8 rows for the courtyard.
+
+An amount above what a side can hold fills the side. The bot waits while the castle holds less than a slot needs.
+
+Each wave can also come from an {% ui key="client:waves.kind.preset" /%}. The bot can't read in-game presets yet, so a module whose waves use one does not start. Use {% ui key="client:waves.kind.custom" /%} for now. {% status kind="planned" /%}
+
+## Use a preset in a module {% #use %}
+
+1. Open an attack module and pick the same account.
+2. Set **Army** to {% ui key="client:army.mode.waves" /%}.
+3. Under **Waves**, switch from {% ui key="client:waves.source.manual" /%} to {% ui key="client:waves.source.virtual" /%}, and pick the preset.
+4. Save the module.
+
+The module now sends the preset's waves. When you edit the preset, every module that sends it gets the change, with no need to save those modules again. {% ui key="client:waves.source.manage" /%} on the module page takes you here.
+
+If you switch back to {% ui key="client:waves.source.manual" /%}, the waves you wrote on that page before come back.
+
+## Duplicate a preset {% #duplicate %}
+
+Choose {% ui key="client:presets.duplicate" /%} next to a preset. The copy gets the same waves and the name with "(copy)" at the end. Edit the copy to try a change without touching the preset your modules send.
+
+## Delete a preset {% #delete %}
+
+Choose {% ui key="client:presets.delete" /%} and confirm. This can't be undone.
+
+You can't delete a preset that a module still sends. The page tells you which modules send it, and each preset in the list shows **Sent by** with those modules. Open each one, pick other waves there, and save. Then delete the preset.
+
+{% aside type="note" id="why-in-use" %}
+A module keeps no copy of the preset's waves. It reads them from the preset. If the preset were gone, the module would have nothing to send.
+{% /aside %}
+
+If a preset does go missing, for example after a delete in another browser tab, the module shows **This virtual preset was deleted. Pick another one.** and sends nothing until you pick other waves.
+
+## Related errors {% #errors %}
+
+- [VIRTUAL_PRESET_IN_USE](/errors/#virtual-preset-in-use): a module still sends the preset you tried to delete.
+- [VIRTUAL_PRESET_LIMIT](/errors/#virtual-preset-limit): the account already has 30 presets.
+- [VIRTUAL_PRESET_DUPLICATE](/errors/#virtual-preset-duplicate): the account already has a preset with that name.
+- [VIRTUAL_PRESET_NOT_FOUND](/errors/#virtual-preset-not-found): the preset was deleted, maybe in another tab.
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): a module's army setting can't be read.

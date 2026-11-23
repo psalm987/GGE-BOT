@@ -1,0 +1,52 @@
+---
+title: Auto-feast
+description: Start feasts in your castles when they hold more food than you need, keeping the food reserve and food income you set.
+appRoute: /m/auto-feast
+plugin: feast
+sources:
+  - packages/bot-core/plugins/feast.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="steak" size=32 /%}Too much food in the stores? The Feast {% term id="plugin" %}plugin{% /term %} starts feasts in your castles when they hold more food than you need.
+
+Use it when your castles make more food than your troops eat, and you want the spare food used.
+
+## How it works {% #how-it-works %}
+
+The bot checks your castles when it signs in, then every 8 minutes.
+
+1. It skips castles in the Storm Islands and in Berimond.
+2. It skips a castle whose food income, after what its people eat, is below **Lowest food income to feast**.
+3. It starts a feast if the castle holds at least **Food one feast uses**, and still holds more than **Food to keep in the castle** after the feast.
+4. It repeats step 3 in the same castle until the food is too low for another feast, with a short pause between feasts.
+5. If the game refuses a feast, the bot stops in that castle and moves on to the next one.
+
+When no castle could feast, your {% term id="log" %}log{% /term %} shows **Not enough food for a feast**.
+
+## Choose the numbers {% #numbers %}
+
+**Food one feast uses** tells the bot how much food to count for each feast. The bot does not read the price from the game. Set it to what one feast costs in your castles. The default is 150,000.
+
+**Food to keep in the castle** is your reserve. A feast starts only if the castle keeps more than this much food after it. The default is 150,000.
+
+**Lowest food income to feast** protects castles that barely feed their people. A castle feasts only if its food income, after what its people eat, is at least this much. The default is 0, so any castle that does not lose food can feast.
+
+Type each value as a whole number, without dots or commas.
+
+{% aside type="tip" id="feast-cost" %}
+Check the price of the feast in the game and copy it into **Food one feast uses**. If the number is lower than the real price, the bot thinks the castle has more food left than it does. The castle can then end up below **Food to keep in the castle**.
+{% /aside %}
+
+## Settings {% #settings %}
+
+{% settings plugin="feast" /%}
+
+## Tips and limits {% #tips %}
+
+- The plugin uses the same three values for every castle. You cannot set a different reserve for one castle.
+- Castles in the Storm Islands and in Berimond never feast.
+
+## Related errors {% #errors %}
+
+If a value is not plain text when you save, the app shows [PLUGIN_OPTION_TEXT](/errors/#plugin-option-text).

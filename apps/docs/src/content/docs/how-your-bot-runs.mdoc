@@ -1,0 +1,101 @@
+---
+title: How your bot runs
+description: What happens after you press Start, what each status means, how run schedules and the shutoff timer work, and what the bot does when something fails.
+---
+
+Pressed Start and wondering what your bot is up to? This page follows a bot from sign-in to stop, and explains every status you can see.
+
+{% terms_on_page /%}
+
+## From Start to running {% #start-to-running %}
+
+1. Add your {% term id="game-account" %}game account{% /term %} with its name, {% term id="server" %}server{% /term %} and game password.
+2. Switch on the {% term id="plugin" %}plugins{% /term %} you want, on the account or on each module page.
+3. Press {% ui key="common:action.start" /%}.
+
+The status changes to {% ui key="ui:status.starting" /%} while the bot signs in to the game. Once it is in, the status shows {% ui key="ui:status.running" /%}. Each plugin you switched on then does its job on its own, at its own pace, until the bot stops.
+
+One stretch of work, from sign-in to stop, is a {% term id="run" %}bot run{% /term %}. Open an account and choose the {% ui key="client:drawer.runHistory" /%} tab to see past runs, how long each one lasted, and why it ended.
+
+## Change settings while the bot runs {% #change-settings %}
+
+You do not need to stop the bot to change a setting. What happens after you save depends on what you changed:
+
+- A plugin's settings, such as an army or a daily limit, reach the running bot straight away. The bot keeps going.
+- Switching a plugin on or off, or changing the account name, server or game password, makes the bot sign in again. The run history shows the old run ended with {% ui key="ui:runs.reason.restart" /%}.
+
+## What each status means {% #statuses %}
+
+The status shows on the {% ui key="client:nav.overview" /%} page, on each module page and at the top of the account. When the bot left a message, hold the pointer over the status to read it.
+
+- {% ui key="ui:status.starting" /%}. The bot is signing in to the game.
+- {% ui key="ui:status.running" /%}. The bot is signed in and its plugins are working.
+- {% ui key="ui:status.stopped" /%}. The bot is off. Press {% ui key="common:action.start" /%} to begin a new run.
+- **Sleeping until** a day and time, such as **Sleeping until Tue 08:07**. The account runs on a schedule, and the bot waits for its next window. See [Run on a schedule](#schedule).
+- {% ui key="ui:status.error" /%}. The last start or run failed, and the bot tries again by itself. See [When something fails](#retries).
+- {% ui key="ui:status.crash_loop" /%}. The bot failed too many times in a row and gave up. It waits for you.
+- {% ui key="ui:status.auth_failed" /%}. The game rejected the saved game password. The bot stops.
+- {% ui key="ui:status.banned" /%}. The game banned the account. The bot stops.
+
+The last four count under {% ui key="client:dashboard.stats.attention" /%} on the Overview page. An account that is sleeping never counts there, whatever its last run said.
+
+## When something fails {% #retries %}
+
+A failed start or a dropped connection does not end your bot. The status shows {% ui key="ui:status.error" /%} with the reason and how long until the next try. The bot waits a little longer after each failure, up to a few minutes, then signs in again.
+
+How long it keeps trying depends on whose side the problem is on:
+
+- **The game or the network.** If the game is down, slow or was just updated, the bot keeps trying with no limit. A game outage does not make the bot give up.
+- **The account.** If the failure looks like it comes from this account, the bot counts it. After 8 failed starts in a row, over at least half an hour, it stops and shows {% ui key="ui:status.crash_loop" /%}. This is a {% term id="crash-loop" %}crash loop{% /term %}. You get an alert with the last error. Fix the cause, then press {% ui key="common:action.start" /%}.
+
+When GGE Command itself restarts, every run ends with {% ui key="ui:runs.reason.deploy" /%} in the run history. Bots that were started sign in again by themselves.
+
+{% aside type="caution" id="wrong-password-no-retry" %}
+The bot does not try again after a wrong password or a ban, because a new try would fail the same way. For a wrong password, type the new one in {% ui key="client:drawer.passwordEdit" /%} on the account's {% ui key="common:nav.settings" /%} tab, save, and press {% ui key="common:action.start" /%}. For a ban, wait until the ban ends, then press {% ui key="common:action.start" /%}.
+{% /aside %}
+
+## Run on a schedule {% #schedule %}
+
+A schedule keeps the bot to the hours you choose. Open the account from the {% ui key="client:nav.overview" /%} page and choose the {% ui key="client:drawer.schedule" /%} tab.
+
+1. Switch on {% ui key="client:schedule.toggle" /%}.
+2. Check the {% ui key="client:schedule.timeZone" /%}. It starts as the time zone of your browser.
+3. Set each window. Tick the days it starts on, then set the start and end times. An end time earlier than the start time means the window ends the next day.
+4. Choose {% ui key="client:schedule.addWindow" /%} for another window. An account can have up to 14.
+5. Set the slider for how much the start and stop times may vary each day, from 0 to 30 minutes.
+6. Choose {% ui key="client:drawer.saveChanges" /%}, then press {% ui key="common:action.start" /%}.
+
+A schedule only works while the bot is started. Inside a window the bot runs. Outside one it signs out and shows **Sleeping until** the next start. When a window closes, the run history shows {% ui key="ui:runs.reason.schedule" /%}. Press {% ui key="common:action.stop" /%} to turn the bot off, even inside a window.
+
+With the slider above 0, each start and each stop moves by a few minutes either way. The amount changes from day to day. The editor shows the next start or stop. While you add a new account, that time is approximate until you save. Windows that touch or overlap count as one long window.
+
+{% aside type="tip" id="schedule-default" %}
+A new schedule starts as every day from 08:00 to 22:00. Change it before you save if that does not fit your day.
+{% /aside %}
+
+## Stop the bot after a set time {% #shutoff %}
+
+The shutoff timer stops the bot a set number of hours after it signs in. Open the account, choose the {% ui key="client:drawer.accountSettings" /%} tab, and switch on **Shutoff timer**. Type the number of hours. The bot stops when the time is up, and you get an alert. Start it again when you are ready.
+
+## Limits on attacks {% #attack-limits %}
+
+Two settings limit the attacks.
+
+The {% term id="attack-cap" %}attack cap{% /term %} is the most attack plugins one account can have switched on at once. It is 4, 6 or no limit, and it can differ per account. If you switch on more than the cap allows, the settings do not save. If an account already has too many, the bot does not start. See [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap) and [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins).
+
+The daily attack limit is the most attacks the bot sends in a day, across every attack module of the account. Set it on the {% ui key="client:drawer.accountSettings" /%} tab, under **Attack**. When the bot reaches it, it stops attacking for the day. The game's own daily limit still applies.
+
+## When the game says not now {% #not-now %}
+
+The game sometimes refuses an action because of the state of the game, not because of a problem. A cooldown is still running, a queue is full, or a castle has too few resources. These refusals pass by themselves.
+
+The {% term id="log" %}logs{% /term %} mark these lines {% ui key="ui:level.notNow" /%}. They are not errors, and the Overview page does not count them as errors. The bot carries on with its other work.
+
+The account's {% ui key="client:drawer.overview" /%} tab lists the game's most common refusals for that bot. A {% ui key="client:overview.errors.severe" /%} refusal means the account or the bot is in trouble, so open the [Logs page](/war-room/logs/) and read the lines around it.
+
+## Related pages {% #related %}
+
+- [Quick start](/quick-start/) to set up your first bot.
+- [Alerts and emails](/war-room/alerts-and-emails/) for the messages a stopped bot sends you.
+- [Troubleshooting](/troubleshooting/) when a bot will not start.
+- [Error codes](/errors/) for the meaning of each code.

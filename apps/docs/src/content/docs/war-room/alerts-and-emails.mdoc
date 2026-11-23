@@ -1,0 +1,73 @@
+---
+title: Notifications, emails and banners
+description: How GGE Command tells you a bot needs you, through the bell, emails and banners, and how to choose which emails you get.
+---
+
+Your bots work while you are away, so GGE Command calls you back when one needs you. It uses three channels: the bell in the header, emails and banners.
+
+{% terms_on_page /%}
+
+## The notification bell {% #bell %}
+
+The bell sits at the top right of every page. A red number on it counts the notifications you have not read. When a new one arrives while the app is open, it also pops up at the top right for 10 seconds. Choose {% ui key="client:notifications.viewAccount" /%} there to open the account.
+
+{% screenshot id="alerts-bell" alt="The notification list open under the bell: an incoming attack and a bot stopped after repeated crashes, each with its server, its age and a View logs link." /%}
+
+Choose the bell to open the list, newest first. Each notification shows a title, a short text, the {% term id="server" %}server{% /term %} and how long ago it came.
+
+- Choose a notification to mark it read and open its account on the [Overview page](/war-room/dashboard/#account-drawer).
+- Choose {% ui key="client:notifications.viewLogs" /%} to open the [Logs page](/war-room/logs/) for that account. It shows the account's error lines. For an Auto Station alert, it shows Auto Station's lines.
+- Choose {% ui key="client:notifications.markAllRead" /%} to clear the red number.
+
+If you removed the account since, the notification says {% ui key="client:notifications.accountGone" /%}. GGE Command deletes read notifications after 30 days, and every notification after 180 days.
+
+## What makes a notification {% #kinds %}
+
+Most notifications mean a bot stopped and won't start again until you act. Each links to its entry in the [alerts reference](/alerts/), which says what to do.
+
+- [Banned](/alerts/#banned): the game banned the {% term id="game-account" %}game account{% /term %}. The notification shows when the ban ends, if the game says.
+- [Couldn't sign in](/alerts/#auth-failed): the game rejected the saved game password.
+- [Stopped after repeated crashes](/alerts/#crash-loop): the bot failed again and again, so GGE Command stopped it. This is a {% term id="crash-loop" %}crash loop{% /term %}. The notification shows the last error.
+- [Stopped by its shutoff timer](/alerts/#shutoff): your **Shutoff timer** ended the {% term id="run" %}bot run{% /term %} on time. Nothing is wrong.
+
+With the [Auto Station](/modules/alert-autostation/) module on, you also hear about attacks from other players:
+
+- [A player is attacking](/alerts/#incoming-attack): an attack is on its way to one of your castles, with the time it lands.
+- [Troops left before the attack](/alerts/#station-result-stationed): Auto Station moved the troops to an alliance castle.
+- [Gates opened](/alerts/#station-result-gates-opened): no alliance castle could take the troops, so the gates were opened for rubies.
+- [Auto Station couldn't move the troops out](/alerts/#station-result-unprotected): nothing could protect the troops. The {% term id="log" %}logs{% /term %} say why.
+
+{% plan_gate %}
+You also get a notification when your {% term id="trial" %}free trial{% /term %} starts, before your plan ends, when it has ended, and when a purchase goes through. See the [plan alerts](/alerts/#plan-expiring).
+{% /plan_gate %}
+
+## Emails {% #emails %}
+
+Some notifications also come by email. Open [Settings](/war-room/settings/#email-switches) and find {% ui key="client:emailWhen.title" /%}. Each kind of notification has its own switch.
+
+Unless you change them, these switches are:
+
+- On: a ban, a rejected password, and a bot stopped after repeated crashes.
+- Off: the shutoff timer, and the Auto Station notifications. Attacks can come many times a day, so these stay under the bell unless you turn them on.
+
+Every notification shows under the bell, whatever you choose here. Emails go only to a confirmed address. If you haven't confirmed yours, see [no confirmation email](/troubleshooting/#no-confirmation-email).
+
+{% aside type="note" id="email-batching" %}
+Several notifications that arrive close together come in one email. You get at most 20 notification emails in 24 hours, and the rest stay under the bell.
+{% /aside %}
+
+## Banners {% #banners %}
+
+Banners sit under the header on every page, most urgent first. A banner can be **Critical**, **Warning** or **Information**. When there are many, **Show more** opens the rest.
+
+- **Accounts that need you**: one or more bots stopped because of a ban, a wrong password, an error or a crash loop. Choose **Open account** or **Show accounts**.
+- **Accounts that are stopped**: you have more accounts than you can run. Choose **Manage accounts** to see them on the Overview page.
+- **Announcements**: news from the GGE Command team. Some have a **Learn more** link. You can close some of them with the cross. Others stay until the problem they describe is fixed.
+
+{% plan_gate %}
+Banners also warn you before your plan or trial ends, after it has ended, and when you have points to redeem.
+{% /plan_gate %}
+
+## When live updates drop {% #reconnecting %}
+
+Notifications and statuses reach the app live. If that connection drops, the header shows **Reconnecting…**. Until it is back, the app checks for news every 15 seconds, so you miss nothing.

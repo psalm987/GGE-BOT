@@ -1,0 +1,77 @@
+---
+title: Discord attack alerts
+description: Post attacks on you and your alliance, and attacks from your alliance, to Discord channels, with a countdown and a picture of the army.
+appRoute: /m/discord-attacks
+plugin: incomingAttacks
+sources:
+  - packages/bot-core/plugins/discord/incomingAttacks.js
+  - packages/bot-core/plugins/discord/outgoingAttacks.js
+  - packages/bot-core/plugins/incoming.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="sword-clash" size=32 /%}Know about every attack before it lands. Discord attack alerts has two {% term id="plugin" %}plugins{% /term %}, each on its own tab of the module page. Both post to Discord channels you choose.
+
+- **Incoming attacks** posts a message when a player attacks you or your alliance.
+- **Outgoing attacks** posts the attacks your alliance sends.
+
+## Incoming attacks {% #incoming %}
+
+The bot posts a message when a player attacks one of your castles. It also posts when a player outside your alliance attacks a member of your alliance.
+
+Each message names:
+
+- The attacker, their castle and their alliance.
+- The player under attack and their castle.
+- The kingdom and the distance between the two castles, in clicks.
+- A live countdown to the moment the attack lands.
+
+When the game shows the attacking army, the bot adds a picture of the army's layout to the message.
+
+### Mentions {% #mentions %}
+
+The bot looks for a member of the channel whose Discord display name is exactly the name of the player under attack. If it finds one, the message mentions that member.
+
+If that member is not online and not on Do Not Disturb, the bot mentions them up to four more times before the attack lands. It skips a mention while they are online or on Do Not Disturb. It does not repeat mentions for attacks on the Storm Islands.
+
+Turn on **Mention everyone** to add @everyone to each message.
+
+{% aside type="tip" id="match-names" %}
+Ask your alliance members to set their Discord nickname to their game name. Then each one gets a mention when they are attacked.
+{% /aside %}
+
+### Storm Islands channel {% #storm-channel %}
+
+Attacks on the Storm Islands go to **Storm Islands channel ID**, not to the first channel. If you leave it empty, the bot does not post Storm Islands attacks at all.
+
+{% settings plugin="incomingAttacks" /%}
+
+## Outgoing attacks {% #outgoing %}
+
+The bot posts each attack that leaves your alliance for a player outside it. That includes your own attacks and the attacks of your alliance members that your bot can see.
+
+Each message names the two players and their castles, the alliance of the player under attack, the kingdom, the distance in clicks, and a live countdown. It always comes with a picture of the attacking army's layout. The bot posts each attack one time.
+
+{% settings plugin="outgoingAttacks" /%}
+
+## Connect a Discord channel {% #channel-id %}
+
+GGE Command posts through its own Discord bot. You don't need a webhook. You give the module the ID of the channel to post in.
+
+1. Make sure the GGE Command Discord bot is a member of your Discord, and that it can see and post in the channel.
+2. In Discord, open **User Settings**, then **Advanced**, and turn on **Developer Mode**.
+3. Right-click the channel and choose **Copy Channel ID**.
+4. Paste the ID into **Channel ID** on the plugin's tab, then save.
+5. Start the bot if it is not running.
+
+The field takes only the ID, a long number. A channel name or a link does not work.
+
+{% aside type="note" id="discord-bot-access" %}
+Not sure whether the GGE Command Discord bot can reach your channel? [Contact us](/contact/) before you set up the channels.
+{% /aside %}
+
+## Tips and limits {% #tips %}
+
+- The plugins post only while your bot is online.
+- Give each plugin its own channel, so incoming and outgoing attacks don't mix.
+- The [Messages](/modules/messages/) and [Discord event alerts](/modules/discord-events/) modules use the same kind of channel ID.
