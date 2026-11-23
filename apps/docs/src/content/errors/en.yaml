@@ -99,7 +99,7 @@ PLUGIN_OPTION_CASTLE:
 PLUGIN_OPTION_ITEM:
   fix: "Pick the item from the list in the setting instead of typing it."
 PLUGIN_ATTACK_CAP:
-  fix: "Turn some attack plugins off, then save. The Plugins list shows your limit. It is set per account, so yours may differ from a friend's."
+  fix: "Turn some attack plugins off, then save. The Plugins list shows your limit. It does not come from your plan. GGE Command sets it for your user, so yours may differ from a friend's."
 TOO_MANY_ATTACK_PLUGINS:
   fix: "Open the account's plugins and turn some attack plugins off, then start the bot again. Your limit is shown in the settings."
 CASTLE_LOCKED:

@@ -36,9 +36,9 @@ terms:
   - id: attack-cap
     term: Angriffsgrenze
     category: bot
-    short: Die größte Zahl an Angriffs-Plugins, die ein Konto gleichzeitig laufen lassen darf. Sie kann je Konto verschieden sein.
+    short: Die größte Zahl an Angriffs-Plugins, die ein Spielkonto zugleich eingeschaltet haben darf. GGE Command setzt sie für deinen Benutzer auf 4, 6 oder keine Grenze.
     long: >-
-      Angriffs-Plugins schicken Armeen, deshalb begrenzt GGE Command, wie viele zugleich laufen. Die Grenze ist 4, 6 oder keine, und sie gilt je Konto. Schaltest du mehr ein, als erlaubt ist, lassen sich die Einstellungen nicht speichern.
+      Angriffs-Plugins schicken Armeen, deshalb begrenzt GGE Command, wie viele zugleich eingeschaltet sein können. Deine Grenze ist 4, außer GGE Command hat für dich 6 oder keine Grenze festgelegt. Sie hängt nicht von deinem Tarif ab. Sie gilt für jedes deiner Spielkonten einzeln, also können zwei Konten mit einer Grenze von 4 jeweils 4 Angriffs-Plugins eingeschaltet haben. Schaltest du mehr ein, als die Grenze erlaubt, lassen sich die Einstellungen nicht speichern. Ein Konto, das schon zu viele hat, startet nicht.
       Stell es dir vor wie Plätze an einem Tisch. Alle sind willkommen, aber nur so viele können gleichzeitig sitzen.
     seeAlso: [plugin]
   - id: run
