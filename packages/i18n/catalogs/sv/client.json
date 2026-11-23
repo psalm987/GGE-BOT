@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Autofest",
   "modules.auto-feast.description": "Startar fester i dina slott när de har mer mat än du behöver.",
   "modules.equip-sell.name": "Utrustningsförsäljning",
-  "modules.equip-sell.description": "Säljer lös utrustning och ädelstenar från ditt lager, några åt gången, och aldrig reliker eller delar av en uppsättning.",
+  "modules.equip-sell.description": "Säljer de utrustningsfärger du väljer och lösa ädelstenar från ditt lager, några åt gången, och aldrig delar av en uppsättning.",
   "modules.daily-chores.name": "Dagliga sysslor",
   "modules.daily-chores.description": "Hämtar den dagliga inloggningsbonusen, skickar ut skatteindrivaren och ber din allians om hjälp.",
   "modules.alert-autostation.name": "Larm och autostationering",

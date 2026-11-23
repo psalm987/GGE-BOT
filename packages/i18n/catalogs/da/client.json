@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Auto-gæstebud",
   "modules.auto-feast.description": "Starter gæstebud i dine borge, når de har mere mad, end du har brug for.",
   "modules.equip-sell.name": "Salg af udstyr",
-  "modules.equip-sell.description": "Sælger løst udstyr og ædelsten fra dit lager, nogle få ad gangen, og aldrig relikvie- eller sætdele.",
+  "modules.equip-sell.description": "Sælger de udstyrsfarver, du vælger, og løse ædelsten fra dit lager, nogle få ad gangen, og aldrig sætdele.",
   "modules.daily-chores.name": "Daglige gøremål",
   "modules.daily-chores.description": "Henter den daglige login-bonus, sender skatteopkræveren ud og beder din alliance om hjælp.",
   "modules.alert-autostation.name": "Alarm og auto-udstationering",

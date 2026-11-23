@@ -678,7 +678,7 @@
   "modules.auto-feast.name": "الوليمة التلقائية",
   "modules.auto-feast.description": "يبدأ الولائم في قلاعك عندما يكون فيها طعام أكثر من حاجتك.",
   "modules.equip-sell.name": "بيع العتاد",
-  "modules.equip-sell.description": "يبيع العتاد غير المستخدم والجواهر من مخزنك، بضع قطع في كل مرة، ولا يبيع أبدًا قطع الآثار أو المجموعات.",
+  "modules.equip-sell.description": "يبيع ألوان العتاد التي تختارها والجواهر غير المستخدمة من مخزنك، بضع قطع في كل مرة، ولا يبيع أبدًا قطع المجموعات.",
   "modules.daily-chores.name": "المهام اليومية",
   "modules.daily-chores.description": "يستلم مكافأة الدخول اليومية، ويرسل محصل الضرائب، ويطلب المساعدة من تحالفك.",
   "modules.alert-autostation.name": "التنبيه والتمركز التلقائي",

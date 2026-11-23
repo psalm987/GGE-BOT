@@ -588,7 +588,7 @@
   "modules.auto-feast.name": "Banchetto automatico",
   "modules.auto-feast.description": "Organizza banchetti nei tuoi castelli quando hanno più cibo del necessario.",
   "modules.equip-sell.name": "Vendita equipaggiamento",
-  "modules.equip-sell.description": "Vende equipaggiamento e gemme sciolti dal tuo magazzino, pochi alla volta, e mai pezzi reliquia o di set.",
+  "modules.equip-sell.description": "Vende i colori di equipaggiamento che scegli e le gemme sciolte dal tuo magazzino, pochi alla volta, e mai pezzi di set.",
   "modules.daily-chores.name": "Faccende giornaliere",
   "modules.daily-chores.description": "Riscuote il bonus accesso giornaliero, manda in giro il gabelliere e chiede aiuto alla tua coalizione.",
   "modules.alert-autostation.name": "Allarme e posizionamento auto",

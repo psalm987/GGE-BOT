@@ -588,7 +588,7 @@
   "modules.auto-feast.name": "Automātisks mielasts",
   "modules.auto-feast.description": "Sāk mielastus tavās pilīs, kad tajās ir vairāk pārtikas, nekā vajag.",
   "modules.equip-sell.name": "Ekipējuma pārdošana",
-  "modules.equip-sell.description": "Pārdod brīvo ekipējumu un dārgakmeņus no tava krājuma pa dažiem un nekad nepārdod reliktus vai komplekta daļas.",
+  "modules.equip-sell.description": "Pārdod tevis izvēlēto krāsu ekipējumu un brīvos dārgakmeņus no krājuma pa dažiem un nekad nepārdod komplekta daļas.",
   "modules.daily-chores.name": "Ikdienas darbi",
   "modules.daily-chores.description": "Saņem ikdienas pieteikšanās bonusu, izsūta nodokļu iekasētāju un lūdz aliansei palīdzību.",
   "modules.alert-autostation.name": "Brīdinājums un autoizvietošana",

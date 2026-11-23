@@ -618,7 +618,7 @@
   "modules.auto-feast.name": "Automatická hostina",
   "modules.auto-feast.description": "Spúšťa hostiny v tvojich hradoch, keď majú viac jedla, než potrebuješ.",
   "modules.equip-sell.name": "Predaj výbavy",
-  "modules.equip-sell.description": "Predáva voľnú výbavu a drahokamy zo skladu, po niekoľkých kusoch, a nikdy nie relikvie ani kusy zo setov.",
+  "modules.equip-sell.description": "Predáva zo skladu výbavu vo farbách, ktoré zvolíte, a voľné drahokamy, po niekoľkých kusoch, a nikdy nie kusy zo setov.",
   "modules.daily-chores.name": "Denné povinnosti",
   "modules.daily-chores.description": "Preberá denný bonus za prihlásenie, posiela výbercu daní a žiada alianciu o pomoc.",
   "modules.alert-autostation.name": "Upozornenie a automatické rozmiestnenie",

@@ -588,7 +588,7 @@
   "modules.auto-feast.name": "Banquete automático",
   "modules.auto-feast.description": "Inicia banquetes nos seus castelos quando eles têm mais comida do que o necessário.",
   "modules.equip-sell.name": "Venda de equipamento",
-  "modules.equip-sell.description": "Vende equipamentos e gemas soltos do seu depósito, alguns de cada vez, e nunca peças de relíquia ou de conjunto.",
+  "modules.equip-sell.description": "Vende as cores de equipamento que você escolher e as gemas soltas do seu depósito, algumas de cada vez, e nunca peças de conjunto.",
   "modules.daily-chores.name": "Tarefas diárias",
   "modules.daily-chores.description": "Resgata o bônus de login diário, envia o coletor de impostos e pede ajuda à sua aliança.",
   "modules.alert-autostation.name": "Alerta e estacionamento automático",

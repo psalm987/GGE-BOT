@@ -588,7 +588,7 @@
   "modules.auto-feast.name": "Banquete automático",
   "modules.auto-feast.description": "Inicia banquetes en tus castillos cuando tienen más comida de la que necesitas.",
   "modules.equip-sell.name": "Venta de equipo",
-  "modules.equip-sell.description": "Vende equipo suelto y gemas de tu almacén, unos pocos cada vez, y nunca piezas de reliquia ni de conjunto.",
+  "modules.equip-sell.description": "Vende los colores de equipo que elijas y las gemas sueltas de tu almacén, unos pocos cada vez, y nunca piezas de conjunto.",
   "modules.daily-chores.name": "Tareas diarias",
   "modules.daily-chores.description": "Recoge el bono diario de inicio de sesión, envía al recaudador de impuestos y pide ayuda a tu alianza.",
   "modules.alert-autostation.name": "Alerta y estacionamiento auto",

@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Automaatne pidusöök",
   "modules.auto-feast.description": "Alustab sinu lossides pidusööke, kui neis on rohkem toitu, kui vajad.",
   "modules.equip-sell.name": "Varustuse müük",
-  "modules.equip-sell.description": "Müüb laost lahtist varustust ja vääriskive, mõne korraga, ja mitte kunagi reliikvia- ega komplektiosi.",
+  "modules.equip-sell.description": "Müüb laost sinu valitud värvi varustust ja lahtisi vääriskive, mõne korraga, ja mitte kunagi komplektiosi.",
   "modules.daily-chores.name": "Igapäevased toimetused",
   "modules.daily-chores.description": "Võtab vastu igapäevase sisselogimisboonuse, saadab maksukoguja teele ja palub liidult abi.",
   "modules.alert-autostation.name": "Häire ja automaatne paigutus",

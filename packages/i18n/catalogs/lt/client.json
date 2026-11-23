@@ -618,7 +618,7 @@
   "modules.auto-feast.name": "Automatinės puotos",
   "modules.auto-feast.description": "Pradeda puotas jūsų pilyse, kai jose daugiau maisto, nei reikia.",
   "modules.equip-sell.name": "Įrangos pardavimas",
-  "modules.equip-sell.description": "Parduoda laisvą įrangą ir brangakmenius iš jūsų sandėlio po kelis ir niekada neparduoda relikvijų ar komplekto dalių.",
+  "modules.equip-sell.description": "Parduoda jūsų pasirinktų spalvų įrangą ir laisvus brangakmenius iš sandėlio po kelis ir niekada neparduoda komplekto dalių.",
   "modules.daily-chores.name": "Kasdieniai darbai",
   "modules.daily-chores.description": "Atsiima kasdienį prisijungimo bonusą, išsiunčia mokesčių surinkėją ir prašo aljanso pagalbos.",
   "modules.alert-autostation.name": "Įspėjimas ir autoperkėlimas",

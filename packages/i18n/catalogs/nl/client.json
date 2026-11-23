@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Automatisch feestmaal",
   "modules.auto-feast.description": "Start feestmalen in je kastelen als ze meer voedsel hebben dan je nodig hebt.",
   "modules.equip-sell.name": "Uitrusting verkopen",
-  "modules.equip-sell.description": "Verkoopt losse uitrusting en edelstenen uit je opslag, een paar tegelijk, en nooit reliek- of setstukken.",
+  "modules.equip-sell.description": "Verkoopt de uitrustingskleuren die je kiest en losse edelstenen uit je opslag, een paar tegelijk, en nooit setstukken.",
   "modules.daily-chores.name": "Dagelijkse klusjes",
   "modules.daily-chores.description": "Haalt de dagelijkse aanmeldbonus op, stuurt de belastinginner op pad en vraagt je bondgenootschap om hulp.",
   "modules.alert-autostation.name": "Alarm en auto-stationering",

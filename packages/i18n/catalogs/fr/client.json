@@ -588,7 +588,7 @@
   "modules.auto-feast.name": "Banquets auto",
   "modules.auto-feast.description": "Lance des banquets dans vos châteaux quand ils ont plus de nourriture que nécessaire.",
   "modules.equip-sell.name": "Vente d'équipement",
-  "modules.equip-sell.description": "Vend l'équipement et les gemmes en vrac de votre stockage, quelques-uns à la fois, et jamais de reliques ni de pièces d'ensemble.",
+  "modules.equip-sell.description": "Vend les couleurs d'équipement que vous choisissez et les gemmes en vrac de votre stockage, quelques-unes à la fois, et jamais de pièces d'ensemble.",
   "modules.daily-chores.name": "Corvées quotidiennes",
   "modules.daily-chores.description": "Récupère le bonus de connexion quotidien, envoie le percepteur en tournée et demande de l'aide à votre alliance.",
   "modules.alert-autostation.name": "Alerte et stationnement auto",

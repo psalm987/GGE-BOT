@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Automatikus lakoma",
   "modules.auto-feast.description": "Lakomát indít a kastélyaidban, ha több élelem van bennük a szükségesnél.",
   "modules.equip-sell.name": "Felszerelés eladása",
-  "modules.equip-sell.description": "Eladja a raktárad szabad felszereléseit és drágaköveit, egyszerre néhányat, de ereklye- és szettdarabokat soha.",
+  "modules.equip-sell.description": "Eladja a raktáradból az általad választott színű felszereléseket és a szabad drágaköveket, egyszerre néhányat, de szettdarabokat soha.",
   "modules.daily-chores.name": "Napi teendők",
   "modules.daily-chores.description": "Átveszi a napi bejelentkezési bónuszt, kiküldi az adószedőt, és segítséget kér a szövetségedtől.",
   "modules.alert-autostation.name": "Riasztás és automatikus állomásoztatás",

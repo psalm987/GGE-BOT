@@ -618,7 +618,7 @@
   "modules.auto-feast.name": "Samodejna pojedina",
   "modules.auto-feast.description": "Začne pojedine v tvojih gradovih, ko imajo več hrane, kot je potrebno.",
   "modules.equip-sell.name": "Prodaja opreme",
-  "modules.equip-sell.description": "Prodaja prosto opremo in dragulje iz tvojega skladišča, po nekaj naenkrat, nikoli pa relikvijskih kosov ali kosov kompleta.",
+  "modules.equip-sell.description": "Prodaja opremo v barvah, ki jih izbereš, in proste dragulje iz tvojega skladišča, po nekaj naenkrat, nikoli pa kosov kompleta.",
   "modules.daily-chores.name": "Dnevna opravila",
   "modules.daily-chores.description": "Prevzame dnevni bonus za prijavo, pošlje davkarja na pot in prosi zavezništvo za pomoč.",
   "modules.alert-autostation.name": "Opozorilo in samodejna namestitev",

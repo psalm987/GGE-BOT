@@ -39,7 +39,7 @@ A module with several plugins shows them as tabs, as a panel for each {% term id
 - [Recruit, tools and heal](/modules/recruit-tools-heal/) keeps each castle's troops and tools at the stock you set.
 - [Toolsmith](/modules/refinery-toolsmith/) builds siege and defence tools in your workshops up to the stock you set.
 - [Auto-feast](/modules/auto-feast/) starts feasts in castles that hold more food than they need.
-- [Equip sell](/modules/equip-sell/) sells loose equipment and gems from storage, never relic or set pieces.
+- [Equip sell](/modules/equip-sell/) sells the equipment colours you pick and loose gems from storage, never set pieces.
 - [Daily chores](/modules/daily-chores/) claims the login bonus, sends the tax collector out and asks your alliance for help.
 
 ## PvP {% #pvp %}
@@ -75,9 +75,9 @@ If you save more attack plugins than the cap allows, the save fails. If an accou
 
 ### Source castle {% #source-castle %}
 
-The {% term id="source-castle" %}source castle{% /term %} is the castle an attack leaves from. On Towers and on Nomads, Samurai and Daimyo, you pick it in **Castle to attack from**. Left empty, the bot uses the {% term id="main-castle" %}main castle{% /term %} there. If the castle you picked is gone, the bot falls back to the main castle and the status tells you.
+The {% term id="source-castle" %}source castle{% /term %} is the castle an attack leaves from. On Towers, Fortress, Khan, {% ui key="client:modules.green-berimond.name" /%} and Nomads, Samurai and Daimyo, you pick it in **Castle to attack from**. The list holds the castles you have in that kingdom: the {% term id="main-castle" %}main castle{% /term %}, {% term id="outpost" %}outposts{% /term %}, a capital, and in the {% term id="great-empire" %}Great Empire{% /term %} a metropolis. Left empty, the bot uses the main castle there. If the castle you picked is gone, the bot falls back to the main castle and the status tells you.
 
-Other modules leave from a fixed castle. Fortress uses your castle in each kingdom, and Storms uses your Storm Islands castle. Khan, {% ui key="client:modules.green-berimond.name" /%} and Invasion events use your main castle in the {% term id="great-empire" %}Great Empire{% /term %}.
+Other modules leave from a fixed castle. Storms uses your Storm Islands castle, and Invasion events use your main castle in the Great Empire.
 
 ### Commanders {% #commanders %}
 

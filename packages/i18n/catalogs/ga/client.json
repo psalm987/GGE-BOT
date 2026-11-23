@@ -648,7 +648,7 @@
   "modules.auto-feast.name": "Féasta uathoibríoch",
   "modules.auto-feast.description": "Tosaíonn sé féastaí i do chaisleáin nuair a bhíonn níos mó bia iontu ná mar is gá.",
   "modules.equip-sell.name": "Díol trealaimh",
-  "modules.equip-sell.description": "Díolann sé trealamh scaoilte agus seoda ó do stóras, cúpla ceann ag an am, agus ní dhíolann sé trealamh reilige ná píosaí tacair riamh.",
+  "modules.equip-sell.description": "Díolann sé na dathanna trealaimh a roghnaíonn tú agus seoda scaoilte ó do stóras, cúpla ceann ag an am, agus ní dhíolann sé píosaí tacair riamh.",
   "modules.daily-chores.name": "Tascanna laethúla",
   "modules.daily-chores.description": "Éilíonn sé an bónas logála isteach laethúil, seolann sé an bailitheoir cánach amach, agus iarrann sé cabhair ar do chomhghuaillíocht.",
   "modules.alert-autostation.name": "Foláireamh agus lonnú uathoibríoch",

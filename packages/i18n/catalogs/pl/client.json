@@ -618,7 +618,7 @@
   "modules.auto-feast.name": "Automatyczne uczty",
   "modules.auto-feast.description": "Rozpoczyna uczty w Twoich zamkach, gdy mają więcej żywności, niż potrzeba.",
   "modules.equip-sell.name": "Sprzedaż wyposażenia",
-  "modules.equip-sell.description": "Sprzedaje luźne wyposażenie i klejnoty z magazynu, po kilka naraz, i nigdy przedmiotów relikwiowych ani z zestawów.",
+  "modules.equip-sell.description": "Sprzedaje z magazynu wyposażenie w wybranych kolorach i luźne klejnoty, po kilka naraz, i nigdy przedmiotów z zestawów.",
   "modules.daily-chores.name": "Codzienne obowiązki",
   "modules.daily-chores.description": "Odbiera codzienną premię za logowanie, wysyła poborcę podatków i prosi sojusz o pomoc.",
   "modules.alert-autostation.name": "Alarm i Auto Station",

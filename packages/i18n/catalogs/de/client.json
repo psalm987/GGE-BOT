@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Auto-Festmahl",
   "modules.auto-feast.description": "Startet Festmähler in Euren Burgen, wenn sie mehr Nahrung haben, als Ihr braucht.",
   "modules.equip-sell.name": "Ausrüstung verkaufen",
-  "modules.equip-sell.description": "Verkauft lose Ausrüstung und Edelsteine aus Eurem Lager, ein paar auf einmal, und nie Relikt- oder Set-Teile.",
+  "modules.equip-sell.description": "Verkauft die Ausrüstungsfarben, die Ihr wählt, und lose Edelsteine aus Eurem Lager, ein paar auf einmal, und nie Set-Teile.",
   "modules.daily-chores.name": "Tägliche Aufgaben",
   "modules.daily-chores.description": "Holt den täglichen Login-Bonus ab, schickt den Steuereintreiber los und bittet Eure Allianz um Hilfe.",
   "modules.alert-autostation.name": "Alarm und Auto-Stationierung",

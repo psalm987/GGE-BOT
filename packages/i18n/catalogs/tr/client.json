@@ -558,7 +558,7 @@
   "modules.auto-feast.name": "Otomatik şenlik",
   "modules.auto-feast.description": "Kalelerinde gerekenden fazla yiyecek olduğunda şenlik başlatır.",
   "modules.equip-sell.name": "Ekipman satışı",
-  "modules.equip-sell.description": "Deponda serbest duran ekipmanları ve mücevherleri birkaç tane birden satar, kalıntı ve set parçalarını asla satmaz.",
+  "modules.equip-sell.description": "Seçtiğin renklerdeki ekipmanları ve serbest mücevherleri depondan birkaç tane birden satar, set parçalarını asla satmaz.",
   "modules.daily-chores.name": "Günlük işler",
   "modules.daily-chores.description": "Günlük giriş bonusunu alır, vergi tahsildarını gönderir ve ittifakından yardım ister.",
   "modules.alert-autostation.name": "Uyarı ve otomatik konuşlandırma",
