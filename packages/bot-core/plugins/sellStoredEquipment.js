@@ -1,3 +1,13 @@
+/** The game's slotIDs (items equipment_slots, and `e[1]` of a stored item). Skins have no choice and follow the colour alone. */
+const SLOTS = [
+    { key: "sellSlotArmour", id: 1 },
+    { key: "sellSlotWeapon", id: 2 },
+    { key: "sellSlotHelmet", id: 3 },
+    { key: "sellSlotArtifact", id: 4 },
+    { key: "sellSlotHero", id: 6 },
+]
+const MAX_GEM_LEVEL = 13
+
 const optionDefs = [
     { type: "Number", key: "sellStartDelayMinutes", min: 1, max: 60, step: 1, unit: "minutes", default: 2, legacy: "text" },
     { type: "Number", key: "sellMaxPerRun", min: 1, max: 50, step: 1, default: 20, legacy: "text" },
@@ -9,6 +19,9 @@ const optionDefs = [
     { type: "Checkbox", key: "sellRed", default: false },
     { type: "Checkbox", key: "sellRelic", default: false },
     { type: "Checkbox", key: "sellLooseGems", default: true },
+    { type: "Number", key: "sellGemMaxLevel", min: 0, max: MAX_GEM_LEVEL, step: 1, default: MAX_GEM_LEVEL },
+    { type: "Label", key: "sellSlots" },
+    ...SLOTS.map(({ key }) => ({ type: "Checkbox", key, default: true })),
 ]
 
 if (require('node:worker_threads').isMainThread)
@@ -36,10 +49,12 @@ const rarityGroups = {
 const option = key => pluginOptions[key] ?? optionDefs.find(def => def.key == key).default
 const soldRarities = Object.entries(rarityGroups).filter(([key]) => option(key)).flatMap(([, ids]) => ids)
 const sellGems = Boolean(option("sellLooseGems"))
+const soldSlots = SLOTS.filter(({ key }) => option(key)).map(({ id }) => id)
+const gemMaxLevel = Number.isFinite(Number(option("sellGemMaxLevel"))) && option("sellGemMaxLevel") !== "" ? Number(option("sellGemMaxLevel")) : MAX_GEM_LEVEL
 
 const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
     const gem = gems.find(g => g.gemID == id)
-    if (!gem || gem.setID != undefined)
+    if (!gem || gem.setID != undefined || Number(gem.gemLevelID) > gemMaxLevel)
         return []
     return Array.from({ length: amount }, () => ["sge", { GID: gem.gemID, RGEM: 0, LFID: -1 }])
 })
@@ -47,6 +62,7 @@ const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
 // Equipment rows: [id, slotType, lordType, rarity, name, ?, objectID, setID, ...]
 const equipmentSales = e => Array.from(e.I ?? [])
     .filter(item => soldRarities.includes(item[3]) && item[7] == -1)
+    .filter(item => !SLOTS.some(({ id }) => id == item[1]) || soldSlots.includes(item[1]))
     .map(item => ["seq", { EID: item[0], LID: -1, EX: 0, LFID: -1 }])
 
 async function fetch(cmd) {

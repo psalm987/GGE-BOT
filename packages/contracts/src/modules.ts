@@ -79,7 +79,7 @@ export type ModuleDef = {
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
     /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
-    page?: "virtualPresets"
+    page?: "virtualPresets" | "liveView"
 }
 
 const live = (id: string, group: ModuleGroup, icon: IconId, plugins: readonly PluginKey[], tabs?: ModuleDef["tabs"]) =>
@@ -94,7 +94,7 @@ const soon = (id: string, group: ModuleGroup, icon: IconId) => ({ id, group, ico
  * read this list. Names and texts are the `modules.<id>.*` keys of the client catalog. A plugin belongs to exactly one live module.
  */
 export const MODULES: readonly ModuleDef[] = [
-    soon("live-view", "overview", "all-seeing-eye"),
+    page("live-view", "overview", "all-seeing-eye", "liveView"),
     soon("castle-manager", "account", "castle"),
     soon("offer-buyer", "account", "shopping-cart"),
     live("wheel-spin", "account", "tarot-10-wheel-of-fortune", ["wheelSpin"]),
@@ -113,7 +113,7 @@ export const MODULES: readonly ModuleDef[] = [
     live("armourer", "attacks", "anvil", ["buyTools"]),
     soon("blacksmith-event-shops", "attacks", "sword-smithing"),
     {
-        ...live("nom-sam-daimyo", "attacks", "cloaked-figure-on-horseback", ["attackNomads", "attackSamurai"], "per-plugin"),
+        ...live("nom-sam-daimyo", "attacks", "cloaked-figure-on-horseback", ["attackNomads", "attackSamurai", "attackDaimyo"], "per-plugin"),
         global: { accountCap: true as const, each: "events" as const, soon: ["stopAfterDefeat", "nomadAdvisor"] },
     },
     live("storms", "attacks", "sinking-ship", ["attackStormForts", "meadReplaceStorm"], "per-plugin"),
@@ -144,10 +144,11 @@ export const MODULES: readonly ModuleDef[] = [
 ].map((module, index) => ({ ...module, order: (index + 1) * 10 }))
 
 /**
- * The plugins that hold an account's own settings: the pause between attacks, the daily cap, the time skips and the shutoff timer.
+ * The plugins that hold an account's own settings: the pause between attacks, the daily cap, the time skips, the shutoff timer
+ * and the commander map.
  * They belong to no module. The account's side panel edits them on its Account settings tab.
  */
-export const ACCOUNT_SETTINGS_PLUGINS: readonly PluginKey[] = ["attack", "skips", "shutoffTimer"]
+export const ACCOUNT_SETTINGS_PLUGINS: readonly PluginKey[] = ["attack", "skips", "shutoffTimer", "commander"]
 
 /** The module whose page edits a plugin, if any. */
 export const moduleOfPlugin = (key: PluginKey): ModuleDef | undefined => MODULES.find(module => module.plugins.includes(key))

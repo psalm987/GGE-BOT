@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { AttackTarget } from "./plugins.ts"
 
 /**
  * What a game item is to the plugins. A tool with a glory bonus is a banner, an offence support tool goes in `AST`,
@@ -43,7 +44,20 @@ export const GameItem = z.object({
     /** The production list a plugin orders it from with coins or resources: 0 for the barracks, 1 for the workshops. Null when it costs rubies, tokens or anything else a plugin must not spend. */
     orderList: z.union([z.literal(0), z.literal(1)]).nullable(),
     image: z.string().nullable(),
+    /** Where the item may attack, from the game's `allowedToAttack`; `-1` in a pair is any. Null when it may attack anywhere or the field couldn't be read. */
+    attackTargets: z.array(AttackTarget).nullable(),
     /** Null when the item's kind, name and level are already unique. */
     variant: GameItemVariant.nullable(),
 })
 export type GameItem = z.infer<typeof GameItem>
+
+/** Whether an item whose `attackTargets` are given may attack one of a plugin's `targets`. Anything unrestricted, and any plugin that names no target, passes. */
+export function allowedAtTargets(attackTargets: AttackTarget[] | null | undefined, targets: AttackTarget[] | undefined): boolean {
+    if (!attackTargets?.length || !targets?.length)
+        return true
+    return targets.some(target => attackTargets.some(pair =>
+        (pair.kingdom === ANY_TARGET || pair.kingdom === target.kingdom) && (pair.areaType === ANY_TARGET || pair.areaType === target.areaType)))
+}
+
+/** A pair's number for any kingdom or any area type. */
+export const ANY_TARGET = -1

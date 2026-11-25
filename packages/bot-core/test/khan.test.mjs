@@ -8,7 +8,8 @@ const { melee, ranged, unit } = require("./harness/army-bots.cjs")
 const { runEvent } = require("./harness/event-bots.cjs")
 const { loadModule, fakeBot } = require("./harness/load.cjs")
 const { readLegacy } = require("../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, tauntHold, defenceResult, tauntLandings } = require("../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, incomingTaunts, tauntHold, defenceResult, tauntLandings, defenceGate, defendersIn } = require("../khan.js")
+const capture = require("./fixtures/protocol/khan-20261122.json")
 
 const options = loadModule("plugins/attack/attackKhan.js", { mainThread: true }).mod.pluginOptions
 
@@ -32,7 +33,7 @@ describe("rage waves, stored as wavesTillChests before", () => {
     test("the old default and the new defaults mean the same waves", () => {
         const read = stored => effectivePluginConfig([{ key: "khan", force: false, hidden: false, options }], { khan: { enabled: true, options: stored } }).khan
         expect(read({ wavesTillChests: "4" })).toEqual(read({}))
-        expect(read({})).toMatchObject({ rageWaves: 3, boosterWaves: 6, tabletsOnly: false, pauseAtTaunts: 0, stockFlamingArrows: 0 })
+        expect(read({})).toMatchObject({ rageWaves: 3, boosterWaves: 6, tabletsOnly: false, pauseAtTaunts: 0, tauntMinDefenders: 0, stockFlamingArrows: 0 })
     })
     test("rage waves come first, then chest waves, then troops only", () => {
         const khan = parseKhan(readLegacy(khanWaveOptions(), { rageWaves: 1, boosterWaves: 2 }))
@@ -151,6 +152,32 @@ describe("Khan taunts", () => {
     }
     test("a full rage bar taunts the Khan", async () => {
         expect(await fullRage({})).toEqual([["lta", { AV: 0, EID: 72 }]])
+    })
+    test("shares its rage bar for the Live view: the bar, what fills it, the camp level and what the last hit earned", async () => {
+        const run = await khan({}, running)
+        const shared = () => require("../khanRage.js").khanRage()
+        expect(shared(), "before the game reports any rage").toMatchObject({ rage: 0, eventRunning: true })
+
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        const [first, second] = capture.rpr
+        run.bot.xtHandler.emit("rpr", { ...first.payload, PCRP: 400 }, 0)
+        expect(shared()).toMatchObject({ rage: 400, needed: 1500, campLevel: 50, lastGain: undefined, eventRunning: true, hold: undefined })
+        run.bot.xtHandler.emit("rpr", { ...second.payload, PCRP: 900 }, 0)
+        expect(shared(), "the total earned rose from 1,426 to 3,680").toMatchObject({ rage: 900, lastGain: 2254 })
+        expect(shared().lastGainAt).toBeTypeOf("number")
+
+        run.bot.events.emit("eventStop", { EID: 72 })
+        expect(shared()).toMatchObject({ rage: 900, eventRunning: false, hold: "stopped" })
+    })
+    test("shares nothing before the event opens, a hold while taunts are off, and nothing once unloaded", async () => {
+        const run = await khan({ tabletsOnly: true }, running)
+        const { khanRage } = require("../khanRage.js")
+        expect(khanRage().hold).toBe("off")
+        run.bot.events.emit("unload")
+        expect(khanRage()).toBeUndefined()
+
+        loadModule("plugins/attack/attackKhan.js", { bot: fakeBot(), extra: { "protocols.js": { movementEvents: new EventEmitter(), movements: [], castles: [], AreaType: { khanCamp: 35 }, KingdomID: {}, ClientCommands: {} }, "./attack.js": {}, "../commander.js": {} } })
+        expect(require("../khanRage.js").khanRage(), "the plugin is on and no Khan event has been seen").toBeUndefined()
     })
     test("the score shutoff is off by default", () => {
         expect(options.find(option => option.key == "scoreShutoff").default).toBe("")
@@ -440,5 +467,126 @@ describe("defence tools from the armourer", () => {
         const { bot, topUp } = armourer(10_000_000)
         await topUp(rows, { ...limits, dryRun: true })
         expect(bot.sent).toEqual([])
+    })
+})
+
+const defender = (wodID, amount) => unit(wodID, amount, { role: "melee", fightType: "1" })
+/** The defenders of a real main castle: two Protector of the north levels and the Renegade spear thrower, 8,405 in all, with a defence tool beside them. */
+const defenders = () => [defender(220, 959), defender(729, 30), defender(222, 7416), unit(110, 976, { fightType: undefined, typ: "Defence" })]
+
+describe("the defender gate on taunts", () => {
+    const slots = (...amounts) => amounts.map(amount => amount > 0 ? [110, amount] : [-1, 0])
+    const layout = ({ L = slots(10, 10), M = slots(10, 10), R = slots(10, 10) } = {}) =>
+        ({ dfw: { L: { S: L }, M: { S: M }, R: { S: R }, U: 5031 }, dfk: { U: 433000 } })
+
+    test("a fixed order puts a short troop count before short tools, and both after a short defence", () => {
+        expect(tauntHold({ gate: "toolsShort", defenceShort: true })).toBe("defenceShort")
+        expect(tauntHold({ gate: "toolsShort" })).toBe("toolsShort")
+        expect(tauntHold({ gate: "defendersShort" })).toBe("defendersShort")
+        expect(tauntHold({ gate: "defenceUnread" })).toBe("defenceUnread")
+    })
+    test("0 turns the gate off and the option defaults to it", () => {
+        expect(defenceGate(layout(), 0, 0)).toBeUndefined()
+        expect(defenceGate(layout({ L: slots(1, 1) }), 0, 0)).toBeUndefined()
+        expect(options.find(option => option.key == "tauntMinDefenders")).toMatchObject({ type: "Number", default: 0, min: 0, unit: "troops" })
+        expect(parseKhan({}).tauntMinDefenders).toBe(0)
+        expect(parseKhan({ tauntMinDefenders: "2500" }).tauntMinDefenders).toBe(2500)
+        expect(parseKhan({ tauntMinDefenders: -4 }).tauntMinDefenders).toBe(0)
+    })
+    test("only defensive soldiers count: attack troops and defence tools do not", () => {
+        expect(defendersIn(defenders())).toBe(8405)
+        expect(defendersIn([...defenders(), ...inventory()])).toBe(8405)
+        expect(defendersIn(undefined)).toBe(0)
+    })
+    test("too few defenders hold the taunt, whatever room the wall and courtyard have", () => {
+        expect(defenceGate(layout(), 8405, 8405)).toBeUndefined()
+        expect(defenceGate(layout(), 8405, 8406)).toEqual({ hold: "defendersShort", have: 8405, need: 8406 })
+        expect(defenceGate(layout(), 0, 1000)).toMatchObject({ hold: "defendersShort", have: 0 })
+    })
+    test("a defended side needs 10 tools in every slot, an empty slot counts, and an undefended side is not looked at", () => {
+        expect(defenceGate(layout({ L: slots(10, 9) }), 10, 1)).toEqual({ hold: "toolsShort", short: 1, need: 10 })
+        expect(defenceGate(layout({ L: slots(10, 0), R: slots(9, 9) }), 10, 1)).toEqual({ hold: "toolsShort", short: 3, need: 10 })
+        expect(defenceGate(layout({ L: slots(0, 0) }), 10, 1)).toBeUndefined()
+        expect(defenceGate(layout({ L: slots(0, 0), M: slots(0, 0), R: slots(0, 0) }), 10, 1)).toBeUndefined()
+    })
+    test("the captured defence of a real account is read", () => {
+        const dfc = capture.dfc_1.reply.payload
+        expect(defenceGate(dfc, 8405, 1000)).toBeUndefined()
+        expect(defenceGate(dfc, 8405, 10_000)).toMatchObject({ hold: "defendersShort", have: 8405, need: 10_000 })
+    })
+})
+
+describe("Khan taunts and the defender gate", () => {
+    afterEach(() => vi.restoreAllMocks())
+    const running = { waitToAttack: () => new Promise(() => {}), wait: 10 }
+    const slot = amount => ({ S: [[110, amount], [110, amount]] })
+    const dfc = ({ amount = 10 } = {}) => ({ dfw: { L: slot(amount), M: slot(amount), R: slot(amount), U: 5031 }, dfk: { U: 433000 } })
+    async function gated(replies, stored = { tauntMinDefenders: 8000 }, troops = defenders()) {
+        const asked = []
+        const ask = async (command, params) => {
+            asked.push([command, params])
+            const reply = replies.shift()
+            return reply === undefined ? {} : { reply, result: 0 }
+        }
+        const run = await khan(stored, { ...running, inventory: [...inventory(), ...troops], extra: { "chores.js": { ask } } })
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        const rage = async () => { run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0); await new Promise(resolve => setTimeout(resolve, 5)) }
+        const taunts = () => run.frames.filter(([command]) => command == "lta")
+        return { run, rage, taunts, asked }
+    }
+
+    test("a castle with enough troops and tools taunts after one look at the defence", async () => {
+        const { rage, taunts, asked } = await gated([dfc()])
+        await rage()
+        expect(taunts()).toEqual([["lta", { AV: 0, EID: 72 }]])
+        expect(asked).toHaveLength(1)
+        expect(asked[0][0]).toBe("dfc")
+    })
+    test("with the gate off the defence is never looked at", async () => {
+        const { rage, taunts, asked } = await gated([], {})
+        await rage()
+        expect(taunts()).toHaveLength(1)
+        expect(asked).toEqual([])
+    })
+    test("too few troops hold the taunt, say so once, and report the status", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { run, rage, taunts } = await gated([dfc()], { tauntMinDefenders: 9000 })
+        await rage()
+        await rage()
+        expect(taunts()).toEqual([])
+        expect(warn.mock.calls.filter(([key]) => key == "khanTauntHeldDefendersShort")).toEqual([["khanTauntHeldDefendersShort", 8405, 9000]])
+    })
+    test("a slot with fewer than 10 tools holds the taunt", async () => {
+        const { rage, taunts } = await gated([dfc({ amount: 9 })])
+        await rage()
+        expect(taunts()).toEqual([])
+    })
+    test("a defence that cannot be read holds the taunt", async () => {
+        const { rage, taunts } = await gated([])
+        await rage()
+        expect(taunts()).toEqual([])
+    })
+    test("the check runs again after 5 minutes and a filled defence then spends the full bar", async () => {
+        const { run, taunts, asked } = await gated([dfc(), dfc()], { tauntMinDefenders: 8000 }, [defender(220, 10)])
+        vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
+        try {
+            run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
+            await vi.advanceTimersByTimeAsync(1)
+            expect(taunts()).toEqual([])
+            expect(asked).toHaveLength(1)
+            run.castle.unitInventory.push(defender(222, 9000))
+            await vi.advanceTimersByTimeAsync(5 * 60_000 - 10)
+            expect(asked).toHaveLength(1)
+            await vi.advanceTimersByTimeAsync(20)
+            expect(asked).toHaveLength(2)
+            expect(taunts()).toEqual([["lta", { AV: 0, EID: 72 }]])
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+    test("the held taunt shows in the plugin status with the counts", async () => {
+        const { run, rage } = await gated([dfc()], { tauntMinDefenders: 9000 })
+        await rage()
+        expect(run.statuses.at(-1)).toMatchObject({ reasonKey: "statusKhanTauntDefendersShort", params: { have: 8405, need: 9000 } })
     })
 })

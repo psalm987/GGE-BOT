@@ -25,10 +25,16 @@ export function createMetrics({ db, heapSizes, log = console }: { db: Db; heapSi
         bot_gaa_cache_total: new client.Counter({ name: "bot_gaa_cache_total", help: "Map area lookups served from cache (hit) or the server (miss)", labelNames: ["result"], registers }),
         bot_daily_bonus_total: new client.Counter({ name: "bot_daily_bonus_total", help: "Daily login bonus claims by what the game answered", labelNames: ["result"], registers }),
         bot_tax_collect_total: new client.Counter({ name: "bot_tax_collect_total", help: "Tax collections by what the game answered", labelNames: ["result"], registers }),
+        bot_attacks_total: new client.Counter({ name: "bot_attacks_total", help: "Attacks by outcome (sent, refused, timed_out, castle_locked, limit_reached) and kingdom", labelNames: ["result", "kingdom"], registers }),
+        bot_attack_refusals_total: new client.Counter({ name: "bot_attack_refusals_total", help: "Attacks the game refused, by error name", labelNames: ["reason"], registers }),
+        bot_attack_pauses_total: new client.Counter({ name: "bot_attack_pauses_total", help: "Times the attack queue stopped to re-read the castles after refusals, by trigger", labelNames: ["reason"], registers }),
+        bot_attack_idle_seconds_total: new client.Counter({ name: "bot_attack_idle_seconds_total", help: "Seconds attacking waited, by cause (no_free_commander, daily_cap, refusal_pause)", labelNames: ["cause"], registers }),
     }
     const histograms: Record<string, client.Histogram> = {
         bot_game_rtt_seconds: new client.Histogram({ name: "bot_game_rtt_seconds", help: "Time from asking for a reply to receiving it, by command", labelNames: ["command"], buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30], registers }),
         bot_inbound_gap_seconds: new client.Histogram({ name: "bot_inbound_gap_seconds", help: "Longest silence from the game server between two bot heartbeats", buckets: [1, 5, 15, 30, 60, 90, 120, 180, 300], registers }),
+        bot_attack_round_trip_seconds: new client.Histogram({ name: "bot_attack_round_trip_seconds", help: "Out and back travel time of each attack sent, by kingdom", labelNames: ["kingdom"], buckets: [60, 300, 600, 1800, 3600, 7200, 14400, 28800], registers }),
+        bot_attack_queue_wait_seconds: new client.Histogram({ name: "bot_attack_queue_wait_seconds", help: "Time an attack waited in the account's queue before it ran", buckets: [1, 5, 15, 30, 60, 120, 300, 900, 3600], registers }),
         bot_send_wait_seconds: new client.Histogram({ name: "bot_send_wait_seconds", help: "Time a send waited for the rate limiter", buckets: [0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5], registers }),
     }
 

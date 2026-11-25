@@ -30,12 +30,12 @@ function commanderPool(bot, movementEvents, count, effects) {
  * `start` gets the loaded builder and starts it. `presets` is the game's `gas` reply. `movements` are the marches on the map, and a skip's reply lands once
  * `skipLands` resolves. `castles` are the player's castles beside the kingdom's main one (id 1 at 100:100), and `scans` in
  * the result holds the tile each map scan centred on. With `commanders` set, the real commander pool hands out that many commanders; without it, one
- * stand-in commander (lord id 9) goes out once.
+ * stand-in commander (lord id 9) goes out once. `extra` stands in for more modules, for the engine and the builder alike.
  */
 async function firstCra(relPath, start, {
     kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
     movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {}, commanders,
-    presets = { S: [] }, castles = [],
+    presets = { S: [] }, castles = [], extra = {},
 }) {
     const bot = fakeBot()
     // The game lists the player's in-game presets (`gas`) as `presets`.
@@ -60,7 +60,7 @@ async function firstCra(relPath, start, {
     }
     const skipped = []
     const scans = []
-    const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols } }).mod
+    const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols, ...extra } }).mod
     const sent = []
     const statuses = []
     let handedOut = 0
@@ -83,6 +83,7 @@ async function firstCra(relPath, start, {
                 freeCommander() {}, useCommander() {},
             },
             "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]), wholeMapRects: () => [], areasAround: async () => [area] },
+            ...extra,
         },
     })
     const stopped = []

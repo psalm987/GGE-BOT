@@ -579,3 +579,94 @@ describe("its status line", () => {
         expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusStationUnprotected", params: { castle: "Ada's Keep" } })
     })
 })
+
+describe("reserving a commander ahead", () => {
+    /** The account's one commander is out with an attack, and a second attack waits for it. It comes home 300 s in. */
+    async function busyCommander(options) {
+        const run = autoStation({ options })
+        expect(run.commander.takeFreeCommander("1")?.lordID).toBe(1)
+        let attackGot
+        run.commander.waitForCommanderAvailable("1").then(lord => (attackGot = lord))
+        run.attack({ lands: 600 })
+        await vi.advanceTimersByTimeAsync(300 * S)
+        run.commander.freeCommander(1)
+        await vi.advanceTimersByTimeAsync(241 * S)
+        return { ...run, attackGot: () => attackGot }
+    }
+
+    test("is off by default: a commander that comes home goes to the attack waiting for it, and the troops stay", async () => {
+        const { mod } = loadModule("plugins/autoStation.js", { mainThread: true })
+        expect(mod.pluginOptions.find(o => o.key == "stationReserveMinutes")).toMatchObject({ type: "Number", default: 0, min: 0, unit: "minutes" })
+
+        const run = await busyCommander({})
+        expect(run.attackGot()?.lordID).toBe(1)
+        expect(run.sent("cds")).toEqual([])
+        expect(run.notices.at(-1).data.outcome).toBe("unprotected")
+    })
+
+    test("switched on, the commander that comes home is kept for the troops and goes to no attack", async () => {
+        const run = await busyCommander({ stationReserveMinutes: 20 })
+        expect(run.attackGot(), "the attack keeps waiting").toBeUndefined()
+        expect(run.keys()).toContain("stationCommanderReserved")
+        expect(run.sent("cds").map(p => p.LID)).toEqual([1])
+        expect(run.notices.at(-1).data.outcome).toBe("stationed")
+    })
+
+    test("a free commander is held from that long before the attack lands, and not sooner", async () => {
+        const { attack, commander } = autoStation({ options: { stationReserveMinutes: 5 } })
+        attack({ lands: 1800 })
+        await vi.advanceTimersByTimeAsync(1499 * S)
+        expect(commander.takeFreeCommander("1")?.lordID, "25 minutes before the landing an attack may still take it").toBe(1)
+        commander.freeCommander(1)
+        await vi.advanceTimersByTimeAsync(2 * S)
+        expect(commander.takeFreeCommander("1"), "5 minutes before the landing it is held").toBeUndefined()
+    })
+
+    test("no more commanders are reserved than may be away on stations at once", async () => {
+        const commanders = [{ ID: 1, VIS: 0 }, { ID: 2, VIS: 1 }]
+        const { attack, commander } = autoStation({ commanders, options: { stationReserveMinutes: 20, stationMaxCommanders: 1 } })
+        attack({ id: 1, castle: 0 })
+        attack({ id: 2, castle: 1 })
+        expect([commander.takeFreeCommander("1-2")?.lordID, commander.takeFreeCommander("1-2")?.lordID]).toEqual([2, undefined])
+    })
+
+    test("an attack called off gives the reserved commander back, and ends a reservation that was still waiting", async () => {
+        const held = autoStation({ options: { stationReserveMinutes: 20 } })
+        held.attack({ lands: 600 })
+        expect(held.commander.takeFreeCommander("1")).toBeUndefined()
+        held.bot.xtHandler.emit("dms", { MID: [42] }, 0)
+        expect(held.commander.takeFreeCommander("1")?.lordID).toBe(1)
+
+        const waiting = autoStation({ options: { stationReserveMinutes: 20 } })
+        expect(waiting.commander.takeFreeCommander("1")?.lordID).toBe(1)
+        waiting.attack({ lands: 600 })
+        waiting.bot.xtHandler.emit("dms", { MID: [42] }, 0)
+        waiting.commander.freeCommander(1)
+        expect(waiting.commander.takeFreeCommander("1")?.lordID, "home and free, not held for an attack that is over").toBe(1)
+    })
+})
+
+describe("under the account's commander map", () => {
+    const mapped = commanderMap => {
+        const run = autoStation({ commanders: [{ ID: 1, VIS: 0 }, { ID: 2, VIS: 1 }] })
+        run.bot.botConfig.plugins.commander = { state: true, commanderMap }
+        run.bot.events.emit("configModified")
+        return run
+    }
+
+    test("only the commanders the map gives Auto Station lead the troops out", async () => {
+        const run = mapped(["attackKhan", "autoStation"])
+        run.attack()
+        await vi.advanceTimersByTimeAsync(541 * S)
+        expect(run.sent("cds").map(p => p.LID)).toEqual([2])
+    })
+
+    test("with none of its own it keeps its own commander list, so a map drawn for attacks never stops an evacuation", async () => {
+        const run = mapped(["attackKhan", "attackKhan"])
+        expect(run.reports.findLast(report => report.plugin == "autoStation")?.reasonKey).not.toBe("statusNoCommandersAssigned")
+        run.attack()
+        await vi.advanceTimersByTimeAsync(541 * S)
+        expect(run.sent("cds").length).toBe(1)
+        expect(run.keys()).not.toContain("stationNoCommander")
+    })
+})

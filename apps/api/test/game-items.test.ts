@@ -11,7 +11,7 @@ beforeAll(async () => {
         { id: 2, kind: "banner", nameKey: "b_name", name: "Alpha banner", fameBonus: 15 },
         { id: 3, kind: "banner", nameKey: "c_name", name: "Aardvark banner", fameBonus: 5 },
         { id: 4, kind: "tool", nameKey: "d_name", name: "Ram" },
-        { id: 5, kind: "tool", nameKey: "e_name", name: "Ladder", level: 2, image: "itemassets/x", orderList: 1, variant: { kind: "jade", tier: 2 } },
+        { id: 5, kind: "tool", nameKey: "e_name", name: "Ladder", level: 2, image: "itemassets/x", orderList: 1, variant: { kind: "jade", tier: 2 }, attackTargets: [{ kingdom: 0, areaType: 29 }] },
     ])
 })
 afterAll(() => api.close())
@@ -24,8 +24,8 @@ test("banners come strongest first, then by name, and only banners", async () =>
 test("other kinds come by name with their details", async () => {
     const p = await api.player()
     expect(await p.api.catalog.gameItems({ kind: "tool" })).toEqual([
-        { id: 5, kind: "tool", nameKey: "e_name", name: "Ladder", level: 2, fameBonus: null, orderList: 1, image: "itemassets/x", variant: { kind: "jade", tier: 2 } },
-        { id: 4, kind: "tool", nameKey: "d_name", name: "Ram", level: null, fameBonus: null, orderList: null, image: null, variant: null },
+        { id: 5, kind: "tool", nameKey: "e_name", name: "Ladder", level: 2, fameBonus: null, orderList: 1, image: "itemassets/x", variant: { kind: "jade", tier: 2 }, attackTargets: [{ kingdom: 0, areaType: 29 }] },
+        { id: 4, kind: "tool", nameKey: "d_name", name: "Ram", level: null, fameBonus: null, orderList: null, image: null, variant: null, attackTargets: null },
     ])
 })
 

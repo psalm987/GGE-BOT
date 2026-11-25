@@ -407,8 +407,8 @@ describe("the log line of a camp attack", () => {
     })
     test("every part a line can hold is in the catalog", () => {
         const en = require("../locales/en.json")
-        const keys = ["campOfNomads", "campOfSamurai", "horseNone", "horseCoin", "horseFeather", "skipsSpentOnCamp", "noSkipsSpentOnCamp"]
+        const keys = ["campOfNomads", "campOfSamurai", "daimyoCastle", "horseNone", "horseCoin", "horseFeather", "skipsSpentOnCamp", "noSkipsSpentOnCamp"]
         expect(keys.filter(key => !(key in en))).toEqual([])
-        expect(Object.values(EVENT_PROFILES).map(profile => profile.logName)).toEqual(["campOfNomads", "campOfSamurai"])
+        expect(Object.values(EVENT_PROFILES).map(profile => profile.logName)).toEqual(["campOfNomads", "campOfSamurai", "daimyoCastle"])
     })
 })

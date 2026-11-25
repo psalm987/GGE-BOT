@@ -9,6 +9,7 @@ import { orpc } from "../api.ts"
 import { castleKey, castleOptions, toCastle } from "../castle-options.ts"
 import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
+import { CommanderMapField } from "./CommanderMapField.tsx"
 
 const KIND: Record<ItemCatalog, GameItemKind> = { banners: "banner", tools: "tool", troops: "troop", supportTools: "supportTool" }
 const COLUMN_KIND = { tool: "tool", troop: "troop" } as const
@@ -317,8 +318,10 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
                     </Form.Item>
                 </Col>
             )
+        case "CommanderMap":
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><CommanderMapField buckets={def.buckets} keepsOwnList={def.keepsOwnList ?? []} accountId={accountId} /></Form.Item></Col>
         case "Waves":
-            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} /></Form.Item></Col>
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} targets={entry.targets} /></Form.Item></Col>
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)

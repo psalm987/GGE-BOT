@@ -68,8 +68,7 @@ test("with lognormal_delays on a break makes the next attack wait 2 to 6 times a
     expect(afterBreak).toBeLessThan(6220)
 })
 
-function loadAttackWithBot(options) {
-    const bot = fakeBot()
+function loadAttackWithBot(options, bot = fakeBot()) {
     bot.botConfig.plugins.attack = { attackLimit: "", attackDelaySeconds: "3", attackDelayRandomizationSeconds: "0", ...options }
     return { ...loadModule("plugins/attack/attack.js", { bot, extra: { "protocols": { resources: {} } } }).mod, bot }
 }
@@ -91,31 +90,79 @@ test("a rejected attack still delays the next one", async () => {
     expect(secondRanAt).toBeGreaterThanOrEqual(3000)
 })
 
-test("ATTACK_TOO_MANY_UNITS halts every queued and later attack", async () => {
+/** A game that answers every castle-list request; `log` gets the request, and the jobs below add their own lines. */
+function answeringCastleList(log = []) {
+    const bot = fakeBot()
+    bot.sendXT = async cmd => {
+        if (cmd != "dcl")
+            return
+        log.push("send dcl")
+        setTimeout(() => bot.xtHandler.emit("dcl", {}, 0), 100)
+    }
+    return bot
+}
+
+/** When a job queued now runs, in ms from now. */
+async function runsAfter(waitToAttack, log, label) {
+    const start = Date.now()
+    let ranAt
+    waitToAttack(() => { ranAt = Date.now() - start; log.push(label); return true })
+    for (let t = 0; t < 2 * 60 * 60_000 && ranAt === undefined; t += 1000)
+        await vi.advanceTimersByTimeAsync(1000)
+    return ranAt
+}
+
+test("ATTACK_TOO_MANY_UNITS pauses every attack for 5 minutes, then attacks go on after a fresh castle list", async () => {
     vi.useFakeTimers()
-    const { waitToAttack, bot } = loadAttackWithBot()
-    let laterRan = false
+    const log = []
+    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList(log))
     waitToAttack(rejectWith(bot, 313)).catch(() => {})
-    const queued = waitToAttack(() => { laterRan = true; return true })
-    const queuedResult = queued.catch(e => e)
-    await vi.advanceTimersByTimeAsync(10 * 60_000)
-    expect(await queuedResult).toBe("ATTACKS_HALTED")
-    await expect(waitToAttack(() => { laterRan = true; return true })).rejects.toBe("ATTACKS_HALTED")
-    expect(laterRan).toBe(false)
+    const ranAt = await runsAfter(waitToAttack, log, "later attack")
+    expect(ranAt).toBeGreaterThanOrEqual(5 * 60_000)
+    expect(ranAt).toBeLessThan(6 * 60_000)
+    expect(log).toEqual(["send dcl", "later attack"])
 })
 
-test("three rejections in a row halt attacks; a success resets the count", async () => {
+test("three rejections in a row pause attacks; a success resets the count", async () => {
     vi.useFakeTimers()
-    const { waitToAttack, bot } = loadAttackWithBot()
+    const log = []
+    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList(log))
     const ok = () => { bot.xtHandler.emit("cra", {}, 0); return true }
     for (const job of [rejectWith(bot, 101), rejectWith(bot, 101), ok, rejectWith(bot, 101), rejectWith(bot, 101)])
         waitToAttack(job).catch(() => {})
-    await vi.advanceTimersByTimeAsync(10 * 60_000)
-    await expect(waitToAttack(() => true)).resolves.toBe(true)
+    expect(await runsAfter(waitToAttack, log, "after two")).toBeLessThan(60_000)
     waitToAttack(rejectWith(bot, 101)).catch(() => {})
-    await vi.advanceTimersByTimeAsync(10 * 60_000)
-    await expect(waitToAttack(ok)).rejects.toBe("ATTACKS_HALTED")
+    expect(await runsAfter(waitToAttack, log, "after three")).toBeGreaterThanOrEqual(5 * 60_000)
+    expect(log).toEqual(["after two", "send dcl", "after three"])
 })
+
+test("each pause in a row lasts longer, and a successful attack starts them over", async () => {
+    vi.useFakeTimers()
+    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList())
+    const ok = () => { bot.xtHandler.emit("cra", {}, 0); return true }
+    const pauseAfterRefusal = async () => {
+        waitToAttack(rejectWith(bot, 313)).catch(() => {})
+        return Math.round(await runsAfter(waitToAttack, [], "probe") / 60_000)
+    }
+    expect(await pauseAfterRefusal()).toBe(5)
+    expect(await pauseAfterRefusal()).toBe(10)
+    expect(await pauseAfterRefusal()).toBe(20)
+    waitToAttack(ok)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(await pauseAfterRefusal()).toBe(5)
+})
+
+test("a pause never lasts more than an hour", async () => {
+    vi.useFakeTimers()
+    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList())
+    let longest = 0
+    for (let i = 0; i < 6; i++) {
+        waitToAttack(rejectWith(bot, 313)).catch(() => {})
+        longest = Math.max(longest, await runsAfter(waitToAttack, [], "probe"))
+    }
+    expect(longest).toBeGreaterThanOrEqual(60 * 60_000)
+    expect(longest).toBeLessThan(61 * 60_000)
+}, 60_000)
 
 test("with the default settings attacks go about every 6 seconds, also past the 120th of the hour", async () => {
     const declared = loadModule("plugins/attack/attack.js", { mainThread: true }).mod.pluginOptions

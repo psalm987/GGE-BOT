@@ -2,11 +2,12 @@ import { readFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { notInArray, sql } from "drizzle-orm"
-import { GameItemBonus, type GameItem, type GameItemKind, type GameItemVariant } from "@gge/contracts"
+import { GameItemBonus, type AttackTarget, type GameItem, type GameItemKind, type GameItemVariant } from "@gge/contracts"
 import { gameItems, type Db } from "@gge/db"
 
 const require = createRequire(import.meta.url)
 const { orderListOf } = require("@gge/bot-core/orderable.js") as { orderListOf: (unit: unknown) => 0 | 1 | null }
+const { parseAllowedToAttack } = require("@gge/bot-core/attackTargets.js") as { parseAllowedToAttack: (value: unknown) => AttackTarget[] | null }
 
 type Unit = Record<string, unknown> & { wodID: number; type: string }
 
@@ -26,6 +27,12 @@ function kindOf(unit: Unit): GameItemKind | null {
     if (unit.typ === "Attack" || unit.typ === "Defence")
         return "tool"
     return null
+}
+
+/** Where the unit may attack; null when it may go anywhere or its `allowedToAttack` can't be read. */
+const attackTargetsOf = (unit: Unit) => {
+    const pairs = parseAllowedToAttack(unit.allowedToAttack)
+    return pairs?.length ? pairs : null
 }
 
 const numberOrNull = (value: unknown) => {
@@ -110,6 +117,7 @@ export async function readGameItems(dataDir: string): Promise<GameItem[]> {
             id: unit.wodID, kind, nameKey, name: lang[nameKey] ?? type,
             level: numberOrNull(unit.level), fameBonus: numberOrNull(unit.fameBonus), orderList: orderListOf(unit),
             image: assets[`${unit.name}_${unit.group}_${type}`] ?? null, variant: null,
+            attackTargets: attackTargetsOf(unit),
         } })
     }
     const variants = variantsOf(entries)

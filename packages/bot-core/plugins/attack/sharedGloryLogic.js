@@ -9,6 +9,7 @@ const DIFFICULTIES = [
     "Master (rented with rubies)", "Master+ (rented with rubies)", "Archmaster (rented with rubies)",
 ]
 
+const { toolAllowedAt } = require("../../attackTargets.js")
 const { armyOptions, unitOrderOption, parseAutofill, readArmy, fillFromPlan, orderUnits, HORSES } = require("../../army.js")
 
 const gloryOptions = [
@@ -36,6 +37,7 @@ const gloryOptions = [
     { type: "Number", key: "dethroneMaxTotal", min: 0, max: 2_000_000_000, step: 1, default: 0 },
     { type: "Number", key: "dethroneKeep", min: 0, max: 2_000_000_000, step: 1, default: 0 },
     { type: "Checkbox", key: "attackUnderProtection", default: false },
+    { type: "Checkbox", key: "deleteReports", default: false },
     { type: "Checkbox", key: "dryRun", default: false },
 ]
 const gloryChecks = require("../../commanderOptions.js").commanderChecks
@@ -55,6 +57,7 @@ const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = requ
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
+const { rentCost } = require("../../eventDifficulty.js")
 
 const difficultyRows = loadItem("eventAutoScalingDifficulties")
 const dethroneCosts = loadItem("rerollCosts").filter(row => row.type == "alien").sort((a, b) => a.rerollCount - b.rerollCount)
@@ -89,7 +92,6 @@ const DETHRONES = [
     { rck: "C2", purse: "rubies", count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies" },
 ]
 
-const rentCost = row => row.isLocked == "1" ? Number(row.rentC2Cost) : 0
 const distance = (from, to) => (from.x - to.x) ** 2 + (from.y - to.y) ** 2
 const totalOf = units => units.reduce((n, unit) => n + unit.amount, 0)
 const firstWithAny = (...pools) => pools.find(pool => pool.some(unit => unit.amount > 0)) ?? []
@@ -109,7 +111,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         return
     const usableHere = info =>
         (!info.usageEventID || String(info.usageEventID).split(",").includes(String(eventID))) &&
-        (!info.allowedToAttack || String(info.allowedToAttack).split("#").includes(`${kingdomID}+${areaType}`))
+        toolAllowedAt(info, { kingdom: kingdomID, areaType })
     const openCamp = area => area?.type == areaType && area.extraData.length > 1 && area.extraData[2] != 1
 
     /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, considered: Set<string> }} */
@@ -291,7 +293,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                 flankTools: maxTools.flank, frontTools: maxTools.front,
                 courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
-            })
+            }, { kingdom: kingdomID, areaType })
             return { attackInfo, level }
         }
         const units = inventory.filter(unit => unit.amount > 0 && usableHere(unit.unitInfo))
@@ -398,7 +400,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         }
         while (!target.stopped) {
             reportStatus("running")
-            const commander = await waitForCommanderAvailable(setting("commanderWhiteList"))
+            const commander = await waitForCommanderAvailable(setting("commanderWhiteList"), undefined, undefined, filename)
             if (target.stopped || pastStopTime(target)) {
                 freeCommander(commander.lordID)
                 if (!target.stopped) {
@@ -416,7 +418,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                     const dryRun = Boolean(setting("dryRun"))
                     const inventory = dryRun ? castle.unitInventory.map(unit => ({ ...unit })) : castle.unitInventory
                     const { attackInfo, level } = buildAttack(castle, camp, commander, inventory)
-                    return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun })
+                    return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun, deleteReports: Boolean(setting("deleteReports")) })
                 })
                 if (!sent || sent.dryRun) {
                     freeCommander(commander.lordID)

@@ -73,7 +73,7 @@ function fortressBot({ attackDialog, failing, options = {} } = {}) {
             },
         },
     })
-    fortressHit(KINGDOM, 60, options).catch(error => log.push(`plugin stopped: ${error}`))
+    fortressHit(KINGDOM, 60, options, "/plugins/attackFortressesBurningSands.js").catch(error => log.push(`plugin stopped: ${error}`))
     const dialogFrames = () => bot.sent.filter(([cmd]) => DIALOG.includes(cmd))
     return { bot, log, pool, dialogFrames }
 }

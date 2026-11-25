@@ -1,6 +1,6 @@
 import {
-    ARMY_SIDES, MAX_WAVES, MIN_WAVES, TROOP_SUPPLIES, UNIT_ORDERS, WAVE_SIDES, emptyCustomWave, emptyWave, waveIsEmpty,
-    type ArmySlot, type Autofill, type AutofillSource, type ManualPlan, type PluginOptionDef, type PluginSettings, type Wave, type WaveSide,
+    ARMY_SIDES, MAX_WAVES, MIN_WAVES, TROOP_SUPPLIES, UNIT_ORDERS, WAVE_SIDES, allowedAtTargets, emptyCustomWave, emptyWave, waveIsEmpty,
+    type ArmySlot, type AttackTarget, type Autofill, type AutofillSource, type GameItem, type ManualPlan, type PluginOptionDef, type PluginSettings, type Wave, type WaveSide,
 } from "@gge/contracts"
 import type { OptionValues } from "./plugin-values.ts"
 
@@ -68,3 +68,13 @@ export function withSlot(wave: Wave, side: WaveSide, row: "tools" | "units", ind
 export const pluginsSending = (plugins: PluginSettings, presetId: string) =>
     Object.entries(plugins).flatMap(([key, setting]) => Object.values(setting.options).some(value =>
         typeof value === "object" && value !== null && "kind" in value && value.kind === "virtual" && value.presetId === presetId) ? [key] : [])
+
+/**
+ * The tools a plugin that attacks `targets` can send, and the ids of those it can't. A plugin that names no target is
+ * offered every tool.
+ */
+export function toolsForTargets(items: GameItem[], targets: AttackTarget[] | undefined) {
+    const offered = items.filter(item => allowedAtTargets(item.attackTargets, targets))
+    const barred = new Set(items.filter(item => !allowedAtTargets(item.attackTargets, targets)).map(item => item.id))
+    return { offered, barred }
+}

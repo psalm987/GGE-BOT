@@ -10,6 +10,7 @@ Sign in to Grafana as `admin` with `GRAFANA_ADMIN_PASSWORD`. Dashboards live in 
 |---|---|---|
 | Fleet | Bots by state, bots needing attention, worker heap (max and average), runner event-loop lag, runs ended in 24 h by reason, fleet uptime % | See health at a glance; size `MAX_ACCOUNTS` from heap per worker |
 | Game traffic | Messages sent per second by command, reply time p95 by command, rate-limiter wait, map cache hit ratio, longest silence from the game server p95 | Spot slow commands and wasted requests; compare before and after a bot change |
+| Attacks | Attacks per hour by outcome, refusals by reason (goal 0), idle time share by cause, queue pauses, round trip and queue wait | See whether attacking is throttled by commanders, the daily cap or refusal pauses, and spot refusal spikes after a change |
 | API | Requests per second by route and status, latency p95, event-loop lag | Check the API under load |
 | Plugins | Daily bonus and tax collection outcomes per hour, share that succeeded, accounts with each plugin on | Notice a plugin the game keeps refusing |
 | Realtime | Connected clients, users and subscriptions, connections, messages and disconnects, outbox events processed, outbox backlog and oldest row age | Check live updates reach players; see why they stall |

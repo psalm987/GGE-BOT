@@ -14,7 +14,7 @@ const {
     castles,
     unlockInfoList
 } = require("../protocols.js")
-const { spendSkip } = require("./skips.js")
+const { spendSkip, MinuteSkipType } = require("./skips.js")
 const { events, botConfig } = require("../ggeBot.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
@@ -31,15 +31,16 @@ const kingdomID = KingdomID.stormIslands
  * @returns 
  */
 const skipResource = async castle => {
-    while (castle.troopTransfer?.remainingTime > 0) {
-        let skip = spendSkip(castle.troopTransfer.remainingTime)
+    while (castle.resourceTransfer?.remainingTime > 0) {
+        let skip = spendSkip(castle.resourceTransfer.remainingTime)
 
         if (skip == undefined)
             throw new Error("couldntFindSkip")
 
-        
         if(await ClientCommands.skipResourceTransfer(skip, kingdomID, KingdomSkipType.sendResource) != 0)
             return
+        // The game's next transfer update is not guaranteed before the loop reads the time again.
+        castle.resourceTransfer.remainingTime -= MinuteSkipType[skip] * 60
     }
 }
 

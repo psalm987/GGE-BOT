@@ -46,7 +46,7 @@ test("items with nothing but an upgrade chain to tell them apart are numbered al
 test("level 0 and no level are the same level when grouping", () => {
     const entry = (id: number, level: number | null): Entry => ({
         unit: { wodID: id, type: "Ram", ragePointBonus: String(id) },
-        item: { id, kind: "tool", nameKey: "Ram_name", name: "Ram", level, fameBonus: null, orderList: null, image: null, variant: null },
+        item: { id, kind: "tool", nameKey: "Ram_name", name: "Ram", level, fameBonus: null, orderList: null, image: null, variant: null, attackTargets: null },
     })
     expect([...variantsOf([entry(1, null), entry(2, 0), entry(3, 5)]).keys()]).toEqual([1, 2])
 })
