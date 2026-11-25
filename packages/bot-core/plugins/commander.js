@@ -2,6 +2,7 @@ if (require('node:worker_threads').isMainThread)
     return module.exports = { hidden: true }
 
 const { xtHandler, playerInfo, waitForResult } = require('../ggeBot.js')
+const metrics = require('../metrics.js')
 const { ClassTypes : { Lord }, movementEvents } = require('../protocols.js')
 
 const event = new EventTarget()
@@ -114,6 +115,7 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
 
     let lordID = usableCommanders[0]?.lordID
 
+    const waitStarted = Date.now()
     lordID ??= await new Promise(resolve => {
         const checkForCommander = currentEvent => {
             const commander = commanders.find(e => e.lordID == currentEvent.detail)
@@ -132,6 +134,8 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
         event.addEventListener("freedCommander", checkForCommander)
     })
 
+    if (Date.now() > waitStarted)
+        metrics.count("bot_attack_idle_seconds_total", { cause: "no_free_commander" }, (Date.now() - waitStarted) / 1000)
     useCommander(lordID)
     return commanders.find(e => e.lordID == lordID)
 }

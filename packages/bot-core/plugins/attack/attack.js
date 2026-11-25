@@ -231,6 +231,7 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
     return attackTarget
 }
 
+const metrics = require("../../metrics.js")
 const { boxMullerRandom, sleep, pause } = require("../../pacing.js")
 const { lognormalDelay } = require("../../timing.js")
 const humanize = require("../../config.js").humanize ?? {}
@@ -292,6 +293,7 @@ const DAILY_LIMIT_RECHECK_MS = 5 * 60_000
 async function waitOutDailyLimit(reportStatus) {
     reportStatus("waiting", "statusTowersLimitAccount", { cap: dailyLimit(), minutes: DAILY_LIMIT_RECHECK_MS / 60_000 })
     await sleep(DAILY_LIMIT_RECHECK_MS)
+    metrics.count("bot_attack_idle_seconds_total", { cause: "daily_cap" }, DAILY_LIMIT_RECHECK_MS / 1000)
 }
 
 const err = require("../../err.json")
@@ -312,6 +314,7 @@ function pauseAttacks(reason) {
     pausesInARow++
     const ms = Math.min(FIRST_PAUSE_MS * 2 ** (pausesInARow - 1), LONGEST_PAUSE_MS)
     pausedUntil = Date.now() + ms
+    metrics.count("bot_attack_pauses_total", { reason })
     console.warn("attacksPaused", ms / 60_000, "attacksPausedMinutes", reason)
 }
 
@@ -335,11 +338,14 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
             announced = true
             console.log("maxAttacksReached")
         }
+        metrics.count("bot_attacks_total", { result: "limit_reached", kingdom: "all" })
         return reject("ATTACK_LIMIT_REACHED")
     }
 
+    const queuedAt = Date.now()
     attacks.push({
         run: () => {
+            metrics.observe("bot_attack_queue_wait_seconds", {}, (Date.now() - queuedAt) / 1000)
             try {
                 const ret = callback()
                 resolve(ret)
@@ -358,7 +364,9 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
     alreadyRunning = true
     while (attacks.length > 0) {
         if (Date.now() < pausedUntil) {
-            await sleep(pausedUntil - Date.now())
+            const pausedMs = pausedUntil - Date.now()
+            await sleep(pausedMs)
+            metrics.count("bot_attack_idle_seconds_total", { cause: "refusal_pause" }, pausedMs / 1000)
             await resyncUnits()
             rejectionsInARow = 0
             continue
@@ -434,8 +442,11 @@ let reportCleanup
  * With `context.deleteReports` the plugin's own report of this attack is deleted when it comes in won (reportCleanup.js).
  */
 async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, ...context } = {}) {
-    if (isCastleLocked(kingdomID, attackInfo.SX, attackInfo.SY))
+    const kingdom = String(kingdomID)
+    if (isCastleLocked(kingdomID, attackInfo.SX, attackInfo.SY)) {
+        metrics.count("bot_attacks_total", { result: "castle_locked", kingdom })
         throw "CASTLE_LOCKED"
+    }
     if (dryRun) {
         console.log("dryRunAttack", JSON.stringify(attackInfo))
         return { dryRun: true }
@@ -448,10 +459,13 @@ async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, 
         [obj, result] = await waitForResult("cra", 1000 * 10, (obj, result) =>
             result != 0 || (obj.AAM.M.KID == kingdomID && obj.AAM.M.TA[1] == x && obj.AAM.M.TA[2] == y))
     } catch (e) {
+        metrics.count("bot_attacks_total", { result: "timed_out", kingdom })
         await resyncUnits()
         throw e
     }
     if (result != 0) {
+        metrics.count("bot_attacks_total", { result: "refused", kingdom })
+        metrics.count("bot_attack_refusals_total", { reason: err[result] ?? "UNKNOWN" })
         if (err[result] == "ATTACK_TOO_MANY_UNITS")
             console.error("attackRejectedDetails", JSON.stringify({
                 kingdomID, x, y, lordID: attackInfo.LID, ...context, ...attackShape(attackInfo),
@@ -459,6 +473,10 @@ async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, 
         await resyncUnits()
         throw err[result]
     }
+    metrics.count("bot_attacks_total", { result: "sent", kingdom })
+    const oneWaySeconds = Number(obj.AAM?.M?.TT)
+    if (oneWaySeconds > 0)
+        metrics.observe("bot_attack_round_trip_seconds", { kingdom }, 2 * oneWaySeconds)
     if (deleteReports) {
         reportCleanup ??= require("../../reportCleanup.js").createReportCleanup({ xtHandler, sendXT })
         reportCleanup.track(obj.AAM.M)

@@ -20,9 +20,17 @@ test("worker batches become Prometheus series; unknown names are dropped; nothin
             ["bot_gaa_cache_total", { result: "hit" }, 5],
             ["bot_daily_bonus_total", { result: "claimed" }, 1],
             ["bot_tax_collect_total", { result: "refused" }, 3],
+            ["bot_attacks_total", { result: "refused", kingdom: "0" }, 2],
+            ["bot_attack_refusals_total", { reason: "ATTACK_TOO_MANY_UNITS" }, 2],
+            ["bot_attack_pauses_total", { reason: "REJECTIONS_IN_A_ROW" }, 1],
+            ["bot_attack_idle_seconds_total", { cause: "refusal_pause" }, 300],
             ["made_up_metric", { accountId: account!.id }, 1],
         ],
-        observations: [["bot_game_rtt_seconds", { command: "gaa" }, [0.2, 0.3]]],
+        observations: [
+            ["bot_game_rtt_seconds", { command: "gaa" }, [0.2, 0.3]],
+            ["bot_attack_round_trip_seconds", { kingdom: "0" }, [420]],
+            ["bot_attack_queue_wait_seconds", {}, [3, 40]],
+        ],
     })
 
     const server = await serveMetrics(metrics.registry, 0, "127.0.0.1")
@@ -35,6 +43,12 @@ test("worker batches become Prometheus series; unknown names are dropped; nothin
     expect(text).toContain('bot_daily_bonus_total{result="claimed"} 1')
     expect(text).toContain('bot_tax_collect_total{result="refused"} 3')
     expect(text).toContain('bot_game_rtt_seconds_count{command="gaa"} 2')
+    expect(text).toContain('bot_attacks_total{result="refused",kingdom="0"} 2')
+    expect(text).toContain('bot_attack_refusals_total{reason="ATTACK_TOO_MANY_UNITS"} 2')
+    expect(text).toContain('bot_attack_pauses_total{reason="REJECTIONS_IN_A_ROW"} 1')
+    expect(text).toContain('bot_attack_idle_seconds_total{cause="refusal_pause"} 300')
+    expect(text).toContain('bot_attack_round_trip_seconds_count{kingdom="0"} 1')
+    expect(text).toContain("bot_attack_queue_wait_seconds_count 2")
     expect(text).toContain('bot_workers{state="banned"} 1')
     expect(text).toContain('bot_worker_heap_bytes{stat="max"} 30000000')
     expect(text).toContain('bot_worker_heap_bytes{stat="avg"} 20000000')
