@@ -77,9 +77,11 @@ const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
 const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler, playerInfo } = require("../../ggeBot.js")
+const { marchDistance } = require("../../towers.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
+const stormClosing = require("../../stormClosing.js")
 
 const err = require("../../err.json")
 const pretty = require('pretty-time')
@@ -120,6 +122,9 @@ if (pluginOptions.resourceSend) {
 
 const { pause } = require("../../pacing.js")
 const kingdomID = KingdomID.stormIslands
+const stormWatch = stormClosing.stormWatch(stormClosing.STORM_EVENT_ID, { xtHandler, activeEvent: require("../../protocols.js").activeEvent })
+/** Set once every fort that is ready would be hit after the Storm event has ended. No attack is sent after that. */
+let closing = false
 const type = AreaType.stormTower
 
 require("../../armourer.js").keepStocked("stormArmourer", STORM_TOOLS, kingdomID, pluginOptions, ["stormToolsBought", "stormToolsCoins"])
@@ -204,11 +209,14 @@ events.once("load", async () => {
     let areas = []
 
     const sendHit = async () => {
+        if (closing)
+            return false
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined,
             (a, b) => b.getEffects().lootBonus - a.getEffects().lootBonus)
         try {
             const attackInfo = await waitToAttack(async () => {
                 let index = -1
+                let tooLate = 0
                 const timeSinceEpoch = Date.now()
                 for (let i = 0; i < areas.length; i++) {
                     const areaInfo = areas[i]
@@ -232,11 +240,22 @@ events.once("load", async () => {
                     if (areaInfo.extraData[5] != 0)
                         continue
 
+                    if (!stormWatch.lands(marchDistance(castle.areaInfo, areaInfo))) {
+                        tooLate++
+                        continue
+                    }
+
                     index = i
                     break
                 }
-                if (index == -1)
+                if (index == -1) {
+                    if (tooLate > 0) {
+                        closing = true
+                        console.warn("stormClosingStopped")
+                        reportStatus("stopped", "statusStormClosing")
+                    }
                     return
+                }
 
                 const areaInfo = areas[index]
 
@@ -336,6 +355,7 @@ events.once("load", async () => {
             }
 
             reportStatus("running")
+            stormWatch.learn(attackInfo.AAM.M.TT - attackInfo.AAM.M.PT, marchDistance(castle.areaInfo, { x: attackInfo.AAM.M.TA[1], y: attackInfo.AAM.M.TA[2] }))
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
@@ -404,7 +424,7 @@ events.once("load", async () => {
         }
     }
 
-    while (true) {
+    while (!closing) {
         let minimumTimeTillHit = Infinity
 
         for (let i = 0; i < areas.length; i++) {

@@ -50,6 +50,33 @@ describe("Storm forts", () => {
     })
 })
 
+describe("the Storm event closing", () => {
+    const STORM_EID = 999
+    const watching = secondsLeft => {
+        const real = loadModule("stormClosing.js").mod
+        return { "stormClosing.js": { ...real, STORM_EVENT_ID: STORM_EID, stormWatch: (id, deps) => real.stormWatch(id, { ...deps, activeEvent: () => ({ EID: STORM_EID, RS: secondsLeft }) }) } }
+    }
+    const nearestFirst = { fortOrder: 1 }
+
+    test("once a march is known to outlast the event no fort is attacked, and the plugin stops with a status", async () => {
+        const game = await storm(nearestFirst, { extra: watching(30), sends: 2 })
+        expect(game.sent).toHaveLength(1)
+        expect(game.sent[0]).toMatchObject({ TX: 105, TY: 100 })
+        expect(game.statuses.at(-1)).toMatchObject({ state: "stopped", reasonKey: "statusStormClosing" })
+    })
+
+    test("with time enough for the march every fort is attacked", async () => {
+        const game = await storm(nearestFirst, { extra: watching(100_000), sends: 2 })
+        expect(game.sent).toHaveLength(2)
+        expect(game.statuses.map(status => status.reasonKey)).not.toContain("statusStormClosing")
+    })
+
+    test("with no event id known the plugin never stops for closing", async () => {
+        const game = await storm(nearestFirst, { sends: 2 })
+        expect(game.sent).toHaveLength(2)
+    })
+})
+
 describe("the Storm Islands shop", () => {
     test("nothing is bought until the aquamarine store is nearly full", async () => {
         expect(await shop({ buyCoins: true }, 400_000, 1_000_000)).toEqual([])

@@ -56,6 +56,7 @@ const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = requ
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
+const { rentCost } = require("../../eventDifficulty.js")
 
 const difficultyRows = loadItem("eventAutoScalingDifficulties")
 const dethroneCosts = loadItem("rerollCosts").filter(row => row.type == "alien").sort((a, b) => a.rerollCount - b.rerollCount)
@@ -90,7 +91,6 @@ const DETHRONES = [
     { rck: "C2", purse: "rubies", count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies" },
 ]
 
-const rentCost = row => row.isLocked == "1" ? Number(row.rentC2Cost) : 0
 const distance = (from, to) => (from.x - to.x) ** 2 + (from.y - to.y) ** 2
 const totalOf = units => units.reduce((n, unit) => n + unit.amount, 0)
 const firstWithAny = (...pools) => pools.find(pool => pool.some(unit => unit.amount > 0)) ?? []

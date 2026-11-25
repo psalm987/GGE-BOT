@@ -259,3 +259,43 @@ describe("waiting for a tower", () => {
         expect(game.sent).toHaveLength(1)
     })
 })
+
+describe("widening the search", () => {
+    const castles = () => [castleAt(0, 1, 600, 600, { name: "Ironhold", inventory: inventory() })]
+    const reach = requests => (Math.max(...requests.map(r => r[2])) - Math.min(...requests.map(r => r[0]))) / 2
+    const radiusOf = game => reach(game.requests)
+
+    test("is off unless asked for: a kingdom with no tower in range keeps its radius", async () => {
+        const game = startTowers({}, { castles: castles(), map: [tower(670, 600)] })
+        await run(30 * MINUTE)
+        expect(game.sent).toEqual([])
+        expect(radiusOf(game)).toBe(50)
+        expect(last(game)).toMatchObject({ reasonKey: "statusTowersNoneInRange", params: { radius: 50 } })
+    })
+
+    test("a scan with no tower widens the radius a step and scans again soon, until a tower is in reach", async () => {
+        const game = startTowers({ widenSearch: true }, { castles: castles(), map: [tower(670, 600)] })
+        await run(10 * MINUTE)
+        expect(targets(game)).toEqual([[670, 600]])
+        expect(game.statuses.find(status => status.reasonKey == "statusTowersWidened")).toMatchObject({ state: "waiting", params: { castle: "Ironhold", before: 50, radius: 60 } })
+        expect(game.statuses.find(status => status.reasonKey == "statusTowersAttackingWidened")).toMatchObject({ state: "running", params: { radius: 70 } })
+    })
+
+    test("never widens past 100, where the last status says nothing is in range", async () => {
+        const game = startTowers({ widenSearch: true }, { castles: castles(), map: [tower(750, 600)] })
+        await run(60 * MINUTE)
+        expect(game.sent).toEqual([])
+        expect(radiusOf(game)).toBe(100)
+        expect(last(game)).toMatchObject({ state: "waiting", reasonKey: "statusTowersNoneInRange", params: { radius: 100 } })
+    })
+
+    test("narrows back a step per scan once a nearer tower is in range", async () => {
+        const game = startTowers({ widenSearch: true }, { castles: castles(), map: [tower(670, 600)], cooldown: 6 * 3600 })
+        await run(5 * MINUTE)
+        expect(radiusOf(game)).toBe(70)
+        game.map.push(tower(640, 600))
+        await run(200 * MINUTE)
+        expect(game.requests.at(-1)).toEqual([550, 550, 650, 650])
+        expect(targets(game)).toContainEqual([640, 600])
+    })
+})

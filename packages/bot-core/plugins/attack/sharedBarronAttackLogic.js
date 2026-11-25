@@ -20,6 +20,8 @@ const TOOL_SETS = ["none", "ladders", "all"]
 const AUTO_BUY_TOOLS = { none: [], ladders: [614], all: [614, 611, 620] }
 /** The stock is looked at again no sooner than this, in milliseconds, so a refused or capped buy is not tried at every attack. */
 const AUTO_BUY_RECHECK_MS = 5 * 60_000
+/** With Widen search on, the radius grows by this many clicks after each scan that finds no tower, and shrinks by as many once the nearer ring has towers again. */
+const WIDEN_STEP = 10
 const WAVE_COUNTS = ["All waves", "1 wave", "2 waves", "3 waves", "4 waves"]
 
 /**
@@ -31,6 +33,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "CastlePicker", key: "sourceCastle", kingdom, default: null },
     { type: "Select", key: "towerFilter", selection: ["All towers", "Maxed only", "Non-maxed only"], default: 0 },
     { type: "Number", key: "searchRadius", min: 10, max: 100, unit: "clicks", display: "slider", default: 50 },
+    { type: "Checkbox", key: "widenSearch", default: false },
     { type: "Label", key: "limitSettings" },
     { type: "Number", key: "maxPerDay", min: 0, max: 4000, unit: "attacks", display: "slider", default: 0 },
     { type: "Number", key: "attacksPerHour", min: 0, max: 600, unit: "attacks", default: 0 },
@@ -92,7 +95,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
-const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
+const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, tilesApart, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
 
 const { boxMullerRandom, sleep } = require("../../pacing.js")
 const { topUp } = require("../../armourer.js")
@@ -184,7 +187,8 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     if (!army || !await presetsListed(army, reportStatus))
         return
     const filter = choice(TOWER_FILTERS, options.towerFilter, "all")
-    const radius = Math.min(Number(options.searchRadius) || 50, MAX_RADIUS)
+    const baseRadius = Math.min(Number(options.searchRadius) || 50, MAX_RADIUS)
+    let radius = baseRadius
     const getLevel = victorys => towerLevel(victorys, kingdomID)
     const wanted = areaInfo => areaInfo.type == type && matchesFilter(filter, getLevel(areaInfo.extraData[1]), maxLevel)
 
@@ -203,12 +207,30 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
     let areas = []
     let nextScanAt = 0
+    /**
+     * With Widen search on: a scan that found no tower widens the radius one step, up to the largest a scan reaches, and
+     * the next scan follows soon. A scan with a tower within one step less than the radius narrows it back, down
+     * to the radius the settings name.
+     */
+    function adjustRadius() {
+        if (areas.length == 0 && radius < MAX_RADIUS) {
+            const before = radius
+            radius = Math.min(radius + WIDEN_STEP, MAX_RADIUS)
+            nextScanAt = Date.now() + boxMullerRandom(...SCAN_RETRY_SECONDS) * 1000
+            console.info("towersSearchWidened", before, "towersSearchWidenedTo", radius)
+            reportStatus("waiting", "statusTowersWidened", { castle: from, before, radius })
+        }
+        else if (areas.length > 0 && radius > baseRadius && areas.some(areaInfo => tilesApart(castle.areaInfo, areaInfo) <= radius - WIDEN_STEP))
+            radius = Math.max(baseRadius, radius - WIDEN_STEP)
+    }
     /** Looks at the map again. Towers that appeared since the last look come in, and every wait and level is fresh. */
     async function scan() {
         try {
             const found = await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, wanted, { radius })
             areas = found.sort((a, b) => marchDistance(castle.areaInfo, a) - marchDistance(castle.areaInfo, b))
             nextScanAt = Date.now() + boxMullerRandom(...RESCAN_MINUTES) * 60_000
+            if (options.widenSearch)
+                adjustRadius()
         } catch (e) {
             console.warn(e)
             nextScanAt = Date.now() + boxMullerRandom(...SCAN_RETRY_SECONDS) * 1000
@@ -497,7 +519,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
             if (outOfFeathers)
                 reportStatus("running", "statusTowersAttackingNoFeathers", progress())
             else
-                reportStatus("running", "statusTowersAttacking", progress())
+                reportStatus("running", radius > baseRadius ? "statusTowersAttackingWidened" : "statusTowersAttacking", { ...progress(), radius })
             console.info(...towerAttackLine(KingdomID[kingdomID], attackInfo.AAM.UM.L.VIS + 1, attackInfo.AAM.M.TA[1], attackInfo.AAM.M.TA[2],
                 pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), attackInfo.tools))
             return true
