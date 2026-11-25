@@ -92,6 +92,7 @@ const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeB
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { keepDefence } = require("../../khanDefence.js")
 const { ask } = require("../../chores.js")
+const { shareKhanRage } = require("../../khanRage.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
@@ -115,6 +116,13 @@ const eventID = 72
 const troopBlackList = [277, 34, 35]
 
 let campRageNeeded = NaN
+let campLevel = NaN
+/** Takes the rage a full bar needs, and the camp's level, from the camp the player fights. */
+function learnCamp(camp) {
+    const row = eventAutoScalingCamps.find(campInfo => campInfo.eventAutoScalingCampID == camp.extraData[6])
+    campRageNeeded = row.playerRageCap
+    campLevel = Number(row.camplevel)
+}
 /** The defence keeper, started with the first run of the event. */
 let defence
 
@@ -141,8 +149,7 @@ movementEvents.on("outgoing", async (/** @type {import("../../protocols.js").Cla
     if (movement.targetAttack.type != type)
         return
 
-    campRageNeeded = eventAutoScalingCamps.find(campInfo =>
-        campInfo.eventAutoScalingCampID == movement.targetAttack.extraData[6]).playerRageCap
+    learnCamp(movement.targetAttack)
 })
 
 movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) => {
@@ -152,8 +159,7 @@ movementEvents.on("returning", (/** @type {import("../../protocols.js").ClassTyp
     if (movement.sourceAttack.type != type)
         return
 
-    campRageNeeded = eventAutoScalingCamps.find(campInfo =>
-        campInfo.eventAutoScalingCampID == movement.sourceAttack.extraData[6]).playerRageCap
+    learnCamp(movement.sourceAttack)
     skipTarget(movement.sourceAttack).catch(e => console.warn(e))
 })
 
@@ -162,6 +168,12 @@ let quit = false
 let defenceShort = false
 let defenceLost = false
 let rage = 0
+/** Whether the game has reported the rage bar this run, the total rage it then gave, and what the last hit added to it. */
+let rageSeen = false
+let rageEarned = NaN
+let lastGain
+let lastGainAt
+let eventOpen = false
 /** The hold logged last, so a hold is announced when it starts or changes and never once per `rpr`. */
 let announced
 
@@ -227,10 +239,17 @@ async function checkGate() {
     tryTaunt()
 }
 
+const gated = khan.tauntMinDefenders > 0
+const currentHold = () => tauntHold({ tabletsOnly: khan.tabletsOnly, dryRun: pluginOptions.dryRun, quit, defenceLost, defenceShort, gate: gated ? gate?.hold : undefined })
+
+shareKhanRage(() => eventOpen || rageSeen
+    ? { rage, needed: Number(campRageNeeded), campLevel, lastGain, lastGainAt, eventRunning: eventOpen, hold: currentHold() }
+    : undefined)
+events.once("unload", () => shareKhanRage())
+
 /** Spends the full rage bar on a taunt unless something holds it. Called with each `rpr` and whenever a hold clears. */
 function tryTaunt() {
-    const gated = khan.tauntMinDefenders > 0
-    const hold = tauntHold({ tabletsOnly: khan.tabletsOnly, dryRun: pluginOptions.dryRun, quit, defenceLost, defenceShort, gate: gated ? gate?.hold : undefined })
+    const hold = currentHold()
     announce(hold, gate)
     if (hold || !(rage >= campRageNeeded))
         return
@@ -241,10 +260,16 @@ function tryTaunt() {
     sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
 }
 
-xtHandler.on("rpr", ({ EID, PCRP }) => {
+xtHandler.on("rpr", ({ EID, PCRP, PTRP }) => {
     if (EID != eventID)
         return
 
+    if (PTRP > rageEarned) {
+        lastGain = PTRP - rageEarned
+        lastGainAt = Date.now()
+    }
+    rageEarned = Number(PTRP)
+    rageSeen = true
     rage = PCRP
     if (rage > campRageNeeded)
         console.warn("rageTooHigh")
@@ -322,6 +347,7 @@ events.on("eventStop", ({ EID }) => {
     if (EID != eventID)
         return
 
+    eventOpen = false
     // A lost defence holds taunts through reconnects, which start the event again, and only until the event ends.
     defenceLost = false
     clearTimeout(gateTimer)
@@ -337,6 +363,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
     if (EID != eventID)
         return
 
+    eventOpen = true
     const settled = await settleDifficulty(eventID, EDID, pluginOptions.eventDifficulty)
     if (settled.refused) {
         console.warn("campDifficultyRefused", settled.refused)

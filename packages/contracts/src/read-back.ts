@@ -7,6 +7,9 @@ export type StockKey = (typeof STOCK_KEYS)[number]
 /** The most castles and marches one snapshot carries, which bounds its size. */
 export const READ_BACK_MAX_CASTLES = 40
 export const READ_BACK_MAX_MOVEMENTS = 50
+/** The most tool slots one wall side or moat side carries, and the most kinds of defence tool listed from storage. */
+export const READ_BACK_MAX_DEFENCE_SLOTS = 8
+export const READ_BACK_MAX_DEFENCE_TOOLS = 24
 
 /** One good in one castle. `perHour` is production less what the castle eats, so it is negative when the stock is running down. */
 export const Stock = z.object({
@@ -72,6 +75,66 @@ export const SessionGains = z.object({
 })
 export type SessionGains = z.infer<typeof SessionGains>
 
+/** Tools of one kind. `wodID` is the game's number for the tool, which the tools catalog names. */
+export const ToolCount = z.object({ wodID: z.number().int(), amount: z.number().int().min(0) })
+export type ToolCount = z.infer<typeof ToolCount>
+
+/** The tool slots of one side, in the game's order. An empty slot is null. */
+const DefenceSlots = z.array(ToolCount.nullable()).max(READ_BACK_MAX_DEFENCE_SLOTS)
+/** A part of the castle's works: its building level and the defence figure the game's defence screen shows for it, in percent. Either is null when the game didn't say. */
+const DefenceWorks = z.object({ level: z.number().int().min(0).nullable(), defence: z.number().min(0).nullable() })
+
+export const DEFENCE_SIDES = ["left", "front", "right"] as const
+export type DefenceSide = (typeof DEFENCE_SIDES)[number]
+const WallSide = z.object({
+    /** The share of the wall's troops that stand on this side, in percent. */
+    share: z.number().int().min(0).max(100),
+    slots: DefenceSlots,
+})
+
+/** The main castle's defence as the game last listed it. The castle's name and place are in `BotStatus.castles`, by `kingdom` and `id`. */
+export const ReadBackDefence = z.object({
+    kingdom: z.number().int(),
+    id: z.number().int(),
+    /** When the game listed this defence, epoch milliseconds. */
+    readAt: z.number().int(),
+    wall: DefenceWorks.extend({
+        /** Troops on the wall and how many it has room for. */
+        troops: z.number().int().min(0),
+        room: z.number().int().min(0),
+        sides: z.object({ left: WallSide, front: WallSide, right: WallSide }),
+    }),
+    gate: DefenceWorks,
+    moat: DefenceWorks.extend({ sides: z.object({ left: DefenceSlots, front: DefenceSlots, right: DefenceSlots }) }),
+    /** Troops in the courtyard, its room for the account's own troops, and its extra room for alliance support. */
+    courtyard: z.object({ troops: z.number().int().min(0), room: z.number().int().min(0), allianceRoom: z.number().int().min(0) }),
+    /** Defensive soldiers in the castle, wherever they stand. */
+    defenders: z.number().int().min(0),
+    /** Defence tools in the castle's storage, the largest stocks first, at most READ_BACK_MAX_DEFENCE_TOOLS kinds. */
+    tools: z.array(ToolCount).max(READ_BACK_MAX_DEFENCE_TOOLS),
+})
+export type ReadBackDefence = z.infer<typeof ReadBackDefence>
+
+/** Why the Khan plugin isn't spending a full rage bar on a taunt, in the order it checks them. */
+export const KHAN_TAUNT_HOLDS = ["off", "stopped", "defenceLost", "defenceShort", "defendersShort", "toolsShort", "defenceUnread"] as const
+export const KhanTauntHold = z.enum(KHAN_TAUNT_HOLDS)
+export type KhanTauntHold = z.infer<typeof KhanTauntHold>
+
+/** The Khan plugin's rage bar. A full bar is spent on a taunt, which sends the Khan at the main castle. */
+export const ReadBackKhanRage = z.object({
+    rage: z.number().int().min(0),
+    /** The rage a full bar takes at the camp the account last fought; null until the bot has sent an attack there. */
+    needed: z.number().int().positive().nullable(),
+    /** That camp's level, null with `needed`. */
+    campLevel: z.number().int().min(0).nullable(),
+    /** The rage the last hit earned and when, epoch milliseconds; null until a hit has landed this session. */
+    lastGain: z.number().int().positive().nullable(),
+    lastGainAt: z.number().int().nullable(),
+    eventRunning: z.boolean(),
+    hold: KhanTauntHold.nullable(),
+})
+export type ReadBackKhanRage = z.infer<typeof ReadBackKhanRage>
+
 /** What the bot last read from the game, for the screens that show it back to the player. Rides in the worker's status report. */
 export const ReadBack = z.object({
     /** When the worker put this together, epoch milliseconds. */
@@ -82,6 +145,10 @@ export const ReadBack = z.object({
     /** How many marches the game listed, which can be more than `movements` holds. */
     movementCount: z.number().int().min(0),
     session: SessionGains,
+    /** Absent until the game has listed the main castle's defence this session. */
+    defence: ReadBackDefence.optional(),
+    /** Absent while the Khan plugin is off, or on with no Khan event seen this session. */
+    khanRage: ReadBackKhanRage.optional(),
 })
 export type ReadBack = z.infer<typeof ReadBack>
 
@@ -107,6 +174,11 @@ export const RATE_AFTER_MS = 5 * 60_000
 /** The hourly rate of a session's gain, or null while the session is too young for one. */
 export function hourlyRate(gain: number, elapsedMs: number) {
     return elapsedMs >= RATE_AFTER_MS ? Math.round(gain / (elapsedMs / 3_600_000)) : null
+}
+
+/** How full the rage bar is, from 0 to 1; null while the bot doesn't know what a full bar takes. */
+export function rageProgress({ rage, needed }: Pick<ReadBackKhanRage, "rage" | "needed">) {
+    return needed === null ? null : Math.min(1, rage / needed)
 }
 
 /** How much of a march is behind it at `now`, from 0 to 1. */

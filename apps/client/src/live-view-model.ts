@@ -1,5 +1,6 @@
 import {
-    STOCK_KEYS, hourlyRate, stockForecast, type AccountCastle, type MarchSide, type ReadBack, type ReadBackMovement, type Stock, type StockForecast, type StockKey,
+    DEFENCE_SIDES, STOCK_KEYS, hourlyRate, rageProgress, stockForecast,
+    type AccountCastle, type DefenceSide, type MarchSide, type ReadBack, type ReadBackDefence, type ReadBackKhanRage, type ReadBackMovement, type Stock, type StockForecast, type StockKey, type ToolCount,
 } from "@gge/contracts"
 
 const HOUR_MS = 3_600_000
@@ -53,4 +54,26 @@ export function sessionGains(readBack: ReadBack): { elapsedMs: number; coins: Ga
     const elapsedMs = Math.max(0, readBack.at - readBack.session.startedAt)
     const gainOf = (gain: number | null) => gain === null ? null : { gain, perHour: hourlyRate(gain, elapsedMs) }
     return { elapsedMs, coins: gainOf(readBack.session.coins), rubies: gainOf(readBack.session.rubies) }
+}
+
+export const DEFENCE_PARTS = ["wall", "gate", "moat"] as const
+export type DefenceRow = { side: DefenceSide; share: number; wall: (ToolCount | null)[]; moat: (ToolCount | null)[] }
+
+/** The main castle's defence laid out for the page: the castle by the name the bot found for it, the three works, and one row a side with its wall and moat slots. */
+export function defencePanel(defence: ReadBackDefence, castles: readonly AccountCastle[]) {
+    return {
+        castle: castles.find(c => c.kingdom === defence.kingdom && c.id === defence.id) ?? null,
+        works: DEFENCE_PARTS.map(part => ({ part, level: defence[part].level, defence: defence[part].defence })),
+        sides: DEFENCE_SIDES.map((side): DefenceRow => ({ side, share: defence.wall.sides[side].share, wall: defence.wall.sides[side].slots, moat: defence.moat.sides[side] })),
+    }
+}
+
+/** Where the rage bar stands: the event is over, a taunt is held, the bar is full and the next report spends it, or it is filling. */
+export type RageState = "eventOver" | "held" | "full" | "filling"
+
+/** The rage bar for the page. `percent` is null while the bot doesn't know what a full bar takes. */
+export function rageMeter(rage: ReadBackKhanRage): { percent: number | null; state: RageState } {
+    const progress = rageProgress(rage)
+    const state = !rage.eventRunning ? "eventOver" : rage.hold ? "held" : progress === 1 ? "full" : "filling"
+    return { percent: progress === null ? null : Math.floor(progress * 100), state }
 }

@@ -163,4 +163,4 @@ function defenceGate(layout, defenders, minDefenders) {
 /** The first reason taunts are held, or undefined when the bar may be spent. */
 const tauntHold = state => TAUNT_HOLDS.find(([, held]) => held(state))?.[0]
 
-module.exports = { defenceGate, defendersIn, tauntHold, defenceResult, tauntLandings, khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
+module.exports = { defenceGate, defendersIn, tauntHold, TAUNT_HOLDS, defenceResult, tauntLandings, khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }

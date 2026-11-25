@@ -1,17 +1,22 @@
 import { createRequire } from "node:module"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { READ_BACK_MAX_CASTLES, READ_BACK_MAX_MOVEMENTS, ReadBack } from "@gge/contracts"
+import { KHAN_TAUNT_HOLDS, READ_BACK_MAX_CASTLES, READ_BACK_MAX_DEFENCE_SLOTS, READ_BACK_MAX_DEFENCE_TOOLS, READ_BACK_MAX_MOVEMENTS, ReadBack } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
 const { loadModule, fakeBot } = require("./harness/load.cjs")
 const ActionType = require("../actions.json")
-const { MAX_CASTLES, MAX_MOVEMENTS } = require("../readBack.js")
+const { MAX_CASTLES, MAX_MOVEMENTS, MAX_DEFENCE_SLOTS, MAX_DEFENCE_TOOLS } = require("../readBack.js")
+const { TAUNT_HOLDS } = require("../khan.js")
 const castleLists = require("./fixtures/protocol/read-back-castles.json")
 const khan = require("./fixtures/protocol/khan-20261122.json")
 
 const NOW = 1_800_000_000_000
 const ME = 2000001
-const units = [{ wodID: 271, role: "melee" }, { wodID: 272, role: "ranged" }, { wodID: 950, toolCategory: "Basic" }, { wodID: 10, role: "ranged" }]
+const units = [
+    { wodID: 271, role: "melee" }, { wodID: 272, role: "ranged" }, { wodID: 950, toolCategory: "Basic", typ: "Attack" }, { wodID: 10, role: "ranged" },
+    { wodID: 220, role: "melee", fightType: "1" }, { wodID: 222, role: "melee", fightType: "1" },
+    { wodID: 110, typ: "Defence" }, { wodID: 112, typ: "Defence" }, { wodID: 622, typ: "Defence" },
+]
 const owners = [{ OID: ME, N: "Ada", AID: 9 }, { OID: 3, N: "Friend", AID: 9 }, { OID: 6, N: "Raider", AID: 4 }]
 
 beforeEach(() => {
@@ -37,7 +42,7 @@ function session() {
         emit("gcu", { C1: coins, C2: rubies })
         return reports.at(-1)
     }
-    return { emit, report, reports }
+    return { emit, report, reports, bot }
 }
 
 describe("the read-back snapshot in the worker's status report", () => {
@@ -149,6 +154,175 @@ describe("the read-back snapshot in the worker's status report", () => {
     })
 
     test("caps its lists where the app's schema does", () => {
-        expect([MAX_CASTLES, MAX_MOVEMENTS]).toEqual([READ_BACK_MAX_CASTLES, READ_BACK_MAX_MOVEMENTS])
+        expect([MAX_CASTLES, MAX_MOVEMENTS, MAX_DEFENCE_SLOTS, MAX_DEFENCE_TOOLS])
+            .toEqual([READ_BACK_MAX_CASTLES, READ_BACK_MAX_MOVEMENTS, READ_BACK_MAX_DEFENCE_SLOTS, READ_BACK_MAX_DEFENCE_TOOLS])
     })
 })
+
+const dfc = khan.dfc_1.reply.payload
+/** The castle lists, with soldiers in the main castle: 8,375 defenders and 100 attackers. */
+function castlesWithTroops() {
+    const dcl = structuredClone(castleLists.dcl)
+    dcl.C[0].AI[0].AC = [[220, 959], [222, 7416], [271, 100], [110, 5]]
+    return dcl
+}
+
+describe("the main castle's defence in the snapshot", () => {
+    test("is absent until the game has listed the defence", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+
+        expect(report()).not.toHaveProperty("defence")
+    })
+
+    test("reads a captured defence: the works, each side's slots, the room and the tools in storage", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castlesWithTroops())
+        emit("dfc", dfc)
+
+        vi.setSystemTime(NOW + 90_000)
+        const { defence } = report()
+
+        const balistraria = amount => ({ wodID: 110, amount })
+        expect(defence).toEqual({
+            kingdom: 0, id: 1000001, readAt: NOW,
+            wall: {
+                level: 8, defence: 315.7, troops: 5031, room: 5031,
+                sides: {
+                    left: { share: 30, slots: Array(4).fill(balistraria(686)) },
+                    front: { share: 40, slots: [balistraria(699), { wodID: 622, amount: 303 }, balistraria(699), balistraria(699), { wodID: 622, amount: 303 }, balistraria(699)] },
+                    right: { share: 30, slots: Array(4).fill(balistraria(686)) },
+                },
+            },
+            // The capture has no gate figure.
+            gate: { level: 7, defence: null },
+            moat: { level: 2, defence: 147, sides: { left: [{ wodID: 112, amount: 686 }], front: [{ wodID: 112, amount: 699 }], right: [{ wodID: 112, amount: 686 }] } },
+            courtyard: { troops: 433000, room: 433000, allianceRoom: 252500 },
+            defenders: 959 + 7416,
+            tools: [{ wodID: 110, amount: 50497 }, { wodID: 112, amount: 41263 }, { wodID: 622, amount: 5309 }],
+        })
+    })
+
+    test("shows an empty slot as empty, the gate figure when the game sends one, and only defence tools from storage", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dfc", { ...dfc, GD: 306.6, dfw: { ...dfc.dfw, L: { S: [[110, 12], [-1, 0]], UP: 30, UC: 0 } }, gui: { I: [[271, 4000], [950, 800], [110, 0], [622, 9]] } })
+
+        const { defence } = report()
+
+        expect(defence.wall.sides.left.slots).toEqual([{ wodID: 110, amount: 12 }, null])
+        expect(defence.gate).toEqual({ level: 7, defence: 306.6 })
+        expect(defence.tools).toEqual([{ wodID: 622, amount: 9 }])
+    })
+
+    test("ignores a defence the game refused and one of another castle", () => {
+        const { emit, report, bot } = session()
+        emit("gcl", castleLists.gcl)
+        bot.xtHandler.emit("dfc", dfc, 28)
+        emit("dfc", { ...dfc, A: [4, 658, 562, 1000002, ME, 8, 8, 7, 7, 2, "North Post"] })
+
+        expect(report()).not.toHaveProperty("defence")
+    })
+
+    test("keeps within its caps and stays a snapshot the app accepts", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        const many = Array.from({ length: 30 }, () => [110, 999])
+        emit("dfc", { ...dfc, dfw: { ...dfc.dfw, M: { S: many, UP: 40, UC: 0 } }, gui: { I: Array.from({ length: 60 }, (_, i) => [[110, 112, 622][i % 3], 1000 + i]) } })
+
+        const snapshot = report()
+
+        expect(snapshot.defence.wall.sides.front.slots).toHaveLength(MAX_DEFENCE_SLOTS)
+        expect(snapshot.defence.tools).toHaveLength(MAX_DEFENCE_TOOLS)
+        expect(snapshot.defence.tools[0].amount, "the largest stocks first").toBe(1059)
+        expect(ReadBack.safeParse(snapshot).error).toBeUndefined()
+        expect(JSON.stringify(snapshot.defence).length).toBeLessThan(2_000)
+    })
+})
+
+describe("reading the main castle's defence for the snapshot", () => {
+    const dfcSent = bot => bot.sent.filter(([command]) => command == "dfc")
+    function signedIn() {
+        const game = session()
+        game.emit("gcl", castleLists.gcl)
+        game.bot.events.emit("load")
+        return game
+    }
+
+    test("asks the game a few minutes after sign-in, the way the defence screen does", async () => {
+        const { bot } = signedIn()
+
+        await vi.advanceTimersByTimeAsync(119_000)
+        expect(dfcSent(bot)).toEqual([])
+        await vi.advanceTimersByTimeAsync(4 * 60_000 + 1000)
+        expect(dfcSent(bot)).toEqual([["dfc", { CX: 693, CY: 526, AID: 1000001, KID: -1 }]])
+    })
+
+    test("asks again no sooner than 15 minutes after the last answer, and within 25", async () => {
+        const { bot, emit } = signedIn()
+        await vi.advanceTimersByTimeAsync(6 * 60_000)
+        emit("dfc", dfc)
+
+        await vi.advanceTimersByTimeAsync(15 * 60_000 - 1000)
+        expect(dfcSent(bot)).toHaveLength(1)
+        await vi.advanceTimersByTimeAsync(10 * 60_000 + 2000)
+        expect(dfcSent(bot)).toHaveLength(2)
+    })
+
+    test("doesn't ask while a defence another part of the bot read is fresh", async () => {
+        const { bot, emit } = signedIn()
+        await vi.advanceTimersByTimeAsync(60_000)
+        emit("dfc", dfc)
+
+        await vi.advanceTimersByTimeAsync(15 * 60_000)
+        expect(dfcSent(bot), "the Khan gate's read stands in for the first one").toEqual([])
+        await vi.advanceTimersByTimeAsync(11 * 60_000)
+        expect(dfcSent(bot)).toHaveLength(1)
+    })
+
+    test("stops asking once the worker unloads", async () => {
+        const { bot } = signedIn()
+        bot.events.emit("unload")
+
+        await vi.advanceTimersByTimeAsync(60 * 60_000)
+        expect(dfcSent(bot)).toEqual([])
+    })
+})
+
+describe("the Khan rage bar in the snapshot", () => {
+    const state = { rage: 1426, needed: 2460, campLevel: 50, lastGain: 1426, lastGainAt: NOW - 5000, eventRunning: true, hold: "toolsShort" }
+
+    test("is absent while no Khan plugin shares one", () => {
+        const { report } = session()
+
+        expect(report()).not.toHaveProperty("khanRage")
+    })
+
+    test("carries what the Khan plugin shares, as it stands when the report leaves", () => {
+        const { report } = session()
+        const shared = { ...state }
+        require("../khanRage.js").shareKhanRage(() => shared)
+
+        expect(report().khanRage).toEqual(state)
+        shared.rage = 2460
+        const snapshot = report()
+        expect(snapshot.khanRage.rage).toBe(2460)
+        expect(ReadBack.safeParse(snapshot).error).toBeUndefined()
+    })
+
+    test("is absent again while the plugin has nothing to show, and reads a bar of unknown size as such", () => {
+        const { report } = session()
+        const { shareKhanRage } = require("../khanRage.js")
+
+        shareKhanRage(() => undefined)
+        expect(report()).not.toHaveProperty("khanRage")
+        shareKhanRage(() => ({ rage: 300, needed: NaN, campLevel: null, lastGain: null, lastGainAt: null, eventRunning: true, hold: undefined }))
+        expect(report().khanRage).toEqual({ rage: 300, needed: null, campLevel: null, lastGain: null, lastGainAt: null, eventRunning: true, hold: null })
+    })
+
+    test("names the same taunt holds as the app's schema", () => {
+        expect(TAUNT_HOLDS.map(([hold]) => hold)).toEqual([...KHAN_TAUNT_HOLDS])
+    })
+})
+

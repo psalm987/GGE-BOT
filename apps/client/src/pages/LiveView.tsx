@@ -15,6 +15,7 @@ import {
     SIDE_FILTERS, countdown, forecastTime, marchesUnderWay, sessionGains, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
 } from "../live-view-model.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
+import { Defence, Rage } from "./LiveViewDefence.tsx"
 import { ModuleHead, useAccountChoice } from "./Module.tsx"
 import "./module.css"
 import "./live-view.css"
@@ -36,7 +37,7 @@ function useNow(everyMs: number, ticking: boolean) {
     return now
 }
 
-/** What the bot last read from the game for one account: session gains, each castle's stores and the marches on the map. */
+/** What the bot last read from the game for one account: session gains, the marches on the map, the main castle's defence, the Khan rage bar and each castle's stores. */
 export function LiveView({ module }: { module: ModuleDef }) {
     const { t } = useTranslation("client")
     const accounts = useQuery({ ...orpc.accounts.list.queryOptions(), refetchInterval: pollInterval(useRealtimeState()) })
@@ -81,6 +82,8 @@ function Snapshot({ account, readBack }: { account: PublicAccount; readBack: Rea
                 </Typography.Paragraph>
             </ParchmentCard>
             <Marches readBack={readBack} now={now} />
+            <Defence readBack={readBack} castles={account.status?.castles ?? []} />
+            <Rage readBack={readBack} />
             <ParchmentCard title={t("liveView.castles.title")}>
                 <Stores readBack={readBack} castles={account.status?.castles ?? []} now={now} />
             </ParchmentCard>

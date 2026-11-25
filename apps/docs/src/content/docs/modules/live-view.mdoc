@@ -1,16 +1,19 @@
 ---
 title: Live view
-description: See what your bot last read from the game. Each castle's stores with hourly rates, the marches on the map, and what the session gained.
+description: See what your bot last read from the game. Castle stores, marches, your main castle's defence, the Khan rage bar and what the session gained.
 appRoute: /m/live-view
 sources:
   - apps/client/src/pages/LiveView.tsx
+  - apps/client/src/pages/LiveViewDefence.tsx
   - apps/client/src/live-view-model.ts
   - packages/contracts/src/read-back.ts
   - packages/bot-core/readBack.js
+  - packages/bot-core/defenceRead.js
+  - packages/bot-core/khanRage.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="all-seeing-eye" size=32 /%}Want to see what your bot sees? Live view shows what the bot last read from the game for one account. It only reads. Nothing on this page sends a command to the game.
+{% icon id="all-seeing-eye" size=32 /%}Want to see what your bot sees? Live view shows what the bot last read from the game for one account. It only reads. Nothing on this page changes anything in the game.
 
 {% terms_on_page /%}
 
@@ -38,9 +41,42 @@ The second card lists the armies on the map that the game shows your account.
 
 A report carries at most 50 marches. When the game lists more, the page says how many there were. A march that has landed leaves the list, even before the next report.
 
+## Main castle defence {% #defence %}
+
+The third card shows the defence of your {% term id="main-castle" %}main castle{% /term %} in the {% term id="great-empire" %}Great Empire{% /term %}. The top corner says how long ago the bot read it.
+
+- {% ui key="client:liveView.defence.defenders" /%} counts the defensive soldiers in the castle, wherever they stand.
+- {% ui key="client:liveView.defence.wallTroops" /%} and {% ui key="client:liveView.defence.courtyard" /%} show the troops there and the room. The {% term id="courtyard" %}courtyard{% /term %} figure counts every soldier in the castle that the courtyard has room for, attack troops too.
+- {% ui key="client:liveView.defence.allianceRoom" /%} is the extra courtyard room for troops your alliance sends.
+- {% ui key="client:liveView.defence.part.wall" /%}, {% ui key="client:liveView.defence.part.gate" /%} and {% ui key="client:liveView.defence.part.moat" /%} each show the building level and the defence figure from the game's defence screen. The game does not always send the gate's figure, and then only its level shows.
+
+The table has one row for each side of the castle.
+
+| Column | What it shows |
+| --- | --- |
+| {% ui key="client:liveView.defence.share" /%} | The share of the wall's troops that stand on that side. |
+| {% ui key="client:liveView.defence.wallTools" /%} | Each {% term id="tool" %}tool{% /term %} slot on that side of the wall, with the tool and how many it holds. |
+| {% ui key="client:liveView.defence.moatTools" /%} | The moat slot on that side. |
+
+{% ui key="client:liveView.defence.stock" /%} lists the defence tools in the castle's storage, the largest stock first. It lists at most 24 kinds.
+
+The bot reads the defence a few minutes after it signs in, and again every 15 to 25 minutes. It is the same request the game makes when you open the defence screen. When the Khan {% term id="plugin" %}plugin{% /term %} has just read the defence, the page uses that reading and the bot does not ask again. Until the first reading, the card says the bot hasn't read the defence yet.
+
+The card shows your defence. It does not change it. To have the bot refill the defence after Khan attacks, see [Khan](/modules/khan/#defence).
+
+## Khan rage {% #khan-rage %}
+
+The fourth card shows the Khan's {% term id="rage" %}rage{% /term %} bar. It shows while the Khan plugin is on and the game has opened the Khan event. At other times the card says there is nothing to show.
+
+- The bar and the figure above it show the rage you have and the rage a full bar takes. The bot learns what a full bar takes when it first attacks a {% term id="khan-camp" %}Khan camp{% /term %}. Until then the card shows only the rage you have.
+- The line under the bar says what happens next. A full bar is spent on a {% term id="taunt" %}taunt{% /term %}. When the bot holds a taunt back, the line gives the reason in red.
+- The last line shows the camp's level and the rage the last hit earned.
+
+The reasons a taunt is held are the ones in [Rage and taunts](/modules/khan/#taunts).
+
 ## Castle stores {% #castle-stores %}
 
-The third card has one table for each castle, grouped by kingdom.
+The fifth card has one table for each castle, grouped by kingdom.
 
 | Column | What it shows |
 | --- | --- |
@@ -54,4 +90,5 @@ A resource the castle neither holds nor makes has no row.
 
 - The bot sends a report when the game tells it the account's coins or {% term id="ruby" %}rubies{% /term %} changed. A busy bot reports many times a minute. A quiet bot can go several minutes without one.
 - Castle stores are as old as the bot's last look at its castles, which can be older than the report. The forecasts count from that look.
-- The page does not ask the game for anything. To get a newer picture, keep the bot started.
+- The defence is as old as the bot's last reading of it, which the defence card shows.
+- The page itself asks the game for nothing. The bot does the reading, so keep the bot started to get a newer picture.

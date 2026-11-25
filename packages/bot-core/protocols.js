@@ -3,6 +3,8 @@ const EventEmitter = require("node:events")
 const NodeCache = require("node-cache")
 const { spiralCoordinates } = require("./mapScan.js")
 const { buildReadBack } = require("./readBack.js")
+const { watchDefence, lastDefence } = require("./defenceRead.js")
+const { khanRage } = require("./khanRage.js")
 const { RateLimiter } = require("limiter")
 const { waitForResult, sendXT, xtHandler, events, status, playerInfo } = require("./ggeBot.js")
 const currencies = require("./paths.js").loadItem("currencies")
@@ -1353,10 +1355,14 @@ xtHandler.on("gcu", obj => {
         Object.assign(sessionStart, { coins: Number(obj.C1), rubies: Number(obj.C2) })
 })
 
+const mainCastle = () => castles.find(castle => castle.kingdomID == KingdomID.greatEmpire && castle.areaInfo?.type == AreaType.mainCastle)
+watchDefence(mainCastle, Unit)
+
 function updateStatus() {
     status.resources = resources
     status.readBack = buildReadBack({
         castles, movements, playerID: playerInfo.playerID,
+        mainCastle: mainCastle(), defence: lastDefence(), khanRage: khanRage(),
         session: { startedAt: sessionStart.at, coins: resources.coins - sessionStart.coins, rubies: resources.rubies - sessionStart.rubies },
     })
     parentPort.postMessage([ActionType.StatusUser, status])

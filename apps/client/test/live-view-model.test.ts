@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
-import type { ReadBack, ReadBackMovement } from "@gge/contracts"
-import { countdown, forecastTime, marchesUnderWay, sessionGains, sideCounts, storesByKingdom } from "../src/live-view-model.ts"
+import type { ReadBack, ReadBackDefence, ReadBackKhanRage, ReadBackMovement } from "@gge/contracts"
+import { countdown, defencePanel, forecastTime, marchesUnderWay, rageMeter, sessionGains, sideCounts, storesByKingdom } from "../src/live-view-model.ts"
 
 const AT = 1_800_000_000_000
 const HOUR = 3_600_000
@@ -73,5 +73,56 @@ describe("session gains", () => {
     test("come with an hourly rate once the session is old enough for one", () => {
         expect(sessionGains(readBack())).toEqual({ elapsedMs: HOUR / 2, coins: { gain: 44_400, perHour: 88_800 }, rubies: null })
         expect(sessionGains(readBack({ session: { startedAt: AT - 60_000, coins: 500, rubies: 0 } }))).toEqual({ elapsedMs: 60_000, coins: { gain: 500, perHour: null }, rubies: { gain: 0, perHour: null } })
+    })
+})
+
+describe("the main castle's defence", () => {
+    const tool = (amount: number) => ({ wodID: 110, amount })
+    const defence: ReadBackDefence = {
+        kingdom: 0, id: 1, readAt: AT,
+        wall: { level: 8, defence: 315.7, troops: 5031, room: 5031, sides: { left: { share: 30, slots: [tool(686), null] }, front: { share: 40, slots: [tool(699)] }, right: { share: 30, slots: [] } } },
+        gate: { level: 7, defence: null },
+        moat: { level: 2, defence: 147, sides: { left: [{ wodID: 112, amount: 686 }], front: [], right: [null] } },
+        courtyard: { troops: 433_000, room: 433_000, allianceRoom: 252_500 }, defenders: 8375, tools: [],
+    }
+    const castles = [{ kingdom: 0, id: 1, name: "Main Keep", x: 693, y: 526, type: 1 }]
+
+    test("has one row a side, left to right, with the side's troop share and its wall and moat slots", () => {
+        expect(defencePanel(defence, castles).sides).toEqual([
+            { side: "left", share: 30, wall: [tool(686), null], moat: [{ wodID: 112, amount: 686 }] },
+            { side: "front", share: 40, wall: [tool(699)], moat: [] },
+            { side: "right", share: 30, wall: [], moat: [null] },
+        ])
+    })
+
+    test("lists the wall, gate and moat with a figure the game didn't send left open", () => {
+        expect(defencePanel(defence, castles).works).toEqual([
+            { part: "wall", level: 8, defence: 315.7 }, { part: "gate", level: 7, defence: null }, { part: "moat", level: 2, defence: 147 },
+        ])
+    })
+
+    test("names the castle when the bot found it, and not otherwise", () => {
+        expect(defencePanel(defence, castles).castle?.name).toBe("Main Keep")
+        expect(defencePanel(defence, []).castle).toBeNull()
+    })
+})
+
+describe("the Khan rage bar", () => {
+    const rage = (over: Partial<ReadBackKhanRage> = {}): ReadBackKhanRage =>
+        ({ rage: 1426, needed: 2460, campLevel: 50, lastGain: 1426, lastGainAt: AT, eventRunning: true, hold: null, ...over })
+
+    test("fills toward what a full bar takes and never reads full before it is", () => {
+        expect(rageMeter(rage())).toEqual({ percent: 57, state: "filling" })
+        expect(rageMeter(rage({ rage: 2459 }))).toEqual({ percent: 99, state: "filling" })
+        expect(rageMeter(rage({ rage: 2700 }))).toEqual({ percent: 100, state: "full" })
+    })
+
+    test("has no percentage while the bot doesn't know what a full bar takes", () => {
+        expect(rageMeter(rage({ needed: null }))).toEqual({ percent: null, state: "filling" })
+    })
+
+    test("says a taunt is held before it says the bar is full, and that the event is over before either", () => {
+        expect(rageMeter(rage({ rage: 2460, hold: "toolsShort" })).state).toBe("held")
+        expect(rageMeter(rage({ rage: 2460, hold: "stopped", eventRunning: false })).state).toBe("eventOver")
     })
 })

@@ -135,6 +135,32 @@ describe("Khan taunts", () => {
     test("a full rage bar taunts the Khan", async () => {
         expect(await fullRage({})).toEqual([["lta", { AV: 0, EID: 72 }]])
     })
+    test("shares its rage bar for the Live view: the bar, what fills it, the camp level and what the last hit earned", async () => {
+        const run = await khan({}, running)
+        const shared = () => require("../khanRage.js").khanRage()
+        expect(shared(), "before the game reports any rage").toMatchObject({ rage: 0, eventRunning: true })
+
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        const [first, second] = capture.rpr
+        run.bot.xtHandler.emit("rpr", { ...first.payload, PCRP: 400 }, 0)
+        expect(shared()).toMatchObject({ rage: 400, needed: 1500, campLevel: 50, lastGain: undefined, eventRunning: true, hold: undefined })
+        run.bot.xtHandler.emit("rpr", { ...second.payload, PCRP: 900 }, 0)
+        expect(shared(), "the total earned rose from 1,426 to 3,680").toMatchObject({ rage: 900, lastGain: 2254 })
+        expect(shared().lastGainAt).toBeTypeOf("number")
+
+        run.bot.events.emit("eventStop", { EID: 72 })
+        expect(shared()).toMatchObject({ rage: 900, eventRunning: false, hold: "stopped" })
+    })
+    test("shares nothing before the event opens, a hold while taunts are off, and nothing once unloaded", async () => {
+        const run = await khan({ tabletsOnly: true }, running)
+        const { khanRage } = require("../khanRage.js")
+        expect(khanRage().hold).toBe("off")
+        run.bot.events.emit("unload")
+        expect(khanRage()).toBeUndefined()
+
+        loadModule("plugins/attack/attackKhan.js", { bot: fakeBot(), extra: { "protocols.js": { movementEvents: new EventEmitter(), movements: [], castles: [], AreaType: { khanCamp: 35 }, KingdomID: {}, ClientCommands: {} }, "./attack.js": {}, "../commander.js": {} } })
+        expect(require("../khanRage.js").khanRage(), "the plugin is on and no Khan event has been seen").toBeUndefined()
+    })
     test("the score shutoff is off by default", () => {
         expect(options.find(option => option.key == "scoreShutoff").default).toBe("")
     })

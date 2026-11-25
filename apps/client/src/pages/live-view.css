@@ -34,3 +34,19 @@
 .gge-live-march-facts:empty { display: none; }
 .gge-live-eta { grid-area: eta; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
 .gge-live-bar { grid-area: bar; margin: 0; line-height: 1; }
+
+.gge-live-read { color: var(--gge-muted); font-size: 13px; white-space: nowrap; }
+.gge-live-castle-line { margin: 0 0 12px; }
+.gge-live-castle-name { font-weight: 600; overflow-wrap: anywhere; }
+.gge-live-figure { font-size: 20px; }
+.gge-live-works { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 16px; margin: 16px 0; }
+.gge-live-works dt { color: var(--gge-muted); font-size: 13px; font-weight: 500; }
+.gge-live-works dd { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gge-live-slots { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
+.gge-live-slots li { padding: 1px 8px; border: 1px solid var(--gge-rule); border-radius: 6px; background: var(--gge-raised); font-size: 13px; font-variant-numeric: tabular-nums; }
+.gge-live-slots li[data-empty] { color: var(--gge-muted); background: none; border-style: dashed; }
+.gge-live-subhead { margin-top: 16px; }
+.gge-live-rage-figure { margin: 0 0 4px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gge-live-rage-state { margin: 8px 0 4px; }
+.gge-live-rage-state[data-state="held"] { color: var(--gge-crimson); }
+.gge-live-rage-state[data-state="eventOver"] { color: var(--gge-muted); }

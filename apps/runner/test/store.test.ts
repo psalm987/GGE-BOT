@@ -209,6 +209,14 @@ test("a status carries the read-back snapshot of the worker's last report, and n
         }],
         movementCount: 1,
         session: { startedAt: 1_799_999_000_000, coins: 44_400, rubies: null },
+        defence: {
+            kingdom: 0, id: 1001, readAt: 1_799_999_990_000,
+            wall: { level: 8, defence: 315.7, troops: 5031, room: 5031, sides: { left: { share: 30, slots: [{ wodID: 110, amount: 686 }, null] }, front: { share: 40, slots: [] }, right: { share: 30, slots: [] } } },
+            gate: { level: 7, defence: null },
+            moat: { level: 2, defence: 147, sides: { left: [{ wodID: 112, amount: 686 }], front: [], right: [] } },
+            courtyard: { troops: 433_000, room: 433_000, allianceRoom: 252_500 }, defenders: 8375, tools: [{ wodID: 110, amount: 50_497 }],
+        },
+        khanRage: { rage: 1426, needed: 2460, campLevel: 50, lastGain: 1426, lastGainAt: 1_799_999_995_000, eventRunning: true, hold: "toolsShort" },
     }
     await store.setStatus(accountId, { resources: { cash: 1200, readBack } })
     await store.setStatus(accountId, { resources: { cash: 1200, readBack: { ...readBack, movements: "many" } } })
