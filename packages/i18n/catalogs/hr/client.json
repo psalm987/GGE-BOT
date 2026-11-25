@@ -677,6 +677,7 @@
   "waves.preset.warning": "Val koristi predložak koji igra nije navela kad je bot zadnji put čitao popis. Modul se neće pokrenuti dok taj predložak ne bude spremljen u igri ili dok se val ne promijeni.",
   "waves.row.tools": "Alati",
   "waves.row.units": "Trupe",
+  "waves.tool.notAllowed": "{{name}} (ne može napasti ovu metu)",
   "waves.slot.empty": "Prazno",
   "waves.slot.tools": "Val {{wave}}, {{side}}, alat {{n}}",
   "waves.slot.units": "Val {{wave}}, {{side}}, trupa {{n}}",

@@ -677,6 +677,7 @@
   "waves.preset.warning": "Una oleada usa una plantilla que el juego no incluía en su lista la última vez que el bot la leyó. El módulo no arrancará hasta que esa plantilla se guarde en el juego o se cambie la oleada.",
   "waves.row.tools": "Herramientas",
   "waves.row.units": "Tropas",
+  "waves.tool.notAllowed": "{{name}} (no puede atacar este objetivo)",
   "waves.slot.empty": "Vacía",
   "waves.slot.tools": "Oleada {{wave}}, {{side}}, herramienta {{n}}",
   "waves.slot.units": "Oleada {{wave}}, {{side}}, tropa {{n}}",

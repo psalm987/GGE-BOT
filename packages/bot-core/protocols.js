@@ -20,25 +20,7 @@ let generals = []
 
 xtHandler.on("gie", obj => generals = obj.G ?? generals)
 
-const AreaType = Object.freeze({
-    barron: 2,
-    outpost: 4,
-    externalKingdom: 12,
-    mainCastle: 1,
-    alienCastle: 21,
-    bloodcrowCastle: 34,
-    nomadCamp: 27,
-    daimyoCastle: 37,
-    stormIsland: 24,
-    samCamp: 29,
-    beriCamp: 30,
-    watchTower: 17,
-    capital: 3,
-    fortress : 11,
-    beriCastle : 15,
-    stormTower : 25,
-    khanCamp : 35
-})
+const { AreaType } = require("./areaTypes.js")
 const HighscoreType = Object.freeze({
     honour: 5
 })

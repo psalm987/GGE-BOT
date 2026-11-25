@@ -647,6 +647,7 @@
   "waves.preset.warning": "En bølge bruger en forudindstilling, som spillet ikke listede, da botten sidst læste listen. Modulet starter ikke, før den forudindstilling er gemt i spillet, eller bølgen er ændret.",
   "waves.row.tools": "Redskaber",
   "waves.row.units": "Tropper",
+  "waves.tool.notAllowed": "{{name}} (kan ikke angribe dette mål)",
   "waves.slot.empty": "Tom",
   "waves.slot.tools": "Bølge {{wave}}, {{side}}, redskab {{n}}",
   "waves.slot.units": "Bølge {{wave}}, {{side}}, enhed {{n}}",

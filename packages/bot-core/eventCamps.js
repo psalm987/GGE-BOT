@@ -2,6 +2,7 @@
  * What the event camp plugins (Nomads, Samurai, Daimyo) share: which camps a plugin attacks, in what order, and how many time
  * skips it may spend on them. Nothing here talks to the game; a plugin hands in what it read from it.
  */
+const { AreaType } = require("./areaTypes.js")
 const { RollingWindow, DAY } = require("./towers.js")
 const { choice, armyOptions, unitOrderOption, supplyOption } = require("./army.js")
 
@@ -294,7 +295,10 @@ const EVENT_PROFILES = {
     },
 }
 
+/** The `{ kingdom, areaType }` a plugin on `profile` attacks, which is what its tools' `allowedToAttack` is read against. */
+const eventCampTargets = profile => [{ kingdom: profile.kingdom, areaType: AreaType[profile.areaType] }]
+
 module.exports = {
-    EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, HIGHEST_DIFFICULTY, DAIMYO_RANKS, eventCampOptions, eventCampChecks, parseTarget, readyAt,
+    eventCampTargets, EVENT_PROFILES, TARGET_MODES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY, HIGHEST_DIFFICULTY, DAIMYO_RANKS, eventCampOptions, eventCampChecks, parseTarget, readyAt,
     campQueue, hitsBeforeCooldown, areaAt, readCamp, sortTargets, readDaimyoCastle, daimyoRanks,
 }

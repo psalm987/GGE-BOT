@@ -3,7 +3,7 @@ import { Form, Segmented, Select } from "antd"
 import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import { emptyPlan, type ArmyMode, type AutofillSource, type GamePreset, type ManualPlan, type PluginOptionDef, type VirtualPreset, type WavePlan } from "@gge/contracts"
+import { emptyPlan, type ArmyMode, type AttackTarget, type AutofillSource, type GamePreset, type ManualPlan, type PluginOptionDef, type VirtualPreset, type WavePlan } from "@gge/contracts"
 import { orpc } from "../api.ts"
 import { autofillOf, planCounts } from "../army-values.ts"
 import type { OptionValues } from "../plugin-values.ts"
@@ -73,10 +73,10 @@ export function ArmyModeField({ value = "autofill", onChange, label, source, def
 /**
  * A plugin's wave plan: written here, or one of the account's virtual presets. An unset option shows an empty plan,
  * which is saved once the player changes it. While the plugin is on Autofill the field is `collapsed` and draws
- * nothing, so a page of several plugins stays light.
+ * nothing, so a page of several plugins stays light. `targets` is what the plugin attacks, which narrows the tools offered.
  */
-export function WavesField({ value, onChange, id, collapsed, accountId }: {
-    value?: WavePlan | null; onChange?: (plan: WavePlan) => void; id?: string; collapsed: boolean; accountId: string | undefined
+export function WavesField({ value, onChange, id, collapsed, accountId, targets }: {
+    value?: WavePlan | null; onChange?: (plan: WavePlan) => void; id?: string; collapsed: boolean; accountId: string | undefined; targets?: AttackTarget[]
 }) {
     const { t } = useTranslation("client")
     const presets = useVirtualPresets(accountId)
@@ -107,7 +107,7 @@ export function WavesField({ value, onChange, id, collapsed, accountId }: {
                         style={{ width: "100%", maxWidth: 360 }} />
                     <p className="gge-army-note">{t("waves.source.virtualNote")}</p>
                 </>
-                : <WavePlanEditor value={value?.kind === "manual" ? value : emptyPlan()} onChange={next => onChange?.(next)} gamePresets={gamePresets} />}
+                : <WavePlanEditor value={value?.kind === "manual" ? value : emptyPlan()} onChange={next => onChange?.(next)} gamePresets={gamePresets} targets={targets} />}
         </div>
     )
 }

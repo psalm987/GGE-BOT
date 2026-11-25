@@ -647,6 +647,7 @@
   "waves.preset.warning": "Egy hullám olyan előbeállítást használ, amelyet a játék nem listázott, amikor a bot legutóbb beolvasta a listát. A modul nem indul el, amíg az az előbeállítás nincs elmentve a játékban, vagy a hullám nincs megváltoztatva.",
   "waves.row.tools": "Eszközök",
   "waves.row.units": "Csapatok",
+  "waves.tool.notAllowed": "{{name}} (nem támadhatja ezt a célpontot)",
   "waves.slot.empty": "Üres",
   "waves.slot.tools": "{{wave}}. hullám, {{side}}, {{n}}. eszköz",
   "waves.slot.units": "{{wave}}. hullám, {{side}}, {{n}}. katona",

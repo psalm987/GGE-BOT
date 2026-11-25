@@ -677,6 +677,7 @@
   "waves.preset.warning": "Un val folosește o presetare pe care jocul nu o lista când botul a citit lista ultima dată. Modulul nu pornește până când acea presetare nu este salvată în joc sau valul nu este schimbat.",
   "waves.row.tools": "Unelte",
   "waves.row.units": "Trupe",
+  "waves.tool.notAllowed": "{{name}} (nu poate ataca această țintă)",
   "waves.slot.empty": "Gol",
   "waves.slot.tools": "Valul {{wave}}, {{side}}, unealta {{n}}",
   "waves.slot.units": "Valul {{wave}}, {{side}}, trupa {{n}}",

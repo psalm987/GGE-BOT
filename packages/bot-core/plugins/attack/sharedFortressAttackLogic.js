@@ -73,7 +73,7 @@ async function fortressHit(kingdomID, level, options, filename) {
                         flankUnits: getAmountSoldiersFlank(level), frontUnits: getAmountSoldiersFront(level),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level),
-                    })
+                    }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
                 }
 

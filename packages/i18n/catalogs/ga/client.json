@@ -737,6 +737,7 @@
   "waves.preset.warning": "Úsáideann tonn réamhshocrú nár liostaigh an cluiche nuair a léigh an bot an liosta an uair dheireanach. Ní thosóidh an modúl go dtí go mbeidh an réamhshocrú sin sábháilte sa chluiche nó go n-athrófar an tonn.",
   "waves.row.tools": "Uirlisí",
   "waves.row.units": "Trúpaí",
+  "waves.tool.notAllowed": "{{name}} (ní féidir leis an sprioc seo a ionsaí)",
   "waves.slot.empty": "Folamh",
   "waves.slot.tools": "Tonn {{wave}}, {{side}}, uirlis {{n}}",
   "waves.slot.units": "Tonn {{wave}}, {{side}}, trúpa {{n}}",

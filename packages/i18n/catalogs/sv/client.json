@@ -647,6 +647,7 @@
   "waves.preset.warning": "En våg använder en förinställning som spelet inte listade när botten senast läste listan. Modulen startar inte förrän den förinställningen är sparad i spelet eller vågen är ändrad.",
   "waves.row.tools": "Verktyg",
   "waves.row.units": "Trupper",
+  "waves.tool.notAllowed": "{{name}} (kan inte angripa detta mål)",
   "waves.slot.empty": "Tom",
   "waves.slot.tools": "Våg {{wave}}, {{side}}, verktyg {{n}}",
   "waves.slot.units": "Våg {{wave}}, {{side}}, trupp {{n}}",

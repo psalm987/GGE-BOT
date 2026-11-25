@@ -600,6 +600,7 @@
     "statusArmyPlanEmpty": "Army is set to Waves, but no wave or courtyard row holds troops.",
     "armyCantBeSent": "This module's army can't be sent as it is set, so the module is stopped",
     "armyToolWrongSide": "A tool in the waves can't go on that side and was left out: ",
+    "armyToolNotAllowed": "A tool in the waves can't attack this kind of target and was left out: ",
     "armyPlanShort": "Waiting: the castle holds too few of these for the waves: ",
     "attackBarronsGreatEmpire.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",
     "attackBarronsBurningSands.armyMode.help": "Autofill lets the bot pick troops and tools by the options below. Waves sends exactly the waves you write.",

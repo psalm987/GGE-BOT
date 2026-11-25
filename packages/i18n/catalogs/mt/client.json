@@ -737,6 +737,7 @@
   "waves.preset.warning": "Mewġa tuża preset li l-logħba ma elenkatx meta l-bot qara l-lista l-aħħar darba. Il-modulu ma jibdiex sakemm dak il-preset jiġi ssejvjat fil-logħba jew il-mewġa tinbidel.",
   "waves.row.tools": "Għodda",
   "waves.row.units": "Truppi",
+  "waves.tool.notAllowed": "{{name}} (ma jistax jattakka din il-mira)",
   "waves.slot.empty": "Vojt",
   "waves.slot.tools": "Mewġa {{wave}}, {{side}}, għodda {{n}}",
   "waves.slot.units": "Mewġa {{wave}}, {{side}}, truppa {{n}}",

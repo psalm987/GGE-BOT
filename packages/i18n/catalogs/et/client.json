@@ -647,6 +647,7 @@
   "waves.preset.warning": "Üks laine kasutab eelseadistust, mida mäng loendis ei näidanud, kui bot seda viimati luges. Moodul ei käivitu enne, kui see eelseadistus on mängus salvestatud või laine on muudetud.",
   "waves.row.tools": "Tööriistad",
   "waves.row.units": "Väed",
+  "waves.tool.notAllowed": "{{name}} (ei saa sellele sihtmärgile rünnata)",
   "waves.slot.empty": "Tühi",
   "waves.slot.tools": "Laine {{wave}}, {{side}}, tööriist {{n}}",
   "waves.slot.units": "Laine {{wave}}, {{side}}, üksus {{n}}",

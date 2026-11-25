@@ -190,6 +190,13 @@
       "when": 1795369595286,
       "tag": "0026_game_items_variant",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795639449342,
+      "tag": "0027_game_items_attack_targets",
+      "breakpoints": true
     }
   ]
 }

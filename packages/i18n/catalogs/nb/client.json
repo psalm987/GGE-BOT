@@ -647,6 +647,7 @@
   "waves.preset.warning": "En bølge bruker en forhåndsinnstilling som spillet ikke listet da boten sist leste listen. Modulen starter ikke før den forhåndsinnstillingen er lagret i spillet eller bølgen er endret.",
   "waves.row.tools": "Verktøy",
   "waves.row.units": "Tropper",
+  "waves.tool.notAllowed": "{{name}} (kan ikke angripe dette målet)",
   "waves.slot.empty": "Tom",
   "waves.slot.tools": "Bølge {{wave}}, {{side}}, verktøy {{n}}",
   "waves.slot.units": "Bølge {{wave}}, {{side}}, tropp {{n}}",

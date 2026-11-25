@@ -677,6 +677,7 @@
   "waves.preset.warning": "Un'ondata usa un set predefinito che il gioco non elencava all'ultima lettura del bot. Il modulo non parte finché quel set non è salvato nel gioco o l'ondata non viene modificata.",
   "waves.row.tools": "Strumenti",
   "waves.row.units": "Truppe",
+  "waves.tool.notAllowed": "{{name}} (non può attaccare questo bersaglio)",
   "waves.slot.empty": "Vuoto",
   "waves.slot.tools": "Ondata {{wave}}, {{side}}, strumento {{n}}",
   "waves.slot.units": "Ondata {{wave}}, {{side}}, truppa {{n}}",

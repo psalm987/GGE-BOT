@@ -90,6 +90,10 @@ export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 export type ValueOptionDef = Exclude<PluginOptionDef, { type: "" | "Label" }>
 export const holdsValue = (def: PluginOptionDef): def is ValueOptionDef => def.type !== "" && def.type !== "Label"
 
+/** What an attack plugin attacks: a kingdom and an area type of the game. */
+export const AttackTarget = z.object({ kingdom: z.number().int(), areaType: z.number().int() })
+export type AttackTarget = z.infer<typeof AttackTarget>
+
 export const PluginCatalogEntry = z.object({
     key,
     force: z.boolean(),
@@ -101,6 +105,8 @@ export const PluginCatalogEntry = z.object({
     checks: z.array(PluginCheckDef).optional(),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: z.boolean().optional(),
+    /** What the plugin attacks. A wave editor offers only the tools that may attack one of these; absent means every tool. */
+    targets: z.array(AttackTarget).optional(),
 })
 
 /** How many attack plugins one account may run at once. Set by an admin: a global default and a per-user override. */

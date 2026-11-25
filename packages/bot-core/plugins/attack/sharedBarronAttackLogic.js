@@ -360,7 +360,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                         flankUnits: getAmountSoldiersFlank(level, stats.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, stats.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | stats.attackUnitAmountReinforcementBonus),
-                    })
+                    }, { kingdom: kingdomID, areaType: areaInfo.type })
                     return await sendFrame(attackInfo)
                 }
 

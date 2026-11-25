@@ -1,5 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
+        targets: [{ kingdom: 0, areaType: require("../../areaTypes.js").AreaType.khanCamp }],
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             {
@@ -396,7 +397,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
-                    })
+                    }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                 }
 

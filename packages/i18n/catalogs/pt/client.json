@@ -677,6 +677,7 @@
   "waves.preset.warning": "Uma onda usa uma predefinição que o jogo não listava na última leitura do bot. O módulo não inicia até essa predefinição ser salva no jogo ou a onda ser alterada.",
   "waves.row.tools": "Ferramentas",
   "waves.row.units": "Tropas",
+  "waves.tool.notAllowed": "{{name}} (não pode atacar este alvo)",
   "waves.slot.empty": "Vazio",
   "waves.slot.tools": "Onda {{wave}}, {{side}}, ferramenta {{n}}",
   "waves.slot.units": "Onda {{wave}}, {{side}}, tropa {{n}}",

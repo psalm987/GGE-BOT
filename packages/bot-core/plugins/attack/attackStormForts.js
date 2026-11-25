@@ -14,6 +14,7 @@ if (require('node:worker_threads').isMainThread) {
     const { armyOptions, unitOrderOption, supplyOption } = require("../../army.js")
     const { stockOptions, spendOptions } = require("../../stockOptions.js")
     module.exports = {
+        targets: [{ kingdom: 4, areaType: require("../../areaTypes.js").AreaType.stormTower }],
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             { type: "Select", key: "fortOrder", selection: ["Highest level first", "Nearest first"], default: 0 },
@@ -278,7 +279,7 @@ events.once("load", async () => {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
-                    })
+                    }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, { dryRun: pluginOptions.dryRun })
                 }
 

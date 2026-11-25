@@ -1,6 +1,6 @@
 if (require("node:worker_threads").isMainThread) {
     const { baronOptions, baronChecks } = require("./sharedBarronAttackLogic.js")
-    return module.exports = { pluginOptions: baronOptions({ kingdom: 3 }), checks: baronChecks }
+    return module.exports = { targets: [{ kingdom: 3, areaType: require("../../areaTypes.js").AreaType.barron }], pluginOptions: baronOptions({ kingdom: 3 }), checks: baronChecks }
 }
 
 const { KingdomID, AreaType } = require("../../protocols.js")

@@ -666,6 +666,7 @@
   "waves.preset.warning": "A wave uses a preset the game didn't list when the bot last read it. The module won't start until that preset is saved in the game or the wave is changed.",
   "waves.row.tools": "Tools",
   "waves.row.units": "Troops",
+  "waves.tool.notAllowed": "{{name}} (can't attack this target)",
   "waves.slot.empty": "Empty",
   "waves.slot.tools": "Wave {{wave}}, {{side}}, tool {{n}}",
   "waves.slot.units": "Wave {{wave}}, {{side}}, troop {{n}}",

@@ -707,6 +707,7 @@
   "waves.preset.warning": "Banga naudoja šabloną, kurio žaidimas nepateikė, kai botas paskutinį kartą skaitė sąrašą. Modulis nepasileis, kol tas šablonas nebus išsaugotas žaidime arba banga nebus pakeista.",
   "waves.row.tools": "Įrankiai",
   "waves.row.units": "Kariai",
+  "waves.tool.notAllowed": "{{name}} (negali pulti šio taikinio)",
   "waves.slot.empty": "Tuščia",
   "waves.slot.tools": "Banga {{wave}}, {{side}}, įrankis {{n}}",
   "waves.slot.units": "Banga {{wave}}, {{side}}, karys {{n}}",

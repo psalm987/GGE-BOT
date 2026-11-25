@@ -677,6 +677,7 @@
   "waves.preset.warning": "Vilnis izmanto sagatavi, ko spēle neuzskaitīja, kad bots pēdējo reizi nolasīja sarakstu. Modulis nesāks darbu, kamēr šī sagatave nebūs saglabāta spēlē vai vilnis nebūs mainīts.",
   "waves.row.tools": "Rīki",
   "waves.row.units": "Karavīri",
+  "waves.tool.notAllowed": "{{name}} (nevar uzbrukt šim mērķim)",
   "waves.slot.empty": "Tukšs",
   "waves.slot.tools": "{{wave}}. vilnis, {{side}}, rīks {{n}}",
   "waves.slot.units": "{{wave}}. vilnis, {{side}}, karavīrs {{n}}",

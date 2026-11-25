@@ -707,6 +707,7 @@
   "waves.preset.warning": "Jedna vlna používá předvolbu, kterou hra neuvedla, když bot naposledy načítal seznam. Modul se nespustí, dokud nebude ta předvolba uložena ve hře nebo dokud se vlna nezmění.",
   "waves.row.tools": "Nástroje",
   "waves.row.units": "Jednotky",
+  "waves.tool.notAllowed": "{{name}} (nemůže útočit na tento cíl)",
   "waves.slot.empty": "Prázdné",
   "waves.slot.tools": "Vlna {{wave}}, {{side}}, nástroj {{n}}",
   "waves.slot.units": "Vlna {{wave}}, {{side}}, jednotka {{n}}",

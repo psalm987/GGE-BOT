@@ -767,6 +767,7 @@
   "waves.preset.warning": "تستخدم موجة قالبًا لم تدرجه اللعبة عندما قرأ البوت القائمة آخر مرة. لن تبدأ الوحدة حتى يُحفظ هذا القالب في اللعبة أو تتغير الموجة.",
   "waves.row.tools": "الأدوات",
   "waves.row.units": "الجنود",
+  "waves.tool.notAllowed": "{{name}} (لا يمكنه مهاجمة هذا الهدف)",
   "waves.slot.empty": "فارغة",
   "waves.slot.tools": "الموجة {{wave}}، {{side}}، الأداة {{n}}",
   "waves.slot.units": "الموجة {{wave}}، {{side}}، الجندي {{n}}",

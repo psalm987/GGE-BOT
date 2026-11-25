@@ -647,6 +647,7 @@
   "waves.preset.warning": "Een golf gebruikt een preset die het spel niet vermeldde toen de bot de lijst het laatst las. De module start pas als die preset in het spel is opgeslagen of de golf is aangepast.",
   "waves.row.tools": "Tuigen",
   "waves.row.units": "Troepen",
+  "waves.tool.notAllowed": "{{name}} (kan dit doel niet aanvallen)",
   "waves.slot.empty": "Leeg",
   "waves.slot.tools": "Golf {{wave}}, {{side}}, tuig {{n}}",
   "waves.slot.units": "Golf {{wave}}, {{side}}, troep {{n}}",

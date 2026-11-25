@@ -677,6 +677,7 @@
   "waves.preset.warning": "Une vague utilise une présélection que le jeu ne listait pas lors de la dernière lecture du bot. Le module ne démarrera pas tant que cette présélection n'est pas enregistrée dans le jeu ou que la vague n'est pas modifiée.",
   "waves.row.tools": "Engins",
   "waves.row.units": "Troupes",
+  "waves.tool.notAllowed": "{{name}} (ne peut pas attaquer cette cible)",
   "waves.slot.empty": "Vide",
   "waves.slot.tools": "Vague {{wave}}, {{side}}, engin {{n}}",
   "waves.slot.units": "Vague {{wave}}, {{side}}, troupe {{n}}",

@@ -647,6 +647,7 @@
   "waves.preset.warning": "Eine Welle nutzt eine Vorlage, die das Spiel beim letzten Lesen durch den Bot nicht aufgelistet hat. Das Modul startet erst, wenn diese Vorlage im Spiel gespeichert oder die Welle geändert ist.",
   "waves.row.tools": "Werkzeuge",
   "waves.row.units": "Truppen",
+  "waves.tool.notAllowed": "{{name}} (kann dieses Ziel nicht angreifen)",
   "waves.slot.empty": "Leer",
   "waves.slot.tools": "Welle {{wave}}, {{side}}, Werkzeug {{n}}",
   "waves.slot.units": "Welle {{wave}}, {{side}}, Truppe {{n}}",

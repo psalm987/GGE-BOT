@@ -647,6 +647,7 @@
   "waves.preset.warning": "Aalto käyttää esiasetusta, jota peli ei listannut, kun botti viimeksi luki listan. Moduuli ei käynnisty ennen kuin se esiasetus on tallennettu peliin tai aaltoa on muutettu.",
   "waves.row.tools": "Työkalut",
   "waves.row.units": "Joukot",
+  "waves.tool.notAllowed": "{{name}} (ei voi hyökätä tähän kohteeseen)",
   "waves.slot.empty": "Tyhjä",
   "waves.slot.tools": "Aalto {{wave}}, {{side}}, työkalu {{n}}",
   "waves.slot.units": "Aalto {{wave}}, {{side}}, joukko {{n}}",

@@ -707,6 +707,7 @@
   "waves.preset.warning": "Val uporablja prednastavitev, ki je igra ni navedla, ko je bot nazadnje prebral seznam. Modul se ne zažene, dokler ta prednastavitev ni shranjena v igri ali dokler val ni spremenjen.",
   "waves.row.tools": "Orodja",
   "waves.row.units": "Čete",
+  "waves.tool.notAllowed": "{{name}} (ne more napasti tega cilja)",
   "waves.slot.empty": "Prazno",
   "waves.slot.tools": "Val {{wave}}, {{side}}, orodje {{n}}",
   "waves.slot.units": "Val {{wave}}, {{side}}, četa {{n}}",

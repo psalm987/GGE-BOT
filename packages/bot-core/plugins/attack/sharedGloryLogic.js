@@ -9,6 +9,7 @@ const DIFFICULTIES = [
     "Master (rented with rubies)", "Master+ (rented with rubies)", "Archmaster (rented with rubies)",
 ]
 
+const { toolAllowedAt } = require("../../attackTargets.js")
 const { armyOptions, unitOrderOption, parseAutofill, readArmy, fillFromPlan, orderUnits, HORSES } = require("../../army.js")
 
 const gloryOptions = [
@@ -110,7 +111,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         return
     const usableHere = info =>
         (!info.usageEventID || String(info.usageEventID).split(",").includes(String(eventID))) &&
-        (!info.allowedToAttack || String(info.allowedToAttack).split("#").includes(`${kingdomID}+${areaType}`))
+        toolAllowedAt(info, { kingdom: kingdomID, areaType })
     const openCamp = area => area?.type == areaType && area.extraData.length > 1 && area.extraData[2] != 1
 
     /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, considered: Set<string> }} */
@@ -292,7 +293,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                 flankTools: maxTools.flank, frontTools: maxTools.front,
                 courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
-            })
+            }, { kingdom: kingdomID, areaType })
             return { attackInfo, level }
         }
         const units = inventory.filter(unit => unit.amount > 0 && usableHere(unit.unitInfo))

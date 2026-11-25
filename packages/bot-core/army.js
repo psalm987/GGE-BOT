@@ -3,6 +3,8 @@
  * The shapes are @gge/contracts' army.ts, parsed here in plain JavaScript because the bot loads no schema library;
  * test/army-contract.test.mjs holds the two to the same answers. Nothing here talks to the game.
  */
+const { toolAllowedAt } = require("./attackTargets.js")
+
 const ARMY_MODES = ["autofill", "waves"]
 const UNIT_ORDERS = ["castle", "fastest", "strongest", "weakest"]
 const TROOP_SUPPLIES = ["all", "food", "mead"]
@@ -173,10 +175,11 @@ const fitsSide = (info, key) => info.slotTypes?.split(",").includes(key == "M" ?
  * nothing. A slot never gets more than its side has room for:
  * `room` is `{ flankUnits, frontUnits, flankTools, frontTools, courtyard }` for this target and commander, and a
  * slot the target's level hasn't opened is left out. Support tools the castle lacks are left out too.
+ * `target` is the `{ kingdom, areaType }` being attacked: a tool its `allowedToAttack` bars from there is left out, with a warning.
  *
  * Throws "NO_MORE_TROOPS", taking nothing, while the castle holds less than a slot needs.
  */
-function fillFromPlan(attackInfo, plan, inventory, room) {
+function fillFromPlan(attackInfo, plan, inventory, room, target) {
     const left = new Map(inventory.map(unit => [unit, unit.amount]))
     const find = (item, soldier) => inventory.find(unit => unit.unitInfo.wodID == item && isSoldier(unit.unitInfo) == soldier)
     const picks = []
@@ -188,6 +191,10 @@ function fillFromPlan(attackInfo, plan, inventory, room) {
         const unit = find(planned.item, soldier)
         if (unit && !fits(unit.unitInfo)) {
             console.warn("armyToolWrongSide", planned.item)
+            return 0
+        }
+        if (unit && !soldier && target && !toolAllowedAt(unit.unitInfo, target)) {
+            console.warn("armyToolNotAllowed", planned.item)
             return 0
         }
         if (!unit || left.get(unit) < amount) {
@@ -225,7 +232,13 @@ function fillFromPlan(attackInfo, plan, inventory, room) {
         slot[1] = amount
         unit.amount -= amount
     }
-    const supportTools = filled(plan.ast).map(item => find(item, false)).filter(unit => unit && unit.amount > 0).slice(0, SUPPORT_TOOL_SLOTS)
+    const allowedHere = unit => {
+        if (!target || toolAllowedAt(unit.unitInfo, target))
+            return true
+        console.warn("armyToolNotAllowed", unit.unitInfo.wodID)
+        return false
+    }
+    const supportTools = filled(plan.ast).map(item => find(item, false)).filter(unit => unit && unit.amount > 0 && allowedHere(unit)).slice(0, SUPPORT_TOOL_SLOTS)
     supportTools.forEach((unit, i) => {
         attackInfo.AST[i] = unit.unitInfo.wodID
         unit.amount--

@@ -707,6 +707,7 @@
   "waves.preset.warning": "Jedna z fal używa szablonu, którego gra nie wymieniła przy ostatnim odczycie listy przez bota. Moduł nie ruszy, dopóki ten szablon nie zostanie zapisany w grze albo fala nie zostanie zmieniona.",
   "waves.row.tools": "Narzędzia",
   "waves.row.units": "Wojska",
+  "waves.tool.notAllowed": "{{name}} (nie może atakować tego celu)",
   "waves.slot.empty": "Puste",
   "waves.slot.tools": "Fala nr {{wave}}, {{side}}, narzędzie {{n}}",
   "waves.slot.units": "Fala nr {{wave}}, {{side}}, jednostka {{n}}",

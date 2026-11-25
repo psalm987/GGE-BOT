@@ -1,5 +1,6 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
+        targets: [{ kingdom: 2, areaType: require("../../areaTypes.js").AreaType.fortress }],
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             ...require("../../commanderOptions.js").commanderOptions(),

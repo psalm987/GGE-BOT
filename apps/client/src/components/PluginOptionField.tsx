@@ -308,7 +308,7 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
                 </Col>
             )
         case "Waves":
-            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} /></Form.Item></Col>
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} targets={entry.targets} /></Form.Item></Col>
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)

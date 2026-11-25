@@ -647,6 +647,7 @@
   "waves.preset.warning": "Bir dalga, botun listeyi en son okuduğu sırada oyunun listelemediği bir ön ayarı kullanıyor. Modül, o ön ayar oyunda kaydedilene ya da dalga değiştirilene kadar başlamaz.",
   "waves.row.tools": "Aletler",
   "waves.row.units": "Birlikler",
+  "waves.tool.notAllowed": "{{name}} (bu hedefe saldıramaz)",
   "waves.slot.empty": "Boş",
   "waves.slot.tools": "Dalga {{wave}}, {{side}}, alet {{n}}",
   "waves.slot.units": "Dalga {{wave}}, {{side}}, birlik {{n}}",
