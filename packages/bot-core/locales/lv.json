@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Pārdotie priekšmeti vienā reizē",
     "TOO_MANY_ATTACK_PLUGINS": "Šim kontam ir ieslēgts pārāk daudz uzbrukuma spraudņu. Izslēdz dažus, lai palaistu botu.",
     "attackDelayRandomizationSeconds": "Nejaušas papildu sekundes",
-    "feastFoodReduction": "Pārtika, ko iztērē viens mielasts",
     "minimumFood": "Pārtika, ko paturēt pilī",
     "minimumFoodRate": "Zemākie pārtikas ienākumi mielastam",
     "hours": "Stundas līdz bota apturēšanai",

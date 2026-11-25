@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Míreanna a dhíoltar in aghaidh an rith",
     "TOO_MANY_ATTACK_PLUGINS": "Tá an iomarca breiseán ionsaithe ar siúl don chuntas seo. Cuir cuid acu as chun an bot a thosú.",
     "attackDelayRandomizationSeconds": "Soicind breise randamacha",
-    "feastFoodReduction": "An bia a úsáideann féasta amháin",
     "minimumFood": "Bia le coinneáil sa chaisleán",
     "minimumFoodRate": "An t-ioncam bia is ísle le haghaidh féasta",
     "hours": "Uaireanta go dtí go stopann an bot",

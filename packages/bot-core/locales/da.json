@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Solgte genstande pr. kørsel",
     "TOO_MANY_ATTACK_PLUGINS": "For mange angrebsplugins er slået til for denne konto. Slå nogle fra for at starte botten.",
     "attackDelayRandomizationSeconds": "Tilfældige ekstra sekunder",
-    "feastFoodReduction": "Mad, ét gæstebud bruger",
     "minimumFood": "Mad, der skal blive i borgen",
     "minimumFoodRate": "Laveste madindkomst for at holde gæstebud",
     "hours": "Timer, indtil botten stopper",

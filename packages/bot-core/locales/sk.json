@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Predaných vecí na beh",
     "TOO_MANY_ATTACK_PLUGINS": "Na tomto účte je zapnutých príliš veľa útočných pluginov. Aby sa bot mohol spustiť, niektoré vypni.",
     "attackDelayRandomizationSeconds": "Náhodné sekundy navyše",
-    "feastFoodReduction": "Jedlo, ktoré spotrebuje jedna hostina",
     "minimumFood": "Jedlo, ktoré ostane v hrade",
     "minimumFoodRate": "Najnižší príjem jedla na hostinu",
     "hours": "Hodiny do zastavenia bota",

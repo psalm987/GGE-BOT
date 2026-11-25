@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Eladott tárgyak futásonként",
     "TOO_MANY_ATTACK_PLUGINS": "Ennél a fióknál túl sok támadóbővítmény van bekapcsolva. A bot indításához kapcsolj ki néhányat.",
     "attackDelayRandomizationSeconds": "Véletlen többletmásodpercek",
-    "feastFoodReduction": "Egy lakoma élelemfogyasztása",
     "minimumFood": "A kastélyban hagyott élelem",
     "minimumFoodRate": "Legalacsonyabb élelembevétel a lakomához",
     "hours": "Órák a bot leállásáig",

@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Itens vendidos por rodada",
     "TOO_MANY_ATTACK_PLUGINS": "Há plugins de ataque demais ligados nesta conta. Desligue alguns para iniciar o bot.",
     "attackDelayRandomizationSeconds": "Segundos extras aleatórios",
-    "feastFoodReduction": "Comida que um banquete usa",
     "minimumFood": "Comida a manter no castelo",
     "minimumFoodRate": "Menor renda de comida para o banquete",
     "hours": "Horas até o bot parar",

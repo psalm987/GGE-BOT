@@ -58,7 +58,9 @@ test("Feast waits for each feast's reply and spaces them out", async () => {
     }
     const bot = fakeBot()
     bot.botConfig.plugins.feast = {}
-    loadModule("plugins/feast.js", { bot, extra: { "protocols.js": protocols } })
+    bot.playerInfo.level = 80
+    const feasts = [{ feastID: "8", costFood: "150000", minLevel: 70, maxLevel: "1020" }]
+    loadModule("plugins/feast.js", { bot, items: { feasts }, extra: { "protocols.js": protocols } })
     bot.events.emit("load")
     await vi.advanceTimersByTimeAsync(60_000)
 

@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Prodaných předmětů za běh",
     "TOO_MANY_ATTACK_PLUGINS": "Na tomto účtu je zapnuto příliš mnoho útočných pluginů. Pro spuštění bota některé vypněte.",
     "attackDelayRandomizationSeconds": "Náhodné sekundy navíc",
-    "feastFoodReduction": "Jídlo spotřebované jednou hostinou",
     "minimumFood": "Jídlo, které zůstane v hradu",
     "minimumFoodRate": "Nejnižší příjem jídla pro hostinu",
     "hours": "Hodiny do zastavení bota",

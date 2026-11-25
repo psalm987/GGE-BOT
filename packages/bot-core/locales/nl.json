@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Verkochte items per run",
     "TOO_MANY_ATTACK_PLUGINS": "Er staan te veel aanvalsplugins aan voor dit account. Zet er een paar uit om de bot te starten.",
     "attackDelayRandomizationSeconds": "Willekeurige extra seconden",
-    "feastFoodReduction": "Voedsel dat één feestmaal verbruikt",
     "minimumFood": "Voedsel om in het kasteel te houden",
     "minimumFoodRate": "Laagste voedselinkomen voor een feestmaal",
     "hours": "Uren tot de bot stopt",

@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Parduodamų daiktų skaičius per paleidimą",
     "TOO_MANY_ATTACK_PLUGINS": "Šiai paskyrai įjungta per daug puolimo papildinių. Kai kuriuos išjunkite, kad paleistumėte botą.",
     "attackDelayRandomizationSeconds": "Atsitiktinės papildomos sekundės",
-    "feastFoodReduction": "Maisto kiekis, kurį sunaudoja viena šventė",
     "minimumFood": "Maistas, kurį palikti pilyje",
     "minimumFoodRate": "Mažiausios maisto pajamos šventei",
     "hours": "Valandos, kol botas sustos",

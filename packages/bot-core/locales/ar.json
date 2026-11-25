@@ -101,7 +101,6 @@
     "sellMaxPerRun": "عدد العناصر المباعة في كل تشغيل",
     "TOO_MANY_ATTACK_PLUGINS": "عدد إضافات الهجوم المفعّلة لهذا الحساب كبير جدًا. أوقف بعضها لتشغيل البوت.",
     "attackDelayRandomizationSeconds": "ثوانٍ إضافية عشوائية",
-    "feastFoodReduction": "الطعام الذي تستهلكه وليمة واحدة",
     "minimumFood": "الطعام الذي يُترك في القلعة",
     "minimumFoodRate": "أدنى دخل طعام للوليمة",
     "hours": "الساعات حتى يتوقف البوت",

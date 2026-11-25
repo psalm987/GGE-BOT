@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Sålda föremål per körning",
     "TOO_MANY_ATTACK_PLUGINS": "För många anfallsplugin är på för det här kontot. Stäng av några för att starta botten.",
     "attackDelayRandomizationSeconds": "Slumpmässiga extrasekunder",
-    "feastFoodReduction": "Mat som en fest använder",
     "minimumFood": "Mat att behålla i slottet",
     "minimumFoodRate": "Lägsta matinkomst för fest",
     "hours": "Timmar tills botten stoppas",

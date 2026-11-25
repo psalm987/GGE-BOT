@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Myytäviä esineitä ajoa kohden",
     "TOO_MANY_ATTACK_PLUGINS": "Tällä tilillä on liian monta hyökkäyslisäosaa päällä. Poista osa käytöstä käynnistääksesi botin.",
     "attackDelayRandomizationSeconds": "Satunnaisia lisäsekunteja",
-    "feastFoodReduction": "Yhden pidon ruokankulutus",
     "minimumFood": "Linnaan jätettävä ruoka",
     "minimumFoodRate": "Pienin ruokatuotto pitojen pitämiseen",
     "hours": "Tunteja botin pysähtymiseen",

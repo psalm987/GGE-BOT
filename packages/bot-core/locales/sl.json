@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Prodanih predmetov na zagon",
     "TOO_MANY_ATTACK_PLUGINS": "Za ta račun je vklopljenih preveč vtičnikov za napad. Izklopi nekatere, da zaženeš bota.",
     "attackDelayRandomizationSeconds": "Naključne dodatne sekunde",
-    "feastFoodReduction": "Hrana, ki jo porabi ena pojedina",
     "minimumFood": "Hrana, ki jo obdržati v gradu",
     "minimumFoodRate": "Najnižji dohodek hrane za pojedino",
     "hours": "Ur do ustavitve bota",

@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Prodanih predmeta po pokretanju",
     "TOO_MANY_ATTACK_PLUGINS": "Previše dodataka za napad je uključeno za ovaj račun. Isključi neke da pokreneš bota.",
     "attackDelayRandomizationSeconds": "Nasumične dodatne sekunde",
-    "feastFoodReduction": "Hrana koju potroši jedna gozba",
     "minimumFood": "Hrana koju treba zadržati u dvorcu",
     "minimumFoodRate": "Najniži prihod hrane za gozbu",
     "hours": "Sati do zaustavljanja bota",

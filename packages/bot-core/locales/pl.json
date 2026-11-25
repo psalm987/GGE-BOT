@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Przedmioty sprzedawane na przebieg",
     "TOO_MANY_ATTACK_PLUGINS": "Na tym koncie włączono za dużo wtyczek ataku. Wyłącz część, aby uruchomić bota.",
     "attackDelayRandomizationSeconds": "Losowe dodatkowe sekundy",
-    "feastFoodReduction": "Żywność zużywana przez jedną ucztę",
     "minimumFood": "Żywność do zostawienia w zamku",
     "minimumFoodRate": "Najniższy przychód żywności do uczty",
     "hours": "Godziny do zatrzymania bota",

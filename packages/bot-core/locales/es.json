@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Objetos vendidos por pasada",
     "TOO_MANY_ATTACK_PLUGINS": "Hay demasiados plugins de ataque activados para esta cuenta. Desactiva algunos para iniciar el bot.",
     "attackDelayRandomizationSeconds": "Segundos extra aleatorios",
-    "feastFoodReduction": "Comida que gasta un banquete",
     "minimumFood": "Comida que se deja en el castillo",
     "minimumFoodRate": "Ingreso mínimo de comida para hacer un banquete",
     "hours": "Horas hasta que el bot se detiene",

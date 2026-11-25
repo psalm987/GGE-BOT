@@ -101,7 +101,6 @@
     "sellMaxPerRun": "Solgte gjenstander per kjøring",
     "TOO_MANY_ATTACK_PLUGINS": "For mange angrepsplugins er på for denne kontoen. Slå av noen for å starte boten.",
     "attackDelayRandomizationSeconds": "Tilfeldige ekstra sekunder",
-    "feastFoodReduction": "Mat én fest bruker",
     "minimumFood": "Mat å beholde i slottet",
     "minimumFoodRate": "Laveste matinntekt for fest",
     "hours": "Timer til boten stopper",

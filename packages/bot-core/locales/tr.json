@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Her çalışmada satılan eşya",
     "TOO_MANY_ATTACK_PLUGINS": "Bu hesapta çok fazla saldırı eklentisi açık. Botu başlatmak için bazılarını kapat.",
     "attackDelayRandomizationSeconds": "Rastgele ek saniye",
-    "feastFoodReduction": "Bir şenliğin harcadığı yiyecek",
     "minimumFood": "Kalede tutulacak yiyecek",
     "minimumFoodRate": "Şenlik için en düşük yiyecek geliri",
     "hours": "Botun duracağı saat",

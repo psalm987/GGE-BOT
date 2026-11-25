@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Verkaufte Gegenstände pro Durchlauf",
     "TOO_MANY_ATTACK_PLUGINS": "Für dieses Konto sind zu viele Angriffs-Plugins eingeschaltet. Schaltet einige aus, um den Bot zu starten.",
     "attackDelayRandomizationSeconds": "Zufällige Zusatzsekunden",
-    "feastFoodReduction": "Nahrung, die ein Festmahl verbraucht",
     "minimumFood": "Nahrung, die in der Burg bleibt",
     "minimumFoodRate": "Niedrigster Nahrungsertrag für ein Festmahl",
     "hours": "Stunden bis der Bot stoppt",

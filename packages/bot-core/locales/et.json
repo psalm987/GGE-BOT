@@ -102,7 +102,6 @@
     "sellMaxPerRun": "Müüdavaid esemeid käituse kohta",
     "TOO_MANY_ATTACK_PLUGINS": "Sellel kontol on liiga palju ründepluginaid sees. Boti käivitamiseks lülita mõned välja.",
     "attackDelayRandomizationSeconds": "Juhuslikke lisasekundeid",
-    "feastFoodReduction": "Ühe pidusöögi toiduhulk",
     "minimumFood": "Lossi jäetav toit",
     "minimumFoodRate": "Väikseim toidutulu pidusöögiks",
     "hours": "Tunde boti peatumiseni",
