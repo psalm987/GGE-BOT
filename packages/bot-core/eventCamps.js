@@ -75,6 +75,7 @@ const eventCampOptions = profile => [
     { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
     unitOrderOption(),
     supplyOption(),
+    { type: "Checkbox", key: "deleteReports", default: false },
     { type: "Checkbox", key: "dryRun", default: false },
 ]
 /** Marks the commander list and VIP cap, which the page draws as its commander picker. */

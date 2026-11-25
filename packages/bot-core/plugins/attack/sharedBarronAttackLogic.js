@@ -42,6 +42,7 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     { type: "Number", key: "horseDistance", min: 1, max: 100, unit: "clicks", default: 15, showWhen: { key: "horse", in: [3] } },
     { type: "Checkbox", key: "useTimeSkips", default: false },
     { type: "Checkbox", key: "upgradeTowers", default: false },
+    { type: "Checkbox", key: "deleteReports", default: false },
     ...require("../../commanderOptions.js").commanderOptions(),
     { type: "SkipTypes", key: "skipTypes", default: null },
     ...armyOptions(AUTOFILL),
@@ -323,7 +324,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 const horse = horseFor(areaInfo)
                 /** Sends the frame and counts the attack against the kingdom's limits. */
                 const sendFrame = async attackInfo => {
-                    const sent = await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData })
+                    const sent = await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, deleteReports: options.deleteReports })
                     const now = Date.now()
                     sentInDay.add(now)
                     sentInHour.add(now)

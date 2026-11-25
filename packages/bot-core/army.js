@@ -248,6 +248,7 @@ const fortressOptions = waves => [
     ...armyOptions({ sides: { left: true, courtyard: true }, waves, tools: [], unitOrder: "unitOrder", supply: "supply" }),
     unitOrderOption("fastest"),
     supplyOption(),
+    { type: "Checkbox", key: "deleteReports", default: false },
 ]
 
 module.exports = {

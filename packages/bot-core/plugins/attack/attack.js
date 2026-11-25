@@ -416,6 +416,9 @@ async function openAttackDialog({ SX, SY, TX, TY, KID }) {
     await pause(1500, 5000)
 }
 
+/** Watches `sne` for the plugin's reports, started by the plugin's first attack that asks for deletion. */
+let reportCleanup
+
 /**
  * Sends one attack and waits for its reply. After a rejection or a timeout it
  * waits for a fresh castle list before returning, so the next attack in the
@@ -427,8 +430,10 @@ async function openAttackDialog({ SX, SY, TX, TY, KID }) {
  *
  * Throws "CASTLE_LOCKED", sending nothing, while Auto Station is moving the
  * source castle's troops out (castleLock.js).
+ *
+ * With `context.deleteReports` the plugin's own report of this attack is deleted when it comes in won (reportCleanup.js).
  */
-async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, ...context } = {}) {
+async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, ...context } = {}) {
     if (isCastleLocked(kingdomID, attackInfo.SX, attackInfo.SY))
         throw "CASTLE_LOCKED"
     if (dryRun) {
@@ -453,6 +458,10 @@ async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, ...context } = 
             }))
         await resyncUnits()
         throw err[result]
+    }
+    if (deleteReports) {
+        reportCleanup ??= require("../../reportCleanup.js").createReportCleanup({ xtHandler, sendXT })
+        reportCleanup.track(obj.AAM.M)
     }
     return obj
 }

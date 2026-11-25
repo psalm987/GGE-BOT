@@ -74,7 +74,7 @@ async function fortressHit(kingdomID, level, options, filename) {
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level),
                     })
-                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
+                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
                 }
 
                 const attackerTroops = []
@@ -126,7 +126,7 @@ async function fortressHit(kingdomID, level, options, filename) {
                         maxTroops -= assignUnit(unitSlot, attackerTroops, maxTroops))
                 }
 
-                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
+                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
             })
 
             if (!attackInfo) {

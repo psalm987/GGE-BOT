@@ -215,7 +215,7 @@ function eventCampAttacks(profile, stored, filename) {
                         eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
 
                     const level = Number(classic ? profile.classicLevel(campInfo) : campInfo.camplevel)
-                    const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: options.dryRun }
+                    const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: options.dryRun, deleteReports: options.deleteReports }
 
                     if (army.mode == "waves") {
                         const effects = commander.getEffects()

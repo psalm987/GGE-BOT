@@ -36,6 +36,7 @@ const gloryOptions = [
     { type: "Number", key: "dethroneMaxTotal", min: 0, max: 2_000_000_000, step: 1, default: 0 },
     { type: "Number", key: "dethroneKeep", min: 0, max: 2_000_000_000, step: 1, default: 0 },
     { type: "Checkbox", key: "attackUnderProtection", default: false },
+    { type: "Checkbox", key: "deleteReports", default: false },
     { type: "Checkbox", key: "dryRun", default: false },
 ]
 const gloryChecks = require("../../commanderOptions.js").commanderChecks
@@ -416,7 +417,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                     const dryRun = Boolean(setting("dryRun"))
                     const inventory = dryRun ? castle.unitInventory.map(unit => ({ ...unit })) : castle.unitInventory
                     const { attackInfo, level } = buildAttack(castle, camp, commander, inventory)
-                    return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun })
+                    return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun, deleteReports: Boolean(setting("deleteReports")) })
                 })
                 if (!sent || sent.dryRun) {
                     freeCommander(commander.lordID)
