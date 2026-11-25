@@ -1,4 +1,4 @@
-const { armyOptions, unitOrderOption, supplyOption, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { armyOptions, unitOrderOption, supplyOption, SUPPLY_SWITCHES, parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { towerAttackLine } = require("../../attackLog.js")
 const { spendOptions } = require("../../stockOptions.js")
@@ -60,13 +60,12 @@ const baronOptions = ({ kingdom, attackWaves = 0 }) => [
     },
     { type: "Number", key: "minTroops", min: 0, max: 5000, unit: "troops", default: 0, army: "autofill" },
     { type: "Checkbox", key: "useDogs", default: false, army: "autofill" },
-    { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackLeft", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackMiddle", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackRight", default: false, army: "autofill" },
     { type: "Checkbox", key: "attackCourtyard", default: false, army: "autofill" },
     unitOrderOption(),
-    supplyOption(),
+    supplyOption(SUPPLY_SWITCHES),
     { type: "Label", key: "armourySettings", army: "autofill" },
     { type: "Checkbox", key: "autoBuy", default: false, army: "autofill" },
     { type: "Number", key: "autoBuyMin", min: 0, max: 100_000, step: 100, unit: "tools", default: 1000, army: "autofill", showWhen: { key: "autoBuy", in: [1] } },
@@ -95,7 +94,7 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
-const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, tilesApart, pickSourceCastle, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
+const { TOWER_FILTERS, towerLevel, matchesFilter, marchDistance, tilesApart, pickSourceCastle, castleName, RollingWindow, DAY, HOUR, toolsIn, horseByDistance } = require("../../towers.js")
 
 const { boxMullerRandom, sleep } = require("../../pacing.js")
 const { topUp } = require("../../armourer.js")
@@ -122,8 +121,6 @@ const DAILY_LIMIT_RECHECK_MS = 30 * 60_000
 const STATUS_STEPS = { attacks: 10 }
 /** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
 const TROOPS_RECHECK_MS = 10 * 60_000
-
-const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
 
 /** `filename` is the plugin's file, which its status goes by. */
 async function barronHit(type, kingdomID, stored, maxLevel, filename) {
@@ -389,8 +386,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     }
                     else if (unit.unitInfo.fightType == 0 &&
                         unit.unitInfo.beefSupply == undefined) {
-                        // The older switch keeps its meaning while the troop supply is All.
-                        if (autofill.supply == "all" ? options.foodTroopsOnly && unit.unitInfo.meadSupply : !eats(autofill.supply, unit.unitInfo))
+                        if (!eats(autofill.supply, unit.unitInfo))
                             continue
                         if (!options.useDogs && unit.unitInfo.wodID == 277)
                             continue

@@ -4,7 +4,7 @@
  */
 const { AreaType } = require("./areaTypes.js")
 const { RollingWindow, DAY } = require("./towers.js")
-const { choice, armyOptions, unitOrderOption, supplyOption } = require("./army.js")
+const { choice, armyOptions, unitOrderOption, supplyOption, SUPPLY_SWITCHES } = require("./army.js")
 
 /**
  * How a plugin picks its camps, by the choice of the `targetMode` Select. "cycleSkips" is what the plugins always did:
@@ -76,9 +76,8 @@ const eventCampOptions = profile => [
     { type: "Number", key: "minTroops", min: 0, max: 5000, unit: "troops", default: 0, army: "autofill" },
     { type: "Checkbox", key: "lowValueChests", default: false, army: "autofill" },
     ...profile.ownOptions,
-    { type: "Checkbox", key: "foodTroopsOnly", default: false, army: "autofill" },
     unitOrderOption(),
-    supplyOption(),
+    supplyOption(SUPPLY_SWITCHES),
     { type: "Checkbox", key: "deleteReports", default: false },
     { type: "Checkbox", key: "dryRun", default: false },
 ].filter(option => !profile.omitOptions?.includes(option.key))
@@ -256,10 +255,9 @@ const EVENT_PROFILES = {
         plainToolCount: 40, splitToolRoom: true,
         ownOptions: [
             { type: "Checkbox", key: "eventWallToolsFirst", army: "autofill" },
-            { type: "Checkbox", key: "useFood", army: "autofill", default: true },
         ],
         isEventTool: info => info.khanTabletBooster != undefined && info.ragePointBonus == undefined,
-        isTroop: (info, options) => info.fightType == 0 && !info.beefSupply && !(info.foodSupply && !options.useFood),
+        isTroop: info => info.fightType == 0 && !info.beefSupply,
         classicCamp: (camps, extraData) => camps.find(camp => extraData[1] == camp.id),
         classicLevel: camp => 80 + camp.countVictory,
     },

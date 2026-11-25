@@ -22,6 +22,7 @@ if (require('node:worker_threads').isMainThread)
                 ],
                 default: "4"
             },
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 0, default: null },
             ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noChests", "lowValueChests", "eventWallToolsFirst"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
@@ -54,20 +55,8 @@ if (require('node:worker_threads').isMainThread)
                 army: "autofill",
                 default: false
             },
-            {
-                type: "Checkbox",
-                key: "useFood",
-                army: "autofill",
-                default: true
-            },
-            {
-                type: "Checkbox",
-                key: "foodTroopsOnly",
-                army: "autofill",
-                default: false
-            },
             require("../../army.js").unitOrderOption(),
-            require("../../army.js").supplyOption(),
+            require("../../army.js").supplyOption(require("../../army.js").SUPPLY_SWITCHES),
             {
                 type: "Text",
                 key: "scoreShutoff",
@@ -93,15 +82,16 @@ const { settleDifficulty } = require("../../eventDifficulty.js")
 const { keepDefence } = require("../../khanDefence.js")
 const { ask } = require("../../chores.js")
 const { shareKhanRage } = require("../../khanRage.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
-const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
+const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, supplyOption, SUPPLY_SWITCHES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceGate, defendersIn, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
 const { holdingsOf, gained, loadRewardNames, rewardLine } = require("../../khanRewards.js")
-const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
+const pluginOptions = readLegacy([...khanWaveOptions(), supplyOption(SUPPLY_SWITCHES)], botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
 const autofill = parseAutofill(pluginOptions)
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
@@ -205,12 +195,15 @@ function announce(hold, counts = {}) {
 }
 
 /** Reports the plugin as running, with the reason a taunt is held when the defender gate holds it. */
+/** The running status when no taunt is held: the source castle the attacks fell back to, if they did. */
+let runningFallback = []
+
 function reportRunning() {
     const { hold, at, ...counts } = gate ?? {}
     if (hold)
         reportStatus("running", GATE_STATUS[hold], counts)
     else
-        reportStatus("running")
+        reportStatus("running", ...runningFallback)
 }
 
 /** Looks at the main castle's defence and holds the taunt while it has too few troops or tools. Runs again after a hold. */
@@ -375,17 +368,23 @@ events.on("eventStart", async ({ EID, EDID }) => {
     if ([-1, 0].includes(EDID))
         classic = true
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    // The Khan's attacks land on the main castle, so its defence is kept there wherever the hits leave from.
+    const main = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    const source = pickSourceCastle(castles, kingdomID, pluginOptions.sourceCastle, [AreaType.mainCastle])
+    const castle = source.castle
+    runningFallback = source.fellBack ? ["statusCampCastleFallback", { castle: castleName(castle) }] : []
+    if (source.fellBack)
+        console.warn("campSourceCastleGone", castleName(castle))
 
     const army = readArmy(pluginOptions, reportStatus)
     if (!army || !await presetsListed(army, reportStatus))
         return
 
     quit = false
-    reportStatus("running")
+    reportRunning()
     if (khan.keepDefence) {
         defence ??= keepDefence({
-            castle, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun,
+            castle: main, kingdomID, isTaunt: march => isTaunt(march, playerInfo.playerID, type), dryRun: pluginOptions.dryRun,
             onChecked: ({ missing }) => {
                 defenceShort = missing > 0
                 tryTaunt()
@@ -470,11 +469,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                     else if (unit.unitInfo.fightType == 0 && !unit.unitInfo.beefSupply) {
                         if (!eats(autofill.supply, unit.unitInfo))
                             continue
-                        if(pluginOptions.foodTroopsOnly && unit.unitInfo.meadSupply)
-                            continue
                         if (troopBlackList.includes(unit.unitInfo.wodID))
-                            continue
-                        if (unit.unitInfo.foodSupply && !pluginOptions.useFood)
                             continue
 
                         if (unit.unitInfo.role == "melee")

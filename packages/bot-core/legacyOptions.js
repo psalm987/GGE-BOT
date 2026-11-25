@@ -1,6 +1,7 @@
 /**
  * Reads options stored before a plugin's Selects existed, the way @gge/contracts' `readLegacy` does: a Select with a
- * `legacy` rule gets its choice from the options it replaced, unless a choice is stored already, and a Number that was
+ * `legacy` rule gets its choice from the options it replaced, unless a choice is stored already (a Select that names its
+ * own key in `from` reads it again while another option it replaced is stored), and a Number that was
  * a Text reads its stored string as a number, and a Rows castle column with `legacyKingdom` reads a row's old kingdom
  * as that kingdom's main castle. The runner hands a bot
  * options read this way; a config that reaches a plugin as it was stored is read here.
@@ -36,7 +37,9 @@ function readLegacy(defs, stored) {
             continue
         const { from, cases, otherwise } = def.legacy
         const old = name => stored[name] ?? from[name]
-        if (typeof stored[def.key] != "number" && Object.keys(from).some(name => stored[name] !== undefined))
+        const replaced = Object.keys(from).filter(name => stored[name] !== undefined)
+        const chosen = typeof stored[def.key] == "number" && !(def.key in from && replaced.some(name => name != def.key))
+        if (!chosen && replaced.length > 0)
             out[def.key] = cases.find(([when]) => Object.entries(when).every(([name, value]) => old(name) === value))?.[1] ?? otherwise
         for (const name of Object.keys(from))
             if (!current.has(name))

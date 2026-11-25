@@ -20,7 +20,7 @@ Use it to loot {% term id="tablet" %}tablets{% /term %} and earn event points. I
 ## How it works {% #how-it-works %}
 
 1. The bot waits for the event. When it starts with no difficulty set, the bot sets the one in **Event difficulty**.
-2. It asks the game for a Khan camp and attacks that camp from your {% term id="main-castle" %}main castle{% /term %} in the {% term id="great-empire" %}Great Empire{% /term %}.
+2. It asks the game for a Khan camp and attacks that camp from **Castle to attack from**, one of your castles in the {% term id="great-empire" %}Great Empire{% /term %}: your {% term id="main-castle" %}main castle{% /term %}, an {% term id="outpost" %}outpost{% /term %}, a capital or a metropolis. Left empty, that is your main castle. If the castle you picked is gone, the bot uses the main castle and the status tells you.
 3. Before each attack, it spends {% term id="time-skip" %}time skips{% /term %} on the camp's wait. **Time skips the bot may use** picks which ones.
 4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and sends the attack.
 5. It goes on until the event ends or your score reaches **Stop at this score**. Leave that empty for no limit.
@@ -46,7 +46,7 @@ The bot also stops taunting in these cases:
 
 ## Keep your defence filled {% #defence %}
 
-{% status kind="beta" /%} With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and {% term id="courtyard" %}courtyard{% /term %} of your main castle after each Khan attack lands. It fills them back to the layout they held when the plugin started, with tools from storage. If you put a different tool in a slot, or more of one, the bot takes that as your new layout.
+{% status kind="beta" /%} With **Refill the defence after each Khan attack** on, the bot refills the walls, gate, moat and {% term id="courtyard" %}courtyard{% /term %} of your main castle after each Khan attack lands. Khan attacks land on your main castle even when your hits leave from another castle, so the refill always works on the main castle. It fills them back to the layout they held when the plugin started, with tools from storage. If you put a different tool in a slot, or more of one, the bot takes that as your new layout.
 
 Set your defence in the game before you start the plugin. While storage is short, the bot looks again every 5 minutes.
 
@@ -67,7 +67,7 @@ To keep storage full, set the tools under **Defence tools to keep in stock**: **
 
 **Rage tools, in order** and **Tablet chests, in order** let you pick the tools and their order. Left empty, the bot takes the strongest first. **Use the weakest event tools first** turns that order around. **Don't use event tools** sends troops only after the first wave.
 
-**Use food troops** and **Food troops only** decide which troops go. {% term id="autofill" %}Autofill{% /term %} waits until the castle holds at least 100 troops.
+**Troop supply** limits the troops that go to those that eat food, or those that eat {% term id="mead" %}mead{% /term %}. {% term id="autofill" %}Autofill{% /term %} waits until the castle holds at least 100 troops.
 
 For the horse, **Use a coin horse** is on by default and needs a stable. **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack.
 
@@ -92,4 +92,5 @@ A taunt calls a real attack on your main castle. Set and fill your defence in th
 
 - [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
 - [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): **Castle to attack from** names a castle the account no longer has.
 - [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.

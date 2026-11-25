@@ -11,7 +11,7 @@ const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, readCamp, sortTargets, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
-const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
+const { pickSourceCastle, castleName, marchDistance, horseByDistance } = require("../../towers.js")
 const { campAttackLine } = require("../../attackLog.js")
 const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
@@ -25,7 +25,6 @@ const minTroopCount = 100
 /** A count of attacks in a status is rounded down to this step once it passes it, so the status isn't rewritten after every attack. */
 const STATUS_STEP = 10
 
-const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
 /** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
 const IDLE_MS = [5_000, 60_000]
 
@@ -308,10 +307,8 @@ function eventCampAttacks(profile, stored, filename) {
                             else if (unit.unitInfo.defRangeBonus)
                                 attackerShieldTools.push(unit)
                         }
-                        else if (profile.isTroop(unit.unitInfo, options)) {
+                        else if (profile.isTroop(unit.unitInfo)) {
                             if (!eats(autofill.supply, unit.unitInfo))
-                                continue
-                            if(options.foodTroopsOnly && unit.unitInfo.meadSupply)
                                 continue
                             if (unit.unitInfo.role == "melee")
                                 attackerMeleeTroops.push(unit)

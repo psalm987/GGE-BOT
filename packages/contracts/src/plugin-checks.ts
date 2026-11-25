@@ -63,7 +63,7 @@ export const commanderPicks = (list: string): number[] => [...commanderPositions
 
 /**
  * The commander list that stores picked tiles in their order, as semicolon-separated positions ("36;2;5"). A run of
- * three or more positions in a row is written as its range, so every tile in order is "1-50", the default.
+ * three or more positions in a row is written as its range, so every tile in order is "1-50".
  */
 export function writeCommanderPicks(picks: readonly number[]): string {
     const parts: string[] = []

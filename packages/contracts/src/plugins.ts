@@ -31,8 +31,10 @@ const Stored = z.union([z.string(), z.number(), z.boolean()])
 /**
  * What a Select means for a record stored before it existed. `from` holds the options it replaced, each with the
  * default it had. The first case whose values all match the stored ones gives the choice, else `otherwise`. A Select
- * that took over an older option's own key names that key in `from`. Stored records are read through this and never
- * rewritten; packages/bot-core/legacyOptions.js reads the same shape for the bot.
+ * that took over an older option's own key names that key in `from`. Such a Select reads its choice again while an
+ * option it replaced under another key is stored beside it, so its own stored value is one more input to the cases.
+ * Stored records are read through this and never rewritten; packages/bot-core/legacyOptions.js reads the same shape
+ * for the bot.
  */
 export const LegacyChoice = z.object({
     from: z.record(key, Stored),
@@ -180,8 +182,9 @@ export class PluginSettingsError extends Error {
 
 /**
  * A plugin's stored options as its options are today: each Select with a `legacy` rule gets its choice from the
- * options it replaced, unless a choice is stored already, and the replaced options are left out. A Number that was a
- * Text reads its stored string as a number.
+ * options it replaced, unless a choice is stored already, and the replaced options are left out. A Select that names
+ * its own key in `from` reads its choice again while another option it replaced is stored. A Number that was a Text
+ * reads its stored string as a number.
  */
 export function readLegacy<T extends Record<string, OptionValue | undefined>>(defs: PluginOptionDef[], stored: T): T {
     const out: Record<string, OptionValue | undefined> = { ...stored }
@@ -212,7 +215,9 @@ export function readLegacy<T extends Record<string, OptionValue | undefined>>(de
             continue
         const { from, cases, otherwise } = def.legacy
         const old = (name: string) => stored[name] ?? from[name]
-        if (typeof stored[def.key] !== "number" && Object.keys(from).some(name => stored[name] !== undefined))
+        const replaced = Object.keys(from).filter(name => stored[name] !== undefined)
+        const chosen = typeof stored[def.key] === "number" && !(def.key in from && replaced.some(name => name !== def.key))
+        if (!chosen && replaced.length > 0)
             out[def.key] = cases.find(([when]) => Object.entries(when).every(([name, value]) => old(name) === value))?.[1] ?? otherwise
         for (const name of Object.keys(from))
             if (!current.has(name))

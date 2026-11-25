@@ -3,6 +3,7 @@ if (require('node:worker_threads').isMainThread)
         targets: [{ kingdom: 3, areaType: require("../../areaTypes.js").AreaType.fortress }],
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 3, default: null },
             ...require("../../commanderOptions.js").commanderOptions(),
             ...require("../../army.js").fortressOptions(5)
         ]

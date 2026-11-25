@@ -28,28 +28,27 @@ async function sold(options, { stored = MIX, gemList = [], gemItems = [] } = {})
     return { equipment: ids("seq").map(([, p]) => p.EID).sort((a, b) => a - b), gems: ids("sge").map(([, p]) => p.GID) }
 }
 
-test("with no choices saved it sells everything but relics, uniques and set pieces, as it always did", async () => {
-    expect((await sold({})).equipment).toEqual([1, 2, 3, 4, 5, 6, 10])
+const EVERY_COLOUR = { sellGrey: true, sellGreen: true, sellPurple: true, sellOrange: true }
+
+test("with no slot choices saved every slot sells, so only the colours decide", async () => {
+    expect((await sold({})).equipment).toEqual([3, 4, 6])
+    expect((await sold(EVERY_COLOUR)).equipment).toEqual([1, 2, 3, 4, 5, 6, 10])
 })
 
-test("unticking epic and legendary keeps those in every slot, hero ones included", async () => {
-    expect((await sold({ sellRarityEpic: false, sellRarityLegendary: false })).equipment).toEqual([3, 4, 6])
+test("unticking a slot keeps its items of every colour", async () => {
+    expect((await sold({ ...EVERY_COLOUR, sellSlotHero: false, sellSlotArmour: false })).equipment).toEqual([2, 3, 4, 10])
 })
 
-test("unticking a slot keeps its items of every rarity", async () => {
-    expect((await sold({ sellSlotHero: false, sellSlotArmour: false })).equipment).toEqual([2, 3, 4, 10])
+test("a skin follows the colour alone, since it has no slot choice", async () => {
+    expect((await sold({ sellGrey: false, sellGreen: false, sellPurple: true, sellOrange: false, sellSlotArmour: false, sellSlotHero: false })).equipment).toEqual([10])
 })
 
-test("a skin follows the rarity alone, since it has no slot choice", async () => {
-    expect((await sold({ sellRarityEpic: false })).equipment).toEqual([2, 3, 4, 6])
-})
-
-test("gems sell up to the level set, and not at all when unticked", async () => {
+test("loose gems sell up to the level set, and not at all when unticked", async () => {
     const run = options => sold(options, {
         stored: [], gemList: [[1, 2], [2, 3]],
         gemItems: [{ gemID: 1, gemLevelID: "2" }, { gemID: 2, gemLevelID: "9" }],
     }).then(result => result.gems)
     expect(await run({})).toEqual([1, 1, 2, 2, 2])
     expect(await run({ sellGemMaxLevel: 5 })).toEqual([1, 1])
-    expect(await run({ sellGems: false })).toEqual([])
+    expect(await run({ sellLooseGems: false })).toEqual([])
 })

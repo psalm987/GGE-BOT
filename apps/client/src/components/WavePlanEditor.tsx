@@ -6,17 +6,16 @@ import {
     type ArmySlot, type AttackTarget, type GameItem, type GamePreset, type ManualPlan, type Wave,
 } from "@gge/contracts"
 import { filledSlots, toolsForTargets, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
-import { useGameItems } from "./PluginOptionField.tsx"
+import { itemSearch, renderItemOption, useGameItems, type ItemOption } from "./PluginOptionField.tsx"
 import "./army.css"
 
-type ItemOption = { value: number; label: string }
 const TOOL_AMOUNT = 10
 const TROOP_AMOUNT = 100
 
 type Catalog = ReturnType<typeof useGameItems>
 /** The choices of an item select: the catalogs' items by name, plus the slot's own item when they lack it. */
 function itemOptions(unknown: (id: number) => string, ...catalogs: Catalog[]) {
-    const options: ItemOption[] = catalogs.flatMap(({ items, nameOf }) => items.map((item: GameItem) => ({ value: item.id, label: nameOf(item) })))
+    const options: ItemOption[] = catalogs.flatMap(({ items, optionOf }) => items.map((item: GameItem) => optionOf(item)))
     const known = new Set(options.map(option => option.value))
     return (current: number | null | undefined) =>
         current === null || current === undefined || known.has(current) ? options : [...options, { value: current, label: unknown(current) }]
@@ -28,7 +27,8 @@ function itemOptions(unknown: (id: number) => string, ...catalogs: Catalog[]) {
  */
 function restrictedOptions(unknown: (id: number) => string, catalogs: Catalog[], { offered, barred }: ReturnType<typeof toolsForTargets>, notAllowed: (name: string) => string) {
     const names = new Map(catalogs.flatMap(({ items, nameOf }) => items.map((item): [number, string] => [item.id, nameOf(item)])))
-    const options: ItemOption[] = offered.map(item => ({ value: item.id, label: names.get(item.id) ?? unknown(item.id) }))
+    const optionOf = new Map(catalogs.flatMap(({ items, optionOf }) => items.map((item): [number, ItemOption] => [item.id, optionOf(item)])))
+    const options: ItemOption[] = offered.map(item => optionOf.get(item.id) ?? { value: item.id, label: unknown(item.id) })
     return (current: number | null | undefined) => {
         if (current === null || current === undefined || options.some(option => option.value === current))
             return options
@@ -39,7 +39,7 @@ function restrictedOptions(unknown: (id: number) => string, catalogs: Catalog[],
 
 function ItemPicker({ options, value, onChange, label, disabled, flagged }: { options: ItemOption[]; value: number | null; onChange: (item: number | null) => void; label: string; disabled?: boolean; flagged?: boolean }) {
     const { t } = useTranslation("client")
-    return <Select allowClear showSearch={{ optionFilterProp: "label" }} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled} status={flagged ? "warning" : undefined}
+    return <Select allowClear {...itemSearch} optionRender={renderItemOption} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled} status={flagged ? "warning" : undefined}
         value={value ?? undefined} options={options} onChange={(item?: number) => onChange(item ?? null)} style={{ width: "100%", minWidth: 0 }} />
 }
 

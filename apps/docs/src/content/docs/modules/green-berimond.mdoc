@@ -16,7 +16,7 @@ Turn it on before the event, and the bot starts when the event starts.
 
 ## How it works {% #how-it-works %}
 
-1. When the event starts, the bot finds the invasion camps around your {% term id="main-castle" %}main castle{% /term %} in the Great Empire.
+1. When the event starts, the bot finds the invasion camps around the castle in **Castle to attack from**, and the attacks leave from that castle. It lists your castles in the Great Empire: your {% term id="main-castle" %}main castle{% /term %}, an {% term id="outpost" %}outpost{% /term %}, a capital or a metropolis. Left empty, that is your main castle. If the castle you picked is gone, the bot uses the main castle and the status tells you.
 2. **Camp side** decides which camps it keeps. The invasion has red camps and blue camps, and each side has its own rewards. **All camps** keeps both.
 3. The bot attacks the camps in turn. Before each attack, it spends {% term id="time-skip" %}time skips{% /term %} on the camp's wait. **Time skips the bot may use** picks which ones.
 4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card for each attack.
@@ -37,7 +37,7 @@ The module is an attack {% term id="plugin" %}plugin{% /term %}, so it counts to
 - **Earn reputation instead of points** picks the event tools that give the most reputation, instead of the most points.
 - **Use the weakest event tools first** spends your weakest event tools before the strong ones.
 - **Don't use event tools** sends no event tools at all.
-- **Food troops only** leaves out troops that eat {% term id="mead" %}mead{% /term %}.
+- **Troop supply** limits Autofill to troops that eat food, or troops that eat {% term id="mead" %}mead{% /term %}.
 
 For the horse, **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack. **Use a coin horse** needs a stable. With both off, the troops walk.
 
@@ -61,4 +61,5 @@ The module spends time skips on every camp it attacks. Check **Time skips the bo
 
 - [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
 - [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): **Castle to attack from** names a castle the account no longer has.
 - [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.

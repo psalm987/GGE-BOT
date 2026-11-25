@@ -1,6 +1,6 @@
 ---
 title: Fortress
-description: Attack the fortresses of Burning Sands, Everwinter Glacier and Fire Peaks from your castle in each kingdom, nearest first.
+description: Attack the fortresses of Burning Sands, Everwinter Glacier and Fire Peaks from the castle you pick in each kingdom, nearest first.
 appRoute: /m/fortress
 plugin: attackFortressesBurningSands
 sources:
@@ -20,8 +20,8 @@ Use it when you have a castle in a kingdom and want its fortresses attacked as s
 
 Each kingdom that is on runs on its own:
 
-1. The attacks leave from your castle in that kingdom. This module has no setting to pick another castle.
-2. The bot reads the map around the castle and lists the fortresses, nearest first.
+1. The attacks leave from **Castle to attack from**, which lists your castles in that kingdom, a capital included. Left empty, that is your castle in that kingdom. If the castle you picked is gone, the bot uses your castle in that kingdom and the status tells you.
+2. The bot reads the map around the castle the attacks leave from and lists the fortresses, nearest first.
 3. It takes a free {% term id="commander-game" %}commander{% /term %}. If you picked commanders in an order on the {% ui key="client:plugins.commanderPicker.title" /%} card, it follows your order. If you picked none, or all of them, it takes the fastest free commander.
 4. It attacks the nearest fortress whose wait is over and that none of your armies is marching to.
 5. When every fortress is waiting, the bot waits until the next one is ready, and then goes on.
@@ -75,5 +75,6 @@ Leave the commander list on all commanders, and the bot sends the fastest free o
 
 - [TOO_MANY_ATTACK_PLUGINS](/errors/#too-many-attack-plugins): more attack plugins are on than your cap allows, so the bot does not start.
 - [PLUGIN_ATTACK_CAP](/errors/#plugin-attack-cap): the settings do not save because too many attack plugins are on.
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): **Castle to attack from** names a castle the account no longer has.
 - [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.
 - [CASTLE_LOCKED](/errors/#castle-locked): Alert and autostation is moving the castle's troops, so no attack leaves it for now.

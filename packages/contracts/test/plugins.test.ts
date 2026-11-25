@@ -217,6 +217,37 @@ describe("options a Select replaced", () => {
         const out = normalizePluginSettings(towers, { towers: { enabled: true, options: { useFeather: true, useCoin: false, waves: "" } } })
         expect(out.towers!.options).toEqual({ horse: 2, waves: 0 })
     })
+    describe("a Select that kept its own key and took over other options", () => {
+        const supply: PluginCatalogEntry[] = [{
+            key: "camps", force: false, hidden: false, options: [{
+                type: "Select", key: "supply", selection: ["All", "Food only", "Mead only"], default: 0,
+                legacy: { from: { supply: 0, foodTroopsOnly: false, useFood: true }, cases: [[{ supply: 1 }, 1], [{ supply: "1" }, 1], [{ supply: 2 }, 2], [{ supply: "2" }, 2], [{ foodTroopsOnly: true }, 1], [{ useFood: false }, 2]], otherwise: 0 },
+            }],
+        }]
+        const read = (stored: Record<string, string | number | boolean>) => readLegacy(supply[0]!.options, stored)
+
+        test("reads its choice again while an option it replaced is stored beside it", () => {
+            expect(read({ supply: 0, foodTroopsOnly: true })).toEqual({ supply: 1 })
+            expect(read({ foodTroopsOnly: true })).toEqual({ supply: 1 })
+            expect(read({ supply: 0, useFood: false })).toEqual({ supply: 2 })
+            expect(read({ useFood: false })).toEqual({ supply: 2 })
+            expect(read({ foodTroopsOnly: false, useFood: true })).toEqual({ supply: 0 })
+        })
+        test("keeps a choice its own stored value makes", () => {
+            expect(read({ supply: 2, foodTroopsOnly: true })).toEqual({ supply: 2 })
+            expect(read({ supply: 1, useFood: false })).toEqual({ supply: 1 })
+            expect(read({ supply: "2", foodTroopsOnly: true })).toEqual({ supply: 2 })
+        })
+        test("leaves a record with none of the options it replaced as it was", () => {
+            expect(read({})).toEqual({})
+            expect(read({ supply: 2 })).toEqual({ supply: 2 })
+            expect(read({ supply: 0 })).toEqual({ supply: 0 })
+        })
+        test("saving a record that still holds the old option stores the choice instead of refusing it", () => {
+            const out = normalizePluginSettings(supply, { camps: { enabled: true, options: { supply: 0, foodTroopsOnly: true } } })
+            expect(out.camps!.options).toEqual({ supply: 1 })
+        })
+    })
     test("a Number that was a Text reads its stored string as a number in range, and an empty or unreadable one as nothing", () => {
         const score: PluginCatalogEntry[] = [{ key: "camps", force: false, hidden: false, options: [{ type: "Number", key: "score", min: 0, max: 1000, default: 0, legacy: "text" }, { type: "Number", key: "plain", min: 0, max: 9 }] }]
         const read = (stored: Record<string, string | number>) => readLegacy(score[0]!.options, stored)

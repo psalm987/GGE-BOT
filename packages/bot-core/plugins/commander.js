@@ -88,10 +88,10 @@ function parseWhitelist(commanderWhitelist) {
 const byWrittenOrder = whitelist => (a, b) => whitelist.indexOf(a.lordPosition) - whitelist.indexOf(b.lordPosition)
 const byPosition = (a, b) => a.lordPosition - b.lordPosition
 
-/** The settings page's tiles run from 1 to this, and picking all of them in order stores the default "1-50". */
+/** The settings page's tiles run from 1 to this, and picking all of them in order stores "1-50". */
 const TILE_COUNT = 50
 /**
- * Whether a parsed whitelist is every commander from the first, in order, as the default "1-50" and the old "1-99"
+ * Whether a parsed whitelist is every commander from the first, in order, as "1-50" and the old "1-99"
  * are. Such a list names no order of its own, so a plugin's own order still picks among its commanders.
  */
 const isEveryCommander = whitelist => whitelist.length >= TILE_COUNT && whitelist.every((position, i) => position === i)
@@ -200,7 +200,7 @@ function reserveCommander(commanderWhitelist, plugin, onHeld) {
  *
  * With no commander map it is one of the whitelist. Free commanders are taken in the order the list names them, so
  * "36;2;5" sends 36 first. `sortCallback` orders them only when the list names no order: empty, or every commander in
- * order like the default "1-50".
+ * order like "1-50", the default included.
  *
  * With a commander map it is one of the plugin's own commanders, else one of its buckets', and `sortCallback` orders
  * each of the two. A plugin the map gives no commander of the account says so in its status and waits for the

@@ -19,6 +19,17 @@ describe("rage waves, stored as wavesTillChests before", () => {
         expect(readLegacy(options, stored)).toEqual(read)
         expect(contractsRead(options, stored)).toEqual(read)
     })
+    test.each([
+        [{ supply: 0, foodTroopsOnly: true }, { supply: 1 }],
+        [{ useFood: false }, { supply: 2 }],
+        [{ supply: 0, useFood: true, foodTroopsOnly: false }, { supply: 0 }],
+        [{ supply: 2, foodTroopsOnly: true }, { supply: 2 }],
+        [{ supply: 1, useFood: false }, { supply: 1 }],
+        [{ supply: 2 }, { supply: 2 }],
+    ])("the food switches %j read as the troop supply %j, for the bot and the contracts alike", (stored, read) => {
+        expect(readLegacy(options, stored)).toEqual(read)
+        expect(contractsRead(options, stored)).toEqual(read)
+    })
     test("the old default and the new defaults mean the same waves", () => {
         const read = stored => effectivePluginConfig([{ key: "khan", force: false, hidden: false, options }], { khan: { enabled: true, options: stored } }).khan
         expect(read({ wavesTillChests: "4" })).toEqual(read({}))
@@ -40,7 +51,7 @@ const inventory = () => [
 ]
 const camp = () => ({ type: 35, x: 110, y: 105, extraData: [0, 0, 0, 0, 0, 0, 5] })
 const items = { eventAutoScalingCamps: [{ eventAutoScalingCampID: 5, camplevel: "50", playerRageCap: "1500" }] }
-const khan = (stored, game = {}) => runEvent("attackKhan", { commanderWhiteList: "1-99", useFood: true, ...stored }, { inventory: inventory(), areas: [camp()], start: { EDID: 3 }, items, ...game })
+const khan = (stored, game = {}) => runEvent("attackKhan", { commanderWhiteList: "1-99", ...stored }, { inventory: inventory(), areas: [camp()], start: { EDID: 3 }, items, ...game })
 const toolsOf = wave => [...new Set([...wave.L.T, ...wave.R.T, ...wave.M.T].map(([wodID]) => wodID).filter(wodID => wodID != -1))]
 
 describe("Khan waves", () => {
@@ -67,6 +78,13 @@ describe("Khan waves", () => {
         const { cra } = await khan({ armyMode: "waves", waves: { kind: "manual", waves: [first, none, none, none], ast: [null, null, null], rw: [null, null, null, null, null, null, null, null] } })
         expect(cra.A[0].L).toEqual({ T: [[106, 5], [-1, 0]], U: [[603, 40], [-1, 0]] })
         expect(cra.A.slice(1).map(toolsOf)).toEqual([[], [], []])
+    })
+    test("a stored Use food troops switched off sends the mead troops, as Mead only does", async () => {
+        const troops = cra => new Set(cra.A.flatMap(wave => [...wave.L.U, ...wave.M.U, ...wave.R.U]).map(([wodID]) => wodID).filter(wodID => wodID != -1))
+        const game = { inventory: [...inventory(), melee(602, 5000, { meleeAttack: "140", foodSupply: undefined, meadSupply: "2" })] }
+        expect([...troops((await khan({ useFood: false }, game)).cra)]).toEqual([602])
+        expect([...troops((await khan({ supply: 2 }, game)).cra)]).toEqual([602])
+        expect(troops((await khan({ foodTroopsOnly: true }, game)).cra).has(602)).toBe(false)
     })
 })
 
@@ -381,6 +399,25 @@ describe("Khan taunts and the battle report", () => {
         rage()
         expect(logged(warn, "khanDefenceLost")).toHaveLength(0)
         expect(taunts()).toHaveLength(1)
+    })
+})
+
+describe("the castle Khan attacks leave from", () => {
+    afterEach(() => vi.restoreAllMocks())
+    const outpost = () => ({ id: 55, kingdomID: 0, areaInfo: { type: 4, x: 200, y: 210, extraData: Object.assign([], { 7: "Watch" }) }, unlockedHorses: [1, 2], unitInventory: inventory() })
+
+    test("a picked outpost sends the hits, and the defence kept is still the main castle's, where the Khan's attacks land", async () => {
+        const { cra, frames } = await khan({ sourceCastle: { kingdom: 0, id: 55 }, keepDefence: true }, { castles: [outpost()] })
+        expect([cra.SX, cra.SY]).toEqual([200, 210])
+        expect(frames.filter(([command]) => command == "dfc")).toEqual([["dfc", { CX: 100, CY: 100, AID: 1, KID: -1 }]])
+    })
+
+    test("a picked castle the account no longer holds falls back to the main castle, logs it and says so", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { cra, statuses } = await khan({ sourceCastle: { kingdom: 0, id: 55 } })
+        expect([cra.SX, cra.SY]).toEqual([100, 100])
+        expect(warn).toHaveBeenCalledWith("campSourceCastleGone", "100:100")
+        expect(statuses).toContainEqual(expect.objectContaining({ state: "running", reasonKey: "statusCampCastleFallback", params: { castle: "100:100" } }))
     })
 })
 
