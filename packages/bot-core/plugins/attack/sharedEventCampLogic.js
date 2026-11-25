@@ -10,13 +10,14 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
+const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, readCamp, sortTargets, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
 const { pickSourceCastle, marchDistance, horseByDistance } = require("../../towers.js")
 const { campAttackLine } = require("../../attackLog.js")
 const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { statusReporter } = require("../../pluginStatus.js")
+const { sleep } = require("../../pacing.js")
 
 const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
 
@@ -50,6 +51,8 @@ function eventCampAttacks(profile, stored, filename) {
     const { eventID, kingdom: kingdomID, booster } = profile
     const type = AreaType[profile.areaType]
     const classicCamps = require("../../paths.js").loadItem(profile.classicCamps)
+    const rows = { classicRows: classicCamps, scalingRows: eventAutoScalingCamps }
+    const said = { attacking: "statusCampsAttacking", cooling: "statusCampsCooling", noneFound: "statusCampsNoneFound", unreadable: "statusCampsUnreadable", ...profile.statuses }
     let points = 0
     const reportStatus = statusReporter(filename)
     reportStatus("waiting", "statusEventClosed")
@@ -88,6 +91,8 @@ function eventCampAttacks(profile, stored, filename) {
     })
 
     let quit = false
+    /** Whether the event runs, and which start of it the latest is, so a scan that waits stops when the event ends or starts again. */
+    let running = false, starts = 0
     /** The attacks sent since the event, or the bot, last started. */
     let sentThisRun = 0
 
@@ -110,6 +115,7 @@ function eventCampAttacks(profile, stored, filename) {
         if (eventInfo.EID != eventID)
             return
 
+        running = false
         if (quit)
             return
 
@@ -120,6 +126,14 @@ function eventCampAttacks(profile, stored, filename) {
     events.on("eventStart", async eventInfo => {
         if (eventInfo.EID != eventID)
             return
+        running = true
+        const start = ++starts
+        const live = () => running && start == starts
+        const unready = target.mode != "single" && profile.unready?.(options)
+        if (unready) {
+            console.warn("campsNoneWanted")
+            return reportStatus("error", unready)
+        }
 
         if (eventInfo.EDID == -1 && Number(options.eventDifficulty) == KEEP_DIFFICULTY) {
             console.warn("campDifficultyNotSet")
@@ -157,12 +171,13 @@ function eventCampAttacks(profile, stored, filename) {
         const shown = () => runLimit > 0 ? `${sentThisRun}/${runLimit}` : String(sentThisRun < STATUS_STEP ? sentThisRun : Math.floor(sentThisRun / STATUS_STEP) * STATUS_STEP)
         const reportAttacking = () => target.mode == "single"
             ? reportStatus("running", "statusCampAttackingOne", { ...target.at, castle: from, attacks: shown() })
-            : reportStatus("running", "statusCampsAttacking", { found: queue.areas.length, castle: from, attacks: shown() })
+            : reportStatus("running", said.attacking, { found: queue.areas.length, castle: from, attacks: shown() })
 
         const army = readArmy(options, reportStatus)
         if (!army || !await presetsListed(army, reportStatus))
             return
         queue.areas.length = 0
+        let found
         if (target.mode == "single") {
             if (!target.at) {
                 console.error("campTargetNotSet")
@@ -174,18 +189,40 @@ function eventCampAttacks(profile, stored, filename) {
                 console.error(otherEvent ? "campTargetOtherEvent" : "campTargetNotFound", `${target.at.x}:${target.at.y}`)
                 return reportStatus("error", otherEvent ? "statusCampTargetOtherEvent" : "statusCampTargetNotFound", target.at)
             }
-            queue.areas.push(camp)
+            found = sortTargets(profile, [camp], classic, rows)
         }
-        else
-            queue.areas.push(...(await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
-                .sort((a, b) =>
-                    (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
-                    (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
-                .sort((a, b) => a.extraData[5] - b.extraData[5]))
-        if (queue.areas.length == 0) {
+        else {
+            /** The camps around the castle, the lowest camp id first and the nearer camp first among equals. */
+            const scan = async () => {
+                const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
+                    .sort((a, b) =>
+                        (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
+                        (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2)))
+                    .sort((a, b) => a.extraData[5] - b.extraData[5])
+                return sortTargets(profile, areas, classic, rows, read => profile.wants?.(read, options) ?? true)
+            }
+            found = await scan()
+            while (profile.rescanMs && found.kept.length == 0 && found.unreadable.length == 0) {
+                reportStatus("waiting", said.noneFound, { castle: from, minutes: profile.rescanMs / 60_000 })
+                await sleep(profile.rescanMs)
+                if (!live())
+                    return
+                found = await scan()
+            }
+        }
+        if (found.unreadable.length > 0)
+            console.warn("campsUnreadable", found.unreadable.map(({ area, problem }) => `${area.x}:${area.y} ${problem} ${JSON.stringify(area.extraData)}`).join(", "))
+        if (found.kept.length == 0 && found.unreadable.length > 0)
+            return reportStatus("error", said.unreadable, { count: found.unreadable.length })
+        if (found.kept.length == 0) {
+            if (target.mode == "single") {
+                console.error("campTargetNotFound", `${target.at.x}:${target.at.y}`)
+                return reportStatus("error", "statusCampTargetNotFound", target.at)
+            }
             console.error("campsNoneFound")
-            return reportStatus("stopped", "statusCampsNoneFound")
+            return reportStatus("stopped", said.noneFound, { castle: from })
         }
+        queue.areas.push(...found.kept)
 
         quit = false
         sentThisRun = 0
@@ -203,6 +240,13 @@ function eventCampAttacks(profile, stored, filename) {
                     const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
                     if (!areaInfo)
                         return
+                    const read = readCamp(profile, areaInfo.extraData, classic, rows)
+                    if (read.problem || (target.mode != "single" && profile.wants && !profile.wants(read, options))) {
+                        if (read.problem)
+                            console.warn("campsUnreadable", `${areaInfo.x}:${areaInfo.y} ${read.problem} ${JSON.stringify(areaInfo.extraData)}`)
+                        queue.areas.splice(queue.areas.indexOf(areaInfo), 1)
+                        return
+                    }
 
                     if (!options.dryRun)
                         sending.skips = await skipTarget(areaInfo)
@@ -211,11 +255,8 @@ function eventCampAttacks(profile, stored, filename) {
                     const horse = horseFor(areaInfo)
                     sending.horse = horse.name
 
-                    const campInfo = classic ? profile.classicCamp(classicCamps, areaInfo.extraData) :
-                        eventAutoScalingCamps.find(obj => areaInfo.extraData[5] == obj.eventAutoScalingCampID)
-
-                    const level = Number(classic ? profile.classicLevel(campInfo) : campInfo.camplevel)
-                    const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: options.dryRun, deleteReports: options.deleteReports }
+                    const { level } = read
+                    const context = { level, extraData: areaInfo.extraData, campID: read.campID, dryRun: options.dryRun, deleteReports: options.deleteReports }
 
                     if (army.mode == "waves") {
                         const effects = commander.getEffects()
@@ -286,7 +327,7 @@ function eventCampAttacks(profile, stored, filename) {
 
                     if (allTroopCount < troopFloor)
                         throw "NO_MORE_TROOPS"
-                    if (toolSet == "all" && !saidNoBoosters && ![attackerEventTools, attackerWallEventTools, attackerGateEventTools, attackerShieldEventTools].some(tools => tools.length)) {
+                    if (toolSet == "all" && booster && !saidNoBoosters && ![attackerEventTools, attackerWallEventTools, attackerGateEventTools, attackerShieldEventTools].some(tools => tools.length)) {
                         saidNoBoosters = true
                         console.warn("campNoEventBoosters")
                     }
@@ -446,7 +487,7 @@ function eventCampAttacks(profile, stored, filename) {
                 if (!attackInfo) {
                     freeCommander(commander.lordID)
                     const wait = Math.min(Math.max(queue.nextReadyAt() - Date.now(), IDLE_MS[0]), IDLE_MS[1])
-                    reportStatus("waiting", "statusCampsCooling", { minutes: Math.max(1, Math.ceil((queue.nextReadyAt() - Date.now()) / 60_000)) })
+                    reportStatus("waiting", said.cooling, { minutes: Math.max(1, Math.ceil((queue.nextReadyAt() - Date.now()) / 60_000)) })
                     await new Promise(resolve => setTimeout(resolve, wait).unref())
                     continue
                 }

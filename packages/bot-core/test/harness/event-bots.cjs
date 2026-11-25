@@ -7,6 +7,7 @@ const KingdomID = { greatEmpire: 0, burningSands: 1, everWinterGlacier: 2, fireP
 const PLUGINS = {
     attackNomads: { path: "plugins/attack/attackNomads.js", eventID: 72, kingdomID: 0 },
     attackSamurai: { path: "plugins/attack/attackSamurai.js", eventID: 80, kingdomID: 0 },
+    attackDaimyo: { path: "plugins/attack/attackDaimyo.js", eventID: 80, kingdomID: 0 },
     attackKhan: { path: "plugins/attack/attackKhan.js", eventID: 72, kingdomID: 0 },
     attackBerimondInvasion: { path: "plugins/attack/attackBerimondInvasion.js", eventID: 85, kingdomID: 0 },
     attackStormForts: { path: "plugins/attack/attackStormForts.js", kingdomID: 4 },

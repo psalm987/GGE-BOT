@@ -535,7 +535,7 @@
   "modules.blacksmith-event-shops.name": "Blacksmith and event shops",
   "modules.blacksmith-event-shops.description": "Spends event currency in the shops in the order you choose, up to limits you set.",
   "modules.nom-sam-daimyo.name": "Nomads, Samurai and Daimyo",
-  "modules.nom-sam-daimyo.description": "Attacks the Nomad and Samurai camps with the commanders you allow.",
+  "modules.nom-sam-daimyo.description": "Attacks the Nomad and Samurai camps and the Daimyo castles with the commanders you allow.",
   "modules.storms.name": "Storms",
   "modules.storms.description": "Attacks the Storm Islands fortresses and sends mead to your Storm Islands castle so it doesn't run out.",
   "modules.fortress.name": "Fortress",

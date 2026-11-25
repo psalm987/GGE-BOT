@@ -1,22 +1,23 @@
 ---
 title: Nomads, Samurai and Daimyo
-description: Attack Nomad and Samurai camps during their events, with camp modes, a difficulty, time skip budgets and score limits.
+description: Attack Nomad and Samurai camps and Daimyo castles during their events, with camp modes, a difficulty, time skip budgets and score limits.
 appRoute: /m/nom-sam-daimyo
 plugin: attackNomads
 sources:
   - packages/bot-core/plugins/attack/attackNomads.js
   - packages/bot-core/plugins/attack/attackSamurai.js
+  - packages/bot-core/plugins/attack/attackDaimyo.js
   - packages/bot-core/plugins/attack/sharedEventCampLogic.js
   - packages/bot-core/eventCamps.js
   - packages/bot-core/eventDifficulty.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This {% term id="module" %}module{% /term %} attacks {% term id="nomad" %}Nomad{% /term %} camps and {% term id="samurai" %}Samurai{% /term %} camps in the {% term id="great-empire" %}Great Empire{% /term %} while their events run. It has one tab for Nomads and one for Samurai.
+{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This {% term id="module" %}module{% /term %} attacks {% term id="nomad" %}Nomad{% /term %} camps and {% term id="samurai" %}Samurai{% /term %} camps in the {% term id="great-empire" %}Great Empire{% /term %} while their events run, and the {% term id="daimyo" %}Daimyo{% /term %} castles of a Samurai event that has them. It has one tab each for Nomads, Samurai and Daimyo.
 
 {% terms_on_page /%}
 
-Turn on the tab of the event you play, and the bot starts when the event starts. {% term id="daimyo" %}Daimyo{% /term %} castles are not supported yet. {% status kind="planned" /%}
+Turn on the tab of the event you play, and the bot starts when the event starts.
 
 ## How it works {% #how-it-works %}
 
@@ -42,6 +43,19 @@ The Nomad camps and the [Khan](/modules/khan/) camps are part of the same event.
 In the two modes that spend skips, **Time skips the bot may use** picks the skips, and **Time skips a day** caps how many the module spends in any 24 hours. 0 sets no cap. When the cap is used up, the bot waits for camps instead of skipping.
 
 If no camp is found near the castle, the tab stops. Restart the bot to look again.
+
+## Daimyo castles {% #daimyo %}
+
+The Daimyo tab attacks Daimyo castles during the Samurai event. It works like the Samurai tab, with these differences:
+
+- **Rank 1** to **Rank 4** pick the castles to attack. Only rank 1 is on by default. Rank 1 is the weakest, and each attack on it makes the next wait 30 min longer, up to 2 h. Rank 4 is the strongest, and its wait rises from 5 h to 25 h.
+- If no castle of those ranks is near the castle the attacks leave from, the tab looks again every 10 minutes instead of stopping.
+- **Skip mode: one camp, uses time skips** attacks the castle at **Camp X** and **Camp Y**, whatever its rank.
+- The tab has no **Event difficulty** and no **Stop at this score**. The Samurai tab sets the event's difficulty.
+- Samurai event {% term id="tool" %}tools{% /term %} cannot attack a Daimyo castle, so the tab sends only ordinary wall, gate and shield tools.
+- Time skips are skip items only. The tab never spends {% term id="ruby" %}rubies{% /term %}.
+
+If the map shows a Daimyo castle in a form the bot does not know, the tab attacks nothing and says so. The {% term id="log" %}log{% /term %} names each castle. {% status kind="beta" /%}
 
 ## Difficulty {% #difficulty %}
 
@@ -90,6 +104,10 @@ Turn on **Log only: write the attacks to the log instead of sending them**. The 
 ### Samurai {% #settings-samurai %}
 
 {% settings plugin="attackSamurai" /%}
+
+### Daimyo {% #settings-daimyo %}
+
+{% settings plugin="attackDaimyo" /%}
 
 ## Related errors {% #errors %}
 
