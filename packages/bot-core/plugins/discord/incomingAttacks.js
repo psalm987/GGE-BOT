@@ -39,6 +39,13 @@ const layoutFile = ({ left, middle, right, courtyard }) => ({
     attachment: createLayout(left, middle, right, courtyard),
     name: "attack.png"
 })
+/** The pending reminder timers for each attack, by movement id. */
+const reminders = new Map()
+const stopReminders = movementId => {
+    reminders.get(movementId)?.forEach(clearTimeout)
+    reminders.delete(movementId)
+}
+
 const isAway = member => !["online", "dnd"].includes(member.presence?.status)
 
 events.on("incoming:updated", async (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
@@ -50,7 +57,19 @@ events.on("incoming:updated", async (/** @type {import("../incoming.js").Incomin
         files: [layoutFile(attack.waves)]
     }).catch(e => (console.warn(e), message)))
 })
-events.on("incoming:cleared", (/** @type {import("../incoming.js").IncomingAttack} */ attack) => posts.delete(attack.movementId))
+events.on("incoming:cancelled", async (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
+    stopReminders(attack.movementId)
+    const message = await posts.get(attack.movementId)
+    if (!message)
+        return
+    await message.edit({
+        content: `**${i18n.__("incomingCancelled")}**\n${message.content.replace(/<t:\d+:R>$/, "")}`.trimEnd()
+    }).catch(console.warn)
+})
+events.on("incoming:cleared", (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
+    stopReminders(attack.movementId)
+    posts.delete(attack.movementId)
+})
 
 events.on("incoming:new", async (/** @type {import("../incoming.js").IncomingAttack} */ attack) => {
     await clientReady
@@ -109,7 +128,7 @@ events.on("incoming:new", async (/** @type {import("../incoming.js").IncomingAtt
             if (current && isAway(current))
                 await channelAlert.send(`<@${current.id}> `)
         }
-        for (const divisor of [4, 3, 2, 1.5])
-            setTimeout(() => spreadAlert().catch(console.warn), timeLeft * 1000 / divisor).unref()
+        reminders.set(attack.movementId, [4, 3, 2, 1.5].map(divisor =>
+            setTimeout(() => spreadAlert().catch(console.warn), timeLeft * 1000 / divisor).unref()))
     }
 })
