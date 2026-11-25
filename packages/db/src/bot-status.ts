@@ -1,4 +1,4 @@
-import { AccountCastle, GamePreset, PluginStates, type PublicAccount } from "@gge/contracts"
+import { AccountCastle, GamePreset, PluginStates, ReadBack, type PublicAccount } from "@gge/contracts"
 import type { botStatus } from "./schema.ts"
 
 const figure = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
@@ -16,12 +16,13 @@ function figuresOf(resources: unknown): NonNullable<PublicAccount["status"]>["re
     }
 }
 
-/** A bot_status row as the API and the realtime events show it. Castles and in-game presets live in the worker's last resources report. */
+/** A bot_status row as the API and the realtime events show it. Castles, in-game presets and the read-back snapshot live in the worker's last resources report. */
 export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualState" | "heartbeatAt" | "lastError" | "bannedUntil" | "pluginStates" | "resources">): NonNullable<PublicAccount["status"]> {
     const castles = AccountCastle.array().safeParse((row.resources as { castles?: unknown } | null)?.castles)
     const pluginStates = PluginStates.safeParse(row.pluginStates)
     const commanders = (row.resources as { commanders?: unknown } | null)?.commanders
     const gamePresets = GamePreset.array().safeParse((row.resources as { gamePresets?: unknown } | null)?.gamePresets)
+    const readBack = ReadBack.safeParse((row.resources as { readBack?: unknown } | null)?.readBack)
     return {
         actualState: row.actualState, heartbeatAt: row.heartbeatAt, lastError: row.lastError, bannedUntil: row.bannedUntil,
         pluginStates: pluginStates.success ? pluginStates.data : {},
@@ -29,5 +30,6 @@ export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualSta
         commanders: typeof commanders === "number" && Number.isInteger(commanders) && commanders >= 0 ? commanders : null,
         gamePresets: gamePresets.success ? gamePresets.data : [],
         resources: figuresOf(row.resources),
+        readBack: readBack.success ? readBack.data : null,
     }
 }

@@ -79,7 +79,7 @@ export type ModuleDef = {
     /** Shown only where the catalog holds its plugin, which is a development stack's preview plugin. */
     devOnly?: true
     /** A live module whose page is its own screen instead of plugin settings. It has no plugins. */
-    page?: "virtualPresets"
+    page?: "virtualPresets" | "liveView"
 }
 
 const live = (id: string, group: ModuleGroup, icon: IconId, plugins: readonly PluginKey[], tabs?: ModuleDef["tabs"]) =>
@@ -94,7 +94,7 @@ const soon = (id: string, group: ModuleGroup, icon: IconId) => ({ id, group, ico
  * read this list. Names and texts are the `modules.<id>.*` keys of the client catalog. A plugin belongs to exactly one live module.
  */
 export const MODULES: readonly ModuleDef[] = [
-    soon("live-view", "overview", "all-seeing-eye"),
+    page("live-view", "overview", "all-seeing-eye", "liveView"),
     soon("castle-manager", "account", "castle"),
     soon("offer-buyer", "account", "shopping-cart"),
     live("wheel-spin", "account", "tarot-10-wheel-of-fortune", ["wheelSpin"]),

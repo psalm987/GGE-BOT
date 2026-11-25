@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -197,6 +197,24 @@ test("a status carries the castles of the worker's last report", async () => {
     await store.setStatus(accountId, { resources: { castles: [castle] } })
     const [event] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(event).toMatchObject({ status: { castles: [castle] } })
+})
+
+test("a status carries the read-back snapshot of the worker's last report, and none when the report's is malformed", async () => {
+    const readBack = {
+        at: 1_800_000_000_000,
+        castles: [{ kingdom: 0, id: 1001, readAt: 1_799_999_990_000, stock: { wood: { amount: 175000, max: 175000, perHour: 19 }, mead: { amount: 7400000, max: 9000000, perHour: -53972 } } }],
+        movements: [{
+            id: 42, side: "incoming", kind: "attack", kingdom: 0, from: { type: 1, x: 1, y: 2, name: "Wolf Den" }, to: { type: 1, x: 4, y: 5, name: "Ironhold" },
+            sender: "Raider", troops: 1500, totalSeconds: 600, arrivesAt: 1_800_000_500_000,
+        }],
+        movementCount: 1,
+        session: { startedAt: 1_799_999_000_000, coins: 44_400, rubies: null },
+    }
+    await store.setStatus(accountId, { resources: { cash: 1200, readBack } })
+    await store.setStatus(accountId, { resources: { cash: 1200, readBack: { ...readBack, movements: "many" } } })
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events[0]).toMatchObject({ status: { readBack, resources: { cash: 1200 } } })
+    expect(events[1]).toMatchObject({ status: { readBack: null, resources: { cash: 1200 } } })
 })
 
 test("starting a worker clears the plugin states, and so does recovering from a crash", async () => {

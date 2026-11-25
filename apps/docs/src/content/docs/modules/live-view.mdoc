@@ -1,0 +1,57 @@
+---
+title: Live view
+description: See what your bot last read from the game. Each castle's stores with hourly rates, the marches on the map, and what the session gained.
+appRoute: /m/live-view
+sources:
+  - apps/client/src/pages/LiveView.tsx
+  - apps/client/src/live-view-model.ts
+  - packages/contracts/src/read-back.ts
+  - packages/bot-core/readBack.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="all-seeing-eye" size=32 /%}Want to see what your bot sees? Live view shows what the bot last read from the game for one account. It only reads. Nothing on this page sends a command to the game.
+
+{% terms_on_page /%}
+
+The page has no {% term id="plugin" %}plugin{% /term %} of its own and no settings. Open {% ui key="client:modules.live-view.name" /%} in the sidebar and pick the account at the top.
+
+## This session {% #session %}
+
+The first card counts from the moment the bot signed in.
+
+- {% ui key="client:liveView.session.coins" /%} and {% ui key="client:liveView.session.rubies" /%} are the change since sign-in. A minus sign means the account spent more than it gained.
+- Each figure shows an hourly rate after the session is 5 minutes old. Before that the rate would be a guess.
+- {% ui key="client:liveView.session.length" /%} is how long the session had run at the last report.
+
+The line under the figures says how old the report is. When the bot is stopped, the card is named {% ui key="client:liveView.session.lastTitle" /%} and the page keeps the last report, so you can still read it.
+
+## Marches {% #marches %}
+
+The second card lists the armies on the map that the game shows your account.
+
+- Each row has the kind of march, its {% term id="kingdom" %}kingdom{% /term %}, where it left from and where it goes, and a countdown to when it lands.
+- The bar fills as the march gets closer. It moves by itself between reports.
+- An attack on your account is marked {% ui key="client:liveView.side.incoming" /%} and is listed first.
+- The buttons above the list show only {% ui key="client:liveView.side.own" /%}, {% ui key="client:liveView.side.incoming" /%}, {% ui key="client:liveView.side.support" /%} or {% ui key="client:liveView.side.other" /%}.
+- The number of soldiers shows only when the game lets your account see the army.
+
+A report carries at most 50 marches. When the game lists more, the page says how many there were. A march that has landed leaves the list, even before the next report.
+
+## Castle stores {% #castle-stores %}
+
+The third card has one table for each castle, grouped by kingdom.
+
+| Column | What it shows |
+| --- | --- |
+| {% ui key="client:liveView.castles.stored" /%} | The amount in storage, with a bar for how full the storage is. |
+| {% ui key="client:liveView.castles.perHour" /%} | What an hour adds, less what the castle's troops eat or drink. A minus sign means the stock is running down. |
+| {% ui key="client:liveView.castles.forecast" /%} | When the storage is full, or when the stock runs out, at the current rate. |
+
+A resource the castle neither holds nor makes has no row.
+
+## How fresh the page is {% #freshness %}
+
+- The bot sends a report when the game tells it the account's coins or {% term id="ruby" %}rubies{% /term %} changed. A busy bot reports many times a minute. A quiet bot can go several minutes without one.
+- Castle stores are as old as the bot's last look at its castles, which can be older than the report. The forecasts count from that look.
+- The page does not ask the game for anything. To get a newer picture, keep the bot started.

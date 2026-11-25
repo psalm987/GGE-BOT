@@ -6,7 +6,7 @@ export const sidebar: Group[] = [
     // Labels without a translation yet stay English in every locale, so the keys are in place for the translation pass.
     { label: "Your war room", translations: { de: "Your war room", ar: "Your war room" }, items: [{ slug: "war-room/dashboard" }, { slug: "war-room/logs" }, { slug: "war-room/alerts-and-emails" }, { slug: "war-room/settings" }] },
     // Module groups follow the app's sidebar (modules.group.* in the client catalogs).
-    { label: "Modules", translations: { de: "Modules", ar: "Modules" }, items: [{ slug: "modules" }] },
+    { label: "Modules", translations: { de: "Modules", ar: "Modules" }, items: [{ slug: "modules" }, { slug: "modules/live-view" }] },
     { label: "Account manager", translations: { de: "Kontoverwaltung", ar: "إدارة الحسابات" }, items: [{ slug: "modules/wheel-spin" }, { slug: "modules/messages" }] },
     {
         label: "Attacks and gear",

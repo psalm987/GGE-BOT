@@ -7,6 +7,7 @@ import { MODULES, type ModuleDef, type PluginCatalogEntry, type PublicAccount } 
 import { Icon, messageOf, ParchmentCard } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
+import { LiveView } from "./LiveView.tsx"
 import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { StartStop, StartStopDetail } from "../components/StartStop.tsx"
@@ -39,6 +40,7 @@ export function Module() {
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
             {module.page === "virtualPresets" ? <VirtualPresets module={module} />
+                : module.page === "liveView" ? <LiveView module={module} />
                 : module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}
         </AppLayout>
     )

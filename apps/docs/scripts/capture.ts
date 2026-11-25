@@ -193,8 +193,8 @@ const SHOTS: Shot[] = [
         await page.getByLabel("Game account name").waitFor()
     } },
     { id: "coming-soon", async show(page, width) {
-        await viaSidebar(page, width, "Live view")
-        await page.getByRole("heading", { name: "Live view" }).first().waitFor()
+        await viaSidebar(page, width, "Castle manager")
+        await page.getByRole("heading", { name: "Castle manager" }).first().waitFor()
     } },
 ]
 
