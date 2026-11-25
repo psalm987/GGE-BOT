@@ -73,7 +73,8 @@ async function runEvent(plugin, options, {
             },
         },
     }
-    const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols } }).mod
+    // A test that stands in for the pacing also gets the engine's waits, such as the one at the daily cap.
+    const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols, ...extra["pacing.js"] && { "pacing.js": extra["pacing.js"] } } }).mod
     const sent = []
     const statuses = []
     let handedOut = 0

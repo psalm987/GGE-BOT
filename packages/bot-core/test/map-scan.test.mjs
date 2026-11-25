@@ -188,7 +188,7 @@ describe("the attack plugins", () => {
 
     test("the fortress scan asks for the whole map in 169 requests with map_grid off", async () => {
         const { run, requests } = loadPlugin("plugins/attack/sharedFortressAttackLogic.js", fortresses, false)
-        run(1, 60, {})
+        run(1, 60, {}, "/plugins/attackFortressesBurningSands.js")
         await settle()
 
         expect(requests).toHaveLength(169)
@@ -197,7 +197,7 @@ describe("the attack plugins", () => {
 
     test("the fortress scan asks for 49 grid boxes with map_grid on", async () => {
         const { run, requests } = loadPlugin("plugins/attack/sharedFortressAttackLogic.js", fortresses, true)
-        run(1, 60, {})
+        run(1, 60, {}, "/plugins/attackFortressesBurningSands.js")
         await settle()
 
         expect(requests).toHaveLength(49)
@@ -206,7 +206,7 @@ describe("the attack plugins", () => {
 
     test("a fortress grid scan that finds nothing is followed by the whole-map scan", async () => {
         const { run, requests } = loadPlugin("plugins/attack/sharedFortressAttackLogic.js", [fortresses[1]], true)
-        run(1, 60, {})
+        run(1, 60, {}, "/plugins/attackFortressesBurningSands.js")
         await settle()
 
         expect(requests).toHaveLength(49 + 169)

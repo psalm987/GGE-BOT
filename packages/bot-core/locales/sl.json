@@ -72,7 +72,6 @@
     "toResSend": " v ",
     "hoursOptionIsNotNumber": "Nastavitev ur ni število",
     "attackRejectedDetails": "Igra je zavrnila napad: ",
-    "attacksHalted": "Vsi napadi so ustavljeni, dokler se bot ne zažene znova, ker je igra zavrnila napad: ",
     "shuttingDownEvent": "Ustavljam ta dogodek, ker ",
     "eventEnded": "se je dogodek končal",
     "hittingTargetAttack": "Napadam ",

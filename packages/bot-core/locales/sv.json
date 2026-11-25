@@ -72,7 +72,6 @@
     "toResSend": " till ",
     "hoursOptionIsNotNumber": "Timinställningen är inte ett tal",
     "attackRejectedDetails": "Spelet avvisade anfallet: ",
-    "attacksHalted": "Alla anfall är stoppade tills botten startar om, eftersom spelet avvisade ett anfall: ",
     "shuttingDownEvent": "Stoppar det här eventet eftersom ",
     "eventEnded": "eventet tog slut",
     "hittingTargetAttack": "Anfaller ",

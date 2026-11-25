@@ -72,7 +72,6 @@
     "toResSend": " an ",
     "hoursOptionIsNotNumber": "Die Stundeneinstellung ist keine Zahl",
     "attackRejectedDetails": "Das Spiel hat den Angriff abgelehnt: ",
-    "attacksHalted": "Alle Angriffe sind bis zum Neustart des Bots gestoppt, weil das Spiel einen Angriff abgelehnt hat: ",
     "shuttingDownEvent": "Dieses Event wird gestoppt, weil ",
     "eventEnded": "das Event beendet ist",
     "hittingTargetAttack": "Angriff auf ",

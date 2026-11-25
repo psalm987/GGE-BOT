@@ -71,7 +71,6 @@
     "toResSend": " uz ",
     "hoursOptionIsNotNumber": "Stundu iestatījums nav skaitlis",
     "attackRejectedDetails": "Spēle noraidīja uzbrukumu: ",
-    "attacksHalted": "Visi uzbrukumi ir apturēti, līdz bots tiks restartēts, jo spēle noraidīja uzbrukumu: ",
     "shuttingDownEvent": "Aptur šo pasākumu, jo ",
     "eventEnded": "pasākums beidzās",
     "hittingTargetAttack": "Uzbrūku ",

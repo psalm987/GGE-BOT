@@ -71,7 +71,6 @@
     "toResSend": " do ",
     "hoursOptionIsNotNumber": "Nastavení hodin není číslo",
     "attackRejectedDetails": "Hra útok odmítla: ",
-    "attacksHalted": "Všechny útoky jsou zastaveny do restartu bota, protože hra odmítla útok: ",
     "shuttingDownEvent": "Tato událost se zastavuje, protože ",
     "eventEnded": "událost skončila",
     "hittingTargetAttack": "Útočíme na ",

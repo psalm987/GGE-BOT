@@ -72,7 +72,6 @@
     "toResSend": " către ",
     "hoursOptionIsNotNumber": "Setarea pentru ore nu este un număr",
     "attackRejectedDetails": "Jocul a respins atacul: ",
-    "attacksHalted": "Toate atacurile sunt oprite până la repornirea botului, pentru că jocul a respins un atac: ",
     "shuttingDownEvent": "Se oprește acest eveniment pentru că ",
     "eventEnded": "evenimentul s-a încheiat",
     "hittingTargetAttack": "Se atacă ",

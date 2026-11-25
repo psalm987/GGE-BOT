@@ -72,7 +72,6 @@
     "toResSend": " към ",
     "hoursOptionIsNotNumber": "Настройката за часовете не е число",
     "attackRejectedDetails": "Играта отхвърли атаката: ",
-    "attacksHalted": "Всички атаки са спрени до рестарта на бота, защото играта отхвърли атака: ",
     "shuttingDownEvent": "Това събитие се спира, защото ",
     "eventEnded": "събитието приключи",
     "hittingTargetAttack": "Атакува се ",

@@ -72,7 +72,6 @@
     "toResSend": " до ",
     "hoursOptionIsNotNumber": "Налаштування годин не є числом",
     "attackRejectedDetails": "Гра відхилила атаку: ",
-    "attacksHalted": "Усі атаки зупинено до перезапуску бота, бо гра відхилила атаку: ",
     "shuttingDownEvent": "Зупиняємо цю подію, бо ",
     "eventEnded": "подія закінчилася",
     "hittingTargetAttack": "Атакуємо ",

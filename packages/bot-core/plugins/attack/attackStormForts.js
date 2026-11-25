@@ -74,7 +74,7 @@ if (require('node:worker_threads').isMainThread) {
 
 const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles } = require("../../protocols.js")
 const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler, playerInfo } = require("../../ggeBot.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
@@ -335,6 +335,7 @@ events.once("load", async () => {
                 return false
             }
 
+            reportStatus("running")
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
@@ -357,6 +358,9 @@ events.once("load", async () => {
                 case "MISSING_UNITS":
                 case "CASTLE_LOCKED":
                 case "CANT_START_NEW_ARMIES":
+                    return true
+                case "ATTACK_LIMIT_REACHED":
+                    await waitOutDailyLimit(reportStatus)
                     return true
                 default:
                     throw e

@@ -71,7 +71,6 @@
     "toResSend": " a ",
     "hoursOptionIsNotNumber": "El ajuste de horas no es un número",
     "attackRejectedDetails": "El juego rechazó el ataque: ",
-    "attacksHalted": "Todos los ataques están detenidos hasta que el bot se reinicie, porque el juego rechazó un ataque: ",
     "shuttingDownEvent": "Se detiene este evento porque ",
     "eventEnded": "el evento terminó",
     "hittingTargetAttack": "Atacando a ",

@@ -72,7 +72,6 @@
     "toResSend": " kohteeseen ",
     "hoursOptionIsNotNumber": "Tuntiasetus ei ole luku",
     "attackRejectedDetails": "Peli hylkäsi hyökkäyksen: ",
-    "attacksHalted": "Kaikki hyökkäykset on pysäytetty botin uudelleenkäynnistykseen asti, koska peli hylkäsi hyökkäyksen: ",
     "shuttingDownEvent": "Tämä tapahtuma pysäytetään, koska ",
     "eventEnded": "tapahtuma päättyi",
     "hittingTargetAttack": "Hyökätään kohteeseen ",

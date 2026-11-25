@@ -85,7 +85,7 @@ if (require('node:worker_threads').isMainThread)
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
@@ -580,6 +580,9 @@ events.on("eventStart", async ({ EID, EDID }) => {
                 case "MISSING_UNITS":
                 case "CASTLE_LOCKED":
                 case "CANT_START_NEW_ARMIES":
+                    break
+                case "ATTACK_LIMIT_REACHED":
+                    await waitOutDailyLimit(reportStatus)
                     break
                 default:
                     console.error(e)

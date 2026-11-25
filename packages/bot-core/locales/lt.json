@@ -71,7 +71,6 @@
     "toResSend": " į ",
     "hoursOptionIsNotNumber": "Valandų nustatymas nėra skaičius",
     "attackRejectedDetails": "Žaidimas atmetė puolimą: ",
-    "attacksHalted": "Visi puolimai sustabdyti, kol botas bus paleistas iš naujo, nes žaidimas atmetė puolimą: ",
     "shuttingDownEvent": "Šis renginys stabdomas, nes ",
     "eventEnded": "renginys baigėsi",
     "hittingTargetAttack": "Puolama ",

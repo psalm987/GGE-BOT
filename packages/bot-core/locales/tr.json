@@ -72,7 +72,6 @@
     "toResSend": " → ",
     "hoursOptionIsNotNumber": "Saat ayarı bir sayı değil",
     "attackRejectedDetails": "Oyun saldırıyı reddetti: ",
-    "attacksHalted": "Oyun bir saldırıyı reddettiği için bot yeniden başlayana kadar tüm saldırılar durduruldu: ",
     "shuttingDownEvent": "Bu etkinlik durduruluyor çünkü ",
     "eventEnded": "etkinlik sona erdi",
     "hittingTargetAttack": "Saldırı: ",

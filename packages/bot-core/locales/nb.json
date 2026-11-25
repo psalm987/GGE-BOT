@@ -71,7 +71,6 @@
     "toResSend": " til ",
     "hoursOptionIsNotNumber": "Timeinnstillingen er ikke et tall",
     "attackRejectedDetails": "Spillet avviste angrepet: ",
-    "attacksHalted": "Alle angrep er stoppet til boten starter på nytt, fordi spillet avviste et angrep: ",
     "shuttingDownEvent": "Stopper dette eventet fordi ",
     "eventEnded": "eventet er over",
     "hittingTargetAttack": "Angriper ",

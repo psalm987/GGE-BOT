@@ -72,7 +72,6 @@
     "toResSend": " do ",
     "hoursOptionIsNotNumber": "Ustawienie godzin nie jest liczbą",
     "attackRejectedDetails": "Gra odrzuciła atak: ",
-    "attacksHalted": "Wszystkie ataki są wstrzymane do restartu bota, ponieważ gra odrzuciła atak: ",
     "shuttingDownEvent": "Zatrzymuję to wydarzenie, ponieważ ",
     "eventEnded": "wydarzenie się skończyło",
     "hittingTargetAttack": "Atakowanie ",

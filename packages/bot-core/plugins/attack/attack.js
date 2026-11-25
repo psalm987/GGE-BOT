@@ -286,38 +286,50 @@ const accountLimits = () => ({
     hourlyLeft: limiter.getTokensRemaining() >= 1,
 })
 
+/** How often a plugin stopped by the account's daily limit asks again. The limit rolls over 24 hours, so room returns gradually. */
+const DAILY_LIMIT_RECHECK_MS = 5 * 60_000
+/** For a plugin whose attack was refused with ATTACK_LIMIT_REACHED: reports the wait, then sleeps before it tries again. */
+async function waitOutDailyLimit(reportStatus) {
+    reportStatus("waiting", "statusTowersLimitAccount", { cap: dailyLimit(), minutes: DAILY_LIMIT_RECHECK_MS / 60_000 })
+    await sleep(DAILY_LIMIT_RECHECK_MS)
+}
+
 const err = require("../../err.json")
 const MAX_REJECTIONS_IN_A_ROW = 3
+const FIRST_PAUSE_MS = 5 * 60_000
+const LONGEST_PAUSE_MS = 60 * 60_000
 let rejectionsInARow = 0
 let turnRejected = false
-let haltReason
+let pausesInARow = 0
+let pausedUntil = 0
 
 // A rejected attack means the bot's view of the game is wrong. Sending more
-// on the same view repeats the request the server just refused.
-function halt(reason) {
-    if (haltReason)
+// on the same view repeats the request the server just refused, so the queue
+// stops for a while and reads the castles again before it goes on.
+function pauseAttacks(reason) {
+    if (Date.now() < pausedUntil)
         return
-    haltReason = reason
-    console.error("attacksHalted", reason)
+    pausesInARow++
+    const ms = Math.min(FIRST_PAUSE_MS * 2 ** (pausesInARow - 1), LONGEST_PAUSE_MS)
+    pausedUntil = Date.now() + ms
+    console.warn("attacksPaused", ms / 60_000, "attacksPausedMinutes", reason)
 }
 
 xtHandler.on("cra", (_, result) => {
     if (Number(result) == 0) {
         rejectionsInARow = 0
+        pausesInARow = 0
         return
     }
     turnRejected = true
     rejectionsInARow++
     if (err[result] == "ATTACK_TOO_MANY_UNITS")
-        halt("ATTACK_TOO_MANY_UNITS")
+        pauseAttacks("ATTACK_TOO_MANY_UNITS")
     else if (rejectionsInARow >= MAX_REJECTIONS_IN_A_ROW)
-        halt("REJECTIONS_IN_A_ROW")
+        pauseAttacks("REJECTIONS_IN_A_ROW")
 })
 
 const waitToAttack = callback => new Promise(async (resolve, reject) => {
-    if (haltReason)
-        return reject("ATTACKS_HALTED")
-
     if(!botConfig.externalEvent && attackCount >= dailyLimit()) {
         if(!announced) {
             announced = true
@@ -345,11 +357,13 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         return
     alreadyRunning = true
     while (attacks.length > 0) {
-        const job = attacks.shift()
-        if (haltReason) {
-            job.reject("ATTACKS_HALTED")
+        if (Date.now() < pausedUntil) {
+            await sleep(pausedUntil - Date.now())
+            await resyncUnits()
+            rejectionsInARow = 0
             continue
         }
+        const job = attacks.shift()
         const baseDelay = parseFloat(pluginOptions.attackDelaySeconds)
         const variance = parseFloat(pluginOptions.attackDelayRandomizationSeconds)
         const naturalDelay = (humanize.lognormal_delays ? lognormalDelay : boxMullerRandom)(baseDelay * 1000, (baseDelay + variance) * 1000)
@@ -449,6 +463,7 @@ module.exports = {
     assignUnit,
     fillEventTools,
     waitToAttack,
+    waitOutDailyLimit,
     getTotalAmountToolsFlank,
     getTotalAmountToolsFront,
     getAmountSoldiersFlank,

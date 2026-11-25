@@ -72,7 +72,6 @@
     "toResSend": " naar ",
     "hoursOptionIsNotNumber": "De instelling voor uren is geen getal",
     "attackRejectedDetails": "Het spel heeft de aanval geweigerd: ",
-    "attacksHalted": "Alle aanvallen zijn gestopt tot de bot opnieuw start, omdat het spel een aanval heeft geweigerd: ",
     "shuttingDownEvent": "Dit event wordt gestopt omdat ",
     "eventEnded": "het event is afgelopen",
     "hittingTargetAttack": "Aanval op ",

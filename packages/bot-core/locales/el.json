@@ -72,7 +72,6 @@
     "toResSend": " σε ",
     "hoursOptionIsNotNumber": "Η ρύθμιση των ωρών δεν είναι αριθμός",
     "attackRejectedDetails": "Το παιχνίδι απέρριψε την επίθεση: ",
-    "attacksHalted": "Όλες οι επιθέσεις σταμάτησαν μέχρι να επανεκκινήσει το bot, επειδή το παιχνίδι απέρριψε μια επίθεση: ",
     "shuttingDownEvent": "Διακοπή αυτού του γεγονότος επειδή ",
     "eventEnded": "το γεγονός έληξε",
     "hittingTargetAttack": "Επίθεση σε ",

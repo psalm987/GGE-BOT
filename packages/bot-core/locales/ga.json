@@ -71,7 +71,6 @@
     "toResSend": " chuig ",
     "hoursOptionIsNotNumber": "Ní uimhir é socrú na n-uaireanta",
     "attackRejectedDetails": "Dhiúltaigh an cluiche don ionsaí: ",
-    "attacksHalted": "Tá gach ionsaí stoptha go dtí go n-athtosóidh an bot, toisc gur dhiúltaigh an cluiche d’ionsaí: ",
     "shuttingDownEvent": "Ag stopadh na hócáide seo toisc ",
     "eventEnded": "gur tháinig deireadh leis an ócáid",
     "hittingTargetAttack": "Ag ionsaí ",

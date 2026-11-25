@@ -71,7 +71,6 @@
     "toResSend": " إلى ",
     "hoursOptionIsNotNumber": "إعداد الساعات ليس رقمًا",
     "attackRejectedDetails": "رفضت اللعبة الهجوم: ",
-    "attacksHalted": "أُوقفت كل الهجمات حتى يُعاد تشغيل البوت، لأن اللعبة رفضت هجومًا: ",
     "shuttingDownEvent": "يتم إيقاف هذا الحدث لأن ",
     "eventEnded": "انتهى الحدث",
     "hittingTargetAttack": "مهاجمة الهدف ",

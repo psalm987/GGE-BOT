@@ -71,7 +71,6 @@
     "toResSend": " ide: ",
     "hoursOptionIsNotNumber": "Az órák beállítása nem szám",
     "attackRejectedDetails": "A játék elutasította a támadást: ",
-    "attacksHalted": "Minden támadás leáll a bot újraindulásáig, mert a játék elutasított egy támadást: ",
     "shuttingDownEvent": "Az esemény leáll, mert ",
     "eventEnded": "az esemény véget ért",
     "hittingTargetAttack": "Támadás: ",

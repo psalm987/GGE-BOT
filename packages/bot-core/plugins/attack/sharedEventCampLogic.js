@@ -5,7 +5,7 @@ const pretty = require('pretty-time')
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, accountLimits } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, waitOutDailyLimit } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
@@ -17,7 +17,6 @@ const { xtHandler, events, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { statusReporter } = require("../../pluginStatus.js")
-const { sleep } = require("../../pacing.js")
 
 const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScalingCamps")
 
@@ -28,8 +27,6 @@ const STATUS_STEP = 10
 const castleName = castle => String(castle.areaInfo.extraData?.[7] || `${castle.areaInfo.x}:${castle.areaInfo.y}`)
 /** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
 const IDLE_MS = [5_000, 60_000]
-/** With the account's daily cap reached, the plugin asks again after this long, in milliseconds. The cap rolls over 24 hours, so room returns gradually. */
-const DAILY_CAP_RECHECK_MS = 5 * 60_000
 
 /**
  * Attacks the camps of one event while it runs. `profile` is the event's entry in eventCamps.js' EVENT_PROFILES,
@@ -472,8 +469,7 @@ function eventCampAttacks(profile, stored, filename) {
                 console.warn(e)
                 switch (e) {
                     case "ATTACK_LIMIT_REACHED":
-                        reportStatus("waiting", "statusTowersLimitAccount", { cap: accountLimits().limit, minutes: DAILY_CAP_RECHECK_MS / 60_000 })
-                        await sleep(DAILY_CAP_RECHECK_MS)
+                        await waitOutDailyLimit(reportStatus)
                         break
                     case "NO_MORE_TROOPS":
                         reportStatus("waiting", army.mode == "waves" ? "statusCampPlanShort" : "statusCampNoTroops", { castle: from, floor: troopFloor })

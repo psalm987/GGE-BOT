@@ -72,7 +72,6 @@
     "toResSend": " sihtkohta ",
     "hoursOptionIsNotNumber": "Tundide säte ei ole arv",
     "attackRejectedDetails": "Mäng lükkas rünnaku tagasi: ",
-    "attacksHalted": "Kõik rünnakud on peatatud boti taaskäivituseni, sest mäng lükkas rünnaku tagasi: ",
     "shuttingDownEvent": "Selle sündmuse peatamine, sest ",
     "eventEnded": "sündmus lõppes",
     "hittingTargetAttack": "Ründan sihtmärki ",
