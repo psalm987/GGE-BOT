@@ -90,13 +90,14 @@ const { waitForCommanderAvailable, freeCommander, useCommander } = require("../c
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { keepDefence } = require("../../khanDefence.js")
+const { ask } = require("../../chores.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
-const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
+const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceGate, defendersIn, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
 const { holdingsOf, gained, loadRewardNames, rewardLine } = require("../../khanRewards.js")
 const pluginOptions = readLegacy(khanWaveOptions(), botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
 const khan = parseKhan(pluginOptions)
@@ -163,25 +164,77 @@ let rage = 0
 /** The hold logged last, so a hold is announced when it starts or changes and never once per `rpr`. */
 let announced
 
-const HOLD_WARNINGS = { defenceShort: "khanTauntHeldDefenceShort", defenceLost: "khanTauntHeldDefenceLost" }
+const HOLD_WARNINGS = {
+    defenceShort: "khanTauntHeldDefenceShort", defenceLost: "khanTauntHeldDefenceLost",
+    defendersShort: "khanTauntHeldDefendersShort", toolsShort: "khanTauntHeldToolsShort", defenceUnread: "khanTauntHeldDefenceUnread",
+}
+/** The status of each hold the defender gate sets, with the counts the status text shows. */
+const GATE_STATUS = { defendersShort: "statusKhanTauntDefendersShort", toolsShort: "statusKhanTauntToolsShort", defenceUnread: "statusKhanTauntDefenceUnread" }
+/** A held taunt checks the defence again after this long, and a check this recent still stands when the bar fills, in milliseconds. */
+const GATE_RECHECK_MS = 5 * 60_000
+const GATE_FRESH_MS = 60_000
 
-function announce(hold) {
+/** The last look at the defence for `tauntMinDefenders`: `{ hold, at, ...counts }`, with no `hold` when the castle passed. */
+let gate
+let gateChecking = false
+let gateTimer
+
+function announce(hold, counts = {}) {
     if (hold == announced)
         return
     const before = announced
     announced = hold
+    const { hold: _, at, ...numbers } = counts
     if (HOLD_WARNINGS[hold])
-        console.warn(HOLD_WARNINGS[hold])
+        console.warn(HOLD_WARNINGS[hold], ...Object.values(numbers))
     else if (!hold && HOLD_WARNINGS[before])
         console.info("khanTauntsResumed")
 }
 
+/** Reports the plugin as running, with the reason a taunt is held when the defender gate holds it. */
+function reportRunning() {
+    const { hold, at, ...counts } = gate ?? {}
+    if (hold)
+        reportStatus("running", GATE_STATUS[hold], counts)
+    else
+        reportStatus("running")
+}
+
+/** Looks at the main castle's defence and holds the taunt while it has too few troops or tools. Runs again after a hold. */
+async function checkGate() {
+    if (gateChecking)
+        return
+    gateChecking = true
+    let verdict
+    try {
+        const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+        const { reply, result } = await ask("dfc", { CX: castle.areaInfo.x, CY: castle.areaInfo.y, AID: castle.id, KID: -1 })
+        verdict = result == 0 ? defenceGate(reply, defendersIn(castle.unitInventory), khan.tauntMinDefenders) : { hold: "defenceUnread" }
+    } catch (error) {
+        console.warn(error)
+        verdict = { hold: "defenceUnread" }
+    } finally {
+        gateChecking = false
+    }
+    gate = { ...verdict, at: Date.now() }
+    clearTimeout(gateTimer)
+    if (gate.hold) {
+        gateTimer = setTimeout(checkGate, GATE_RECHECK_MS)
+        gateTimer.unref?.()
+    }
+    reportRunning()
+    tryTaunt()
+}
+
 /** Spends the full rage bar on a taunt unless something holds it. Called with each `rpr` and whenever a hold clears. */
 function tryTaunt() {
-    const hold = tauntHold({ tabletsOnly: khan.tabletsOnly, dryRun: pluginOptions.dryRun, quit, defenceLost, defenceShort })
-    announce(hold)
+    const gated = khan.tauntMinDefenders > 0
+    const hold = tauntHold({ tabletsOnly: khan.tabletsOnly, dryRun: pluginOptions.dryRun, quit, defenceLost, defenceShort, gate: gated ? gate?.hold : undefined })
+    announce(hold, gate)
     if (hold || !(rage >= campRageNeeded))
         return
+    if (gated && !(gate && Date.now() - gate.at <= GATE_FRESH_MS))
+        return void checkGate()
     console.info("rageTrigger")
     rage = 0
     sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
@@ -270,6 +323,8 @@ events.on("eventStop", ({ EID }) => {
 
     // A lost defence holds taunts through reconnects, which start the event again, and only until the event ends.
     defenceLost = false
+    clearTimeout(gateTimer)
+    gate = undefined
     if (quit)
         return
 
@@ -321,7 +376,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
             await new Promise(resolve => setTimeout(resolve, TAUNT_RECHECK_MS).unref())
             continue
         }
-        reportStatus("running")
+        reportRunning()
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
         try {
             const attackInfo = await waitToAttack(async () => {
