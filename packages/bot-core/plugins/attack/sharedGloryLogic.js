@@ -400,7 +400,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         }
         while (!target.stopped) {
             reportStatus("running")
-            const commander = await waitForCommanderAvailable(setting("commanderWhiteList"))
+            const commander = await waitForCommanderAvailable(setting("commanderWhiteList"), undefined, undefined, filename)
             if (target.stopped || pastStopTime(target)) {
                 freeCommander(commander.lordID)
                 if (!target.stopped) {

@@ -213,7 +213,7 @@ events.once("load", async () => {
         if (closing)
             return false
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined,
-            (a, b) => b.getEffects().lootBonus - a.getEffects().lootBonus)
+            (a, b) => b.getEffects().lootBonus - a.getEffects().lootBonus, __filename)
         try {
             const attackInfo = await waitToAttack(async () => {
                 let index = -1

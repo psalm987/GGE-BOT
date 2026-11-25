@@ -378,7 +378,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
             continue
         }
         reportRunning()
-        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
+        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
         try {
             const attackInfo = await waitToAttack(async () => {
                 if (!pluginOptions.dryRun)

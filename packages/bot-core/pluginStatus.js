@@ -2,20 +2,22 @@ const { parentPort } = require("node:worker_threads")
 const path = require("node:path")
 const ActionType = require("./actions.json")
 
+/** The last report sent for each plugin. The commander pool reports for a plugin too, so every reporter of a plugin shares it. */
+const lastSent = new Map()
+
 /**
  * The status reporter for the plugin in `filename`, for the status pill in its settings dialog:
  * `reportStatus(state, reasonKey, params)` with state "running", "waiting", "stopped" or "error", and reasonKey a
- * bot-locale key whose {{placeholders}} come from params. A report equal to the last one sends nothing.
+ * bot-locale key whose {{placeholders}} come from params. A report equal to the plugin's last one sends nothing.
  */
 function statusReporter(filename) {
     const plugin = path.basename(filename, ".js")
-    let last
     return (state, reasonKey = null, params = {}) => {
         const report = { plugin, state, reasonKey, params }
         const sent = JSON.stringify(report)
-        if (sent === last)
+        if (sent === lastSent.get(plugin))
             return
-        last = sent
+        lastSent.set(plugin, sent)
         parentPort.postMessage([ActionType.PluginStatus, report])
     }
 }

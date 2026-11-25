@@ -1,6 +1,6 @@
 import * as z from "zod"
 import { ArmyMode, AutofillSource, SkipTypes, WavePlan } from "./army.ts"
-import { PluginCheckDef } from "./plugin-checks.ts"
+import { MAX_COMMANDERS, PluginCheckDef } from "./plugin-checks.ts"
 
 const key = z.string().min(1)
 /** Shows the option only while the plugin's ArmyMode option is in this mode. */
@@ -57,6 +57,21 @@ export type RowColumn = z.infer<typeof RowColumn>
 export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
 export type RowValue = z.infer<typeof RowValue>
 
+/**
+ * A shared bucket of the commander map: every member plugin may send the bucket's commanders. `first` members are
+ * served first when several members wait for the same commander.
+ */
+export const CommanderBucket = z.object({ key, members: z.array(key).min(1), first: z.array(key).optional() })
+export type CommanderBucket = z.infer<typeof CommanderBucket>
+
+/**
+ * An account's commander map: the owner of each commander by number, so the first entry owns commander 1. An owner is
+ * a plugin's key or a bucket's key, and "" owns nothing. A list with no owner in it is no map: every plugin then
+ * keeps its own commander list. bot-core's commanderMap.js reads the same shape.
+ */
+export const CommanderMap = z.array(z.string().max(64)).max(MAX_COMMANDERS)
+export type CommanderMap = z.infer<typeof CommanderMap>
+
 /** The option types plugins declare (bot-core plugins' pluginOptions). Any option with a key may set `showWhen`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
@@ -82,6 +97,11 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), showWhen }),
     /** Autofill or Waves. `autofill` says which options make up the autofill, for its one-line summary. */
     z.looseObject({ type: z.literal("ArmyMode"), key, default: ArmyMode.optional(), autofill: AutofillSource, showWhen }),
+    /**
+     * The account's commander map, with the shared buckets a commander may go to besides a plugin. `keepsOwnList` names
+     * the defence plugins that keep their own commander list while the map gives them nothing.
+     */
+    z.looseObject({ type: z.literal("CommanderMap"), key, default: CommanderMap, buckets: z.array(CommanderBucket), keepsOwnList: z.array(key).optional(), showWhen }),
     /** A wave plan; unset until the player writes one. */
     z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, army }),
 ])
@@ -126,7 +146,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue)])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -259,7 +279,7 @@ function parsedArmy<T extends OptionValue>(schema: z.ZodType<T>, value: OptionVa
     return parsed.data
 }
 
-function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
+function normalizeValue(catalog: PluginCatalogEntry[], def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
     switch (def.type) {
         case "":
         case "Label":
@@ -306,7 +326,24 @@ function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string)
             return parsedArmy(ArmyMode, value, where)
         case "Waves":
             return parsedArmy(WavePlan, value, where)
+        case "CommanderMap":
+            return checkCommanderMap(catalog, def.buckets, value, where)
     }
+}
+
+/** A plugin that sends commanders: its catalog entry marks its commander list. */
+export const sendsCommanders = (entry: PluginCatalogEntry) => (entry.checks ?? []).some(check => check.type === "commanders")
+
+/** The map as it is stored: every owner a bucket or a plugin that sends commanders, and no unowned commanders at its end. */
+function checkCommanderMap(catalog: PluginCatalogEntry[], buckets: CommanderBucket[], value: OptionValue, where: string): CommanderMap {
+    const parsed = CommanderMap.safeParse(value)
+    if (!parsed.success)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_LIST", params: { where, max: MAX_COMMANDERS } })
+    const owners = new Set([...buckets.map(bucket => bucket.key), ...catalog.filter(sendsCommanders).map(entry => entry.key)])
+    const stranger = parsed.data.find(owner => owner !== "" && !owners.has(owner))
+    if (stranger !== undefined)
+        throw new PluginSettingsError({ code: "PLUGIN_UNKNOWN", params: { plugin: stranger } })
+    return parsed.data.slice(0, parsed.data.findLastIndex(owner => owner !== "") + 1)
 }
 
 /** Brings a saved value from before the bounds existed, or of another type, into range. */
@@ -334,7 +371,7 @@ export function normalizePluginSettings(catalog: PluginCatalogEntry[], settings:
             const def = defs.get(optionKey)
             if (!def)
                 throw new PluginSettingsError({ code: "PLUGIN_OPTION_UNKNOWN", params: { plugin: pluginKey, option: optionKey } })
-            options[optionKey] = normalizeValue(def, value, `${pluginKey}.${optionKey}`)
+            options[optionKey] = normalizeValue(catalog, def, value, `${pluginKey}.${optionKey}`)
         }
         out[pluginKey] = { enabled: entry.force || setting.enabled, options }
     }

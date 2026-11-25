@@ -152,7 +152,7 @@ events.on("eventStart", async eventInfo => {
     reportStatus("running")
 
     while (!quit) {
-        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
+        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
         try {
             const attackInfo = await waitToAttack(async () => {
                 const areaInfo = areas.shift()

@@ -35,7 +35,7 @@ async function fortressHit(kingdomID, level, options, filename) {
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList,
             undefined,
-            (a, b) => b.getEffects().speedBonus - a.getEffects().speedBonus)
+            (a, b) => b.getEffects().speedBonus - a.getEffects().speedBonus, filename)
         
         const hasShieldMadiens = commander.getEffects().AttackSupportUnits
         try {

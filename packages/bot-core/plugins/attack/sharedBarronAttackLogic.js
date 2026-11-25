@@ -304,7 +304,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     }
 
     const sendHit = async () => {
-        const commander = await waitForCommanderAvailable(options.commanderWhiteList)
+        const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, undefined, filename)
         const hasShieldMadiens = commander.getEffects(type).AttackSupportUnits
         try {
             const attackInfo = await waitToAttack(async () => {

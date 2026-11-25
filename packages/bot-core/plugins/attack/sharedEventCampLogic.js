@@ -232,7 +232,7 @@ function eventCampAttacks(profile, stored, filename) {
             reportAttacking()
 
         while (!quit) {
-            const commander = await waitForCommanderAvailable(options.commanderWhiteList)
+            const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, undefined, filename)
             /** What the log line says of the attack being built: the skips spent on the camp and the horse. */
             const sending = { skips: [], horse: "none" }
             try {
