@@ -1166,23 +1166,20 @@ async function newMovement(movement) {
 
     if (movement.targetOwner.ownerID == movement.owner.ownerID)
         movementEvents.emit("returning", movement)
-    // console.log(`${Math.floor((movement.totalTime - (movement.deltaTime - Date.now()) + 1000) / 1000)} seconds`)
-    setTimeout(() => {
-        // By identity: a recalled station's march home reuses its id and must outlive the station's own timer.
-        const movementIndex = movements.findIndex(e => e === movement)
-        if(movementIndex == -1) {
-            debugger
-            return
-        }
-
-        movements.splice(movementIndex, 1)
-
-        if (movement.targetOwner.ownerID == movement.owner.ownerID) {
-            // console.log(`Removed movement: lordID: ${movement.lord.lordID}, lordName: ${movement.lord.name}, name: ${movement.owner.name}`)
-            movementEvents.emit("return", movement)
-        }
-
-    },  Math.max(0, movement.totalTime - (movement.deltaTime - Date.now()) + 1000))
+    setTimeout(() => endMovement(movement), Math.max(0, movement.totalTime - (movement.deltaTime - Date.now()) + 1000))
+}
+/**
+ * Takes a movement off the list and says it is over: "ended" for any movement, "return" too for a march home.
+ * By identity: a recalled station's march home reuses its id and must outlive the station's own timer.
+ */
+function endMovement(movement) {
+    const movementIndex = movements.indexOf(movement)
+    if (movementIndex == -1)
+        return
+    movements.splice(movementIndex, 1)
+    if (movement.targetOwner.ownerID == movement.owner.ownerID)
+        movementEvents.emit("return", movement)
+    movementEvents.emit("ended", movement)
 }
 class Resources {
     constructor(e) {
@@ -1242,8 +1239,8 @@ movementEvents.on("return", async (/** @type {Movement} */ movement) => {
         return
 
     const castle = castles.find(castle => castle.kingdomID == movement.kingdomID && castle.id == movement.targetAttack.extraData[0])
-    if(!castle)
-        debugger
+    if (!castle?.unitInventory)
+        return
     // This handler runs a second after the march ends. A castle list fetched
     // since then already counts the returned units.
     const marchEndedAt = Date.now() - 1000
@@ -1282,15 +1279,15 @@ xtHandler.on("mcm", (o, r) => {
 xtHandler.on("gam", (o, r) => r == 0 ? 
     Array.from(o.M ?? []).map(e => new Movement(e, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))) : undefined)
 
-xtHandler.on("dms", ({MID}) => MID.forEach(movementID => {
-    const movementIndex = movements.findIndex(e => e.id == Number(movementID))
-    if (movementIndex == -1)
+// The game removed a movement before its time, such as a cancelled attack (docs/protocol/movements.md). `dms` is the
+// game's delete-message reply and says nothing about movements.
+xtHandler.on("mrm", (obj, result) => {
+    if (result != 0)
         return
-
-    const [movement] = movements.splice(movementIndex, 1)
-
-    movementEvents.emit("return", movement)
-}))
+    const movement = movements.find(e => e.id == Number(obj?.MID))
+    if (movement)
+        endMovement(movement)
+})
 
 async function clientGetAllianceByID(allianceID) {
     await sendXT("ain", JSON.stringify({ AID: allianceID }))

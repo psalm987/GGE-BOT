@@ -326,7 +326,7 @@ describe("incoming attack alerts", () => {
         await vi.advanceTimersByTimeAsync(1000)
         const [posted] = hub.contents("1")
 
-        movementEvents.emit("return", raid)
+        movementEvents.emit("ended", raid)
         await vi.advanceTimersByTimeAsync(0)
 
         const [edited] = hub.contents("1")
@@ -346,7 +346,7 @@ describe("incoming attack alerts", () => {
 
         movementEvents.emit("outgoing", raid)
         await vi.advanceTimersByTimeAsync(101_000)
-        movementEvents.emit("return", raid)
+        movementEvents.emit("ended", raid)
         await vi.advanceTimersByTimeAsync(1000)
 
         expect(hub.sent("messageEdit")).toEqual([])

@@ -58,22 +58,6 @@ describe("getAreaInfo cache", () => {
     })
 })
 
-describe("movement removal", () => {
-    test("dms emits return with the removed Movement (protocols.js:1304)", () => {
-        const { mod, bot } = loadModule("protocols.js")
-        bot.xtHandler.emit("gam", { M: [{ M: { MID: 42, T: 0, KID: 0, OID: 99, TID: 99, SID: 99, TT: 60, PT: 30, TA: [], SA: [] } }], O: [] }, 0)
-        expect(mod.movements.map(m => m.id)).toContain(42)
-
-        const returned = []
-        mod.movementEvents.prependListener("return", m => returned.push(m))
-        bot.xtHandler.emit("dms", { MID: [42] }, 0)
-
-        expect(returned).toHaveLength(1)
-        expect(returned[0].id).toBe(42)
-        expect(mod.movements.map(m => m.id)).not.toContain(42)
-    })
-})
-
 describe("movement armies", () => {
     const units = [{ wodID: 10, role: "ranged" }, { wodID: 11, role: "melee" }, { wodID: 611 }]
     const march = army => ({ M: { MID: 7, T: 0, KID: 0, OID: 99, TID: 98, SID: 99, TT: 60, PT: 30, TA: [], SA: [] }, ...army })

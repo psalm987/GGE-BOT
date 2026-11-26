@@ -137,7 +137,7 @@ describe("the incoming attack detector", () => {
         const { bot, seen, gam } = detector()
 
         gam(march())
-        bot.xtHandler.emit("dms", { MID: [42] }, 0)
+        bot.xtHandler.emit("mrm", { MID: 42 }, 0)
         await vi.advanceTimersByTimeAsync(700_000)
 
         expect(seen.map(([name, id]) => [name, id])).toEqual([["incoming:new", 42], ["incoming:cleared", 42]])
@@ -149,7 +149,7 @@ describe("the incoming attack detector", () => {
         bot.events.on("incoming:cancelled", attack => seen.push(["incoming:cancelled", attack.movementId]))
 
         gam(march())
-        bot.xtHandler.emit("dms", { MID: [42] }, 0)
+        bot.xtHandler.emit("mrm", { MID: 42 }, 0)
         await vi.advanceTimersByTimeAsync(700_000)
 
         expect(seen.map(([name, id]) => [name, id])).toEqual([["incoming:new", 42], ["incoming:cancelled", 42], ["incoming:cleared", 42]])
@@ -162,7 +162,7 @@ describe("the incoming attack detector", () => {
 
         gam(march({ id: 1 }), march({ id: 2 }))
         await vi.advanceTimersByTimeAsync(599_000)
-        bot.xtHandler.emit("dms", { MID: [2] }, 0)
+        bot.xtHandler.emit("mrm", { MID: 2 }, 0)
         await vi.advanceTimersByTimeAsync(10_000)
 
         expect(seen.map(([name, id]) => [name, id])).toEqual([

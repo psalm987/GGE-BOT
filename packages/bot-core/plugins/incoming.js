@@ -86,4 +86,4 @@ movementEvents.on("outgoing", (/** @type {import("../protocols.js").ClassTypes.M
     events.emit("incoming:new", attack)
 })
 
-movementEvents.on("return", (/** @type {import("../protocols.js").ClassTypes.Movement} */ movement) => clear(movement.id))
+movementEvents.on("ended", (/** @type {import("../protocols.js").ClassTypes.Movement} */ movement) => clear(movement.id))

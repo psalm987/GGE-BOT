@@ -15,6 +15,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [wheel.md](wheel.md) | The Wheel of Fortune and the Wheel of Unimaginable Affluence: the spin, the tickets, the event list and what is never sent |
 | [nomad-khan.md](nomad-khan.md) | Nomad and Khan camps of event 72, rage and taunts, the points a defended taunt earns, and the castle defence commands `dfc`, `dfw`, `dfm` and `dfk` |
 | [battle-reports.md](battle-reports.md) | The `sne` push that announces a battle report, reading it with `bls`, and the glory and loot of one hit |
+| [movements.md](movements.md) | How a march ends: the `mrm` push, when the bot counts a march as over, and why `dms` is not a movement command |
 | [berimond-kingdom.md](berimond-kingdom.md) | Kingdom 10 watchtowers: finding one with `fnt`, spying, `aci`, attacking from the Berimond camp, faction points, and moving troops in with `kut` and `msk` |
 | [presets.md](presets.md) | The player's in-game army presets: listing them with `gas`, saving with `sas`, and how a preset becomes the slots of a `cra` |
 | [capture-backlog.md](capture-backlog.md) | What the 2026-11-21 trace captured, the features that still need a capture, and a checklist for the next trace |
