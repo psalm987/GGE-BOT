@@ -18,6 +18,18 @@ describe("the header of a battle report", () => {
         expect(battleReportHeader([1, 67, "34+0+0#0+-1002"])).toBeUndefined()
         expect(battleReportHeader([1, 6])).toBeUndefined()
     })
+
+    test("a baron report reads into the area, the result and the owner, with or without the area name", () => {
+        expect(battleReportHeader([324177420, 6, "27+0+0#0+-601", ""])).toEqual(
+            { messageID: 324177420, areaType: 27, subtypeAttack: 0, subtypeResult: 0, kingdomID: 0, ownerID: -601 })
+        expect(battleReportHeader([1, 6, "1+2+1#0+2190967+BlackBuck"])).toMatchObject({ areaType: 1, subtypeAttack: 2, subtypeResult: 1, ownerID: 2190967 })
+    })
+
+    test("a header that doesn't parse is not a battle report", () => {
+        expect(battleReportHeader([1, 6, "garbage"])).toBeUndefined()
+        expect(battleReportHeader([1, 6, "a+b+c#0+1"])).toBeUndefined()
+        expect(battleReportHeader(undefined)).toBeUndefined()
+    })
 })
 
 describe("the battle log of a hit", () => {

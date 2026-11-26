@@ -4,7 +4,7 @@ import { expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
 const { loadModule, fakeBot } = require("./harness/load.cjs")
-const { battleReport, reportCleaner, createReportCleanup } = require("../reportCleanup.js")
+const { reportCleaner, createReportCleanup } = require("../reportCleanup.js")
 
 /** A `cra` reply's movement as the game sent it for a baron attack (gge-trace-20261122-000542-92f4e2), time to impact 163 s. */
 const march = (overrides = {}) => ({
@@ -15,17 +15,6 @@ const march = (overrides = {}) => ({
 const report = (header, id = 324177420, type = 6) => [id, type, header, "", -1, 0, 0, 0, 0]
 const WON = "27+0+0#0+-601", LOST = "27+0+2#0+-601"
 const SECOND = 1000
-
-test("a battle report header reads into the area, the result and the owner", () => {
-    expect(battleReport(report(WON))).toEqual({ id: 324177420, areaType: 27, subtypeAttack: 0, result: 0, kingdomID: 0, ownerID: -601 })
-    expect(battleReport(report("1+2+1#0+2190967+BlackBuck"))).toMatchObject({ areaType: 1, subtypeAttack: 2, result: 1, ownerID: 2190967 })
-})
-
-test("only a battle report reads as one", () => {
-    expect(battleReport(report("1+0+27#0+-601+", 324176427, 4))).toBeUndefined()
-    expect(battleReport([1, 6, undefined])).toBeUndefined()
-    expect(battleReport(report("garbage"))).toBeUndefined()
-})
 
 test("a won attack's report is deleted when it comes with the landing", () => {
     let now = 1_000_000

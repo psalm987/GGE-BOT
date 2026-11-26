@@ -12,16 +12,17 @@ const ATTACKER = 0
  * `areaType+subtypeAttack+subtypeResult[+...]#kingdomID+ownerID[+areaName]`, where the owner is the one attacked.
  */
 function battleReportHeader(message) {
-    const [messageID, type, header] = message
+    const [messageID, type, header] = Array.isArray(message) ? message : []
     if (type != BATTLE_LOG || typeof header != "string")
         return undefined
-    const [left, right = ""] = header.split("#")
-    const [areaType, subtypeAttack, subtypeResult] = left.split("+")
-    const [kingdomID, ownerID] = right.split("+")
-    return {
-        messageID, areaType: Number(areaType), kingdomID: Number(kingdomID), ownerID: Number(ownerID),
-        subtypeAttack: Number(subtypeAttack), subtypeResult: Number(subtypeResult),
-    }
+    const [left, right] = header.split("#")
+    if (right === undefined)
+        return undefined
+    const [areaType, subtypeAttack, subtypeResult] = left.split("+").map(Number)
+    const [kingdomID, ownerID] = right.split("+").map(Number)
+    if ([areaType, subtypeAttack, subtypeResult, kingdomID, ownerID].some(Number.isNaN))
+        return undefined
+    return { messageID, areaType, subtypeAttack, subtypeResult, kingdomID, ownerID }
 }
 
 /**
