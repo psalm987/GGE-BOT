@@ -9,6 +9,7 @@ const foreignLords = require("./fixtures/protocol/foreign-lords.json")
 const bloodcrow = require("./fixtures/protocol/bloodcrow.json")
 const costTables = require("./fixtures/protocol/cost-tables.json")
 const dethroneFrames = require("./fixtures/protocol/dethrone-rae.json")
+const battleReport = require("./fixtures/protocol/battle-report-bloodcrow.json")
 
 afterEach(() => {
     vi.restoreAllMocks()
@@ -579,6 +580,42 @@ describe("dethrone", () => {
         const { sent } = await glory("attackForeign", { options: exile, player: { coin: 1e6 }, start: { CRE: 0 } })
 
         expect(sent("rae")).toEqual([])
+    })
+})
+
+describe("glory per hit", () => {
+    const [report] = battleReport.sne_battle_report_push.payload.MSG
+    const push = (header = report[2]) => [{ MSG: [[report[0], report[1], header, ...report.slice(3)]] }]
+    const options = { player: { playerID: battleReport.playerID }, replies: { bls: () => [battleReport.bls_1.reply.payload, 0] } }
+    const hearing = (...frames) => (handed, bot) => handed == 0 && frames.forEach(frame => bot.xtHandler.emit("sne", ...frame))
+
+    test("a battle report on the plugin's own camps is read and logs its glory and the run's total", async () => {
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {})
+        const { sent } = await glory("attackBloodcrows", { ...options, onCommander: hearing(push(), push()) })
+
+        expect(sent("bls")).toEqual([battleReport.bls_1.payload, battleReport.bls_1.payload])
+        expect(spy.mock.calls.filter(([key]) => key == "gloryHitGained")).toEqual([
+            ["gloryHitGained", 8_681_411, " ", 8_681_411],
+            ["gloryHitGained", 8_681_411, " ", 17_362_822],
+        ])
+    })
+
+    test.each([
+        ["another event's camps", "21+0+0#0+-701"],
+        ["the same camps in another kingdom", "34+0+0#2+-1002"],
+    ])("a report on %s is not read", async (_, header) => {
+        const { sent } = await glory("attackBloodcrows", { ...options, onCommander: hearing(push(header)) })
+
+        expect(sent("bls")).toEqual([])
+    })
+
+    test("a report the game refuses to give leaves the run attacking", async () => {
+        const spy = vi.spyOn(console, "log").mockImplementation(() => {})
+        const { sent } = await glory("attackBloodcrows", { ...options, replies: { bls: () => [{}, 1] }, attacks: 2, onCommander: hearing(push()) })
+
+        expect(sent("bls")).toHaveLength(1)
+        expect(sent("cra")).toHaveLength(2)
+        expect(logged(spy)).not.toContain("gloryHitGained")
     })
 })
 

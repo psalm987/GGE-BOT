@@ -3,6 +3,7 @@
  * tools it keeps in stock. Nothing here talks to the game.
  */
 const { choice } = require("./army.js")
+const { battleReportHeader } = require("./battleReports.js")
 const { stockOptions, spendOptions } = require("./stockOptions.js")
 
 /** A wave count of the `rageWaves` and `boosterWaves` Selects, by choice. The last choice is every wave that is left. */
@@ -64,26 +65,20 @@ const isTaunt = (march, playerID, campType) =>
 /** How many Khan attacks are on their way to the player. */
 const incomingTaunts = (movements, playerID, campType) => movements.filter(march => isTaunt(march, playerID, campType)).length
 
-/** `MESSAGE_TYPE_BATTLE_LOG` and `SUBTYPE_ATTACK_NPC` in the client, the type of a battle report and the attack subtype of an NPC's. */
-const BATTLE_LOG = 6
+/** `SUBTYPE_ATTACK_NPC` in the client, the attack subtype of an NPC's battle report. */
 const ATTACK_NPC = 2
 /** The result of a battle report as the client numbers it for the defender: 1 is `DEFENDER_SUCCESS`, 3 is `DEFENDER_FAILED`. */
 const DEFENCE_RESULTS = { 1: "held", 3: "lost" }
 
 /**
  * Whether a `sne` message `[id, type, header, ...]` reports a defence of the player against an NPC, and how it went:
- * "held", "lost", or undefined for anything else. The header reads `areaType+subtypeAttack+subtypeResult[+...]#kingdomID+ownerID[+areaName]`.
+ * "held", "lost", or undefined for anything else.
  */
 function defenceResult(message, playerID) {
-    const [, type, header] = message
-    if (type != BATTLE_LOG || typeof header != "string")
+    const report = battleReportHeader(message)
+    if (!report || report.subtypeAttack != ATTACK_NPC || report.ownerID != playerID)
         return undefined
-    const [left, right = ""] = header.split("#")
-    const [, subtypeAttack, subtypeResult] = left.split("+")
-    const [, ownerID] = right.split("+")
-    if (subtypeAttack != ATTACK_NPC || ownerID != playerID)
-        return undefined
-    return DEFENCE_RESULTS[subtypeResult]
+    return DEFENCE_RESULTS[report.subtypeResult]
 }
 
 /** How long before a report an expected landing still matches it, and how long after, in milliseconds. */

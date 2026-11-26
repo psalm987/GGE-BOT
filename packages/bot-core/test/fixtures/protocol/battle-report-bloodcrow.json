@@ -1,0 +1,142 @@
+{
+  "_label": "CAPTURED from recorder session 20261126-033912-4fa39c (2026-11-26), then cut down to the fields the battle report parser reads. The player's id is replaced by 4242, and the player, alliance, commander and castle blocks are dropped. The sne push was written by hand from the same session: MSG [[325886158,6,\"34+0+0#0+-1002\",\"\",-1,0,0,0,0]]. PBI[0][5], 8681411, is the player's glory gain: their CF rose by exactly that across the report.",
+  "sne_battle_report_push": {
+    "cmd": "sne",
+    "payload": {
+      "MSG": [
+        [
+          325886158,
+          6,
+          "34+0+0#0+-1002",
+          "",
+          -1,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "bls_1": {
+    "cmd": "bls",
+    "payload": {
+      "MID": 325886158,
+      "IM": 0
+    },
+    "reply": {
+      "res": 0,
+      "payload": {
+        "DW": 0,
+        "H": 0,
+        "SR": 10,
+        "PBI": [
+          [
+            4242,
+            0,
+            33704,
+            -744,
+            [
+              [
+                "W",
+                218500
+              ],
+              [
+                "S",
+                218500
+              ],
+              [
+                "F",
+                198500
+              ],
+              [
+                "C1",
+                11736
+              ],
+              [
+                "HONEY",
+                188500
+              ],
+              [
+                "MEAD",
+                188500
+              ]
+            ],
+            8681411,
+            1053,
+            0,
+            -1,
+            32,
+            38,
+            0,
+            0
+          ],
+          [
+            -1002,
+            1,
+            21055,
+            -21055,
+            [
+              [
+                "W",
+                -218500
+              ],
+              [
+                "S",
+                -218500
+              ],
+              [
+                "F",
+                -198500
+              ],
+              [
+                "C1",
+                -11736
+              ],
+              [
+                "HONEY",
+                -188500
+              ],
+              [
+                "MEAD",
+                -188500
+              ]
+            ],
+            7798,
+            0,
+            0,
+            -1,
+            0,
+            0,
+            -100,
+            0
+          ]
+        ],
+        "AI": {
+          "N": "",
+          "DP": -1002,
+          "AT": 34,
+          "K": 0,
+          "X": 630,
+          "Y": 489,
+          "DL": 70,
+          "KL": 0,
+          "WL": 0,
+          "GL": 0,
+          "TL": 0,
+          "ML": 0,
+          "RT": 0,
+          "MID": -1,
+          "NID": -1,
+          "EID": 0,
+          "SPC": -1
+        },
+        "MID": 325886158,
+        "MT": 6,
+        "MS": "34+0+0",
+        "PS": 5
+      }
+    }
+  },
+  "playerID": 4242
+}

@@ -55,6 +55,7 @@ const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = requ
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
+const { battleReportHeader, readBattleLog } = require("../../battleReports.js")
 
 const difficultyRows = loadItem("eventAutoScalingDifficulties")
 const dethroneCosts = loadItem("rerollCosts").filter(row => row.type == "alien").sort((a, b) => a.rerollCount - b.rerollCount)
@@ -121,7 +122,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         (!info.allowedToAttack || String(info.allowedToAttack).split("#").includes(`${kingdomID}+${areaType}`))
     const openCamp = area => area?.type == areaType && area.extraData.length > 1 && area.extraData[2] != 1
 
-    /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, keys: string[], considered: Set<string> }} */
+    /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, keys: string[], glory: number, hits: number, considered: Set<string> }} */
     let run
 
     const stop = (target, state, reasonKey, params) => {
@@ -154,6 +155,23 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 run.counts[key] = Number(obj[key])
     })
 
+    xtHandler.on("sne", obj => obj.MSG?.forEach(message => {
+        const report = battleReportHeader(message)
+        if (!run || run.stopped || report?.areaType != areaType || report.kingdomID != kingdomID)
+            return
+        countHit(run, report.messageID)
+    }))
+
+    /** Adds the glory of one battle report to the run's total. A report that can't be read costs the run nothing else. */
+    async function countHit(target, messageID) {
+        const log = await readBattleLog({ sendXT, waitForResult, playerInfo }, messageID)
+        if (!log)
+            return
+        target.glory += log.glory
+        target.hits++
+        console.log("gloryHitGained", log.glory, " ", target.glory)
+    }
+
     events.on("eventStop", eventInfo => {
         if (eventInfo.EID != eventID)
             return
@@ -176,6 +194,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             spent: 0,
             dethroneAllowed: eventInfo.CRE == 1 && eventInfo.RCKS?.length > 0,
             keys: eventInfo.RCKS ?? [],
+            glory: 0, hits: 0,
             considered: new Set(),
         }
         farm(current, eventInfo).catch(e => {

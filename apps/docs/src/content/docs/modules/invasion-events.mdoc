@@ -23,7 +23,8 @@ Turn on the tab of the event you play. The bot starts when the event starts and 
 3. It finds the open camps around your {% term id="main-castle" %}main castle{% /term %} in the Great Empire, nearest first. If it finds none, it looks again every 10 minutes.
 4. It takes a free {% term id="commander-game" %}commander{% /term %} from the {% ui key="client:plugins.commanderPicker.title" /%} card and attacks the camps in turn.
 5. Before the first attack on a camp, it can pay to {% term id="dethrone" %}dethrone{% /term %} the camp, if you set it up.
-6. It stops when your score reaches **Stop at this score**, or **Stop before the event ends** minutes before the end. The default is 30 minutes.
+6. After each hit lands, it reads the battle report and writes the {% term id="glory" %}glory{% /term %} of that hit, and the total for this run, to the {% term id="log" %}log{% /term %}.
+7. It stops when your score reaches **Stop at this score**, or **Stop before the event ends** minutes before the end. The default is 30 minutes.
 
 Each tab is its own {% term id="plugin" %}plugin{% /term %}, so each tab that is on counts toward your {% term id="attack-cap" %}attack cap{% /term %}.
 

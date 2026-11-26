@@ -196,6 +196,7 @@
     "gloryTargetFound": "Next camp: ",
     "gloryAttackSent": "Attack sent to ",
     "gloryBannersUsed": "Glory banners in this attack: ",
+    "gloryHitGained": "Glory from this hit, and in total this run: ",
     "gloryEventPoints": "Event points: ",
     "gloryScoreReached": "The event score target is reached: ",
     "gloryStopBeforeEnd": "Stopping before the event ends.",
