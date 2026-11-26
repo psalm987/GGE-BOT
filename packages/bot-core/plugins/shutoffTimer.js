@@ -21,8 +21,13 @@ const pluginOptions = botConfig.plugins[require("path").basename(__filename).sli
 if (isNaN(Number(pluginOptions.hours)))
     return console.error("hoursOptionIsNotNumber")
 
-events.once("load", () => {
-    setTimeout(() => 
-        parentPort.postMessage([ActionType.KillBot]),
-        Number(pluginOptions.hours) * 1000 * 60 * 60)
-})
+const hours = Number(pluginOptions.hours)
+/** setTimeout fires at once for a longer delay, so a larger value waits this long (about 596 hours). */
+const TIMER_MAX = 2 ** 31 - 1
+
+if (hours > 0)
+    events.once("load", () => {
+        setTimeout(() =>
+            parentPort.postMessage([ActionType.KillBot]),
+            Math.min(hours * 1000 * 60 * 60, TIMER_MAX))
+    })
