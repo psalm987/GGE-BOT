@@ -8,7 +8,8 @@ const attackTypes = [0, 25, 31, 24, 29]
 
 /**
  * A player attacking one of our castles, or a player outside the alliance attacking an alliance member, as it is
- * emitted with `incoming:new`, `incoming:updated` and `incoming:cleared`.
+ * emitted with `incoming:new`, `incoming:updated` and `incoming:cleared`. `incoming:cancelled` precedes `incoming:cleared`
+ * when the game removed the movement before it was due to land.
  * @typedef {Object} IncomingAttack
  * @property {Number} movementId
  * @property {Number} kingdom
@@ -20,6 +21,9 @@ const attackTypes = [0, 25, 31, 24, 29]
  * @property {Number} [army] soldiers in the attack, once its army is visible
  * @property {{left: Array, middle: Array, right: Array, courtyard: Array}} [waves] once its army is visible
  */
+
+/** The game's clock and ours differ, so a movement removed this close to its landing is taken to have landed. */
+const landingToleranceMs = 3000
 
 /** @type {Map<Number, {attack: IncomingAttack, landing: NodeJS.Timeout}>} */
 const incoming = new Map()
@@ -47,6 +51,8 @@ function clear(movementId) {
         return
     incoming.delete(movementId)
     clearTimeout(entry.landing)
+    if (entry.attack.arrivesAt - Date.now() > landingToleranceMs)
+        events.emit("incoming:cancelled", entry.attack)
     events.emit("incoming:cleared", entry.attack)
 }
 

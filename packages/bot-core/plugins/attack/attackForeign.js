@@ -1,6 +1,6 @@
 if (require("node:worker_threads").isMainThread) {
     const { gloryOptions, gloryChecks } = require("./sharedGloryLogic.js")
-    return module.exports = { pluginOptions: gloryOptions, checks: gloryChecks }
+    return module.exports = { targets: [{ kingdom: 0, areaType: require("../../areaTypes.js").AreaType.alienCastle }], pluginOptions: gloryOptions, checks: gloryChecks }
 }
 
 const { AreaType } = require("../../protocols.js")

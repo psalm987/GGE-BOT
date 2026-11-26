@@ -16,7 +16,7 @@ const inventory = () => [
     ranged(603, 900, { rangeAttack: "80" }),
     tool(614, 400, { wallBonus: "10" }),
 ]
-const nomads = (options, game) => runEvent("attackNomads", { commanderWhiteList: "1-99", useFood: true, ...options }, { inventory: inventory(), start: { EDID: 3 }, items, ...game })
+const nomads = (options, game) => runEvent("attackNomads", { commanderWhiteList: "1-99", ...options }, { inventory: inventory(), start: { EDID: 3 }, items, ...game })
 const samurai = (options, game) => runEvent("attackSamurai", { commanderWhiteList: "1-99", ...options }, { inventory: inventory(), start: { EDID: 3 }, items, ...game })
 const targets = sent => sent.map(cra => [cra.TX, cra.TY])
 const soldiers = cra => new Set([...cra.A.flatMap(wave => [...wave.L.U, ...wave.M.U, ...wave.R.U]), ...cra.RW].map(([wodID]) => wodID).filter(wodID => wodID != -1))
@@ -192,6 +192,13 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         expect([...soldiers(mead.cra)]).toEqual([602])
         const strongest = await run({ unitOrder: 2 }, { areas: [camp(110, 105, 0, type)] })
         expect(strongest.cra.A[1].L.U[0][0]).toBe(602)
+    })
+
+    test("the stored food switches send the troops of the troop supply they read as", async () => {
+        const food = await run({ foodTroopsOnly: true }, { areas: [camp(110, 105, 0, type)] })
+        expect([...soldiers(food.cra)].sort()).toEqual([601, 603])
+        const mead = await run({ useFood: false }, { areas: [camp(110, 105, 0, type)] })
+        expect([...soldiers(mead.cra)]).toEqual([602])
     })
 })
 
@@ -400,8 +407,8 @@ describe("the log line of a camp attack", () => {
     })
     test("every part a line can hold is in the catalog", () => {
         const en = require("../locales/en.json")
-        const keys = ["campOfNomads", "campOfSamurai", "horseNone", "horseCoin", "horseFeather", "skipsSpentOnCamp", "noSkipsSpentOnCamp"]
+        const keys = ["campOfNomads", "campOfSamurai", "daimyoCastle", "horseNone", "horseCoin", "horseFeather", "skipsSpentOnCamp", "noSkipsSpentOnCamp"]
         expect(keys.filter(key => !(key in en))).toEqual([])
-        expect(Object.values(EVENT_PROFILES).map(profile => profile.logName)).toEqual(["campOfNomads", "campOfSamurai"])
+        expect(Object.values(EVENT_PROFILES).map(profile => profile.logName)).toEqual(["campOfNomads", "campOfSamurai", "daimyoCastle"])
     })
 })

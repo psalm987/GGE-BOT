@@ -20,6 +20,7 @@
 .gge-commander-tile[aria-pressed="true"] { background: var(--gge-primary); border-color: var(--gge-primary-deep); color: #FFFFFF; }
 .gge-commander-tile[data-beyond] { border-style: dashed; background: var(--gge-raised); color: var(--gge-muted); }
 .gge-commander-tile[data-beyond][aria-pressed="true"] { background: var(--gge-primary-deep); border-color: var(--gge-primary); color: #FFFFFF; }
+.gge-commander-tile[data-owned]:not([aria-pressed="true"]) { border-color: var(--gge-accent); box-shadow: inset 0 -4px 0 var(--gge-accent); }
 .gge-commander-tile:focus-visible { outline: 2px solid var(--gge-accent); outline-offset: 2px; }
 .gge-commander-tile:disabled { cursor: not-allowed; }
 .gge-commander-order { position: absolute; top: 2px; inset-inline-start: 4px; font-size: 11px; line-height: 1; }
@@ -29,3 +30,16 @@
 .gge-commanders-vip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .gge-commanders-vip label { font-weight: 600; }
 .gge-commanders-help { flex-basis: 100%; color: var(--gge-muted); font-size: 14px; }
+.gge-commander-assign { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin: 12px 0; }
+.gge-commander-assign label { display: block; font-weight: 600; margin-bottom: 4px; }
+.gge-commander-assign-owner { flex: 1 1 220px; min-width: 0; }
+.gge-commander-assign-owner .ant-select { width: 100%; }
+.gge-commander-assign .ant-btn { min-height: 44px; }
+.gge-commander-owners-title { margin: 16px 0 4px; }
+.gge-commander-owners { list-style: none; margin: 0; padding: 0; }
+.gge-commander-owners li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; border-bottom: 1px solid var(--gge-rule); }
+.gge-commander-owner-name { flex: 1 1 200px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--gge-text); font: inherit; font-weight: 600; text-align: start; cursor: pointer; }
+.gge-commander-owner-name[aria-pressed="true"] { color: var(--gge-primary-deep); text-decoration: underline; }
+.gge-commander-owner-name:focus-visible { outline: 2px solid var(--gge-accent); outline-offset: 2px; }
+.gge-commander-owner-range { color: var(--gge-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.gge-commander-owner-count { min-width: 2ch; text-align: end; font-weight: 600; font-variant-numeric: tabular-nums; }

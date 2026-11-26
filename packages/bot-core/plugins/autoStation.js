@@ -28,6 +28,7 @@ const optionDefs = [
     { type: "Number", key: "stationMinArmy", min: 0, max: 10_000_000, step: 1, unit: "troops", default: 0 },
     { type: "Checkbox", key: "stationAllowOutposts", default: false },
     { type: "Number", key: "stationMaxCommanders", min: 1, max: 20, step: 1, default: 2 },
+    { type: "Number", key: "stationReserveMinutes", min: 0, max: 120, step: 1, unit: "minutes", default: 0 },
     { type: "Number", key: "stationHours", min: 1, max: 12, step: 1, unit: "hours", default: 12 },
     { type: "Checkbox", key: "stationScopeMain", default: true },
     { type: "Checkbox", key: "stationScopeOutposts", default: true },
@@ -41,7 +42,7 @@ if (require("node:worker_threads").isMainThread)
 require("./incoming.js")
 const err = require("../err.json")
 const { castles, movements, AreaType, KingdomID, ClientCommands } = require("../protocols.js")
-const { takeFreeCommander, freeCommander } = require("./commander.js")
+const { takeFreeCommander, reserveCommander, freeCommander, mappedOut } = require("./commander.js")
 const { lockCastle, unlockCastle } = require("../castleLock.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../ggeBot.js")
 const { statusReporter, notifyOwner } = require("../pluginStatus.js")
@@ -92,6 +93,7 @@ const isAttackTroop = info =>
  * @property {Number} [recallAt]
  * @property {Boolean} locked
  * @property {import("../protocols.js").ClassTypes.Lord} [commander] held for the troops of this castle
+ * @property {() => void} [cancelReservation] calls off the commander reserved ahead, while none has come home for it yet
  * @property {Number} [movementId] the stationed army, once the game confirmed it
  * @property {NodeJS.Timeout} [timer]
  */
@@ -108,8 +110,10 @@ const PHASE_ORDER = ["evacuating", "threatened", "recalling", "stationed", "unpr
 function report() {
     const [threat] = [...threats.values()].sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase) || a.evacuateAt - b.evacuateAt)
     const castle = threat?.name
-    if (!threat)
-        return reportStatus("running", "statusStationWatching", { count: watched().length })
+    if (!threat) {
+        const none = mappedOut(__filename)
+        return none ? reportStatus("waiting", none.reasonKey, none.params) : reportStatus("running", "statusStationWatching", { count: watched().length })
+    }
     if (threat.phase == "threatened")
         return reportStatus("running", "statusStationThreat", { castle, at: new Date(threat.evacuateAt).toISOString() })
     if (threat.phase == "evacuating")
@@ -136,10 +140,36 @@ const freeWhenStationEnds = lordID => later(Number(setting("stationHours")) * 36
 /** Evacuations run one at a time, so each `cds` reply belongs to the one evacuation waiting for it. */
 let evacuations = Promise.resolve()
 
+/** Whether the threat may claim a commander: it has none, held or reserved, and the threats together are under the limit. */
+function mayClaim(threat) {
+    const claimed = [...threats.values()].filter(t => t.commander || t.cancelReservation).length
+    return !threat.commander && !threat.cancelReservation && claimed < Number(setting("stationMaxCommanders"))
+}
+
 function holdCommander(threat) {
-    const held = [...threats.values()].filter(t => t.commander).length
-    if (!threat.commander && held < Number(setting("stationMaxCommanders")))
-        threat.commander = takeFreeCommander(setting("commanderWhiteList"))
+    if (mayClaim(threat))
+        threat.commander = takeFreeCommander(setting("commanderWhiteList"), __filename)
+}
+
+/**
+ * Reserves the threat's commander ahead of the evacuation: a free one now, else the first to come home, which then
+ * goes to no attack. Only a commander Auto Station may send counts.
+ */
+function reserveAhead(threat) {
+    if (!mayClaim(threat))
+        return
+    const cancel = reserveCommander(setting("commanderWhiteList"), __filename, commander => {
+        threat.commander = commander
+        threat.cancelReservation = undefined
+        console.log("stationCommanderReserved", threat.name)
+    })
+    if (!threat.commander)
+        threat.cancelReservation = cancel
+}
+
+function cancelReservation(threat) {
+    threat.cancelReservation?.()
+    threat.cancelReservation = undefined
 }
 
 function lock(threat) {
@@ -153,6 +183,7 @@ function lock(threat) {
 /** Ends the threat: the castle opens for attacks again, and a commander that never left goes back to the pool. */
 function end(threat, { commanderLeft = false } = {}) {
     clearTimeout(threat.timer)
+    cancelReservation(threat)
     threats.delete(keyOf(threat.castle))
     if (threat.locked)
         unlockCastle(threat.castle.kingdomID, threat.castle.areaInfo.x, threat.castle.areaInfo.y)
@@ -168,11 +199,15 @@ function plan(threat) {
     if (threat.phase == "threatened") {
         if (threat.attacks.size == 0)
             return end(threat)
+        const reserveMs = Number(setting("stationReserveMinutes")) * 60_000
+        const untilReserve = reserveMs > 0 ? Math.min(...[...threat.attacks.values()].map(attack => attack.arrivesAt)) - reserveMs - Date.now() : Infinity
+        if (untilReserve <= 0)
+            reserveAhead(threat)
         const untilLock = threat.evacuateAt - LOCK_LEAD_MS - Date.now()
         if (untilLock <= 0)
             lock(threat)
         threat.timer = untilLock > 0
-            ? later(untilLock, () => plan(threat))
+            ? later(untilReserve > 0 ? Math.min(untilLock, untilReserve) : untilLock, () => plan(threat))
             : later(threat.evacuateAt - Date.now(), () => {
                 threat.phase = "evacuating"
                 report()
@@ -239,6 +274,9 @@ events.on("incoming:cleared", (/** @type {import("./incoming.js").IncomingAttack
             plan(threat)
 })
 events.once("load", report)
+// The commander map, or the account's commanders, may now leave Auto Station none to send, or give it one again.
+events.on("configModified", report)
+xtHandler.on("gli", report)
 
 /** The troops that leave `castle`, as `cds` lists them: every soldier, or attack troops only, minus the reserve. */
 function troopsToMove(castle) {
@@ -406,6 +444,7 @@ async function evacuate(/** @type {Threat} */ threat) {
         notifyOwner("station_result", { castle: name, outcome, destination: destination?.label ?? null, rubies: rubies ?? null },
             `${keyOf(castle)}:${threat.evacuateAt}`)
     threat.phase = { stationed: "stationed", gates_opened: "gated", unprotected: "unprotected" }[outcome] ?? "empty"
+    cancelReservation(threat)
     if (!destination && threat.commander) {
         freeCommander(threat.commander.lordID)
         threat.commander = undefined

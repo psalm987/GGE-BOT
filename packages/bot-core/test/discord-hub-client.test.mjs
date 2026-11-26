@@ -316,6 +316,43 @@ describe("incoming attack alerts", () => {
         expect(hub.contents("1")).toHaveLength(3)
     })
 
+    test("an attack the game removes before it lands has its post marked cancelled, and its reminders stop", async () => {
+        vi.useFakeTimers()
+        const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "idle" }] })
+        const { movementEvents } = loadAttackPlugin("incomingAttacks", hub, { channelID: "1" })
+        const raid = attack()
+
+        movementEvents.emit("outgoing", raid)
+        await vi.advanceTimersByTimeAsync(1000)
+        const [posted] = hub.contents("1")
+
+        movementEvents.emit("return", raid)
+        await vi.advanceTimersByTimeAsync(0)
+
+        const [edited] = hub.contents("1")
+        expect(edited).toBe(`**${en.incomingCancelled}**\n${posted.replace(/<t:\d+:R>$/, "")}`.trimEnd())
+        expect(edited).not.toMatch(/<t:/)
+        expect(hub.sent("messageEdit")).toHaveLength(1)
+
+        await vi.advanceTimersByTimeAsync(200_000)
+        expect(hub.contents("1")).toHaveLength(1)
+    })
+
+    test("an attack that lands is not marked cancelled", async () => {
+        vi.useFakeTimers()
+        const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "online" }] })
+        const { movementEvents } = loadAttackPlugin("incomingAttacks", hub, { channelID: "1" })
+        const raid = attack()
+
+        movementEvents.emit("outgoing", raid)
+        await vi.advanceTimersByTimeAsync(101_000)
+        movementEvents.emit("return", raid)
+        await vi.advanceTimersByTimeAsync(1000)
+
+        expect(hub.sent("messageEdit")).toEqual([])
+        expect(hub.contents("1")[0]).toMatch(/<t:\d+:R>$/)
+    })
+
     test("a target who is online gets no reminders", async () => {
         vi.useFakeTimers()
         const hub = fakeDiscordHub({ members: [{ id: "7", displayName: "Ada", presenceStatus: "dnd" }] })

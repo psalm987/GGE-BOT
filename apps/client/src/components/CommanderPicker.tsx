@@ -1,6 +1,7 @@
 import { Alert, Button, InputNumber, Tag } from "antd"
 import { useId } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import { MAX_COMMANDERS, commanderPicks, writeCommanderPicks } from "@gge/contracts"
 import { ParchmentCard } from "@gge/ui"
 import { ALL_TILES, commanderTiles, toggleTile } from "../commander-tiles.ts"
@@ -8,7 +9,7 @@ import type { SharedCommanders } from "../module-values.ts"
 import "./commanders.css"
 
 /** The commanders the bot last counted on the account, never above the game's limit. */
-function useRoster(commanders: number | null) {
+export function useRoster(commanders: number | null) {
     const { t } = useTranslation("client")
     if (commanders === null)
         return t("plugins.commanders.unknown")
@@ -23,10 +24,11 @@ const VIP_TILE_DEFAULT = 25
  * The module's one commander picker: tiles 1 to 50 clicked in the order the bot sends them, the VIP tile and the VIP
  * cap, which are saved but not used by the bot yet. The cap is the most VIP commanders the bot may use each day,
  * and never more than the free daily allowance of the account's VIP level. `shared` says the list goes to several attacks of the page, and
- * `mixed` that they held different lists before.
+ * `mixed` that they held different lists before. `mapLink` is set while the account has a commander map, which the bot
+ * reads in place of this list, and leads to the map.
  */
-export function CommanderPicker({ list, vip, vipMax, commanders, disabled, shared, mixed, onChange }: {
-    list: string; vip: number; vipMax: number; commanders: number | null; disabled: boolean; shared: boolean; mixed: boolean
+export function CommanderPicker({ list, vip, vipMax, commanders, disabled, shared, mixed, mapLink, onChange }: {
+    list: string; vip: number; vipMax: number; commanders: number | null; disabled: boolean; shared: boolean; mixed: boolean; mapLink?: string
     onChange: (set: SharedCommanders) => void
 }) {
     const { t } = useTranslation("client")
@@ -38,6 +40,8 @@ export function CommanderPicker({ list, vip, vipMax, commanders, disabled, share
     return (
         <ParchmentCard title={t("plugins.commanderPicker.title")} data-commander-picker="">
             <p className="gge-commanders-intro">{t("plugins.commanderPicker.intro")}{shared && <> {t("plugins.commanderPicker.shared")}</>}</p>
+            {mapLink && <Alert type="info" showIcon title={t("plugins.commanderPicker.mapped")} style={{ marginBottom: 12 }} data-commander-mapped=""
+                action={<Link to={mapLink}>{t("plugins.commanderPicker.mappedLink")}</Link>} />}
             {mixed && <Alert type="warning" showIcon title={t("plugins.commanderPicker.mixed")} style={{ marginBottom: 12 }} />}
             <div className="gge-commander-grid" role="group" aria-label={t("plugins.commanderPicker.title")}>
                 {commanderTiles(list, owned).map(tile => (

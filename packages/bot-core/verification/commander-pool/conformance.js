@@ -17,6 +17,8 @@ function loadPool(lordIDs = [1, 2]) {
         xtHandler,
         playerInfo: { playerID: 7 },
         waitForResult: () => new Promise(() => {}),
+        botConfig: { plugins: {} },
+        events: new EventEmitter(),
     }
     class Lord {
         constructor(e) {
@@ -28,7 +30,7 @@ function loadPool(lordIDs = [1, 2]) {
 
     const originalLoad = Module._load
     Module._load = function (request, parent, isMain) {
-        if (request === "node:worker_threads") return { isMainThread: false }
+        if (request === "node:worker_threads") return { isMainThread: false, parentPort: { postMessage() {} } }
         if (/ggeBot(\.js)?$/.test(request)) return stubBot
         if (/protocols(\.js)?$/.test(request)) return stubProtocols
         return originalLoad.call(this, request, parent, isMain)

@@ -28,8 +28,8 @@ const units = [
 const SLOTS = 2
 
 /** A castle as the game reports it. `queues` holds each production list's orders as `[wodID, amount]`, the first one in production. */
-const castle = (id, { kingdom = 0, wood = 100_000, stone = 100_000, have = {}, queues = {} } = {}) =>
-    ({ id, kingdom, wood, stone, have, queues: { 0: queues[0] ?? [], 1: queues[1] ?? [] } })
+const castle = (id, { kingdom = 0, wood = 100_000, stone = 100_000, have = {}, queues = {}, buildings = [] } = {}) =>
+    ({ id, kingdom, wood, stone, have, buildings, queues: { 0: queues[0] ?? [], 1: queues[1] ?? [] } })
 
 /** What `spl` says for one list: the order in production as the capture shows it, two free slots and three that are locked. */
 const splOf = (c, list) => {
@@ -42,7 +42,7 @@ const splOf = (c, list) => {
 }
 
 /** The plugin against a game that answers dcl, jca, spl and bup from `world`. */
-function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup } = {}) {
+function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup, unitItems = units, buildingItems = [] } = {}) {
     vi.useFakeTimers()
     const bot = fakeBot()
     bot.playerInfo.playerID = 7
@@ -60,7 +60,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
         if (cmd == "jca") {
             const c = find(p)
             world.forEach(w => { w.current = w === c })
-            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: [], scl: { OIDL: [] } }, gpa: {} })
+            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: c.buildings.map(wodID => [wodID, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), scl: { OIDL: [] } }, gpa: {} })
         }
         if (cmd == "spl") {
             const c = world.find(w => w.current)
@@ -79,7 +79,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
     const parentPort = { postMessage: message => message[0] == PluginStatus && reports.push(message[1]), on() {} }
     vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args))
     vi.spyOn(console, "warn").mockImplementation((...args) => warns.push(args[0]))
-    loadModule("plugins/recruitTools.js", { bot, parentPort, items: { units } })
+    loadModule("plugins/recruitTools.js", { bot, parentPort, items: { units: unitItems, buildings: buildingItems } })
     bot.events.emit("load")
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)
     const bups = () => bot.sent.filter(([cmd]) => cmd == "bup").map(([, p]) => p)
@@ -363,6 +363,70 @@ describe("refusals and the dry run", () => {
         const { logs } = run({ options: { troopTargets: [unitRow(HALBERD, 10_000, 5)], dryRunOrders: true, coinFloor: 900 }, coins: 1500 })
         await settle()
         expect(logs.filter(([key]) => key == "dryRunBup").map(([, order]) => JSON.parse(order).AMT)).toEqual([3])
+    })
+})
+
+describe("why a castle can't make a unit", () => {
+    const BARRACKS_L3 = 162, BARRACKS_L6 = 2162, WORKSHOP_L1 = 165
+    const buildingItems = [
+        { wodID: BARRACKS_L3, name: "Barracks", level: "3" },
+        { wodID: BARRACKS_L6, name: "Barracks", level: "6" },
+        { wodID: WORKSHOP_L1, name: "Workshop", level: "1" },
+        { wodID: 777, name: "Deco", level: "0" },
+    ]
+    const unitItems = [{ ...units[0], buildingLevel: "6" }, ...units.slice(1)]
+    const setup = (buildings, row = unitRow(HALBERD, 100)) => run({ options: { troopTargets: [row] }, world: [castle(10, { buildings })], unitItems, buildingItems })
+
+    test("no barracks: orders nothing, says so, and leaves the plan alone", async () => {
+        const { bups, status, warns } = setup([WORKSHOP_L1, 777])
+        await settle()
+        expect(bups()).toEqual([])
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusRecruitToolsNoBuilding", params: { item: "Elitehalberd", building: "barracks" } })
+        expect(warns).toContain("recruitCantMake")
+    })
+
+    test("a barracks below the level the unit needs names the level", async () => {
+        const { bups, status } = setup([BARRACKS_L3])
+        await settle()
+        expect(bups()).toEqual([])
+        expect(status()).toMatchObject({ reasonKey: "statusRecruitToolsBuildingLevel", params: { item: "Elitehalberd", building: "barracks", level: "6" } })
+    })
+
+    test("a tool of a workshop the castle lacks says so by the workshop's plain name", async () => {
+        const { bups, status } = run({ options: { toolStockTargets: [toolRow(LADDER, 100)] }, world: [castle(10, { buildings: [BARRACKS_L6] })], unitItems, buildingItems })
+        await settle()
+        expect(bups()).toEqual([])
+        expect(status()).toMatchObject({ reasonKey: "statusRecruitToolsNoBuilding", params: { item: "Ladder", building: "siege workshop" } })
+    })
+
+    test("a barracks of the right level orders as before", async () => {
+        const { bups } = setup([BARRACKS_L6])
+        await settle()
+        expect(bups().length).toBeGreaterThan(0)
+    })
+
+    test("a castle whose buildings are not known gets no verdict and still orders", async () => {
+        const { bups } = setup([])
+        await settle()
+        expect(bups().length).toBeGreaterThan(0)
+    })
+
+    test("a row that can't be made does not stop the others in the same castle", async () => {
+        const world = [castle(10, { buildings: [BARRACKS_L3, WORKSHOP_L1] })]
+        const { bups } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], toolStockTargets: [toolRow(LADDER, 10)] }, world, unitItems, buildingItems })
+        await settle()
+        expect(bups().map(p => p.WID)).toEqual([LADDER])
+    })
+
+    test("it never edits the saved plan", async () => {
+        const { bot } = setup([WORKSHOP_L1])
+        const before = JSON.stringify(bot.botConfig.plugins.recruitTools)
+        await settle()
+        expect(JSON.stringify(bot.botConfig.plugins.recruitTools)).toBe(before)
+    })
+
+    test.each(["NoBuilding", "BuildingLevel"])("en.json names statusRecruitTools%s", key => {
+        expect(en[`statusRecruitTools${key}`]).toEqual(expect.any(String))
     })
 })
 

@@ -31,6 +31,7 @@ const DEFENCE_TOOLS = [["stockFlamingArrows", 629], ["stockHurlingRocks", 637], 
 const khanChainOptions = () => [
     { type: "Checkbox", key: "tabletsOnly", default: false },
     { type: "Number", key: "pauseAtTaunts", min: 0, max: 500, unit: "attacks", default: 0 },
+    { type: "Number", key: "tauntMinDefenders", min: 0, max: 2_147_483_647, step: 1000, unit: "troops", default: 0 },
     { type: "Label", key: "defenceStock" },
     { type: "Checkbox", key: "keepDefence", default: false },
     ...stockOptions(DEFENCE_TOOLS),
@@ -47,6 +48,7 @@ const parseKhan = options => ({
     tabletChests: idList(options.tabletChests),
     tabletsOnly: Boolean(options.tabletsOnly),
     pauseAtTaunts: Math.max(0, Number(options.pauseAtTaunts) || 0),
+    tauntMinDefenders: Math.max(0, Number(options.tauntMinDefenders) || 0),
     keepDefence: Boolean(options.keepDefence),
 })
 
@@ -116,9 +118,44 @@ const TAUNT_HOLDS = [
     ["stopped", state => state.quit],
     ["defenceLost", state => state.defenceLost],
     ["defenceShort", state => state.defenceShort],
+    ["defendersShort", state => state.gate == "defendersShort"],
+    ["toolsShort", state => state.gate == "toolsShort"],
+    ["defenceUnread", state => state.gate == "defenceUnread"],
 ]
+
+/** The tools every slot of a defended wall side needs before the Khan is taunted. */
+const WALL_SLOT_TOOLS = 10
+
+/**
+ * The defensive troops in a castle's unit inventory: soldiers (they have a `role`) whose `fightType` is 1, the game's
+ * flag for a defender. Attack troops are 0 and defence tools have no `role`. This is the "defenders" count of a
+ * castle's defence screen, wherever they stand (wall, courtyard or storage).
+ */
+const defendersIn = inventory =>
+    (inventory ?? []).reduce((sum, { amount, unitInfo }) => sum + (unitInfo?.role && unitInfo.fightType == 1 ? Number(amount) || 0 : 0), 0)
+
+/**
+ * Whether the main castle may be taunted into a Khan attack. `layout` is a `dfc` reply, `defenders` the troops from
+ * `defendersIn`, and `minDefenders` the troops it needs (0 turns the gate off). A wall side is defended when any of its
+ * slots holds a tool, and every slot of a defended side needs `WALL_SLOT_TOOLS` tools. Returns undefined when the
+ * castle passes, else the hold with the counts that explain it.
+ */
+function defenceGate(layout, defenders, minDefenders) {
+    if (!(minDefenders > 0))
+        return undefined
+    if (defenders < minDefenders)
+        return { hold: "defendersShort", have: defenders, need: minDefenders }
+    let short = 0
+    for (const side of ["L", "M", "R"]) {
+        const slots = layout?.dfw?.[side]?.S ?? []
+        if (slots.every(([tool]) => tool == -1))
+            continue
+        short += slots.filter(([tool, amount]) => tool == -1 || amount < WALL_SLOT_TOOLS).length
+    }
+    return short > 0 ? { hold: "toolsShort", short, need: WALL_SLOT_TOOLS } : undefined
+}
 
 /** The first reason taunts are held, or undefined when the bar may be spent. */
 const tauntHold = state => TAUNT_HOLDS.find(([, held]) => held(state))?.[0]
 
-module.exports = { tauntHold, defenceResult, tauntLandings, khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }
+module.exports = { defenceGate, defendersIn, tauntHold, TAUNT_HOLDS, defenceResult, tauntLandings, khanWaveOptions, khanChainOptions, parseKhan, waveKind, isTaunt, incomingTaunts, DEFENCE_TOOLS }

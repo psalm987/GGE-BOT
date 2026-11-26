@@ -10,7 +10,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [stationing.md](stationing.md) | Sending troops to an ally castle with `cds`, recalling them, opening gates and the protection fields |
 | [tools.md](tools.md) | Workshop production, Sceat tool levels, the armourer and the coin cap |
 | [recruit-tools.md](recruit-tools.md) | Ordering troops and tools with `bup`, the production lists as captured, and what is still unknown |
-| [event-camps.md](event-camps.md) | The side of a Berimond invasion camp, the commands Daimyo castles need, and the aquamarine packages of the Storm Islands shop |
+| [event-camps.md](event-camps.md) | The side of a Berimond invasion camp, how Daimyo castles are attacked and read, and the aquamarine packages of the Storm Islands shop |
 | [vip-commanders.md](vip-commanders.md) | Premium ("VIP") commanders, the free daily allowance per VIP level, the `vip` push and what a capture must still confirm |
 | [wheel.md](wheel.md) | The Wheel of Fortune and the Wheel of Unimaginable Affluence: the spin, the tickets, the event list and what is never sent |
 | [nomad-khan.md](nomad-khan.md) | Nomad and Khan camps of event 72, rage and taunts, the points a defended taunt earns, and the castle defence commands `dfc`, `dfw`, `dfm` and `dfk` |

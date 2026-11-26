@@ -2,6 +2,9 @@ const { parentPort } = require("node:worker_threads")
 const EventEmitter = require("node:events")
 const NodeCache = require("node-cache")
 const { spiralCoordinates } = require("./mapScan.js")
+const { buildReadBack } = require("./readBack.js")
+const { watchDefence, lastDefence } = require("./defenceRead.js")
+const { khanRage } = require("./khanRage.js")
 const { RateLimiter } = require("limiter")
 const { waitForResult, sendXT, xtHandler, events, status, playerInfo } = require("./ggeBot.js")
 const currencies = require("./paths.js").loadItem("currencies")
@@ -20,25 +23,7 @@ let generals = []
 
 xtHandler.on("gie", obj => generals = obj.G ?? generals)
 
-const AreaType = Object.freeze({
-    barron: 2,
-    outpost: 4,
-    externalKingdom: 12,
-    mainCastle: 1,
-    alienCastle: 21,
-    bloodcrowCastle: 34,
-    nomadCamp: 27,
-    daimyoCastle: 37,
-    stormIsland: 24,
-    samCamp: 29,
-    beriCamp: 30,
-    watchTower: 17,
-    capital: 3,
-    fortress : 11,
-    beriCastle : 15,
-    stormTower : 25,
-    khanCamp : 35
-})
+const { AreaType } = require("./areaTypes.js")
 const HighscoreType = Object.freeze({
     honour: 5
 })
@@ -1224,6 +1209,8 @@ class Movement {
         this.kingdomID = Number(movement.M.KID)
         this.totalTime = Number(movement.M.TT) * 1000
         this.deltaTime = Number(movement.M.PT) * 1000 + Date.now()
+        /** When the march ends, epoch milliseconds. In the past for an army that already stands in its castle. */
+        this.arrivesAt = Date.now() + this.totalTime - Number(movement.M.PT) * 1000
 
         this.lord = new Lord(movement.UM?.L ?? {})
         this.owner = ownerInfo.find(o => o.ownerID == Number(movement.M.OID)) ?? { ownerID : Number(movement.M.OID) }
@@ -1361,8 +1348,23 @@ xtHandler.on("msd", (obj, r) => {
     MapObject(areaInfo, getKingdomID(areaInfo))
 })
 
+/** The coins and rubies the account had when the game first reported them this run, which the session's gains count from. */
+const sessionStart = { at: Date.now(), coins: NaN, rubies: NaN }
+xtHandler.on("gcu", obj => {
+    if (isNaN(sessionStart.coins))
+        Object.assign(sessionStart, { coins: Number(obj.C1), rubies: Number(obj.C2) })
+})
+
+const mainCastle = () => castles.find(castle => castle.kingdomID == KingdomID.greatEmpire && castle.areaInfo?.type == AreaType.mainCastle)
+watchDefence(mainCastle, Unit)
+
 function updateStatus() {
     status.resources = resources
+    status.readBack = buildReadBack({
+        castles, movements, playerID: playerInfo.playerID,
+        mainCastle: mainCastle(), defence: lastDefence(), khanRage: khanRage(),
+        session: { startedAt: sessionStart.at, coins: resources.coins - sessionStart.coins, rubies: resources.rubies - sessionStart.rubies },
+    })
     parentPort.postMessage([ActionType.StatusUser, status])
 }
 

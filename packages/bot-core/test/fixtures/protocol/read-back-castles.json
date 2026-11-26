@@ -1,0 +1,31 @@
+{
+  "_label": "DERIVED from the field map in protocols.js (CastleAreaInfo, CastleResourceInfo, GetProductionData), NOT captured from a live session. The amounts follow a castle overview seen on 2026-11-24: a main castle full of wood, and a Storm Islands castle whose mead runs down. gpa rates are tenths per hour.",
+  "gcl": {
+    "C": [
+      { "KID": 0, "AI": [
+        { "AI": [1, 693, 526, 1000001, 2000001, 8, 8, 7, 7, 2, "Main Keep"], "AOT": 0, "TA": 0 },
+        { "AI": [4, 658, 562, 1000002, 2000001, 8, 8, 7, 7, 2, "North Post"], "AOT": 0, "TA": 0 }
+      ] },
+      { "KID": 4, "AI": [
+        { "AI": [12, 300, 310, 1000003, 2000001, 8, 8, 7, 7, 2, "Storm Hold"], "AOT": 0, "TA": 0 }
+      ] }
+    ]
+  },
+  "dcl": {
+    "C": [
+      { "KID": 0, "AI": [
+        { "AID": 1000001, "W": 175000, "S": 139640.6, "F": 763000, "C": 0, "O": 0, "G": 0, "I": 0, "HONEY": 0, "MEAD": 0, "A": 0,
+          "gpa": { "DW": 190, "DS": 16230, "DF": 426110, "DFC": 200000, "FCR": 100, "DC": 0, "DO": 0, "DG": 0, "DI": 0, "DHONEY": 0, "DMEAD": 0, "DMEADC": 0, "MEADCR": 100, "DA": 0,
+            "MRW": 175000, "MRS": 175000, "MRF": 763000, "MRC": 125000, "MRO": 125000, "MRG": 125000, "MRI": 125000, "MRHONEY": 5000, "MRMEAD": 5000, "MRA": 0 } },
+        { "AID": 1000002, "W": 4218, "S": 4215, "F": 664000, "C": 15, "O": 0, "G": 0, "I": 0, "HONEY": 0, "MEAD": 0, "A": 0,
+          "gpa": { "DW": 30, "DS": 30, "DF": 277510, "DFC": 0, "FCR": 100, "DC": 0, "DO": 0, "DG": 0, "DI": 0, "DHONEY": 0, "DMEAD": 0, "DMEADC": 0, "MEADCR": 100, "DA": 0,
+            "MRW": 101000, "MRS": 101000, "MRF": 664000, "MRC": 101000, "MRO": 0, "MRG": 0, "MRI": 0, "MRHONEY": 0, "MRMEAD": 0, "MRA": 0 } }
+      ] },
+      { "KID": 4, "AI": [
+        { "AID": 1000003, "W": 0, "S": 0, "F": 950, "C": 0, "O": 0, "G": 0, "I": 0, "HONEY": 0, "MEAD": 7400000, "A": 20888,
+          "gpa": { "DW": 0, "DS": 0, "DF": 0, "DFC": 0, "FCR": 100, "DC": 0, "DO": 0, "DG": 0, "DI": 0, "DHONEY": 0, "DMEAD": 0, "DMEADC": 539720, "MEADCR": 100, "DA": 4430,
+            "MRW": 0, "MRS": 0, "MRF": 706000, "MRC": 0, "MRO": 0, "MRG": 0, "MRI": 0, "MRHONEY": 0, "MRMEAD": 9000000, "MRA": 282600 } }
+      ] }
+    ]
+  }
+}

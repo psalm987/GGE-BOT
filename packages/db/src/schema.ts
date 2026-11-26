@@ -238,6 +238,8 @@ export const gameItems = pgTable("game_items", {
     image: text("image"),
     /** What sets the item apart from others sharing its kind, name and level; null when nothing needs to. */
     variant: jsonb("variant").$type<GameItemVariant>(),
+    /** Where the item may attack, from the game's `allowedToAttack`; null when anywhere or unreadable. */
+    attackTargets: jsonb("attack_targets").$type<{ kingdom: number; areaType: number }[]>(),
     updatedAt: updatedAt(),
 })
 

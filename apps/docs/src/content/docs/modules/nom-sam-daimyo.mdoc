@@ -1,22 +1,23 @@
 ---
 title: Nomads, Samurai and Daimyo
-description: Attack Nomad and Samurai camps during their events, with camp modes, a difficulty, time skip budgets and score limits.
+description: Attack Nomad and Samurai camps and Daimyo castles during their events, with camp modes, a difficulty, time skip budgets and score limits.
 appRoute: /m/nom-sam-daimyo
 plugin: attackNomads
 sources:
   - packages/bot-core/plugins/attack/attackNomads.js
   - packages/bot-core/plugins/attack/attackSamurai.js
+  - packages/bot-core/plugins/attack/attackDaimyo.js
   - packages/bot-core/plugins/attack/sharedEventCampLogic.js
   - packages/bot-core/eventCamps.js
   - packages/bot-core/eventDifficulty.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This {% term id="module" %}module{% /term %} attacks {% term id="nomad" %}Nomad{% /term %} camps and {% term id="samurai" %}Samurai{% /term %} camps in the {% term id="great-empire" %}Great Empire{% /term %} while their events run. It has one tab for Nomads and one for Samurai.
+{% icon id="cloaked-figure-on-horseback" size=32 /%}Event camps on the map? This {% term id="module" %}module{% /term %} attacks {% term id="nomad" %}Nomad{% /term %} camps and {% term id="samurai" %}Samurai{% /term %} camps in the {% term id="great-empire" %}Great Empire{% /term %} while their events run, and the {% term id="daimyo" %}Daimyo{% /term %} castles of a Samurai event that has them. It has one tab each for Nomads, Samurai and Daimyo.
 
 {% terms_on_page /%}
 
-Turn on the tab of the event you play, and the bot starts when the event starts. {% term id="daimyo" %}Daimyo{% /term %} castles are not supported yet. {% status kind="planned" /%}
+Turn on the tab of the event you play, and the bot starts when the event starts.
 
 ## How it works {% #how-it-works %}
 
@@ -43,9 +44,22 @@ In the two modes that spend skips, **Time skips the bot may use** picks the skip
 
 If no camp is found near the castle, the tab stops. Restart the bot to look again.
 
+## Daimyo castles {% #daimyo %}
+
+The Daimyo tab attacks Daimyo castles during the Samurai event. It works like the Samurai tab, with these differences:
+
+- **Rank 1** to **Rank 4** pick the castles to attack. Only rank 1 is on by default. Rank 1 is the weakest, and each attack on it makes the next wait 30 min longer, up to 2 h. Rank 4 is the strongest, and its wait rises from 5 h to 25 h.
+- If no castle of those ranks is near the castle the attacks leave from, the tab looks again every 10 minutes instead of stopping.
+- **Skip mode: one camp, uses time skips** attacks the castle at **Camp X** and **Camp Y**, whatever its rank.
+- The tab has no **Event difficulty** and no **Stop at this score**. The Samurai tab sets the event's difficulty.
+- Samurai event {% term id="tool" %}tools{% /term %} cannot attack a Daimyo castle, so the tab sends only ordinary wall, gate and shield tools.
+- Time skips are skip items only. The tab never spends {% term id="ruby" %}rubies{% /term %}.
+
+If the map shows a Daimyo castle in a form the bot does not know, the tab attacks nothing and says so. The {% term id="log" %}log{% /term %} names each castle. {% status kind="beta" /%}
+
 ## Difficulty {% #difficulty %}
 
-**Event difficulty** is used only when the event starts with no difficulty set. **Keep the game's current difficulty** sets nothing. The bot plays the difficulty you picked in the game, and it waits until you pick one.
+**Event difficulty** is used only when the event starts with no difficulty set. **Keep the game's current difficulty** sets nothing. The bot plays the difficulty you picked in the game, and it waits until you pick one. **Highest unlocked difficulty** sets the event's highest tier that costs no rubies to rent. It never rents a tier, and the status tells you when every tier is locked.
 
 ## Limits {% #limits %}
 
@@ -75,7 +89,8 @@ With {% term id="autofill" %}Autofill{% /term %}:
 - All four sides are on by default. Untick a side to leave it empty. If left, middle and right are all off, the bot fills every side and the {% term id="courtyard" %}courtyard{% /term %}.
 - **Minimum troops** makes the bot wait until the castle holds that many attack troops. It never attacks with fewer than 100.
 - **Use the weakest event tools first** spends your weakest event tools before the strong ones.
-- The Nomads tab also has **Wall tools before event tools** and **Use food troops**.
+- **Troop supply** limits Autofill to troops that eat food, or troops that eat {% term id="mead" %}mead{% /term %}.
+- The Nomads tab also has **Wall tools before event tools**.
 
 ## Test with Log only {% #log-only %}
 
@@ -90,6 +105,10 @@ Turn on **Log only: write the attacks to the log instead of sending them**. The 
 ### Samurai {% #settings-samurai %}
 
 {% settings plugin="attackSamurai" /%}
+
+### Daimyo {% #settings-daimyo %}
+
+{% settings plugin="attackDaimyo" /%}
 
 ## Related errors {% #errors %}
 

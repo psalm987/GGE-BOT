@@ -48,7 +48,7 @@ describe("robber barons autofill", () => {
         expect(sent(cra).sort()).toEqual(troops.sort())
     })
 
-    test("the older food-only switch still applies while the troop supply is All, and a picked supply wins over it", async () => {
+    test("a stored Food troops only switch sends food troops, and a picked supply wins over it", async () => {
         const meadFirst = [inventory()[1], inventory()[3], inventory()[0], inventory()[2]]
         const food = await barons({ useWallTools: true, attackWaves: "2", attackLeft: true, foodTroopsOnly: true }, { inventory: meadFirst })
         expect(sent(food.cra).sort()).toEqual([FOOD_SLOW, FOOD_RANGED])

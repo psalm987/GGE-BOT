@@ -6,13 +6,14 @@ if (require('node:worker_threads').isMainThread)
 const pretty = require('pretty-time')
 const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID } = require('../../protocols')
 const { mapGrid, scanGrid, wholeMapRects } = require('../../mapScan.js')
-const { waitToAttack, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
     getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
 const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
 const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 
 const err = require('../../err.json')
 
@@ -24,18 +25,24 @@ const type = AreaType.fortress
 async function fortressHit(kingdomID, level, options, filename) {
     const horse = choice(HORSES, options.horse, HORSES[2])
     const autofill = parseAutofill(options, { unitOrder: "fastest" })
-    const report = (...status) => statusReporter(filename)(...status)
+    const report = statusReporter(filename)
     const army = readArmy(options, report)
     if (!army || !await presetsListed(army, report))
         return
 
     const areas = []
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.externalKingdom)
+    const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.externalKingdom])
+    const castle = source.castle
+    if (source.fellBack) {
+        const from = castleName(castle)
+        console.warn("towersSourceCastleGone", from)
+        report("running", "statusTowersCastleFallback", { castle: from })
+    }
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList,
             undefined,
-            (a, b) => b.getEffects().speedBonus - a.getEffects().speedBonus)
+            (a, b) => b.getEffects().speedBonus - a.getEffects().speedBonus, filename)
         
         const hasShieldMadiens = commander.getEffects().AttackSupportUnits
         try {
@@ -73,8 +80,8 @@ async function fortressHit(kingdomID, level, options, filename) {
                         flankUnits: getAmountSoldiersFlank(level), frontUnits: getAmountSoldiersFront(level),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level),
-                    })
-                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
+                    }, { kingdom: kingdomID, areaType: type })
+                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
                 }
 
                 const attackerTroops = []
@@ -126,7 +133,7 @@ async function fortressHit(kingdomID, level, options, filename) {
                         maxTroops -= assignUnit(unitSlot, attackerTroops, maxTroops))
                 }
 
-                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y)
+                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
             })
 
             if (!attackInfo) {
@@ -134,6 +141,7 @@ async function fortressHit(kingdomID, level, options, filename) {
                 return false
             }
 
+            report("running")
             console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
@@ -155,6 +163,9 @@ async function fortressHit(kingdomID, level, options, filename) {
                 case "MISSING_UNITS":
                 case "CASTLE_LOCKED":
                 case "CANT_START_NEW_ARMIES":
+                    return true
+                case "ATTACK_LIMIT_REACHED":
+                    await waitOutDailyLimit(report)
                     return true
                 default:
                     throw e

@@ -81,6 +81,24 @@ describe("the Berimond invasion", () => {
         warn.mockRestore()
     })
 
+    test("a picked capital is where the camps are looked for around and the attacks leave from", async () => {
+        const capital = { id: 66, kingdomID: 0, areaInfo: { type: 3, x: 300, y: 310, extraData: [] }, unlockedHorses: [1, 2], unitInventory: inventory() }
+        const scans = []
+        const areasAround = async (get, kid, origin, wanted) => (scans.push([origin.x, origin.y]), [camp(110, BLUE)].filter(wanted))
+        const { cra } = await berimond({ sourceCastle: { kingdom: 0, id: 66 } }, { castles: [capital], extra: { "mapScan.js": { areasAround } } })
+        expect([cra.SX, cra.SY]).toEqual([300, 310])
+        expect(scans).toEqual([[300, 310]])
+    })
+
+    test("a picked castle the account no longer holds falls back to the main castle, logs it and says so", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { cra, statuses } = await berimond({ sourceCastle: { kingdom: 0, id: 66 } })
+        expect([cra.SX, cra.SY]).toEqual([100, 100])
+        expect(warn).toHaveBeenCalledWith("campSourceCastleGone", "100:100")
+        expect(statuses).toContainEqual(expect.objectContaining({ state: "running", reasonKey: "statusCampCastleFallback", params: { castle: "100:100" } }))
+        warn.mockRestore()
+    })
+
     test("log only sends no attack and spends no skip", async () => {
         const { sent, skipped } = await berimond({ dryRun: true }, { areas: [{ ...camp(110, RED), extraData: [0, 12, 300, 0, RED, 0, 100] }], wait: 10 })
         expect([sent, skipped]).toEqual([[], []])

@@ -57,13 +57,39 @@ function targetRows() {
 
 const castleOf = ref => castles.find(castle => castle.kingdomID == ref.kingdom && castle.id == ref.id)
 
+/** The buildings the plugin orders from, by the `name` the items give a unit and its building, with the plain name a status shows. */
+const PRODUCERS = { Barracks: "barracks", Workshop: "siege workshop", Dworkshop: "defence workshop" }
+const buildingItems = new Map(loadItem("buildings").filter(building => building.name in PRODUCERS).map(building => [Number(building.wodID), building]))
+
+/**
+ * Why `castle` can't make `unit`, or undefined when it can or when that can't be told. It can be told only when the
+ * castle's buildings are known and the items name the producing building's levels: `noBuilding` when the castle has
+ * none of that building, `buildingLevel` when its best one is below the level the unit needs.
+ */
+function cantMake(castle, unit) {
+    const producer = PRODUCERS[unit.name]
+    if (!producer || !castle.buildings?.length || buildingItems.size == 0)
+        return undefined
+    const levels = castle.buildings.map(building => buildingItems.get(building.wodID)).filter(item => item?.name == unit.name).map(item => Number(item.level))
+    if (levels.length == 0)
+        return { outcome: "noBuilding", building: producer }
+    const needed = Number(unit.buildingLevel)
+    if (needed > 0 && Math.max(...levels) < needed)
+        return { outcome: "buildingLevel", building: producer, level: String(needed) }
+    return undefined
+}
+
+/** The reasons already logged for a castle and unit, so a plan that can't be made says so once, not every check. */
+const reportedCantMake = new Map()
+
 /** Outcomes of one row, best first. */
-const OUTCOMES = ["ordered", "met", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused", "notOrderable", "noCastle", "noAnswer"]
+const OUTCOMES = ["ordered", "met", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused", "notOrderable", "noBuilding", "buildingLevel", "noCastle", "noAnswer"]
 /** The blockers in the order the status names them when nothing was ordered. */
-const BLOCKERS = ["notOrderable", "noCastle", "noAnswer", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused"]
+const BLOCKERS = ["notOrderable", "noCastle", "noBuilding", "buildingLevel", "noAnswer", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused"]
 const STATUS_KEY = {
     notOrderable: "statusRecruitToolsNotOrderable", noCastle: "statusRecruitToolsNoCastle", noAnswer: "statusRecruitToolsNoAnswer", queueUnknown: "statusRecruitToolsQueueUnknown",
     queueFull: "statusRecruitToolsQueueFull", coinFloor: "statusRecruitToolsCoinFloor", noResources: "statusRecruitToolsNoResources", refused: "statusRecruitToolsRefused",
+    noBuilding: "statusRecruitToolsNoBuilding", buildingLevel: "statusRecruitToolsBuildingLevel",
 }
 
 const fewMinutes = () => boxMullerRandom(60_000, 3 * 60_000)
@@ -92,6 +118,7 @@ async function cycle(active) {
 
     await stock.refreshHome()
     const outcomes = rows.map(() => new Set())
+    const details = []
     const dryOrdered = new Map(), drySpent = new Map()
     let orders = 0, items = 0, soonest
 
@@ -133,7 +160,24 @@ async function cycle(active) {
             return
         await setCastle(castle, async () => {
             for (const list of [UNITS_LIST, TOOLS_LIST]) {
-                const mine = indexes.filter(i => rows[i].list == list)
+                const mine = indexes.filter(i => {
+                    if (rows[i].list != list)
+                        return false
+                    const verdict = cantMake(castle, rows[i].unit)
+                    if (!verdict)
+                        return true
+                    outcomes[i].add(verdict.outcome)
+                    details[i] = verdict
+                    const key = `${castle.kingdomID}:${castle.id}:${rows[i].wodID}`
+                    if (reportedCantMake.get(key) != verdict.outcome) {
+                        reportedCantMake.set(key, verdict.outcome)
+                        if (verdict.outcome == "noBuilding")
+                            console.warn("recruitCantMake", rows[i].unit.type, "recruitHasNo", verdict.building)
+                        else
+                            console.warn("recruitCantMake", rows[i].unit.type, "recruitNeedsLevel", verdict.level, "recruitOfA", verdict.building)
+                    }
+                    return false
+                })
                 if (mine.length == 0)
                     continue
                 const queue = await stock.readQueue(castle, list)
@@ -219,7 +263,9 @@ async function cycle(active) {
         reportStatus("waiting", "statusRecruitToolsTargetsMet")
     else {
         const blocker = BLOCKERS.find(b => finals.includes(b))
-        reportStatus("waiting", STATUS_KEY[blocker], { item: String(rows[finals.indexOf(blocker)].unit.type) })
+        const at = finals.indexOf(blocker)
+        const { building, level } = details[at] ?? {}
+        reportStatus("waiting", STATUS_KEY[blocker], { item: String(rows[at].unit.type), ...(building && { building }), ...(level && { level }) })
     }
     return (soonest !== undefined ? soonest * 1000 : 15 * 60_000) + fewMinutes()
 }

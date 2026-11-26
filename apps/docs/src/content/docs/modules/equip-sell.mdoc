@@ -1,6 +1,6 @@
 ---
 title: Equip sell
-description: Sell loose equipment and gems from your storage a few at a time. The bot never sells relic or unique pieces, or anything that belongs to a set.
+description: Sell loose equipment and gems from your storage a few at a time. You choose which equipment colours it sells. It never sells anything that belongs to a set.
 appRoute: /m/equip-sell
 plugin: sellStoredEquipment
 sources:
@@ -16,28 +16,33 @@ Use it when your storage fills up with equipment and gems you don't need.
 
 1. After your bot signs in, it waits the number of minutes in **Minutes to wait after login before selling**, plus up to 3 minutes more.
 2. It reads the equipment and the gems in your storage.
-3. It sells up to **Items sold per run** items, one at a time, with a short pause between sales. Equipment comes first, then gems.
+3. It sells up to **Items sold per run** items, one at a time, with a short pause between sales. Equipment comes first, then gems. It reads only the storage you ticked something for.
 4. It waits about 5 minutes, then starts again at step 2.
 
-Your {% term id="log" %}log{% /term %} shows how many pieces of equipment and how many gems each round sold.
+Your {% term id="log" %}log{% /term %} shows how many pieces of equipment and how many gems each round sold. If you tick no colour and turn gems off, the plugin has nothing to sell. It says so in the log and in its status, and it does not run.
 
 ## What the bot sells and keeps {% #what-it-sells %}
 
-The bot sells:
+The bot sells the equipment colours you tick, and loose gems if you leave **Sell loose gems** on. Each colour covers the normal pieces and the hero pieces of that rarity.
 
-- Equipment of every rarity except relic and unique. That includes epic and legendary pieces.
-- Gems from your storage.
+| Setting | Game rarity | Sold by default |
+| --- | --- | --- |
+| Grey (Ordinary) | Common | Yes |
+| Green (Rare) | Rare | Yes |
+| Purple (Epic) | Epic | No |
+| Orange (Legendary) | Legendary | No |
+| Red (Unique) | Unique | No |
+| Relic | Relic | No |
 
 The bot never sells:
 
-- Relic equipment.
-- Unique equipment.
-- Any piece of equipment or any gem that belongs to a set.
+- Any piece of equipment or any gem that belongs to a set, whatever colours you tick.
+- Equipment of a colour you did not tick.
 
 The bot sells only from storage.
 
 {% aside type="caution" id="sales-are-final" %}
-A sale cannot be undone. Before you turn the plugin on, check your storage. Anything there that is not relic, unique or part of a set gets sold.
+A sale cannot be undone. Before you turn the plugin on, check your storage and your colour ticks. Every loose piece of a ticked colour gets sold, new pieces included. Leave purple, orange, red and relic unticked unless you are sure. Red (Unique) is our best guess for the game's Unique rarity, so check a piece's colour in the game first.
 {% /aside %}
 
 ## Settings {% #settings %}
@@ -48,9 +53,11 @@ A sale cannot be undone. Before you turn the plugin on, check your storage. Anyt
 
 **Items sold per run** is how many items one round sells. It takes a whole number from 1 to 50.
 
+**Equipment colours to sell** has one box for each colour. Grey and green are ticked at first, and purple, orange, red and relic are not. **Sell loose gems** is ticked at first.
+
 ## Tips and limits {% #tips %}
 
-- The plugin has no list of items to keep. Every stored item that is not relic, unique or part of a set is for sale.
+- The plugin has no list of single items to keep. Every loose piece of a ticked colour is for sale.
 - Turn the plugin off when you want to keep new loot for a while.
 
 ## Related errors {% #errors %}

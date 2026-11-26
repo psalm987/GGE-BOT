@@ -1,6 +1,6 @@
 import * as z from "zod"
 import { ArmyMode, AutofillSource, SkipTypes, WavePlan } from "./army.ts"
-import { PluginCheckDef } from "./plugin-checks.ts"
+import { MAX_COMMANDERS, PluginCheckDef } from "./plugin-checks.ts"
 
 const key = z.string().min(1)
 /** Shows the option only while the plugin's ArmyMode option is in this mode. */
@@ -31,8 +31,10 @@ const Stored = z.union([z.string(), z.number(), z.boolean()])
 /**
  * What a Select means for a record stored before it existed. `from` holds the options it replaced, each with the
  * default it had. The first case whose values all match the stored ones gives the choice, else `otherwise`. A Select
- * that took over an older option's own key names that key in `from`. Stored records are read through this and never
- * rewritten; packages/bot-core/legacyOptions.js reads the same shape for the bot.
+ * that took over an older option's own key names that key in `from`. Such a Select reads its choice again while an
+ * option it replaced under another key is stored beside it, so its own stored value is one more input to the cases.
+ * Stored records are read through this and never rewritten; packages/bot-core/legacyOptions.js reads the same shape
+ * for the bot.
  */
 export const LegacyChoice = z.object({
     from: z.record(key, Stored),
@@ -56,6 +58,21 @@ export type RowColumn = z.infer<typeof RowColumn>
 /** One row of a Rows option, by column key: a castle, a kingdom id, an item's wodID, or a number. */
 export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
 export type RowValue = z.infer<typeof RowValue>
+
+/**
+ * A shared bucket of the commander map: every member plugin may send the bucket's commanders. `first` members are
+ * served first when several members wait for the same commander.
+ */
+export const CommanderBucket = z.object({ key, members: z.array(key).min(1), first: z.array(key).optional() })
+export type CommanderBucket = z.infer<typeof CommanderBucket>
+
+/**
+ * An account's commander map: the owner of each commander by number, so the first entry owns commander 1. An owner is
+ * a plugin's key or a bucket's key, and "" owns nothing. A list with no owner in it is no map: every plugin then
+ * keeps its own commander list. bot-core's commanderMap.js reads the same shape.
+ */
+export const CommanderMap = z.array(z.string().max(64)).max(MAX_COMMANDERS)
+export type CommanderMap = z.infer<typeof CommanderMap>
 
 /** The option types plugins declare (bot-core plugins' pluginOptions). Any option with a key may set `showWhen`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
@@ -82,6 +99,11 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     z.looseObject({ type: z.literal("SkipTypes"), key, default: z.null().optional(), showWhen }),
     /** Autofill or Waves. `autofill` says which options make up the autofill, for its one-line summary. */
     z.looseObject({ type: z.literal("ArmyMode"), key, default: ArmyMode.optional(), autofill: AutofillSource, showWhen }),
+    /**
+     * The account's commander map, with the shared buckets a commander may go to besides a plugin. `keepsOwnList` names
+     * the defence plugins that keep their own commander list while the map gives them nothing.
+     */
+    z.looseObject({ type: z.literal("CommanderMap"), key, default: CommanderMap, buckets: z.array(CommanderBucket), keepsOwnList: z.array(key).optional(), showWhen }),
     /** A wave plan; unset until the player writes one. */
     z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, army }),
 ])
@@ -89,6 +111,10 @@ export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 /** An option that holds a value: every type but the layout gap and the label. */
 export type ValueOptionDef = Exclude<PluginOptionDef, { type: "" | "Label" }>
 export const holdsValue = (def: PluginOptionDef): def is ValueOptionDef => def.type !== "" && def.type !== "Label"
+
+/** What an attack plugin attacks: a kingdom and an area type of the game. */
+export const AttackTarget = z.object({ kingdom: z.number().int(), areaType: z.number().int() })
+export type AttackTarget = z.infer<typeof AttackTarget>
 
 export const PluginCatalogEntry = z.object({
     key,
@@ -101,6 +127,8 @@ export const PluginCatalogEntry = z.object({
     checks: z.array(PluginCheckDef).optional(),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: z.boolean().optional(),
+    /** What the plugin attacks. A wave editor offers only the tools that may attack one of these; absent means every tool. */
+    targets: z.array(AttackTarget).optional(),
 })
 
 /** How many attack plugins one account may run at once. Set by an admin: a global default and a per-user override. */
@@ -120,7 +148,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue)])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -154,8 +182,9 @@ export class PluginSettingsError extends Error {
 
 /**
  * A plugin's stored options as its options are today: each Select with a `legacy` rule gets its choice from the
- * options it replaced, unless a choice is stored already, and the replaced options are left out. A Number that was a
- * Text reads its stored string as a number.
+ * options it replaced, unless a choice is stored already, and the replaced options are left out. A Select that names
+ * its own key in `from` reads its choice again while another option it replaced is stored. A Number that was a Text
+ * reads its stored string as a number.
  */
 export function readLegacy<T extends Record<string, OptionValue | undefined>>(defs: PluginOptionDef[], stored: T): T {
     const out: Record<string, OptionValue | undefined> = { ...stored }
@@ -186,7 +215,9 @@ export function readLegacy<T extends Record<string, OptionValue | undefined>>(de
             continue
         const { from, cases, otherwise } = def.legacy
         const old = (name: string) => stored[name] ?? from[name]
-        if (typeof stored[def.key] !== "number" && Object.keys(from).some(name => stored[name] !== undefined))
+        const replaced = Object.keys(from).filter(name => stored[name] !== undefined)
+        const chosen = typeof stored[def.key] === "number" && !(def.key in from && replaced.some(name => name !== def.key))
+        if (!chosen && replaced.length > 0)
             out[def.key] = cases.find(([when]) => Object.entries(when).every(([name, value]) => old(name) === value))?.[1] ?? otherwise
         for (const name of Object.keys(from))
             if (!current.has(name))
@@ -253,7 +284,7 @@ function parsedArmy<T extends OptionValue>(schema: z.ZodType<T>, value: OptionVa
     return parsed.data
 }
 
-function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
+function normalizeValue(catalog: PluginCatalogEntry[], def: PluginOptionDef, value: OptionValue, where: string): OptionValue {
     switch (def.type) {
         case "":
         case "Label":
@@ -300,7 +331,24 @@ function normalizeValue(def: PluginOptionDef, value: OptionValue, where: string)
             return parsedArmy(ArmyMode, value, where)
         case "Waves":
             return parsedArmy(WavePlan, value, where)
+        case "CommanderMap":
+            return checkCommanderMap(catalog, def.buckets, value, where)
     }
+}
+
+/** A plugin that sends commanders: its catalog entry marks its commander list. */
+export const sendsCommanders = (entry: PluginCatalogEntry) => (entry.checks ?? []).some(check => check.type === "commanders")
+
+/** The map as it is stored: every owner a bucket or a plugin that sends commanders, and no unowned commanders at its end. */
+function checkCommanderMap(catalog: PluginCatalogEntry[], buckets: CommanderBucket[], value: OptionValue, where: string): CommanderMap {
+    const parsed = CommanderMap.safeParse(value)
+    if (!parsed.success)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_LIST", params: { where, max: MAX_COMMANDERS } })
+    const owners = new Set([...buckets.map(bucket => bucket.key), ...catalog.filter(sendsCommanders).map(entry => entry.key)])
+    const stranger = parsed.data.find(owner => owner !== "" && !owners.has(owner))
+    if (stranger !== undefined)
+        throw new PluginSettingsError({ code: "PLUGIN_UNKNOWN", params: { plugin: stranger } })
+    return parsed.data.slice(0, parsed.data.findLastIndex(owner => owner !== "") + 1)
 }
 
 /** Brings a saved value from before the bounds existed, or of another type, into range. */
@@ -328,7 +376,7 @@ export function normalizePluginSettings(catalog: PluginCatalogEntry[], settings:
             const def = defs.get(optionKey)
             if (!def)
                 throw new PluginSettingsError({ code: "PLUGIN_OPTION_UNKNOWN", params: { plugin: pluginKey, option: optionKey } })
-            options[optionKey] = normalizeValue(def, value, `${pluginKey}.${optionKey}`)
+            options[optionKey] = normalizeValue(catalog, def, value, `${pluginKey}.${optionKey}`)
         }
         out[pluginKey] = { enabled: entry.force || setting.enabled, options }
     }

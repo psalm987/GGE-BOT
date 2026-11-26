@@ -3,10 +3,11 @@ import { Alert, App, Button, Card, Progress, Select, Skeleton, Tabs, Tag, Typogr
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, Navigate, useParams, useSearchParams } from "react-router"
-import { MODULES, type ModuleDef, type PluginCatalogEntry, type PublicAccount } from "@gge/contracts"
+import { CommanderMap, MODULES, type ModuleDef, type PluginCatalogEntry, type PublicAccount } from "@gge/contracts"
 import { Icon, messageOf, ParchmentCard } from "@gge/ui"
 import { orpc, queryClient } from "../api.ts"
 import { ComingSoon } from "./ComingSoon.tsx"
+import { LiveView } from "./LiveView.tsx"
 import { VirtualPresets } from "./VirtualPresets.tsx"
 import { AppLayout } from "../components/AppLayout.tsx"
 import { StartStop, StartStopDetail } from "../components/StartStop.tsx"
@@ -16,6 +17,7 @@ import { CopyToAll } from "../components/PluginOptionField.tsx"
 import { PluginSection } from "../components/PluginSection.tsx"
 import { AttackAwareSwitch, BreaksPeaceTag, PluginStatusPill, usePluginPill } from "../components/PluginPanels.tsx"
 import { attackPluginsOn, changedPlugins, commanderPlugins, commandersDiffer, dailyAsked, moduleReducer, pluginsToSave, sharedCommanders, startModule, type ModuleState } from "../module-values.ts"
+import { mapDecides } from "../commander-map.ts"
 import { moduleKey } from "../nav.ts"
 import { pluginFormValues, type OptionValues } from "../plugin-values.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
@@ -39,6 +41,7 @@ export function Module() {
     return (
         <AppLayout activeKey={moduleKey(module.id)} title={title}>
             {module.page === "virtualPresets" ? <VirtualPresets module={module} />
+                : module.page === "liveView" ? <LiveView module={module} />
                 : module.status === "live" ? <LiveModule key={module.id} module={module} /> : <ComingSoon module={module} />}
         </AppLayout>
     )
@@ -118,6 +121,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
     const [state, dispatch] = useReducer(moduleReducer, undefined, () => startModule(entries, account?.plugins))
     const [resetKey, setResetKey] = useState(0)
     const pickerPlugins = useMemo(() => commanderPlugins(entries), [entries])
+    const mapDef = catalog.find(entry => entry.key === "commander")?.options.flatMap(def => def.type === "CommanderMap" ? [def] : [])[0]
     const [mixed, setMixed] = useState(() => commandersDiffer(entries, pluginFormValues(entries, account?.plugins)))
     const forms = useRef(new Map<string, FormInstance>())
     const dirty = changedPlugins(entries, state).length > 0
@@ -207,6 +211,7 @@ function ModuleBody({ module, entries, catalog, account, attackLimit }: {
             {commanders && (
                 <CommanderPicker list={commanders.list} vip={commanders.vip} vipMax={vipDef?.type === "Number" ? vipDef.max : 0} commanders={account?.status?.commanders ?? null}
                     disabled={readOnly || save.isPending} shared={pickerPlugins.length > 1} mixed={mixed}
+                    mapLink={account && mapDecides(CommanderMap.catch([]).parse(account.plugins.commander?.options.commanderMap), mapDef?.buckets ?? [], mapDef?.keepsOwnList ?? [], pickerPlugins.map(entry => entry.plugin)) ? `/?account=${account.id}&tab=account-settings` : undefined}
                     onChange={set => dispatch({ type: "commanders", plugins: pickerPlugins, set })} />
             )}
 

@@ -13,6 +13,7 @@ const waveOptions = () => [{
 
 if (require('node:worker_threads').isMainThread)
     return module.exports = {
+        targets: [{ kingdom: 0, areaType: require("../../areaTypes.js").AreaType.beriCamp }],
         checks: require("../../commanderOptions.js").commanderChecks,
         pluginOptions: [
             {
@@ -28,6 +29,7 @@ if (require('node:worker_threads').isMainThread)
             ...require("../../commanderOptions.js").commanderOptions(),
             { type: "SkipTypes", key: "skipTypes", default: null },
             { type: "Select", key: "campSide", selection: ["All camps", "Red camps only", "Blue camps only"], default: 0 },
+            { type: "CastlePicker", key: "sourceCastle", kingdom: 0, default: null },
             ...require("../../army.js").armyOptions({ sides: { left: true, front: true, right: true, courtyard: true }, waves: "all", tools: ["noEventTools", "reputation", "lowValueChests"], whenNoTools: "eventTools", unitOrder: "unitOrder", supply: "supply" }),
             {
                 type: "Checkbox",
@@ -48,12 +50,6 @@ if (require('node:worker_threads').isMainThread)
                 army: "autofill",
                 default: false
             },
-            {
-                type: "Checkbox",
-                key: "foodTroopsOnly",
-                default: false,
-                army: "autofill"
-            },
             require("../../army.js").unitOrderOption(),
             require("../../army.js").supplyOption(),
             {
@@ -67,9 +63,10 @@ if (require('node:worker_threads').isMainThread)
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
 const { areasAround } = require("../../mapScan.js")
+const { pickSourceCastle, castleName } = require("../../towers.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require('../../ggeBot.js')
 
 
@@ -138,7 +135,10 @@ events.on("eventStart", async eventInfo => {
     if (!army || !await presetsListed(army, reportStatus))
         return
 
-    const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
+    const source = pickSourceCastle(castles, kingdomID, pluginOptions.sourceCastle, [AreaType.mainCastle])
+    const castle = source.castle
+    if (source.fellBack)
+        console.warn("campSourceCastleGone", castleName(castle))
 
     const areas = (await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type))
         .filter(ai => campOwner === undefined || ai.extraData[4] == campOwner)
@@ -148,10 +148,13 @@ events.on("eventStart", async eventInfo => {
     }
 
     quit = false
-    reportStatus("running")
+    if (source.fellBack)
+        reportStatus("running", "statusCampCastleFallback", { castle: castleName(castle) })
+    else
+        reportStatus("running")
 
     while (!quit) {
-        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList)
+        const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
         try {
             const attackInfo = await waitToAttack(async () => {
                 const areaInfo = areas.shift()
@@ -170,7 +173,7 @@ events.on("eventStart", async eventInfo => {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
-                    })
+                    }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                 }
 
@@ -380,6 +383,7 @@ events.on("eventStart", async eventInfo => {
 
 
 
+            reportStatus("running")
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
             freeCommander(commander.lordID)
@@ -400,6 +404,9 @@ events.on("eventStart", async eventInfo => {
                 case "MISSING_UNITS":
                 case "CASTLE_LOCKED":
                 case "CANT_START_NEW_ARMIES":
+                    break
+                case "ATTACK_LIMIT_REACHED":
+                    await waitOutDailyLimit(reportStatus)
                     break
                 default:
                     console.error(e)

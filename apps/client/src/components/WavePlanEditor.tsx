@@ -3,39 +3,54 @@ import { Alert, Button, Collapse, InputNumber, Segmented, Select, Tag } from "an
 import { useTranslation } from "react-i18next"
 import {
     MAX_SLOT_AMOUNT, MAX_WAVES, MIN_WAVES, SERVER_PRESETS, WAVE_SIDES, WAVE_SLOTS, emptyCustomWave, emptyWave, serverPresetsIn, waveIsEmpty,
-    type ArmySlot, type GameItem, type GamePreset, type ManualPlan, type Wave,
+    type ArmySlot, type AttackTarget, type GameItem, type GamePreset, type ManualPlan, type Wave,
 } from "@gge/contracts"
-import { filledSlots, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
-import { useGameItems } from "./PluginOptionField.tsx"
+import { filledSlots, toolsForTargets, withAddedWave, withCourtyard, withSlot, withSupportTool, withWave, withWaveCopiedToRest, withoutWave } from "../army-values.ts"
+import { itemSearch, renderItemOption, useGameItems, type ItemOption } from "./PluginOptionField.tsx"
 import "./army.css"
 
-type ItemOption = { value: number; label: string }
 const TOOL_AMOUNT = 10
 const TROOP_AMOUNT = 100
 
 type Catalog = ReturnType<typeof useGameItems>
 /** The choices of an item select: the catalogs' items by name, plus the slot's own item when they lack it. */
 function itemOptions(unknown: (id: number) => string, ...catalogs: Catalog[]) {
-    const options: ItemOption[] = catalogs.flatMap(({ items, nameOf }) => items.map((item: GameItem) => ({ value: item.id, label: nameOf(item) })))
+    const options: ItemOption[] = catalogs.flatMap(({ items, optionOf }) => items.map((item: GameItem) => optionOf(item)))
     const known = new Set(options.map(option => option.value))
     return (current: number | null | undefined) =>
         current === null || current === undefined || known.has(current) ? options : [...options, { value: current, label: unknown(current) }]
 }
 
-function ItemPicker({ options, value, onChange, label, disabled }: { options: ItemOption[]; value: number | null; onChange: (item: number | null) => void; label: string; disabled?: boolean }) {
+/**
+ * Like `itemOptions`, but offering only the tools a plugin's target allows. A slot's own tool that the target bars is
+ * added back with a note, so a saved plan shows what it holds instead of dropping it.
+ */
+function restrictedOptions(unknown: (id: number) => string, catalogs: Catalog[], { offered, barred }: ReturnType<typeof toolsForTargets>, notAllowed: (name: string) => string) {
+    const names = new Map(catalogs.flatMap(({ items, nameOf }) => items.map((item): [number, string] => [item.id, nameOf(item)])))
+    const optionOf = new Map(catalogs.flatMap(({ items, optionOf }) => items.map((item): [number, ItemOption] => [item.id, optionOf(item)])))
+    const options: ItemOption[] = offered.map(item => optionOf.get(item.id) ?? { value: item.id, label: unknown(item.id) })
+    return (current: number | null | undefined) => {
+        if (current === null || current === undefined || options.some(option => option.value === current))
+            return options
+        const name = names.get(current)
+        return [...options, { value: current, label: name && barred.has(current) ? notAllowed(name) : unknown(current) }]
+    }
+}
+
+function ItemPicker({ options, value, onChange, label, disabled, flagged }: { options: ItemOption[]; value: number | null; onChange: (item: number | null) => void; label: string; disabled?: boolean; flagged?: boolean }) {
     const { t } = useTranslation("client")
-    return <Select allowClear showSearch={{ optionFilterProp: "label" }} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled}
+    return <Select allowClear {...itemSearch} optionRender={renderItemOption} aria-label={label} placeholder={t("waves.slot.empty")} disabled={disabled} status={flagged ? "warning" : undefined}
         value={value ?? undefined} options={options} onChange={(item?: number) => onChange(item ?? null)} style={{ width: "100%", minWidth: 0 }} />
 }
 
 /** One slot: a game item and how many of it. */
-function SlotField({ optionsFor, value, onChange, label, startAmount, disabled }: {
-    optionsFor: (current: number | null | undefined) => ItemOption[]; value: ArmySlot; onChange: (slot: ArmySlot) => void; label: string; startAmount: number; disabled?: boolean
+function SlotField({ optionsFor, value, onChange, label, startAmount, disabled, barred }: {
+    optionsFor: (current: number | null | undefined) => ItemOption[]; value: ArmySlot; onChange: (slot: ArmySlot) => void; label: string; startAmount: number; disabled?: boolean; barred?: Set<number>
 }) {
     const { t } = useTranslation("client")
     return (
         <div className="gge-army-slot">
-            <ItemPicker options={optionsFor(value?.item)} value={value?.item ?? null} label={label} disabled={disabled}
+            <ItemPicker options={optionsFor(value?.item)} value={value?.item ?? null} label={label} disabled={disabled} flagged={value ? barred?.has(value.item) : false}
                 onChange={item => onChange(item === null ? null : { item, amount: value?.amount ?? startAmount })} />
             <InputNumber aria-label={t("waves.slot.amount", { slot: label })} min={1} max={MAX_SLOT_AMOUNT} precision={0} disabled={disabled || !value}
                 value={value?.amount ?? null} onChange={amount => value && amount && onChange({ ...value, amount })} style={{ width: "100%" }} />
@@ -54,16 +69,21 @@ function WaveTag({ wave, gamePresets }: { wave: Wave; gamePresets: GamePreset[] 
 /**
  * The wave plan editor: waves 1 to 25 (4 to begin with), each an in-game preset or custom slots, then the support tools and the courtyard.
  * The same editor writes a module's own plan and a virtual preset. `gamePresets` are the in-game presets the bot last
- * saw the game list for the account, which a wave can name.
+ * saw the game list for the account, which a wave can name. `targets` is what the plugin being edited attacks: tools
+ * that can't attack it are left out of the pickers, though a tool a saved plan already holds stays in its slot, flagged.
  */
-export function WavePlanEditor({ value, onChange, disabled, gamePresets = [] }: {
-    value: ManualPlan; onChange: (plan: ManualPlan) => void; disabled?: boolean; gamePresets?: GamePreset[]
+export function WavePlanEditor({ value, onChange, disabled, gamePresets = [], targets }: {
+    value: ManualPlan; onChange: (plan: ManualPlan) => void; disabled?: boolean; gamePresets?: GamePreset[]; targets?: AttackTarget[]
 }) {
     const { t } = useTranslation("client")
     const unknown = (id: number) => t("plugins.list.unknownItem", { id })
-    const tools = itemOptions(unknown, useGameItems("tool"), useGameItems("banner"))
+    const toolCatalog = useGameItems("tool"), bannerCatalog = useGameItems("banner")
+    const supportCatalog = useGameItems("supportTool")
+    const barredTools = toolsForTargets([...toolCatalog.items, ...bannerCatalog.items], targets)
+    const barredSupport = toolsForTargets(supportCatalog.items, targets)
+    const tools = restrictedOptions(unknown, [toolCatalog, bannerCatalog], barredTools, name => t("waves.tool.notAllowed", { name }))
     const troops = itemOptions(unknown, useGameItems("troop"))
-    const supportTools = itemOptions(unknown, useGameItems("supportTool"))
+    const supportTools = restrictedOptions(unknown, [supportCatalog], barredSupport, name => t("waves.tool.notAllowed", { name }))
     const names = new Map(gamePresets.map(({ preset, name }) => [preset, name]))
     // Every slot is offered, so a plan can be set up before the bot has read the game's list.
     const presetLabel = (n: number) => {
@@ -106,7 +126,7 @@ export function WavePlanEditor({ value, onChange, disabled, gamePresets = [] }: 
                                         <span className="gge-army-note">{t(`waves.row.${row}`)}</span>
                                         {Array.from({ length: WAVE_SLOTS[side][row] }, (_, i) => (
                                             <SlotField key={i} optionsFor={row === "tools" ? tools : troops} value={wave[side][row][i] ?? null} disabled={disabled}
-                                                startAmount={row === "tools" ? TOOL_AMOUNT : TROOP_AMOUNT}
+                                                startAmount={row === "tools" ? TOOL_AMOUNT : TROOP_AMOUNT} barred={row === "tools" ? barredTools.barred : undefined}
                                                 label={t(`waves.slot.${row}`, { wave: n, side: t(`army.side.${side}`), n: i + 1 })}
                                                 onChange={slot => set(withSlot(wave, side, row, i, slot))} />
                                         ))}
@@ -140,7 +160,7 @@ export function WavePlanEditor({ value, onChange, disabled, gamePresets = [] }: 
             <section aria-label={t("waves.support.title")}>
                 <h3 className="gge-army-heading gge-display">{t("waves.support.title")}</h3>
                 <div className="gge-army-support">
-                    {value.ast.map((item, i) => <ItemPicker key={i} options={supportTools(item)} value={item} disabled={disabled}
+                    {value.ast.map((item, i) => <ItemPicker key={i} options={supportTools(item)} value={item} disabled={disabled} flagged={item !== null && barredSupport.barred.has(item)}
                         label={t("waves.support.slot", { n: i + 1 })} onChange={next => onChange(withSupportTool(value, i, next))} />)}
                 </div>
             </section>

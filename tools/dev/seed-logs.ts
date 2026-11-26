@@ -45,7 +45,7 @@ const RUNNING: Template[] = [
     barons,
     { level: 0, plugin: "taxCollector", parts: () => ["taxesCollected"] },
     nomads,
-    { level: 2, plugin: "attackBarronsGreatEmpire", parts: () => ["attacksHalted", "ATTACK_LIMIT_REACHED"] },
+    { level: 1, plugin: "attack", parts: () => ["attacksPaused", 5, "attacksPausedMinutes", "REJECTIONS_IN_A_ROW"] },
 ]
 
 const LINES_PER_ACCOUNT = 40

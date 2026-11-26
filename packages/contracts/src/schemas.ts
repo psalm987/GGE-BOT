@@ -4,6 +4,7 @@ import { PLAN_IDS } from "./plans.ts"
 import { GamePreset } from "./army.ts"
 import { AccountCastle, PluginStates } from "./plugin-checks.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
+import { ReadBack } from "./read-back.ts"
 import { Schedule } from "./schedule.ts"
 
 export const Role = z.enum(["user", "admin"])
@@ -67,6 +68,8 @@ export const BotStatus = z.object({
     gamePresets: z.array(GamePreset).default([]),
     /** The figures in the worker's last report; null until it has made one. */
     resources: AccountResources.nullable().default(null),
+    /** Castle stores, marches and session gains from the worker's last report; null until it has made one that carries them. */
+    readBack: ReadBack.nullable().default(null),
 })
 
 export const PublicAccount = z.object({
