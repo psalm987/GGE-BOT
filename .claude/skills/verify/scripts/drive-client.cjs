@@ -1380,7 +1380,7 @@ async function driveGlorySettings(page) {
         assert(await protection.isVisible() && !(await protection.isChecked()), `${plugin}: attacking under protection is off by default`)
         assert(await dialog.getByText("This ends your beginner or peace protection.", { exact: true }).isVisible(), `${plugin}: the protection option warns in words`)
         assert(await dialog.getByText("Log only: write the attacks to the log instead of sending them").isVisible(), `${plugin}: shows Log only`)
-        for (const label of ["Most to spend on one dethrone", "Most to spend on dethrones in one event", "Always keep at least this many coins or rubies"])
+        for (const label of ["Most to spend on one dethrone", "Most to spend on dethrones in one event", "Always keep at least this much of the currency that pays"])
             assert(await dialog.getByLabel(label).inputValue() === "0", `${plugin}: "${label}" starts at 0, which allows no dethrone`)
         await axe(page, `${plugin} module with every option 1440`)
         await page.screenshot({ path: `${out}/${file}-1440.png` })

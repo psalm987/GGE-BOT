@@ -94,8 +94,12 @@ const tokenPurse = field => ({ balance: () => Number(resources[field]), spend: c
 const exile = (rck, cost, currency, purse) => ({ rck, exile: true, count: "RCSC", lastRow: 19, cost, currency, ...purse })
 const DETHRONES = [
     undefined,
-    { rck: "C1", purse: "coin", count: "RCSC", lastRow: 19, cost: row => Number(row.c1Cost), currency: "gloryCoins" },
-    { rck: "C2", purse: "rubies", count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies" },
+    exile("C1", row => Number(row.c1Cost), "gloryCoins", coinPurse),
+    { rck: "C2", exile: false, count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies",
+        balance: () => Number(playerInfo.rubies), spend: cost => { playerInfo.rubies -= cost } },
+    exile("GTO", row => Number(row.costGoldToken), "gloryGoldTokens", tokenPurse("goldToken")),
+    exile("STO", row => Number(row.costSilverToken), "glorySilverTokens", tokenPurse("silverToken")),
+    exile("ST", row => Number(row.costSamuraiToken), "glorySamuraiTokens", tokenPurse("samuraiToken")),
 ]
 
 const distance = (from, to) => (from.x - to.x) ** 2 + (from.y - to.y) ** 2
