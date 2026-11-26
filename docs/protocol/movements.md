@@ -21,6 +21,8 @@ A movement ends only once. When `mrm` comes first, the movement's own timer find
 
 A movement's own timer ends it 10 s after the time the game gives (`MOVEMENT_DONE_AFTER_MS`). The game removes a movement a few seconds late and refuses its commander with `LORD_IS_USED` until then. The bot used to free the commander 1 s after the march time.
 
+An army that stays at its target, such as troops stationed at an ally, is over only when its stay is over. `Movement.endsAt` is its arrival plus `UM.TWD - UM.PWD` seconds ([stationing.md](stationing.md#list-stationed-troops)). `PT` keeps counting during the stay, so for an army already standing there the rest of the stay counts from now. Before this, a stationed army counted as over at its arrival.
+
 When a march home ends, `protocols.js` adds its troops and goods to the castle. It skips that when the castle list (`dcl`) was read after the march landed, because that list already counts them.
 
 ## `dms` is not a movement command

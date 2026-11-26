@@ -1172,7 +1172,7 @@ async function newMovement(movement) {
 
     if (movement.targetOwner.ownerID == movement.owner.ownerID)
         movementEvents.emit("returning", movement)
-    setTimeout(() => endMovement(movement), Math.max(0, movement.arrivesAt - Date.now() + MOVEMENT_DONE_AFTER_MS))
+    setTimeout(() => endMovement(movement), Math.max(0, movement.endsAt - Date.now() + MOVEMENT_DONE_AFTER_MS))
 }
 /**
  * Takes a movement off the list and says it is over: "ended" for any movement, "return" too for a march home.
@@ -1214,6 +1214,12 @@ class Movement {
         this.deltaTime = Number(movement.M.PT) * 1000 + Date.now()
         /** When the march ends, epoch milliseconds. In the past for an army that already stands in its castle. */
         this.arrivesAt = Date.now() + this.totalTime - Number(movement.M.PT) * 1000
+        /**
+         * When the movement is over, epoch milliseconds: its arrival plus the rest of any stay at the target. `UM.TWD`
+         * is the whole stay and `UM.PWD` the part already over, in seconds (docs/protocol/stationing.md). PT counts
+         * the stay too, so the rest counts from now once the army stands there.
+         */
+        this.endsAt = Math.max(this.arrivesAt, Date.now()) + Math.max(0, Number(movement.UM?.TWD ?? 0) - Number(movement.UM?.PWD ?? 0)) * 1000
 
         this.lord = new Lord(movement.UM?.L ?? {})
         this.owner = ownerInfo.find(o => o.ownerID == Number(movement.M.OID)) ?? { ownerID : Number(movement.M.OID) }

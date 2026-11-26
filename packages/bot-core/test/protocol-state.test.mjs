@@ -81,6 +81,22 @@ describe("when a march counts as over", () => {
         expect(seen.return).toEqual([42])
     })
 
+    test("an army stationed at an ally stays until its stay is over: TWD the whole stay, PWD the part already over", async () => {
+        vi.useFakeTimers()
+        const { seen, gam } = movementsBot()
+        gam(march({ id: 1, T: 1, to: 98, TT: 60, PT: 660 }, { UM: { TWD: 3600, PWD: 600 } }),
+            march({ id: 2, T: 1, to: 98, TT: 60, PT: 20 }, { UM: { TWD: 3600, PWD: 0 } }))
+
+        await vi.advanceTimersByTimeAsync(3_009_999)
+        expect(seen.ended).toEqual([])
+        await vi.advanceTimersByTimeAsync(1)
+        expect(seen.ended, "standing there 600 s of 3600 s: over in 3000 s").toEqual([1])
+        await vi.advanceTimersByTimeAsync(3_649_999 - 3_010_000)
+        expect(seen.ended).toEqual([1])
+        await vi.advanceTimersByTimeAsync(1)
+        expect(seen.ended, "still marching for 40 s, then 3600 s there").toEqual([1, 2])
+    })
+
     const home = { KID: 0, AI: [{ AID: 100, AC: [[10, 5]], gpa: {} }] }
     const stationed = march({ TT: 60, PT: 30 }, { A: [[10, 20]] })
     const unitsAtHome = mod => mod.castles[0].unitInventory.map(unit => unit.amount)
