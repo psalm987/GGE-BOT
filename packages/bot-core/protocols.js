@@ -551,10 +551,11 @@ class CastleResourceInfo extends EventEmitter {
         e.HI ? this.hospitalInventory = Array.from(e.HI).map(Unit) : undefined
         e.TU ? this.travelingUnits = Array.from(e.TU).map(Unit) : undefined
         e.MC ? this.marketCarriagesCount = Number(e.MC) : undefined
-        this.hasBarracks = Boolean(e.B)
-        this.hasSiegeWorkshop = Boolean(e.WS)
-        this.hasDefenseWorkshop = Boolean(e.DW)
-        this.hasHospital = Boolean(e.H)
+        // Only from updates that carry them: a castle join leaves them out and must not wipe them.
+        if (e.B !== undefined) this.hasBarracks = Boolean(e.B)
+        if (e.WS !== undefined) this.hasSiegeWorkshop = Boolean(e.WS)
+        if (e.DW !== undefined) this.hasDefenseWorkshop = Boolean(e.DW)
+        if (e.H !== undefined) this.hasHospital = Boolean(e.H)
         e.OGT ? this.openGateTime = Number(e.OGT) : undefined
         e.OGC !== undefined ? this.openGateCount = Number(e.OGC) : undefined
         e.gca?.BD ? this.buildings = Array.from(e.gca.BD).map(BuildingInfo) : undefined
@@ -627,8 +628,10 @@ xtHandler.on("hru", (obj, r) => {
     if(!currentCastle)
         return
 
-    Object.assign(currentCastle.unitInventory, new UnitInventory(obj.gui))
-    
+    // UnitInventory's keys (unitInventory, hospitalInventory, ...) are the castle's own.
+    if (obj.gui)
+        Object.assign(currentCastle, new UnitInventory(obj.gui))
+
     if(obj.gcu)
         xtHandler.emit("gcu", obj.gcu)
 })

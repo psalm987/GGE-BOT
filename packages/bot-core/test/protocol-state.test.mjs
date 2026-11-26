@@ -69,6 +69,52 @@ describe("a movement the game removes", () => {
     })
 })
 
+const castleList = (...castles) => ({ C: [{ KID: 0, AI: castles.map(castle => ({ gpa: {}, ...castle })) }] })
+/** Joins castle 100 of kingdom 0 the way setCastle does, answering its `jca` with a `jaa`. */
+async function joinCastle(mod, bot, castle = mod.castles[0]) {
+    const joined = mod.setCastle(castle, () => "done")
+    await new Promise(resolve => setImmediate(resolve))
+    bot.xtHandler.emit("jaa", { KID: castle.kingdomID, grc: { KID: castle.kingdomID, AID: castle.id }, gca: {} }, 0)
+    return joined
+}
+
+describe("castle updates", () => {
+    const amounts = list => list.map(unit => [unit.unitInfo.wodID, unit.amount])
+
+    test("hru puts the castle's new unit counts on the castle", async () => {
+        const { mod, bot } = loadModule("protocols.js", { items: { units: [{ wodID: 10 }, { wodID: 11 }] } })
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, AC: [[10, 5]] }), 0)
+        await joinCastle(mod, bot)
+
+        bot.xtHandler.emit("hru", { gui: { I: [[10, 9], [11, 2]], HI: [[10, 1]] } }, 0)
+
+        expect(amounts(mod.castles[0].unitInventory)).toEqual([[10, 9], [11, 2]])
+        expect(amounts(mod.castles[0].hospitalInventory)).toEqual([[10, 1]])
+    })
+
+    test("an hru without gui keeps the units and still passes its gcu on", async () => {
+        const { mod, bot } = loadModule("protocols.js", { items: { units: [{ wodID: 10 }] } })
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, AC: [[10, 5]] }), 0)
+        await joinCastle(mod, bot)
+
+        expect(() => bot.xtHandler.emit("hru", { gcu: { C1: 1234, C2: 5 } }, 0)).not.toThrow()
+
+        expect(amounts(mod.castles[0].unitInventory)).toEqual([[10, 5]])
+        expect(mod.resources.coins).toBe(1234)
+    })
+
+    test("an update that leaves out a building flag keeps it, and one that sends it changes it", () => {
+        const { mod, bot } = loadModule("protocols.js")
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, B: 1, WS: 1, DW: 1, H: 1 }), 0)
+
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, W: 50 }), 0)
+        expect(mod.castles[0]).toMatchObject({ hasBarracks: true, hasSiegeWorkshop: true, hasDefenseWorkshop: true, hasHospital: true, wood: 50 })
+
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, H: 0 }), 0)
+        expect(mod.castles[0]).toMatchObject({ hasBarracks: true, hasHospital: false })
+    })
+})
+
 describe("when a march counts as over", () => {
     test("10 s after the game's time, since the game removes it a few seconds late and refuses the commander until then", async () => {
         vi.useFakeTimers()
