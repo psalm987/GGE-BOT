@@ -30,6 +30,20 @@ The `jaa` reply carries `spl0` to `spl3` at its top level. The client passes eac
 | `B`, `WS`, `DW`, `H` in a castle list or join | `hasBarracks`, `hasSiegeWorkshop`, `hasDefenseWorkshop`, `hasHospital`. An update without the field keeps the old value. |
 | `hru {gui, gcu}` | `gui` sets the castle's `unitInventory`, `strongHoldInventory`, `hospitalInventory` and `travelingUnits`. An `hru` without `gui` changes no units. |
 
+## Replies that name no request
+
+Some replies do not say which request they answer. With two such requests in flight, one caller can take the other's reply, a refusal above all. Each kind goes through its own line, `oneAtATime()`, so the next request is sent only after the one before it is answered or has failed:
+
+| Line | Commands | Senders in `protocols.js` |
+|---|---|---|
+| `lookTurn` | `ssi` | `preSpyInfo`, `getStormIslandInfo` |
+| `shopTurn` | `sbp`, `gbc` | None. Plugins that buy run their requests through it. |
+| `goodsTransferTurn` | `kgt` | `kingdomUnitTransfer` |
+| `troopTransferTurn` | `kut` | `kingdomTroopTransfer` |
+| `kingdomSkipTurn` | `msk` | `skipResourceTransfer` |
+
+Camp skips (`msd`) have their own line inside `protocols.js`.
+
 ## Facts and confidence
 
 | Fact | Confidence | Source |
@@ -38,3 +52,5 @@ The `jaa` reply carries `spl0` to `spl3` at its top level. The client passes eac
 | LID 0 is the barracks, 1 the siege workshop, 2 the hospital | medium | Lazy Lord's source. Confirm with one live `jaa`. |
 | The game forgets the castle after a few minutes, without a message | medium | Lazy Lord found it live. Confirm by sending a castle-less command 3 minutes after a join. |
 | Updates without `B`, `WS`, `DW` or `H` mean "unchanged" | medium | Lazy Lord's source: a castle join leaves them out. |
+| `ssi`, `sbp`, `kgt`, `kut` and `msk` replies name no request, and refusals were misattributed | medium | Lazy Lord's logs, 2026-11-25 and 2026-11-26 (Berimond towers, a refill refused with `TOO_MUCH_UNITS`) |
+| `kut {SCID, SKID, TKID, CID: -1, A: [[wodID, amount]]}` | high | Live capture ([berimond-kingdom.md](berimond-kingdom.md#moving-troops-in-kut-and-msk)) |

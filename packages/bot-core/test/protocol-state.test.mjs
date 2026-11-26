@@ -220,6 +220,68 @@ describe("a movement with no map position", () => {
     })
 })
 
+describe("replies that name no request", () => {
+    const tick = () => new Promise(resolve => setImmediate(resolve))
+    const sentOf = (bot, cmd) => bot.sent.filter(([sent]) => sent == cmd).map(([, req]) => req)
+
+    test("two map looks at once each get their own reply, even when the first is refused", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        const here = mod.ClientCommands.preSpyInfo(1, 2, 0, false)
+        const there = mod.ClientCommands.preSpyInfo(3, 4, 0, false)
+        await tick()
+        expect(sentOf(bot, "ssi")).toEqual([{ TX: 1, TY: 2, KID: 0 }])
+
+        bot.xtHandler.emit("ssi", {}, 6)
+        expect(await here).toEqual({ result: 6 })
+
+        await tick()
+        expect(sentOf(bot, "ssi")).toEqual([{ TX: 1, TY: 2, KID: 0 }, { TX: 3, TY: 4, KID: 0 }])
+        bot.xtHandler.emit("ssi", { TX: 3, TY: 4, gaa: { KID: 0, AI: [[0, 3, 4]] } }, 0)
+        expect(await there).toMatchObject({ result: 0, areaInfo: { x: 3, y: 4 } })
+    })
+
+    test.each([
+        ["kgt", "kingdomUnitTransfer", [1, 0, 4, [["W", 10]]]],
+        ["kut", "kingdomTroopTransfer", [1, 0, 10, [[546, 81]]]],
+        ["msk", "skipResourceTransfer", ["MS5", 10, 1]],
+    ])("%s goes out only after the one before it is answered, and each caller gets its own result", async (cmd, call, args) => {
+        const { mod, bot } = loadModule("protocols.js")
+        const first = mod.ClientCommands[call](...args)
+        const second = mod.ClientCommands[call](...args)
+        await tick()
+        expect(sentOf(bot, cmd)).toHaveLength(1)
+
+        bot.xtHandler.emit(cmd, {}, 293)
+        expect(await first).toBe(293)
+        await tick()
+        expect(sentOf(bot, cmd)).toHaveLength(2)
+        bot.xtHandler.emit(cmd, {}, 0)
+        expect(await second).toBe(0)
+    })
+
+    test("kut moves troops between kingdoms as the client sends it", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        mod.ClientCommands.kingdomTroopTransfer(1234, 0, 10, [[546, 81], [507, 104]])
+        await tick()
+        expect(bot.sent).toEqual([["kut", { SCID: 1234, SKID: 0, TKID: 10, CID: -1, A: [[546, 81], [507, 104]] }]])
+    })
+
+    test("a task that fails does not hold up the next one in its line", async () => {
+        const { mod } = loadModule("protocols.js")
+        const turn = mod.oneAtATime()
+        const failed = turn(() => Promise.reject(new Error("TIMED_OUT")))
+        const next = turn(async () => "sent")
+        await expect(failed).rejects.toThrow("TIMED_OUT")
+        expect(await next).toBe("sent")
+    })
+
+    test("the lines plugins share are exported", () => {
+        const { mod } = loadModule("protocols.js")
+        for (const turn of ["lookTurn", "shopTurn", "goodsTransferTurn", "troopTransferTurn", "kingdomSkipTurn"])
+            expect(mod[turn], turn).toBeTypeOf("function")
+    })
+})
+
 describe("when a march counts as over", () => {
     test("10 s after the game's time, since the game removes it a few seconds late and refuses the commander until then", async () => {
         vi.useFakeTimers()

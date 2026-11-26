@@ -167,12 +167,41 @@ class ServerGetAreaInfo {
     }
 }
 /**
- * 
- * @param {Number} x 
- * @param {Number} y 
+ * A line of tasks that run one after another: each starts once the one before it is answered or has failed.
+ * For requests whose reply names no request, so that with two in flight one could take the other's reply,
+ * a refusal above all.
+ * @returns {<T>(task: () => Promise<T>) => Promise<T>}
+ */
+const oneAtATime = () => {
+    let last = Promise.resolve()
+    return task => {
+        const run = last.then(task, task)
+        last = run.catch(() => undefined)
+        return run
+    }
+}
+/** Map looks (`ssi`). Lazy Lord saw two Berimond tower looks swap a refusal. */
+const lookTurn = oneAtATime()
+/** Shop buys (`sbp`, and `gbc` opening the shop). The reply names no purchase. */
+const shopTurn = oneAtATime()
+/** Goods transfers between kingdoms (`kgt`). */
+const goodsTransferTurn = oneAtATime()
+/** Troop transfers between kingdoms (`kut`). Lazy Lord saw a refill take another transfer's TOO_MUCH_UNITS. */
+const troopTransferTurn = oneAtATime()
+/** Skips on a transfer between kingdoms (`msk`). */
+const kingdomSkipTurn = oneAtATime()
+/** Camp skips (`msd`). An error reply may not name its camp. */
+const campSkipTurn = oneAtATime()
+
+/**
+ * @param {Number} x
+ * @param {Number} y
  * @param {Number} kingdomID
  */
-async function clientPreSpyInfo(x, y, kingdomID, useCache) {
+function clientPreSpyInfo(x, y, kingdomID, useCache) {
+    return lookTurn(() => lookAtSpot(x, y, kingdomID, useCache))
+}
+async function lookAtSpot(x, y, kingdomID, useCache) {
     useCache ??= true
     /** @type {GAAAreaInfo} */
     const cachedMapData = map[`${kingdomID}_${x}_${y}`]?.deref()
@@ -193,15 +222,8 @@ async function clientPreSpyInfo(x, y, kingdomID, useCache) {
 
     return { areaInfo: new ServerGetAreaInfo(obj.gaa, result).areaInfo[0], result: 0 }
 }
-/**
- * The last skip asked for. An error reply may not name its camp, so skips go out one at a time, as a player sends them,
- * and any reply belongs to the one in flight.
- */
-let lastSkip = Promise.resolve()
 function clientSkipTarget(type, x, y, kingdomID, skip) {
-    const turn = lastSkip.then(() => sendSkip(type, x, y, kingdomID, skip))
-    lastSkip = turn.catch(() => {})
-    return turn
+    return campSkipTurn(() => sendSkip(type, x, y, kingdomID, skip))
 }
 async function sendSkip(type, x, y, kingdomID, skip) {
     await sendXT("msd", JSON.stringify({ X: x, Y: y, MID: -1, NID: -1, MST: skip, KID: `${kingdomID}` }))
@@ -307,13 +329,13 @@ const StormInfo = e => ({
     playerAquaPoints: Number(e.AP),
     result: Number(e.result)
 })
-async function clientGetStormIslandInfo() {
+const clientGetStormIslandInfo = () => lookTurn(async () => {
     await sendXT("ssi", JSON.stringify({}))
 
     const [obj, result] = await waitForResult("ssi", 1000 * 10)
 
     return StormInfo({ ...obj, result: result })
-}
+})
 
 const GetProductionData = e => ({
     FoodConsumptionRate: Number(e.DFC) / 10,
@@ -429,20 +451,27 @@ const KingdomInfo = e => ({ //KPI
     result: Number(0)
 })
 
-//TODO: May conflict with other clientskipResourceTransfer
-const clientSkipResourceTransfer = async (skipType, kingdomID, kingdomSkipType) => {
+const clientSkipResourceTransfer = (skipType, kingdomID, kingdomSkipType) => kingdomSkipTurn(async () => {
     await sendXT("msk", JSON.stringify({ MST: skipType, KID: `${kingdomID}`, TT: `${kingdomSkipType}` }))
     const [, result] = await waitForResult("msk", 1000 * 10)
     return result
-}
+})
 
-//TODO: May Conflict with other clientskipUnitTransfer
-async function clientKingdomUnitTransfer(sourceAreaID, sourceKingdomID, targetKingdomID, resources) {
+const clientKingdomUnitTransfer = (sourceAreaID, sourceKingdomID, targetKingdomID, resources) => goodsTransferTurn(async () => {
     await sendXT("kgt", JSON.stringify({ SCID: sourceAreaID, SKID: sourceKingdomID, TKID: targetKingdomID, G: resources }))
-    
     const [, result] = await waitForResult("kgt", 1000 * 10)
     return result
-}
+})
+
+/**
+ * Moves troops from a castle to another kingdom: `units` is `[[wodID, amount]]`. Resolves to the result code.
+ * The shape was captured live (docs/protocol/berimond-kingdom.md).
+ */
+const clientKingdomTroopTransfer = (sourceAreaID, sourceKingdomID, targetKingdomID, units) => troopTransferTurn(async () => {
+    await sendXT("kut", JSON.stringify({ SCID: sourceAreaID, SKID: sourceKingdomID, TKID: targetKingdomID, CID: -1, A: units }))
+    const [, result] = await waitForResult("kut", 1000 * 10)
+    return result
+})
 const SubActiveQuests = e => ({
     playerID: Number(e.PID),
     playerName: String(e.PN),
@@ -702,11 +731,9 @@ xtHandler.on("gpc", (obj, result) => {
 let unlockInfoList = []
 
 function skipUnitTransferList(obj, result)  {
-    if(result != 0)
+    if(result != 0 || !obj)
         return
-    if(!obj)
-        debugger
-    
+
     if (obj.UL) {
         Array.from(obj.UL).map(e => new UnlockInfo(e)).forEach(unlockInfoChanges => {
             const unlockInfo = unlockInfoList.find(e => e.kingdomID == unlockInfoChanges.kingdomID)
@@ -1472,6 +1499,12 @@ let setCastle = (castle, callback) => new Promise(async (resolve, reject) => {
 
 module.exports = {
     spiralCoordinates,
+    oneAtATime,
+    lookTurn,
+    shopTurn,
+    goodsTransferTurn,
+    troopTransferTurn,
+    kingdomSkipTurn,
     setCastle,
     forgetCurrentCastle,
     castleQueue,
@@ -1490,6 +1523,7 @@ module.exports = {
         startFeast: clientStartFeast,
         getStormIslandInfo: clientGetStormIslandInfo,
         kingdomUnitTransfer: clientKingdomUnitTransfer,
+        kingdomTroopTransfer: clientKingdomTroopTransfer,
         skipResourceTransfer: clientSkipResourceTransfer,
         activeQuestList: clientActiveQuestList,
         joinArea: clientJoinArea,
