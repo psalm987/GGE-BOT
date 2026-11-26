@@ -996,5 +996,8 @@
     "recruitOfA": " or higher of its ",
     "statusRecruitToolsTargetsMet": "Every target is met. This resumes when stock drops below one.",
     "statusRecruitToolsOrdered": "Placed {{orders}} orders for {{items}} troops and tools.",
-    "skipTypeRanOut": "The game has none of these skips left, so another type is tried: "
+    "skipTypeRanOut": "The game has none of these skips left, so another type is tried: ",
+    "feastCantExtend": "The running feast is as long as the game allows, so no more feasts are bought for now",
+    "feastOtherRunning": "A different feast is running, so this one waits until it ends in ",
+    "feastOtherRunningMinutes": " minutes"
 }
