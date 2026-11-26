@@ -498,36 +498,73 @@ let _activeEventList = {}
 
 let hasStarted = new Promise(r => events.on("load", r))
 
+/**
+ * Takes in an event list. The list is kept first, so eventStart and eventStop handlers see the event running only
+ * between the two.
+ */
 async function setEvent(obj, result) {
     if(result != 0)
         return
 
     await hasStarted
-    
-    obj.E.find(e => {
-        if (_activeEventList.E?.find(a => a.EID == e.EID))
-            return
 
+    const before = _activeEventList.E ?? []
+    const list = Array.from(obj.E ?? [])
+    Object.assign(_activeEventList, { ...obj, E: list, result })
+    scheduleEventEnds(list)
+
+    for (const e of list.filter(e => !before.some(a => a.EID == e.EID))) {
         console.debug(`Event ${e.EID} has started`)
         events.emit("eventStart", e)
-    })
-    
-    _activeEventList.E?.find(e => {
-        if (obj.E.find(a => a.EID == e.EID))
-            return
-        
+    }
+    for (const e of before.filter(e => !list.some(a => a.EID == e.EID))) {
         console.debug(`Event ${e.EID} has stopped`)
         events.emit("eventStop", e)
-    })
-    
-    Object.assign(_activeEventList, { ...obj, result })
+    }
+}
+
+/**
+ * A backstop for an event that ends while the bot is connected and no new list comes: an event counts as stopped
+ * 30 s after its end time (`RS`, seconds left), with `byEndTime` set. A later list that still has it starts it again.
+ * An end beyond what a timer holds (about 24 days) is left to the next list. After Lazy Lord (medium).
+ */
+const EVENT_END_GRACE_MS = 30 * 1000
+const MAX_TIMER_MS = 2 ** 31 - 1
+const eventEndTimers = new Map()
+function scheduleEventEnds(list) {
+    for (const timer of eventEndTimers.values())
+        clearTimeout(timer)
+    eventEndTimers.clear()
+    for (const e of list) {
+        const ms = Number(e.RS) * 1000 + EVENT_END_GRACE_MS
+        if (!(Number(e.RS) > 0) || ms > MAX_TIMER_MS)
+            continue
+        const timer = setTimeout(() => {
+            eventEndTimers.delete(e.EID)
+            const index = _activeEventList.E.findIndex(a => a.EID == e.EID)
+            if (index == -1)
+                return
+            const [ended] = _activeEventList.E.splice(index, 1)
+            console.debug(`Event ${e.EID} has reached its end time`)
+            events.emit("eventStop", { ...ended, byEndTime: true })
+        }, ms)
+        timer.unref?.()
+        eventEndTimers.set(e.EID, timer)
+    }
 }
 
 /** The running event with this id as the latest `sei` listed it, or undefined. */
 const activeEvent = eventID => _activeEventList.E?.find(e => e.EID == eventID)
 
-xtHandler.on("fjf", (obj, result) => setEvent(obj.sei, result))
-xtHandler.on("sei", setEvent)
+// Event lists are taken in one at a time, in the order they came, so an older list can never finish after a newer one
+// and stop the events only the newer one has (Lazy Lord saw this at login).
+let eventLists = Promise.resolve()
+const queueEventList = (obj, result) => {
+    eventLists = eventLists.then(() => setEvent(obj, result)).catch(e => console.debug("eventListFailed", String(e?.message ?? e)))
+    return eventLists
+}
+xtHandler.on("fjf", (obj, result) => queueEventList(obj.sei, result))
+xtHandler.on("sei", queueEventList)
 
 const BuildingInfo = o => ({
     wodID: Number(o[0]),
