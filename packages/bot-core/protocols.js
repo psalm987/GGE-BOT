@@ -99,6 +99,8 @@ const AllianceCrest = o => (o ? {
 } : undefined)
 class GAAAreaInfo {
     constructor(o) {
+        // A movement with no map position, such as a Blade Coast island attack (per Lazy Lord), is an empty place.
+        o ??= []
         this.type = Number(o[0])
         this.x = Number(o[1])
         this.y = Number(o[2])
@@ -1382,6 +1384,42 @@ function updateStatus() {
 xtHandler.on("gcu", updateStatus)
 xtHandler.on("sce", updateStatus)
 
+/** When the game last put the player in an area (`jaa`), asked for or not. */
+let joinedAt = 0
+/**
+ * The game forgets which castle the player is in after a few minutes, without a message, and then refuses commands
+ * that name no castle with NOT_IN_OWNED_CASTLE. Lazy Lord found this live and joins again past 2 minutes (medium).
+ */
+const JOIN_FRESH_MS = 2 * 60 * 1000
+/** The production lists each castle's join showed: `${kingdomID}:${castleID}` to LID to `{ spl, at }`. */
+const joinQueues = new Map()
+
+// Every jaa moves the player, asked for or not: currentCastle follows it, and is undefined outside the account's castles.
+xtHandler.on("jaa", (obj, result) => {
+    if (result != 0)
+        return
+    const kingdomID = obj?.grc?.KID ?? obj?.KID
+    const areaID = obj?.grc?.AID
+    currentCastle = castles.find(castle => castle.kingdomID == kingdomID && castle.id == areaID)
+    joinedAt = Date.now()
+
+    // The client reads spl0 to spl3 as the castle's production lists (CastleModel.militaryData.parse_SPL).
+    const queues = new Map()
+    for (const spl of [obj.spl0, obj.spl1, obj.spl2, obj.spl3])
+        if (Number.isInteger(spl?.LID))
+            queues.set(spl.LID, { spl, at: joinedAt })
+    joinQueues.set(`${kingdomID}:${areaID}`, queues)
+})
+/** Makes the next setCastle join again, after the player was moved where the game sends no jaa (such as Blade Coast's map). */
+const forgetCurrentCastle = () => { currentCastle = undefined }
+// ggeBot.js emits this when the game refuses a command with NOT_IN_OWNED_CASTLE (53).
+xtHandler.on("notInOwnedCastle", forgetCurrentCastle)
+/**
+ * The production list `lid` of a castle as its last join showed it, `{ spl, at }`, or undefined when no join showed it.
+ * LID 0 is the barracks, 1 the siege workshop and 2 the hospital, per Lazy Lord (medium).
+ */
+const castleQueue = (kingdomID, castleID, lid) => joinQueues.get(`${kingdomID}:${castleID}`)?.get(Number(lid))
+
 let kingdomCallbacks = new Map()
 let kingdomInUse = false
 
@@ -1400,17 +1438,13 @@ let setCastle = (castle, callback) => new Promise(async (resolve, reject) => {
     
     callbacks.push(async castle => {
         try {
-            if (castle && currentCastle != castle) {
-                // console.log("Changing kingdoms")
+            if (castle && (currentCastle != castle || Date.now() - joinedAt > JOIN_FRESH_MS)) {
                 if(await clientJoinCastle(castle.id, castle.kingdomID) != 0)
                     throw new Error("FAILED_TO_SET_CASTLE")
             }
-            // if(currentCastle == castle)
-                // console.log("Prevented changing castle")
-            // if(undefined == castle)
-                // console.log("Prevented changing on map data")
-
-            currentCastle = castle
+            // No castle means any castle will do, so the one the player is in stays.
+            if (castle)
+                currentCastle = castle
             resolve(await callback())
         }
         catch (e) {
@@ -1439,6 +1473,8 @@ let setCastle = (castle, callback) => new Promise(async (resolve, reject) => {
 module.exports = {
     spiralCoordinates,
     setCastle,
+    forgetCurrentCastle,
+    castleQueue,
     movementEvents,
     movements,
     castles,
