@@ -54,6 +54,8 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
         backoff: { baseMs: 20, maxMs: 40 },
         eventTimeoutMs: 2000,
         logger: { warn() {}, error() {} },
+        // These tests restart a bot within milliseconds and fail proxies many times an hour.
+        waits: { loginGapMs: 0, reconnectsPerWindow: 100 },
         ...overrides,
     })
 }

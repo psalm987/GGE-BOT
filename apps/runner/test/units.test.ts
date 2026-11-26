@@ -19,10 +19,14 @@ describe("blameFor", () => {
         ["CONNECTION_STALE", "outside"],
         ["LOGIN_TIMEOUT", "outside"],
         ["TOO_MANY_TIMEOUTS", "outside"],
+        ["KICKED", "player"],
+        ["tooManyImportantErrors", "inGame"],
+        ["MOVEMENT_HAS_NO_UNITS", "inGame"],
+        ["CANT_START_NEW_ARMIES", "inGame"],
+        ["constructor", "account"],
         ["The bot stopped responding", "account"],
         ["The bot stopped unexpectedly", "account"],
         ["The bot ran out of memory", "account"],
-        ["tooManyImportantErrors", "account"],
     ])("%s is blamed on the %s", (why, blame) => {
         expect(blameFor(why)).toBe(blame)
     })

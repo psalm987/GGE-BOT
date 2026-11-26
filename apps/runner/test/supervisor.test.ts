@@ -26,6 +26,8 @@ let db: Db
 let ownerId: string
 let supervisor: Supervisor
 let spawned: Record<string, unknown>[]
+/** When each worker in `spawned` was created. */
+let spawnedAt: number[]
 let store: ReturnType<typeof createStore>
 let metricBatches: unknown[]
 
@@ -49,10 +51,13 @@ beforeEach(async () => {
 
 function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervisor>[0]> = {}) {
     const mine: Record<string, unknown>[] = []
+    const times: number[] = []
     spawned = mine
+    spawnedAt = times
     return new Supervisor({
         spawn: workerData => {
             mine.push(workerData)
+            times.push(Date.now())
             return new Worker(fakeBot, { workerData })
         },
         store,
@@ -66,6 +71,8 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
         logger: { warn() {}, error() {} },
         onMetrics: batch => metricBatches.push(batch),
         ...overrides,
+        // Most tests restart a bot within milliseconds, and some freeze the clock, so the gap between logins is off unless a test sets it.
+        waits: { loginGapMs: 0, ...overrides.waits },
     })
 }
 
@@ -555,7 +562,10 @@ describe("a bot that stops responding", () => {
 })
 
 describe("giving up on an account that can't start", () => {
-    const quick = { backoff: { baseMs: 20, maxMs: 40 }, giveUp: { failures: 3, minAgeMs: 0 } }
+    // The fatal fixture reports an in-game problem, whose real pause is half an hour.
+    const quick = { backoff: { baseMs: 20, maxMs: 40 }, giveUp: { failures: 3, minAgeMs: 0 }, waits: { inGameMs: 20 } }
+    /** For tests about the run of failures in a row, which the hourly reconnect cap would otherwise cut short. */
+    const uncapped = { ...quick.waits, reconnectsPerWindow: 100 }
     const settle = () => new Promise(r => setTimeout(r, 500))
 
     test("after enough failed starts in a row the account is stopped and says why", async () => {
@@ -594,7 +604,7 @@ describe("giving up on an account that can't start", () => {
     })
 
     test("failures keep being retried until they have gone on for long enough", async () => {
-        supervisor = makeSupervisor({ ...quick, giveUp: { failures: 2, minAgeMs: 700 } })
+        supervisor = makeSupervisor({ ...quick, giveUp: { failures: 2, minAgeMs: 700 }, waits: uncapped })
         const id = await addAccount("crash-young")
         await reconcile()
         const started = Date.now()
@@ -619,7 +629,7 @@ describe("giving up on an account that can't start", () => {
 
     test("a run that lasts long enough clears the failures before it", async () => {
         // The crash fixture runs for at least 40 ms, so every run counts as stable.
-        supervisor = makeSupervisor({ ...quick, stableMs: 20 })
+        supervisor = makeSupervisor({ ...quick, stableMs: 20, waits: uncapped })
         const id = await addAccount("crash-stable")
         await reconcile()
 
@@ -661,6 +671,143 @@ describe("giving up on an account that can't start", () => {
         await until(async () => (await status(broken))?.actualState === "crash_loop")
         for (const id of healthy)
             expect((await status(id))?.actualState).toBe("running")
+    })
+})
+
+describe("account safety", () => {
+    const settle = (ms = 400) => new Promise(r => setTimeout(r, ms))
+    const gaps = () => spawnedAt.slice(1).map((at, i) => at - spawnedAt[i]!)
+
+    test("a kick by another login waits about five minutes, says so, and never counts toward giving up", async () => {
+        supervisor = makeSupervisor({ giveUp: { failures: 1, minAgeMs: 0 } })
+        const id = await addAccount("kicked-x")
+        await reconcile()
+
+        await until(async () => /another device/.test((await status(id))?.lastError ?? ""))
+        const after = await status(id)
+        expect(after?.actualState).toBe("starting")
+        expect(after?.lastError).toMatch(/^Paused: you're playing on another device\. Back in [4-6] min$/)
+        await settle()
+        expect(spawned).toHaveLength(1)
+        expect((await runs(id)).map(r => r.error)).toEqual(["KICKED"])
+        expect(await desired(id)).toBe("running")
+    })
+
+    test("each kick within the hour waits longer, and kicks never reach the reconnect cap", async () => {
+        supervisor = makeSupervisor({ giveUp: { failures: 2, minAgeMs: 0 }, waits: { kickedMs: 100, reconnectsPerWindow: 2 } })
+        const id = await addAccount("kicked-often")
+        await reconcile()
+
+        await until(() => spawned.length >= 4, 8000)
+        const [first, , third] = gaps()
+        // 100, 200 then 400 ms, each within 20%.
+        expect(third! - first!).toBeGreaterThanOrEqual(150)
+        expect((await status(id))?.actualState).not.toBe("crash_loop")
+        expect(await desired(id)).toBe("running")
+    })
+
+    test("an in-game problem pauses for about half an hour before reconnecting", async () => {
+        const id = await addAccount("fatal-pause")
+        await reconcile()
+
+        await until(async () => /paused in the game/.test((await status(id))?.lastError ?? ""))
+        const after = await status(id)
+        expect(after?.actualState).toBe("error")
+        expect(after?.lastError).toMatch(/^tooManyImportantErrors; paused in the game, reconnecting in (2[4-9]|3[0-6]) min$/)
+        await settle()
+        expect(spawned).toHaveLength(1)
+    })
+
+    test("more reconnects in an hour than the cap stop the account and say why", async () => {
+        supervisor = makeSupervisor({ backoff: { baseMs: 20, maxMs: 40 }, giveUp: { failures: 100 }, waits: { reconnectsPerWindow: 3 } })
+        const id = await addAccount("crash-capped")
+        await reconcile()
+
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect((await status(id))?.lastError).toBe("Stopped after 4 failures within an hour: The bot stopped unexpectedly")
+        await until(async () => (await notified(id)).length)
+        expect(await notified(id)).toMatchObject([{ kind: "crash_loop", data: { failures: 4, lastError: "The bot stopped unexpectedly" } }])
+        await settle()
+        expect(spawned).toHaveLength(4)
+    })
+
+    test("a fault that recurs after runs long enough to count as stable still reaches the cap", async () => {
+        // The crash fixture runs for at least 40 ms, so every run counts as stable.
+        supervisor = makeSupervisor({ backoff: { baseMs: 20, maxMs: 40 }, stableMs: 20, waits: { reconnectsPerWindow: 3 } })
+        const id = await addAccount("crash-recurring")
+        await reconcile()
+
+        await until(async () => (await status(id))?.actualState === "crash_loop")
+        expect(spawned).toHaveLength(4)
+    })
+
+    test("logins of one account are at least the login gap apart, however soon a retry is due", async () => {
+        supervisor = makeSupervisor({ backoff: { baseMs: 20, maxMs: 40 }, waits: { loginGapMs: 600, reconnectsPerWindow: 100 } })
+        await addAccount("crash-gapped")
+        await reconcile()
+
+        await until(() => spawned.length >= 3, 5000)
+        for (const gap of gaps())
+            expect(gap).toBeGreaterThanOrEqual(595)
+    })
+
+    test("a plugin toggle that restarts the bot also keeps the login gap", async () => {
+        supervisor = makeSupervisor({ waits: { loginGapMs: 800 } })
+        const id = await addAccount("ok-toggled")
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+
+        await db.insert(pluginSettings).values({ accountId: id, pluginKey: "feast", enabled: true, options: {} })
+        await reconcile()
+        await until(async () => /at least a minute apart/.test((await status(id))?.lastError ?? ""))
+        await until(() => spawned.length === 2)
+        expect(gaps()[0]).toBeGreaterThanOrEqual(795)
+    })
+
+    describe("game maintenance", () => {
+        const soon = { afterMaintenanceMs: [100, 200] as [number, number], maintenanceRecheckMs: 100 }
+
+        test("an account doesn't log in during maintenance, says until when, and logs in a little after it", async () => {
+            const end = Date.now() + 500
+            supervisor = makeSupervisor({ waits: soon, maintenanceEndsAt: async () => Date.now() < end ? end : undefined })
+            const id = await addAccount("ok-maint")
+            await reconcile()
+
+            await until(async () => /^Game maintenance until \d\d:\d\d UTC/.test((await status(id))?.lastError ?? ""))
+            expect((await status(id))?.actualState).toBe("starting")
+            await until(() => spawned.length === 1, 3000)
+            expect(spawnedAt[0]).toBeGreaterThanOrEqual(end + 100)
+            await until(async () => (await status(id))?.actualState === "running")
+        })
+
+        test("a drop during maintenance never counts against the account", async () => {
+            let end: number | undefined
+            supervisor = makeSupervisor({ giveUp: { failures: 1, minAgeMs: 0 }, waits: soon, maintenanceEndsAt: async () => end })
+            const id = await addAccount("crash-in-maint")
+            await reconcile()
+            await until(() => spawned.length === 1)
+            end = Date.now() + 3_600_000
+
+            await until(async () => /^Game maintenance until/.test((await status(id))?.lastError ?? ""))
+            await settle()
+            expect((await status(id))?.actualState).toBe("starting")
+            expect(await desired(id)).toBe("running")
+            expect(spawned).toHaveLength(1)
+        })
+
+        test("a maintenance that ends before its announced end is noticed, and the account logs in a few minutes later", async () => {
+            let end: number | undefined = Date.now() + 3_600_000
+            supervisor = makeSupervisor({ waits: soon, maintenanceEndsAt: async () => end })
+            const id = await addAccount("ok-maint-early")
+            await reconcile()
+            await until(async () => /^Game maintenance until/.test((await status(id))?.lastError ?? ""))
+            const over = Date.now()
+            end = undefined
+
+            await until(() => spawned.length === 1, 3000)
+            expect(spawnedAt[0]! - over).toBeGreaterThanOrEqual(100)
+            await until(async () => (await status(id))?.actualState === "running")
+        })
     })
 })
 

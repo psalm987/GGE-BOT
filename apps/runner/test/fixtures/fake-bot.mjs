@@ -81,6 +81,11 @@ switch (mode) {
         later(10, () => post([20, { state: "error", reason: "tooManyImportantErrors" }]))
         later(20, () => process.exit(0))
         break
+    case "kicked":
+        later(10, () => post([14]))
+        later(20, () => post([20, { state: "error", reason: "KICKED" }]))
+        later(30, () => process.exit(0))
+        break
     case "authfail":
         later(10, () => post([20, { state: "auth_failed", reason: "INVALID_PASSWORD" }]))
         later(20, () => post([19]))
