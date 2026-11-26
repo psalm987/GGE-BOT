@@ -44,7 +44,7 @@ Some replies do not say which request they answer. With two such requests in fli
 
 Camp skips (`msd`) have their own line inside `protocols.js`.
 
-A look at an empty spot, such as a camp that is gone, is refused with `INVALID_POSITION` (6). Every caller handles that. `err-classes.json` leaves the code unclassified, so it logs as a warning, not as a severe error. It is not "not now" either, because a coordinate off the map gets the same code.
+A look at an empty spot, such as a camp that is gone, is refused with `INVALID_POSITION` (6). Every caller handles that, so `preSpyInfo` passes it to `waitForResult` as a quiet error and the connection does not log it. Elsewhere `err-classes.json` leaves the code unclassified, so it logs as a warning, not as a severe error. It is not "not now" either, because a coordinate off the map gets the same code.
 
 ## Facts and confidence
 

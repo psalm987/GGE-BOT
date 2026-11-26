@@ -2,7 +2,7 @@ import { createRequire } from "node:module"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
-const { loadModule } = require("./harness/load.cjs")
+const { loadModule, fakeBot } = require("./harness/load.cjs")
 
 afterEach(() => vi.useRealTimers())
 
@@ -238,6 +238,20 @@ describe("replies that name no request", () => {
         expect(sentOf(bot, "ssi")).toEqual([{ TX: 1, TY: 2, KID: 0 }, { TX: 3, TY: 4, KID: 0 }])
         bot.xtHandler.emit("ssi", { TX: 3, TY: 4, gaa: { KID: 0, AI: [[0, 3, 4]] } }, 0)
         expect(await there).toMatchObject({ result: 0, areaInfo: { x: 3, y: 4 } })
+    })
+
+    test("a map look expects an empty spot, so its refusal is not logged by the connection", async () => {
+        const quiet = []
+        const bot = fakeBot()
+        const waitForResult = bot.waitForResult
+        bot.waitForResult = (key, timeout, filter, quietErrors) => (quiet.push([key, quietErrors]), waitForResult(key, timeout, filter))
+        const { mod } = loadModule("protocols.js", { bot })
+        const look = mod.ClientCommands.preSpyInfo(1, 2, 0, false)
+        await tick()
+        bot.xtHandler.emit("ssi", {}, 6)
+        await look
+
+        expect(quiet).toEqual([["ssi", ["INVALID_POSITION"]]])
     })
 
     test.each([

@@ -217,7 +217,9 @@ async function lookAtSpot(x, y, kingdomID, useCache) {
         result != 0 ||
         obj?.gaa?.KID == kingdomID &&
         obj?.TX == x &&
-        obj?.TY == y)
+        obj?.TY == y,
+        // An empty spot, such as a camp that is gone: every caller handles it.
+        ["INVALID_POSITION"])
 
     if (result != 0)
         return { result }
