@@ -15,6 +15,7 @@ The fields below are the order in which each `C2S*VO` constructor assigns them, 
 | Daily tasks | the `dql` push: `RDQ` open tasks with progress `P`, `FDQ` finished task ids, `RS` milestone rewards | This page, under Daily tasks |
 | Spying | `ssi {TX, TY, KID}`, `csm {SID, TX, TY, SC, ST, SE, HBW, KID, PTT, SD}` | `nomad-20261122.json`, and [nomad-khan.md](nomad-khan.md) |
 | Castle defence | `dfc`, `dfw`, `dfm`, `dfk` | `khan-20261122.json`, and [nomad-khan.md](nomad-khan.md) |
+| Berimond kingdom towers | `fnt {}`, `aci {TX, TY, SX, SY, KID}`, `gfp {}`, `kut {SCID, SKID, TKID, CID, A}`, `msk` for kingdom 10, `cra` from the camp, and the `ufp`, `fgb` and `pep` pushes | `berimond-kingdom.json`, and [berimond-kingdom.md](berimond-kingdom.md) |
 
 ## Needs a capture
 
