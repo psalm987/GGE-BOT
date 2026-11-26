@@ -310,6 +310,9 @@ webSocket.onmessage = ({data : message}) => {
         catch(e) {
             console.debug(e)
         }
+        // The game forgot which castle the player is in. Said before the reply goes out, so a retry joins again.
+        if (err[result] == "NOT_IN_OWNED_CASTLE")
+            xtHandler.emit("notInOwnedCastle", cmd)
 
         switch (cmd) {
             case "gbd":

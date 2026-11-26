@@ -123,6 +123,18 @@ describe("important errors", () => {
     }, 15000)
 })
 
+describe("the game forgetting the castle", () => {
+    test("a NOT_IN_OWNED_CASTLE refusal is announced, so the castle is forgotten and joined again", async () => {
+        bot = startBot()
+        await bot.login()
+        const { done } = await bot.startWaitForResult("notInOwnedCastle", 1000, ["TIMED_OUT"])
+        bot.xt("spl", code("NOT_IN_OWNED_CASTLE"))
+        const waited = await done
+
+        expect(waited.error).toBeUndefined()
+    }, 15000)
+})
+
 describe("expected refusals", () => {
     test("an error the caller names as expected resolves without being logged", async () => {
         bot = startBot()
