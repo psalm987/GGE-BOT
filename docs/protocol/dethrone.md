@@ -1,6 +1,6 @@
 # Dethrone
 
-Dethroning replaces the lord of a Foreign Lords or Bloodcrow camp. Exile puts a new lord with a different defence in the camp. Fortify keeps the lord and adds extra defenders. Each costs more than the last.
+Dethroning replaces the lord of a Foreign Lords or Bloodcrow camp. Exile puts a new lord with a different defence in the camp; the dialog rates the change at -10% to 0% of the defence. Fortify keeps the lord and adds extra defenders, rated +20% to +40%. Each costs more than the last.
 
 ## Request
 
@@ -73,7 +73,7 @@ The live trace showed the count change by push alone. After one Exile (`rae` wit
 | Fortify cost after 20 Fortifies | low | Not worth confirming. |
 | The counts reset each event | medium | Log `sei` `RCSC` and `RCHC` at the start of two events. |
 | The count drops back about 14 minutes after an Exile, announced by `rce` | medium | One live trace, one drop. Log the time between an Exile and the next `rce` over a few Exiles. |
-| An Exile with `GTO` costs the token column and updates the balance by `sce` | medium | One live Exile, balance after 108,842. The cost paid was not read from the trace. |
-| An event's `RCKS` gates its Exile keys | medium | Seen once: a list without `C1`. Try `rae` with an unlisted key on a spare account. |
+| An Exile with `GTO` costs the token column and updates the balance by `sce` | high | One live Exile at count 0: the dialog showed 108,922 gold tokens and a price of 80, and `sce` then sent 108,842. |
+| An event's `RCKS` gates its Exile keys | high on the client, medium on the server | With `RCKS` `["GTO","STO","ST"]` the dialog showed exactly those three balances and offered no coin price. The server's answer to an unlisted key is untested. |
 | The silver and samurai columns match `STO` and `ST` | low | Not exiled live. |
 | The `rae` reply and the new counts | medium | One Exile, 24,000 coins for the first. |
