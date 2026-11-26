@@ -348,3 +348,74 @@ describe("when a march counts as over", () => {
         expect(unitsAtHome(mod)).toEqual([25])
     })
 })
+
+describe("a commander's bonuses", () => {
+    const items = {
+        effects: [
+            { effectID: 1, effectTypeID: 10, capID: 100 },
+            { effectID: 2, effectTypeID: 10, capID: 100 },
+            { effectID: 3, effectTypeID: 20, areaTypeID: "2" },
+            { effectID: 4, effectTypeID: 30, isPvPFight: 1 },
+            { effectID: 5, effectTypeID: 30, isPvEFight: 1 },
+        ],
+        effecttypes: [{ effectTypeID: 10, name: "attackBonus" }, { effectTypeID: 20, name: "lootBonus" }, { effectTypeID: 30, name: "speedBonus" }],
+        effectCaps: [{ capID: 100, maxTotalBonus: 50 }],
+        generalSkills: [{ skillID: 900, effects: "1&20,3&5" }],
+        equipment_effects: [{ equipmentEffectID: 7001, effectID: 1, ignoreCap: 0 }, { equipmentEffectID: 7002, effectID: 2, ignoreCap: 1 }],
+        relicEffects: [{ id: 8001, effectID: 1 }],
+        gems: [{ gemID: 600, effects: "1&10", setID: 0 }],
+        equipment_sets: [{ setID: 55, neededItems: 2, effects: "7001&15" }],
+    }
+    /** Gear as the game sends it: [id, slot, wearer, rarity, graphic, effects, uniqueID, setID, enchantment, duration, gemID, type, relic]. */
+    const gear = ({ effects = [], setID = 0, gemID = -1, type = 0, relic } = {}) => [1, 0, 0, 0, 0, effects, 0, setID, 0, 0, gemID, type, relic]
+    const commander = (lord, generals) => {
+        const { mod, bot } = loadModule("protocols.js", { items })
+        if (generals)
+            bot.xtHandler.emit("gie", { G: generals }, 0)
+        return { lord: new mod.ClassTypes.Lord({ ID: 1, VIS: 0, ...lord }), bot }
+    }
+
+    test("the assigned general's unlocked skills count, including bonuses for one kind of target", () => {
+        const { lord } = commander({ GID: 3 }, [{ GID: 3, SIDS: [900] }, { GID: 4, SIDS: [] }])
+
+        expect(lord.effects).toEqual({ attackBonus: 20 })
+        expect(lord.getEffects(2)).toEqual({ attackBonus: 20, lootBonus: 5 })
+    })
+
+    test("a generals list that comes after the commanders still counts", () => {
+        const { lord, bot } = commander({ GID: 3 })
+        expect(lord.effects).toEqual({})
+
+        bot.xtHandler.emit("gie", { G: [{ GID: 3, SIDS: [900] }] }, 0)
+
+        expect(lord.effects).toEqual({ attackBonus: 20 })
+    })
+
+    test("bonuses sharing a cap are capped together, gems and gear sets count, and gear that ignores the cap is added on top", () => {
+        const { lord } = commander({
+            GID: 3,
+            EQ: [gear({ effects: [[7001, [5]]], setID: 55, gemID: 600 }), gear({ effects: [[7002, [8]]], setID: 55 })],
+        }, [{ GID: 3, SIDS: [900] }])
+
+        // Cap group 100: gear 5 + gem 10 + set 15 + general 20 = 50 of at most 50, then 8 that ignores the cap.
+        expect(lord.effects).toEqual({ attackBonus: 58 })
+    })
+
+    test("a cap holds over the sum of a group", () => {
+        const { lord } = commander({ EQ: [gear({ effects: [[7001, [40]]] }), gear({ effects: [[7001, [30]]] })] })
+        expect(lord.effects).toEqual({ attackBonus: 50 })
+    })
+
+    test("a relic's effects and the commander's own effects from the game count", () => {
+        const { lord } = commander({ EQ: [gear({ effects: [[8001, 0, [12]]], type: 3 })], E: [[2, [3], 0]] })
+        expect(lord.effects).toEqual({ attackBonus: 15 })
+    })
+
+    test("PvP-only bonuses don't count against game targets, nor PvE-only ones against players; with no target both count", () => {
+        const { lord } = commander({ E: [[4, [10], 0], [5, [7], 0]] })
+
+        expect(lord.getEffects(2).speedBonus, "a baron").toBe(7)
+        expect(lord.getEffects(1).speedBonus, "a player's castle").toBe(10)
+        expect(lord.getEffects().speedBonus).toBe(17)
+    })
+})

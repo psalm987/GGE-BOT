@@ -16,6 +16,8 @@ const effectCaps = require("./paths.js").loadItem("effectCaps")
 const generalSkills = require("./paths.js").loadItem("generalSkills")
 const relicEffects = require("./paths.js").loadItem("relicEffects")
 const equipmentEffects = require("./paths.js").loadItem("equipment_effects")
+const gems = require("./paths.js").loadItem("gems")
+const equipmentSets = require("./paths.js").loadItem("equipment_sets")
 
 const myCache = new NodeCache({useClones : false})
 
@@ -1112,102 +1114,133 @@ async function clientAllianceQuestPointCount() {
     return result == 0 ? AllianceQuestPointCount(obj) : result
 }
 
+/** "effectID&value,effectID&value" as `[[id, value]]`. */
+const parseEffectList = text => String(text ?? "").split(",").filter(Boolean).map(pair => pair.split("&"))
+/** A value the game sends as a number or as `[number, ...]`. */
+const firstNumber = value => Number(Array.isArray(value) ? value[0] : value)
+/** Targets the game controls. PvP-only bonuses don't count against them, and PvE-only bonuses count only against them. */
+const PVE_AREA_TYPES = new Set([AreaType.barron, AreaType.fortress, AreaType.watchTower, AreaType.stormIsland, AreaType.stormTower,
+    AreaType.nomadCamp, AreaType.samCamp, AreaType.beriCamp, AreaType.khanCamp, AreaType.daimyoCastle])
+const gemsByID = new Map(gems.map(gem => [Number(gem.gemID), gem]))
+/** Each gear set's thresholds: `{ neededItems, effects }` rows by `setID`. */
+const setThresholds = Map.groupBy(equipmentSets, row => Number(row.setID))
+
+/**
+ * A commander. Its bonuses are collected as the client's LordVO.getUniqueBoni does: gear, relics, gems, gear sets
+ * reached, the commander's own effects (`E`, `AE`) and the assigned general's unlocked skills. Each is
+ * `{ effectID, value, ignoreCap }`, where `ignoreCap` marks gear the bonus cap doesn't limit.
+ * After Lazy Lord's protocols.js. The sources are confirmed in the client; the cap-group totals are theirs (medium).
+ */
 class Lord {
     constructor(e) {
         this.lordID = Number(e.ID)
-        // this.??? = Number(e.WID)
         this.lordPosition = Number(e.VIS)
         this.name = String(e.N)
         this.generalID = Number(e.GID)
         this.generalLevel = Number(e.L)
-        // this.??? = Number(e.ST)
-        // this.??? = Number(e.W)
-        // this.??? = Number(e.D)
-        // this.??? = Number(e.SPR)
-        // this.??? = Array.from(e.GASAIDS)
-        // this.??? = Array.from(e.SIDS)
-        // this.??? = Array.from(e.AE)
 
-        // setEffects = ()
-        // areaTypeEffects = ()
+        this.bonuses = []
+        const add = (effectID, value, ignoreCap = false) => {
+            if (effects.some(x => x.effectID == effectID) && Number.isFinite(Number(value)))
+                this.bonuses.push({ effectID: String(effectID), value: Number(value), ignoreCap })
+        }
+        const addGearEffect = (equipmentEffectID, value) => {
+            const gearEffect = equipmentEffects.find(x => x.equipmentEffectID == equipmentEffectID)
+            if (gearEffect)
+                add(gearEffect.effectID, value, gearEffect.ignoreCap == 1)
+        }
+        // [relicEffectID, power, value or [value]]
+        const addRelicEffect = ([relicEffectID, , value]) => {
+            const relicEffect = relicEffects.find(x => x.id == relicEffectID)
+            if (relicEffect)
+                add(relicEffect.effectID, firstNumber(value))
+        }
 
-        let ungroupedActiveEffects = {}
-
-        generals.find(a => a.GID == e.generalID)?.SIDS.forEach(skillID => {
-            const generalSkill = generalSkills.find(e => e.skillID == skillID)
-            if (!generalSkill)
-                return
-
-            const [effectID, value] = generalSkill.effects.split("&")
-            let effect = effects.find(e => e.effectID == effectID)
-
-            let maxCap = Number(effectCaps.find(e => e.capID == effect.capID)?.maxTotalBonus ?? Infinity)
-
-            ungroupedActiveEffects[effectID] = Math.min(maxCap, (ungroupedActiveEffects[effectID] ?? 0) + Number(value))
-        })
-        this.areaEffects = {}
-
-        e.EQ?.forEach(equipment => {
-            const isRelic = equipment[11] == 3
-            const getEffects = ([id, var1, var2]) => {
-                const effectValues = isRelic ? var2 : var1
-                const { effectID } = isRelic ? relicEffects.find(e => e.id == id) : equipmentEffects.find(e => e.equipmentEffectID == id)
-
-                if (effectID == undefined)
-                    return
-
-                let { areaTypeID, capID } = effects.find(e => e.effectID == effectID)
-
-                if (areaTypeID)
-                    return areaTypeID.split(',').map(Number).forEach(areaType => {
-                        const maxCap = Number(effectCaps.find(e => e.capID == capID).maxTotalBonus ?? Infinity)
-
-                        this.areaEffects[areaType] ??= {}
-                        this.areaEffects[areaType][effectID] = Math.min(maxCap, (this.areaEffects[areaType][effectID] ?? 0) + Number(effectValues[0]))
-                    })
-
-                let maxCap = Number(effectCaps.find(e => e.capID == capID).maxTotalBonus ?? Infinity)
-
-                ungroupedActiveEffects[effectID] = Math.min(maxCap, (ungroupedActiveEffects[effectID] ?? 0) + Number(effectValues[0]))
+        const setCounts = new Map()
+        const countSet = setID => Number(setID) > 0 && setCounts.set(Number(setID), (setCounts.get(Number(setID)) ?? 0) + 1)
+        const gemsCounted = new Set()
+        // [id, slot, wearer, rarity, graphic, effects, uniqueID, setID, enchantment, duration, gemID, type, relic data]
+        for (const equipment of e.EQ ?? []) {
+            if (equipment[11] == 3) {
+                equipment[5]?.forEach(addRelicEffect)
+                // Relic data: [relicType, category, might, relic gem: [id, type, category, might, effects, enchantment]]
+                equipment[12]?.[3]?.[4]?.forEach(addRelicEffect)
+            } else {
+                equipment[5]?.forEach(([equipmentEffectID, value]) => addGearEffect(equipmentEffectID, firstNumber(value)))
+                const gem = gemsByID.get(Number(equipment[10]))
+                // The client's mergeBoni sets aside a gem bonus that triggers only by chance.
+                if (gem && (gem.triggerChance == undefined || gem.triggerChance == 100))
+                    parseEffectList(gem.effects).forEach(([effectID, value]) => add(effectID, value))
+                if (gem && !gemsCounted.has(gem.gemID)) {
+                    gemsCounted.add(gem.gemID)
+                    countSet(gem.setID)
+                }
             }
-            equipment[5]?.forEach(getEffects)
-            equipment[12]?.[3]?.[4]?.forEach(getEffects)
-        })
-
-        this.effects = {}
-
-        for (const key in ungroupedActiveEffects) {
-            const { effectTypeID } = effects.find(e => e.effectID == key)
-            const { name } = effectTypes.find(e => e.effectTypeID == effectTypeID)
-            this.effects[name] ??= 0
-            this.effects[name] += ungroupedActiveEffects[key]
+            countSet(equipment[7])
         }
+        // Each gear set threshold reached adds its effects, which are gear effect ids.
+        for (const [setID, count] of setCounts)
+            for (const threshold of setThresholds.get(setID) ?? [])
+                if (Number(threshold.neededItems) <= count)
+                    parseEffectList(threshold.effects).forEach(([equipmentEffectID, value]) => addGearEffect(equipmentEffectID, value))
+        // The client reads E as the commander's own effects and AE as its area effects: [effectID, [value], source].
+        for (const list of [e.E, e.AE])
+            list?.forEach(([effectID, value]) => add(effectID, firstNumber(value)))
     }
-    getEffects(type, areaEffects) {
-        if(type == undefined && areaEffects == undefined)
-            return this.effects
 
-        let activeEffects = {...this.effects}
-        let ungroupedActiveEffects = this.areaEffects[type] ?? {}
-        
-        areaEffects?.forEach(([effectID, effectValues]) => {
-            let effect = effects.find(e => e.effectID == effectID)
-            
-            if (!effect.areaTypeID?.split(',').map(Number).find(areaType => areaType == type))
-                return
+    /** The assigned general's unlocked skills, read when needed: the generals list (`gie`) can come after the commanders. */
+    generalBonuses() {
+        const general = generals.find(g => g.GID == this.generalID)
+        return (general?.SIDS ?? []).flatMap(skillID => parseEffectList(generalSkills.find(x => x.skillID == skillID)?.effects))
+            .filter(([effectID, value]) => effects.some(x => x.effectID == effectID) && Number.isFinite(Number(value)))
+            .map(([effectID, value]) => ({ effectID: String(effectID), value: Number(value), ignoreCap: false }))
+    }
 
-            let maxCap = Number(effectCaps.find(e => e.capID == effect.capID)?.maxTotalBonus ?? Infinity)
-
-            ungroupedActiveEffects[effectID] = Math.min(maxCap, (ungroupedActiveEffects[effectID] ?? 0) + Number(effectValues[0]))
-        })
-
-        for (const key in ungroupedActiveEffects) {
-            const { effectTypeID } = effects.find(e => e.effectID == key)
-            const { name } = effectTypes.find(e => e.effectTypeID == effectTypeID)
-            activeEffects[name] ??= 0
-            activeEffects[name] += ungroupedActiveEffects[key]
+    /**
+     * The commander's bonuses against a target of `areaType`, by effect type name. Only bonuses for that target count,
+     * and not PvP-only ones against a game target or PvE-only ones against a player. Each cap group (`capID`) is
+     * capped as a whole, then the gear that ignores the cap is added.
+     * @param {number} [areaType] undefined counts only bonuses that apply everywhere, PvE and PvP alike
+     */
+    totalEffects(areaType, extraBonuses = []) {
+        const pve = PVE_AREA_TYPES.has(Number(areaType))
+        const groups = new Map()
+        for (const bonus of [...this.bonuses, ...this.generalBonuses(), ...extraBonuses]) {
+            const effect = effects.find(x => x.effectID == bonus.effectID)
+            if (!effect)
+                continue
+            const areaTypes = effect.areaTypeID ? String(effect.areaTypeID).split(",").map(Number) : []
+            if (areaTypes.length > 0 && !areaTypes.includes(Number(areaType)))
+                continue
+            if (areaType != undefined && (pve ? effect.isPvPFight == 1 : effect.isPvEFight == 1))
+                continue
+            const key = `${effect.effectTypeID}|${effect.capID ?? `effect${bonus.effectID}`}`
+            const group = groups.get(key) ?? { effect, capped: 0, uncapped: 0 }
+            group[bonus.ignoreCap ? "uncapped" : "capped"] += bonus.value
+            groups.set(key, group)
         }
-        return activeEffects
+        const totals = {}
+        for (const { effect, capped, uncapped } of groups.values()) {
+            const name = effectTypes.find(x => x.effectTypeID == effect.effectTypeID)?.name
+            if (!name)
+                continue
+            const maxCap = Number(effectCaps.find(x => x.capID == effect.capID)?.maxTotalBonus ?? Infinity)
+            totals[name] = (totals[name] ?? 0) + Math.min(maxCap, capped) + uncapped
+        }
+        return totals
+    }
+
+    /** Bonuses that apply everywhere, such as speed and loot, for picking a commander. */
+    get effects() {
+        return this.totalEffects(undefined)
+    }
+
+    /**
+     * @param {number} [type] the target's area type: adds the bonuses that apply only against it
+     * @param {Array<[effectID, value]>} [areaEffects] more bonuses
+     */
+    getEffects(type, areaEffects = []) {
+        return this.totalEffects(type, areaEffects.map(([effectID, value]) => ({ effectID: String(effectID), value: firstNumber(value) || 0, ignoreCap: false })))
     }
 }
 /** @type {Array<Movement>} */
