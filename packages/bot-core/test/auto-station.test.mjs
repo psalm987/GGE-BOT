@@ -412,6 +412,8 @@ describe("coming home", () => {
         expect(commander.takeFreeCommander("1"), "away with the station").toBeUndefined()
         await vi.advanceTimersByTimeAsync(239 * S)
         expect(commander.takeFreeCommander("1"), "recalled at 660 s, home at 781 s").toBeUndefined()
+        await vi.advanceTimersByTimeAsync(10 * S)
+        expect(commander.takeFreeCommander("1"), "the game frees the commander a few seconds after the march home ends").toBeUndefined()
         await vi.advanceTimersByTimeAsync(5 * S)
         expect(commander.takeFreeCommander("1")?.lordID).toBe(1)
         await vi.advanceTimersByTimeAsync(100 * S)

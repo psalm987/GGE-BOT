@@ -1143,6 +1143,12 @@ class Lord {
 }
 /** @type {Array<Movement>} */
 const movements = []
+/**
+ * How long after the game's own time a march counts as over. The game removes a movement a few seconds late, and
+ * refuses its commander as busy (LORD_IS_USED) until then. Lazy Lord's capture saw the removal 6 s late
+ * (their protocols.js, MOVEMENT_DONE_AFTER_MS; medium confidence, one capture).
+ */
+const MOVEMENT_DONE_AFTER_MS = 10 * 1000
 const movementEvents = new EventEmitter()
 /** @param {Movement} movement */
 async function newMovement(movement) {
@@ -1166,7 +1172,7 @@ async function newMovement(movement) {
 
     if (movement.targetOwner.ownerID == movement.owner.ownerID)
         movementEvents.emit("returning", movement)
-    setTimeout(() => endMovement(movement), Math.max(0, movement.totalTime - (movement.deltaTime - Date.now()) + 1000))
+    setTimeout(() => endMovement(movement), Math.max(0, movement.arrivesAt - Date.now() + MOVEMENT_DONE_AFTER_MS))
 }
 /**
  * Takes a movement off the list and says it is over: "ended" for any movement, "return" too for a march home.
@@ -1241,9 +1247,8 @@ movementEvents.on("return", async (/** @type {Movement} */ movement) => {
     const castle = castles.find(castle => castle.kingdomID == movement.kingdomID && castle.id == movement.targetAttack.extraData[0])
     if (!castle?.unitInventory)
         return
-    // This handler runs a second after the march ends. A castle list fetched
-    // since then already counts the returned units.
-    const marchEndedAt = Date.now() - 1000
+    // A castle list fetched since the march landed already counts the returned units.
+    const marchEndedAt = Math.min(movement.arrivesAt, Date.now())
     if (castle.unitsSyncedAt >= marchEndedAt)
         return
     movement.station.forEach(unit => {

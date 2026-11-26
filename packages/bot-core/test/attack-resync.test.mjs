@@ -92,7 +92,7 @@ test("units from a returning march are not added on top of a newer castle list",
     const { mod, bot } = loadModule("protocols.js")
     bot.xtHandler.emit("dcl", { C: [{ KID: 0, AI: [{ AID: 1, gpa: {} }] }] }, 0)
     const castle = mod.castles.find(c => c.id == 1)
-    const march = { owner: { ownerID: 7 }, targetOwner: { ownerID: 7 }, kingdomID: 0, targetAttack: { extraData: [1] }, resources: {} }
+    const march = { owner: { ownerID: 7 }, targetOwner: { ownerID: 7 }, kingdomID: 0, targetAttack: { extraData: [1] }, resources: {}, arrivesAt: Date.now() - 1000 }
     const returned = () => ({ ...march, station: [{ unitInfo: { wodID: 5 }, amount: 40 }] })
 
     castle.unitInventory = [{ unitInfo: { wodID: 5 }, amount: 100 }]

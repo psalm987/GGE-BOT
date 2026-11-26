@@ -14,7 +14,7 @@ const march = ({ id = 42, from = ME, to = ME, ...m } = {}, rest = {}) => ({
 })
 
 function movementsBot() {
-    const { mod, bot } = loadModule("protocols.js")
+    const { mod, bot } = loadModule("protocols.js", { items: { units: [{ wodID: 10 }] } })
     const seen = { return: [], ended: [] }
     for (const name of Object.keys(seen))
         mod.movementEvents.on(name, movement => seen[name].push(movement.id))
@@ -66,5 +66,45 @@ describe("a movement the game removes", () => {
         await vi.advanceTimersByTimeAsync(60_000)
 
         expect(seen).toEqual({ return: [42], ended: [42] })
+    })
+})
+
+describe("when a march counts as over", () => {
+    test("10 s after the game's time, since the game removes it a few seconds late and refuses the commander until then", async () => {
+        vi.useFakeTimers()
+        const { seen, gam } = movementsBot()
+        gam(march({ TT: 60, PT: 30 }))
+
+        await vi.advanceTimersByTimeAsync(39_999)
+        expect(seen.return).toEqual([])
+        await vi.advanceTimersByTimeAsync(1)
+        expect(seen.return).toEqual([42])
+    })
+
+    const home = { KID: 0, AI: [{ AID: 100, AC: [[10, 5]], gpa: {} }] }
+    const stationed = march({ TT: 60, PT: 30 }, { A: [[10, 20]] })
+    const unitsAtHome = mod => mod.castles[0].unitInventory.map(unit => unit.amount)
+
+    test("a march home adds its troops to a castle list read before it landed", async () => {
+        vi.useFakeTimers()
+        const { mod, bot, gam } = movementsBot()
+        bot.xtHandler.emit("dcl", { C: [home] }, 0)
+        gam(stationed)
+
+        await vi.advanceTimersByTimeAsync(40_000)
+
+        expect(unitsAtHome(mod)).toEqual([25])
+    })
+
+    test("a castle list read after it landed already counts the troops, so they are not added twice", async () => {
+        vi.useFakeTimers()
+        const { mod, bot, gam } = movementsBot()
+        gam(stationed)
+
+        await vi.advanceTimersByTimeAsync(35_000)
+        bot.xtHandler.emit("dcl", { C: [{ ...home, AI: [{ ...home.AI[0], AC: [[10, 25]] }] }] }, 0)
+        await vi.advanceTimersByTimeAsync(5_000)
+
+        expect(unitsAtHome(mod)).toEqual([25])
     })
 })
