@@ -9,7 +9,18 @@ Dethroning replaces the lord of a Foreign Lords or Bloodcrow camp. Exile puts a 
 | Field | Value |
 |---|---|
 | `XPOS`, `YPOS` | The camp's coordinates |
-| `RCK` | The currency key. Exile sends the key the player picked from the event's `RCKS` list, such as `"C1"` for coins. Fortify sends `"C2"`, rubies. |
+| `RCK` | The currency key. Exile sends the key the player picked from the event's `RCKS` list. Fortify sends `"C2"`, rubies. |
+
+The Exile keys seen so far:
+
+| `RCK` | Currency | Balance (`sce` push name) |
+|---|---|---|
+| `C1` | Coins | `gcu` `C1` |
+| `GTO` | Gold token (currency 35) | `goldToken` |
+| `STO` | Silver token (36) | `silverToken` |
+| `ST` | Samurai token (7) | `samuraiToken` |
+
+An event lists the keys it offers in `RCKS`. The Bloodcrow event in the live trace listed `["GTO","STO","ST"]` and no `C1`, so coins were not offered there.
 
 The dethrone dialog builds the request in `onSendReroll` (G@12756378).
 
@@ -22,6 +33,7 @@ The reply is an error code only (`RAECommand`, G@14287429). On `0` the client op
 The ring menu shows **Dethrone** (`ButtonAlienRerollComponent`, G@12751836) only when all of these hold:
 
 - The event's `sei` entry has `CRE: 1` and a non-empty `RCKS`.
+- For Exile, the key the player picked is in `RCKS`. Fortify needs no key.
 - Your level is 70 or higher.
 - None of your movements is heading to the camp.
 - No movement from the camp is heading to you.
@@ -32,20 +44,22 @@ Dethroning a camp that was already dethroned shows a warning first.
 
 The cost depends on how many times you have dethroned, not on the camp level or your castle. The table is the `rerollCosts` items section, rows with `type: "alien"`, 20 rows in all. The full table is `cost-tables.json` in the fixtures.
 
-| Count so far (`RCSC` for Exile, `RCHC` for Fortify) | Exile (coins) | Fortify (rubies) |
-|---|---|---|
-| 0 | 24,000 | 1,200 |
-| 1 | 48,000 | 1,210 |
-| 4 | 192,000 | 1,340 |
-| 9 | 2,136,000 | 4,100 |
-| 14 | 23,688,000 | 124,000 |
-| 19 | 262,704,000 | 3,968,120 |
+| Count so far (`RCSC` for Exile, `RCHC` for Fortify) | Exile (coins) | Fortify (rubies) | Exile (gold tokens) | Exile (silver tokens) | Exile (samurai tokens) |
+|---|---|---|---|---|---|
+| 0 | 24,000 | 1,200 | 80 | 300 | 100 |
+| 1 | 48,000 | 1,210 | 160 | 600 | 200 |
+| 2 | 72,000 | 1,240 | 240 | 900 | 300 |
+| 19 | 262,704,000 | 3,968,120 | 875,680 | 3,283,800 | 1,094,600 |
 
-`CastleAlienRerollData` (G@14765338) reads the row at index `min(RCSC, 19)` for Exile and `min(RCHC, 20)` for Fortify. The Fortify index can reach 20, one past the last row, so the Fortify cost after 20 Fortifies is unknown. Exile with an event currency in place of coins reads that row's `softCosts`. Ruby costs can be lower after discounts (`getFinalCostsC2`).
+The token columns are the `costGoldToken`, `costSilverToken` and `costSamuraiToken` fields of the same rows. The rows also carry `costKhanTablet` and `costKhanMedal`, which no known event offers as an Exile key.
+
+`CastleAlienRerollData` (G@14765338) reads the row at index `min(RCSC, 19)` for Exile and `min(RCHC, 20)` for Fortify. The Fortify index can reach 20, one past the last row, so the Fortify cost after 20 Fortifies is unknown. Exile with an event currency in place of coins reads that currency's column of the row. Ruby costs can be lower after discounts (`getFinalCostsC2`).
 
 ## Dethrone counts
 
 `RCSC` is your Exile count and `RCHC` your Fortify count. Both arrive in the event's `sei` entry and in an `rce` push (`RCECommand`, G@14292009). Both feed `parse_RCE` (G@14766072).
+
+The live trace showed the count change by push alone. After one Exile (`rae` with `RCK: "GTO"`, reply `0`) the server pushed `sce [["GTO",108842]]`, `hac {"CP":[[618,489]]}` and `rce {"RCSC":1,"RCHC":0}`. About 14 minutes later it pushed `rce {"RCSC":0,"RCHC":0}`, so the count falls back on its own. The bot takes the counts from `rce` and lets the push win over its own increment.
 
 ## Evidence and confidence
 
@@ -58,4 +72,8 @@ The cost depends on how many times you have dethroned, not on the camp level or 
 | Cost table and its index | high | |
 | Fortify cost after 20 Fortifies | low | Not worth confirming. |
 | The counts reset each event | medium | Log `sei` `RCSC` and `RCHC` at the start of two events. |
+| The count drops back about 14 minutes after an Exile, announced by `rce` | medium | One live trace, one drop. Log the time between an Exile and the next `rce` over a few Exiles. |
+| An Exile with `GTO` costs the token column and updates the balance by `sce` | medium | One live Exile, balance after 108,842. The cost paid was not read from the trace. |
+| An event's `RCKS` gates its Exile keys | medium | Seen once: a list without `C1`. Try `rae` with an unlisted key on a spare account. |
+| The silver and samurai columns match `STO` and `ST` | low | Not exiled live. |
 | The `rae` reply and the new counts | medium | One Exile, 24,000 coins for the first. |

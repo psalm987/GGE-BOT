@@ -1,5 +1,5 @@
 {
-  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session",
+  "_label": "DERIVED from HTML5 client Game.bundle.58d319efe36aacf6c6ab.js + items_v789.02.json, NOT captured from a live session; the exile_*Token columns (costGoldToken, costSilverToken, costSamuraiToken) are from the 'alien' rows of rerollCosts in the same items file",
   "openGate_before_discounts": [
     {
       "openGateCounter_OGC": 0,
@@ -56,102 +56,162 @@
     {
       "rerollCount": 1,
       "exile_c1": 24000,
-      "fortify_c2": 1200
+      "fortify_c2": 1200,
+      "exile_goldToken": 80,
+      "exile_silverToken": 300,
+      "exile_samuraiToken": 100
     },
     {
       "rerollCount": 2,
       "exile_c1": 48000,
-      "fortify_c2": 1210
+      "fortify_c2": 1210,
+      "exile_goldToken": 160,
+      "exile_silverToken": 600,
+      "exile_samuraiToken": 200
     },
     {
       "rerollCount": 3,
       "exile_c1": 72000,
-      "fortify_c2": 1240
+      "fortify_c2": 1240,
+      "exile_goldToken": 240,
+      "exile_silverToken": 900,
+      "exile_samuraiToken": 300
     },
     {
       "rerollCount": 4,
       "exile_c1": 120000,
-      "fortify_c2": 1270
+      "fortify_c2": 1270,
+      "exile_goldToken": 400,
+      "exile_silverToken": 1500,
+      "exile_samuraiToken": 500
     },
     {
       "rerollCount": 5,
       "exile_c1": 192000,
-      "fortify_c2": 1340
+      "fortify_c2": 1340,
+      "exile_goldToken": 640,
+      "exile_silverToken": 2400,
+      "exile_samuraiToken": 800
     },
     {
       "rerollCount": 6,
       "exile_c1": 312000,
-      "fortify_c2": 1440
+      "fortify_c2": 1440,
+      "exile_goldToken": 1040,
+      "exile_silverToken": 3900,
+      "exile_samuraiToken": 1300
     },
     {
       "rerollCount": 7,
       "exile_c1": 504000,
-      "fortify_c2": 1630
+      "fortify_c2": 1630,
+      "exile_goldToken": 1680,
+      "exile_silverToken": 6300,
+      "exile_samuraiToken": 2100
     },
     {
       "rerollCount": 8,
       "exile_c1": 816000,
-      "fortify_c2": 1970
+      "fortify_c2": 1970,
+      "exile_goldToken": 2720,
+      "exile_silverToken": 10200,
+      "exile_samuraiToken": 3400
     },
     {
       "rerollCount": 9,
       "exile_c1": 1320000,
-      "fortify_c2": 2650
+      "fortify_c2": 2650,
+      "exile_goldToken": 4400,
+      "exile_silverToken": 16500,
+      "exile_samuraiToken": 5500
     },
     {
       "rerollCount": 10,
       "exile_c1": 2136000,
-      "fortify_c2": 4100
+      "fortify_c2": 4100,
+      "exile_goldToken": 7120,
+      "exile_silverToken": 26700,
+      "exile_samuraiToken": 8900
     },
     {
       "rerollCount": 11,
       "exile_c1": 3456000,
-      "fortify_c2": 7750
+      "fortify_c2": 7750,
+      "exile_goldToken": 11520,
+      "exile_silverToken": 43200,
+      "exile_samuraiToken": 14400
     },
     {
       "rerollCount": 12,
       "exile_c1": 5592000,
-      "fortify_c2": 15500
+      "fortify_c2": 15500,
+      "exile_goldToken": 18640,
+      "exile_silverToken": 69900,
+      "exile_samuraiToken": 23300
     },
     {
       "rerollCount": 13,
       "exile_c1": 9048000,
-      "fortify_c2": 31000
+      "fortify_c2": 31000,
+      "exile_goldToken": 30160,
+      "exile_silverToken": 113100,
+      "exile_samuraiToken": 37700
     },
     {
       "rerollCount": 14,
       "exile_c1": 14640000,
-      "fortify_c2": 62000
+      "fortify_c2": 62000,
+      "exile_goldToken": 48800,
+      "exile_silverToken": 183000,
+      "exile_samuraiToken": 61000
     },
     {
       "rerollCount": 15,
       "exile_c1": 23688000,
-      "fortify_c2": 124000
+      "fortify_c2": 124000,
+      "exile_goldToken": 78960,
+      "exile_silverToken": 296100,
+      "exile_samuraiToken": 98700
     },
     {
       "rerollCount": 16,
       "exile_c1": 38328000,
-      "fortify_c2": 248010
+      "fortify_c2": 248010,
+      "exile_goldToken": 127760,
+      "exile_silverToken": 479100,
+      "exile_samuraiToken": 159700
     },
     {
       "rerollCount": 17,
       "exile_c1": 62016000,
-      "fortify_c2": 496020
+      "fortify_c2": 496020,
+      "exile_goldToken": 206720,
+      "exile_silverToken": 775200,
+      "exile_samuraiToken": 258400
     },
     {
       "rerollCount": 18,
       "exile_c1": 100344000,
-      "fortify_c2": 992030
+      "fortify_c2": 992030,
+      "exile_goldToken": 334480,
+      "exile_silverToken": 1254300,
+      "exile_samuraiToken": 418100
     },
     {
       "rerollCount": 19,
       "exile_c1": 162360000,
-      "fortify_c2": 1984060
+      "fortify_c2": 1984060,
+      "exile_goldToken": 541200,
+      "exile_silverToken": 2029500,
+      "exile_samuraiToken": 676500
     },
     {
       "rerollCount": 20,
       "exile_c1": 262704000,
-      "fortify_c2": 3968120
+      "fortify_c2": 3968120,
+      "exile_goldToken": 875680,
+      "exile_silverToken": 3283800,
+      "exile_samuraiToken": 1094600
     }
   ],
   "alienDifficulties_sede_EDID": [

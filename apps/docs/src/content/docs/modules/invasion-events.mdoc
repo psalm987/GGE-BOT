@@ -47,13 +47,13 @@ With **Attack while under protection** on, the bot's first attack ends your begi
 
 ## Dethrone camps {% #dethrone %}
 
-**Dethrone camps before attacking them** pays to dethrone a camp once, before its first attack. **Exile, paid in coins** costs coins. **Fortify, paid in rubies** costs rubies. The cost grows with each dethrone. Dethrone needs your level to be 70 or higher, and the event must allow it.
+**Dethrone camps before attacking them** pays to dethrone a camp once, before its first attack. **Exile, paid in coins**, **Exile, paid in gold tokens**, **Exile, paid in silver tokens** and **Exile, paid in samurai tokens** each cost that currency. **Fortify, paid in rubies** costs rubies. An exile needs the event to offer that currency: Bloodcrows, for example, may offer tokens and no coins. If the event doesn't, the bot writes the reason to the {% term id="log" %}log{% /term %} and attacks without dethroning. The cost grows with each dethrone, and the bot reads how many you have done from the game, so it follows the count when the game resets it. Dethrone needs your level to be 70 or higher, and the event must allow it.
 
 Three limits keep the cost in check. The bot spends nothing until the first two are above 0.
 
-- **Most to spend on one dethrone** is the most coins or rubies for a single dethrone.
+- **Most to spend on one dethrone** is the most of the paying currency for a single dethrone.
 - **Most to spend on dethrones in one event** is the total for the event.
-- **Always keep at least this many coins or rubies** is the least you keep.
+- **Always keep at least this much of the currency that pays** is the least you keep.
 
 ## Army: Autofill or Waves {% #army %}
 

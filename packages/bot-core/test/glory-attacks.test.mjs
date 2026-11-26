@@ -25,6 +25,7 @@ const items = {
     eventAutoScalingDifficulties: costTables.alienDifficulties_sede_EDID,
     rerollCosts: costTables.dethrone_rerollCosts_alien.map(row => ({
         type: "alien", rerollCount: String(row.rerollCount), c1Cost: String(row.exile_c1), c2Cost: String(row.fortify_c2),
+        costGoldToken: String(row.exile_goldToken), costSilverToken: String(row.exile_silverToken), costSamuraiToken: String(row.exile_samuraiToken),
     })),
 }
 
@@ -53,7 +54,7 @@ const army = () => [melee(1, 5000), ranged(2, 5000), ...siegeTools()]
  */
 async function glory(plugin, {
     options = {}, start = {}, camps = [camp(20, 20, { type: EVENT[plugin].type })], nextCamp, inventory = army(),
-    player = {}, attacks = 1, points = 0, replies = {}, protection = { NS: 0, PMS: -1, PMT: 0 }, movements = [], onCommander,
+    player = {}, resources = {}, attacks = 1, points = 0, replies = {}, protection = { NS: 0, PMS: -1, PMT: 0 }, movements = [], onCommander,
 } = {}) {
     const { EID } = EVENT[plugin]
     const bot = fakeBot()
@@ -88,7 +89,7 @@ async function glory(plugin, {
         bot, items, parentPort,
         extra: {
             "protocols.js": {
-                movementEvents: new EventEmitter(), movements, castles: [castle], ClassTypes: {},
+                resources, movementEvents: new EventEmitter(), movements, castles: [castle], ClassTypes: {},
                 AreaType: { mainCastle: 1, alienCastle: 21, bloodcrowCastle: 34 }, KingdomID: { greatEmpire: 0 },
                 ClientCommands: {
                     getAreaInfo: async (...area) => { askedForArea.push(area); return { areaInfo: camps, result: 0 } },
@@ -98,7 +99,7 @@ async function glory(plugin, {
             "./attack.js": { ...engine, waitToAttack: job => job() },
             "commander.js": {
                 waitForCommanderAvailable: async () => {
-                    onCommander?.(handedOut)
+                    onCommander?.(handedOut, bot)
                     if (handedOut++ >= attacks)
                         bot.events.emit("eventStop", { EID })
                     return { lordID: handedOut, getEffects: () => ({}) }
@@ -113,7 +114,7 @@ async function glory(plugin, {
         await new Promise(resolve => setImmediate(resolve))
 
     const sent = cmd => bot.sent.filter(([name]) => name == cmd).map(([, payload]) => payload)
-    return { bot, sent, statuses, startedAt, askedForArea, askedForNext, targets: () => sent("cra").map(cra => [cra.TX, cra.TY]) }
+    return { bot, resources, sent, statuses, startedAt, askedForArea, askedForNext, targets: () => sent("cra").map(cra => [cra.TX, cra.TY]) }
 }
 
 const logged = spy => spy.mock.calls.map(([key]) => key)
@@ -440,6 +441,95 @@ describe("dethrone", () => {
         })
 
         expect(sent("rae")).toEqual([dethroneFrames.fortify_with_rubies.payload])
+    })
+
+    describe("with event tokens", () => {
+        const tokens = { dethroneMaxEach: 100_000, dethroneMaxTotal: 1_000_000, dethroneKeep: 0 }
+        const gold = { dethrone: 3, ...tokens }
+
+        test("a gold token exile sends the event's key and pays the table's token cost", async () => {
+            const { sent, resources } = await glory("attackForeign", {
+                options: gold, camps: [camp(110, 210)], start: { RCKS: ["GTO", "STO", "ST"] }, resources: { goldToken: 1000 },
+            })
+
+            expect(sent("rae")).toEqual([rae(110, 210, "GTO")])
+            expect(resources.goldToken).toBe(1000 - 80)
+        })
+
+        test.each([
+            ["silver", 4, "STO", "silverToken", 300],
+            ["samurai", 5, "ST", "samuraiToken", 100],
+        ])("a %s token exile pays from its own balance", async (_, choice, key, field, cost) => {
+            const { sent, resources } = await glory("attackForeign", {
+                options: { ...tokens, dethrone: choice }, camps: [camp(110, 210)], start: { RCKS: ["GTO", "STO", "ST"] }, resources: { [field]: 5000, goldToken: 5000 },
+            })
+
+            expect(sent("rae")).toEqual([rae(110, 210, key)])
+            expect(resources[field]).toBe(5000 - cost)
+            expect(resources.goldToken).toBe(5000)
+        })
+
+        test.each([
+            ["one exile would cost more than the cap", { dethroneMaxEach: 79 }, { goldToken: 1000 }],
+            ["the account would drop below the tokens to keep", { dethroneKeep: 921 }, { goldToken: 1000 }],
+            ["the account has no gold tokens", {}, {}],
+        ])("refused when %s", async (_, caps, resources) => {
+            const spy = vi.spyOn(console, "log").mockImplementation(() => {})
+            const { sent } = await glory("attackForeign", { options: { ...gold, ...caps }, start: { RCKS: ["GTO"] }, resources })
+
+            expect(sent("rae")).toEqual([])
+            expect(sent("cra")).toHaveLength(1)
+            expect(logged(spy)).toContain("gloryDethroneRefused")
+        })
+
+        test("an exile whose key the event doesn't list is refused once per camp, and the attack still goes", async () => {
+            const spy = vi.spyOn(console, "log").mockImplementation(() => {})
+            const { sent } = await glory("attackForeign", {
+                options: gold, attacks: 2, start: { RCKS: ["C1", "STO"] }, resources: { goldToken: 1000 },
+            })
+
+            expect(sent("rae")).toEqual([])
+            expect(sent("cra")).toHaveLength(2)
+            expect(spy.mock.calls.filter(([key, , , reason]) => key == "gloryDethroneRefused" && reason == "gloryDethroneNotOffered")).toHaveLength(1)
+        })
+
+        test("coins are refused when the event's keys leave out C1", async () => {
+            const { sent } = await glory("attackForeign", { options: exile, start: { RCKS: ["GTO"] }, player: { coin: 1e6 } })
+
+            expect(sent("rae")).toEqual([])
+            expect(sent("cra")).toHaveLength(1)
+        })
+
+        test("Fortify needs no key in the event's list", async () => {
+            const { sent } = await glory("attackForeign", {
+                options: { ...exile, dethrone: 2, dethroneMaxEach: 1200 }, start: { RCKS: ["GTO"] }, player: { rubies: 5000 },
+            })
+
+            expect(sent("rae")).toEqual([rae(20, 20, "C2")])
+        })
+
+        test("the server's count replaces ours: a push that resets it makes the next exile cost the first row again", async () => {
+            const { sent, resources } = await glory("attackForeign", {
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+                onCommander: (handed, bot) => handed == 1 && bot.xtHandler.emit("rce", { RCSC: 0, RCHC: 0 }),
+            })
+
+            expect(sent("rae")).toHaveLength(2)
+            expect(resources.goldToken).toBe(1000 - 80 - 80)
+        })
+
+        test("without a push our own count carries on, and a push of a higher count moves the cost up", async () => {
+            const own = await glory("attackForeign", {
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+            })
+            const pushed = await glory("attackForeign", {
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+                onCommander: (handed, bot) => handed == 1 && bot.xtHandler.emit("rce", { RCSC: 4, RCHC: 0 }),
+            })
+
+            expect(own.resources.goldToken).toBe(1000 - 80 - 160)
+            expect(pushed.resources.goldToken).toBe(1000 - 80 - 640)
+        })
     })
 
     test("a camp already dethroned is left as it is", async () => {

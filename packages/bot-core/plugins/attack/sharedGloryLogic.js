@@ -31,7 +31,7 @@ const gloryOptions = [
     { type: "OrderedList", key: "bannerList", catalog: "banners", default: [], army: "autofill" },
     { type: "OrderedList", key: "supportTools", catalog: "supportTools", default: [], army: "autofill" },
     { type: "Checkbox", key: "courtyardWave", default: true, army: "autofill" },
-    { type: "Select", key: "dethrone", selection: ["Off", "Exile, paid in coins", "Fortify, paid in rubies"], default: 0 },
+    { type: "Select", key: "dethrone", selection: ["Off", "Exile, paid in coins", "Fortify, paid in rubies", "Exile, paid in gold tokens", "Exile, paid in silver tokens", "Exile, paid in samurai tokens"], default: 0 },
     { type: "Number", key: "dethroneMaxEach", min: 0, max: 1_000_000_000, step: 1, default: 0 },
     { type: "Number", key: "dethroneMaxTotal", min: 0, max: 2_000_000_000, step: 1, default: 0 },
     { type: "Number", key: "dethroneKeep", min: 0, max: 2_000_000_000, step: 1, default: 0 },
@@ -46,7 +46,7 @@ if (require("node:worker_threads").isMainThread)
 const path = require("node:path")
 const pretty = require("pretty-time")
 const err = require("../../err.json")
-const { castles, movements, movementEvents, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
+const { castles, movements, movementEvents, AreaType, KingdomID, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, sendAttack, getTotalAmountToolsFlank, getTotalAmountToolsFront,
     getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
@@ -80,13 +80,22 @@ const TEMPLATES = [
     { flank: ["wall", "mantlet"], front: ["wall", "gate", "mantlet"] },
 ]
 /**
- * How each dethrone pays. The cost is the `rerollCosts` row at the player's dethrone count so far, capped at
- * `lastRow` (the client's own cap). The Fortify cap of 20 is one past the table, so that cost is unknown.
+ * How each dethrone pays, one row per `dethrone` choice, so a stored choice keeps its index. The cost is the
+ * `rerollCosts` row at the player's dethrone count so far, capped at `lastRow` (the client's own cap). The Fortify cap
+ * of 20 is one past the table, so that cost is unknown. An exile sends a key from the event's `RCKS`, so it is only
+ * offered when the event lists that key; Fortify is not gated.
  */
+const coinPurse = { balance: () => Number(playerInfo.coin), spend: cost => { playerInfo.coin -= cost } }
+const tokenPurse = field => ({ balance: () => Number(resources[field]), spend: cost => { resources[field] -= cost } })
+const exile = (rck, cost, currency, purse) => ({ rck, exile: true, count: "RCSC", lastRow: 19, cost, currency, ...purse })
 const DETHRONES = [
     undefined,
-    { rck: "C1", purse: "coin", count: "RCSC", lastRow: 19, cost: row => Number(row.c1Cost), currency: "gloryCoins" },
-    { rck: "C2", purse: "rubies", count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies" },
+    exile("C1", row => Number(row.c1Cost), "gloryCoins", coinPurse),
+    { rck: "C2", exile: false, count: "RCHC", lastRow: 20, cost: row => Number(row.c2Cost), currency: "gloryRubies",
+        balance: () => Number(playerInfo.rubies), spend: cost => { playerInfo.rubies -= cost } },
+    exile("GTO", row => Number(row.costGoldToken), "gloryGoldTokens", tokenPurse("goldToken")),
+    exile("STO", row => Number(row.costSilverToken), "glorySilverTokens", tokenPurse("silverToken")),
+    exile("ST", row => Number(row.costSamuraiToken), "glorySamuraiTokens", tokenPurse("samuraiToken")),
 ]
 
 const rentCost = row => row.isLocked == "1" ? Number(row.rentC2Cost) : 0
@@ -112,7 +121,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         (!info.allowedToAttack || String(info.allowedToAttack).split("#").includes(`${kingdomID}+${areaType}`))
     const openCamp = area => area?.type == areaType && area.extraData.length > 1 && area.extraData[2] != 1
 
-    /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, considered: Set<string> }} */
+    /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, keys: string[], considered: Set<string> }} */
     let run
 
     const stop = (target, state, reasonKey, params) => {
@@ -136,6 +145,15 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         }
     })
 
+    // The server's count is the truth: it also drops back on its own after a while.
+    xtHandler.on("rce", obj => {
+        if (!run || run.stopped)
+            return
+        for (const key of ["RCSC", "RCHC"])
+            if (Number.isFinite(Number(obj?.[key])))
+                run.counts[key] = Number(obj[key])
+    })
+
     events.on("eventStop", eventInfo => {
         if (eventInfo.EID != eventID)
             return
@@ -157,6 +175,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             counts: { RCSC: Number(eventInfo.RCSC) || 0, RCHC: Number(eventInfo.RCHC) || 0 },
             spent: 0,
             dethroneAllowed: eventInfo.CRE == 1 && eventInfo.RCKS?.length > 0,
+            keys: eventInfo.RCKS ?? [],
             considered: new Set(),
         }
         farm(current, eventInfo).catch(e => {
@@ -253,9 +272,14 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             return
         target.considered.add(key)
 
+        if (mode.exile && !target.keys.includes(mode.rck)) {
+            console.log("gloryDethroneRefused", key, " ", "gloryDethroneNotOffered", mode.rck)
+            return
+        }
+
         const row = dethroneCosts[Math.min(target.counts[mode.count], mode.lastRow)]
         const cost = row ? mode.cost(row) : NaN
-        const refusal = dethroneRefusal(cost, Number(playerInfo[mode.purse]), target.spent)
+        const refusal = dethroneRefusal(cost, mode.balance(), target.spent)
         if (refusal) {
             console.log("gloryDethroneRefused", key, " ", ...refusal)
             return
@@ -275,7 +299,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         }
         target.spent += cost
         target.counts[mode.count]++
-        playerInfo[mode.purse] -= cost
+        mode.spend(cost)
         camp.extraData[6] = 1
     }
 
