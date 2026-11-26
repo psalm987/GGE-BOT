@@ -995,5 +995,6 @@
     "recruitNeedsLevel": ": it needs level ",
     "recruitOfA": " or higher of its ",
     "statusRecruitToolsTargetsMet": "Every target is met. This resumes when stock drops below one.",
-    "statusRecruitToolsOrdered": "Placed {{orders}} orders for {{items}} troops and tools."
+    "statusRecruitToolsOrdered": "Placed {{orders}} orders for {{items}} troops and tools.",
+    "skipTypeRanOut": "The game has none of these skips left, so another type is tried: "
 }

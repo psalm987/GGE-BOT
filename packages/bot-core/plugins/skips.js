@@ -93,41 +93,79 @@ function spendable(stored) {
         [key, (skipTypes ? skipTypes.includes(MinuteSkipType[key]) : pluginOptions[option]) ? Number(resources[resource]) : 0]))
 }
 
-function bestSkip(skips, time) {
-    return Object.entries(skips)
-        .filter(e => e[1] > 0)
-        .filter(e => pluginOptions.bypassSkipTypeFilter || MinuteSkipType[e[0]] <= time * 4)
-        .sort((a, b) => (time > MinuteSkipType[a[0]]) - (time > MinuteSkipType[b[0]]))
-        .sort((a, b) => Math.min(Math.max(b[1], 950), 951) - Math.min(Math.max(a[1], 950), 951))[0]
+/**
+ * The next skip for `minutes` left, keeping big skips for when small ones can't do the job:
+ * 1. the smallest that finishes it wasting at most max(2 min, 10%);
+ * 2. else, if the skips shorter than the time left add up to it, the largest of those (the caller repeats);
+ * 3. else the smallest that finishes it on its own;
+ * 4. else the largest there is.
+ * A skip more than four times the time left is never offered unless `bypassSkipTypeFilter` is on.
+ */
+function pickSkip(skips, minutes) {
+    const available = Object.keys(skips)
+        .filter(key => skips[key] > 0 && (pluginOptions.bypassSkipTypeFilter || MinuteSkipType[key] <= minutes * 4))
+        .sort((a, b) => MinuteSkipType[a] - MinuteSkipType[b])
+    const tolerance = Math.max(2, minutes * 0.1)
+    const finisher = available.find(key => MinuteSkipType[key] >= minutes && MinuteSkipType[key] - minutes <= tolerance)
+    if (finisher)
+        return finisher
+    const smaller = available.filter(key => MinuteSkipType[key] < minutes)
+    if (smaller.reduce((total, key) => total + MinuteSkipType[key] * skips[key], 0) >= minutes)
+        return smaller.at(-1)
+    return available.find(key => MinuteSkipType[key] >= minutes) ?? smaller.at(-1)
 }
 
 /** `skipTypes` is the calling plugin's stored `skipTypes` option, if it has one. */
 function haveEnoughSkips(time, skipTypes) {
     const skips = spendable(skipTypes)
-    time = Math.ceil(time / 60)
+    let minutes = Math.ceil(time / 60)
 
-    while (time > 0) {
-        const skip = bestSkip(skips, time)
+    while (minutes > 0) {
+        const skip = pickSkip(skips, minutes)
 
         if (skip == undefined)
             return false
 
-        skips[skip[0]]--
-        time -= MinuteSkipType[skip[0]]
+        skips[skip]--
+        minutes -= MinuteSkipType[skip]
     }
     return true
 }
 
+const resourceOf = key => SKIPS.find(skip => skip.key == key).resource
+
+/** Picks a skip for `time` seconds and takes it off the count at once, since the game's new count can come after the next pick. */
 function spendSkip(time, skipTypes) {
-    time = Math.ceil(time / 60)
-    const skip = bestSkip(spendable(skipTypes), time)
+    const minutes = Math.ceil(time / 60)
+    const skip = minutes > 0 ? pickSkip(spendable(skipTypes), minutes) : undefined
 
     if (skip == undefined)
         return console.warn("noMoreSkips")
 
-    console.debug("usingSkip", skip[0])
+    resources[resourceOf(skip)]--
+    console.debug("usingSkip", skip)
 
-    return skip[0]
+    return skip
 }
 
-module.exports = { spendSkip, haveEnoughSkips, MinuteSkipType }
+const NO_TIME_SKIP_LEFT = 335
+const NOT_COOLING_DOWN = 311
+
+/**
+ * Call when the game refuses a skip that `spendSkip` picked. True when the caller should pick again: the game has
+ * none of that type left, so its count was stale and is now 0. A timer that was already over used nothing, so that
+ * skip counts again.
+ */
+function skipRefused(skip, result) {
+    if (Number(result) == NOT_COOLING_DOWN) {
+        resources[resourceOf(skip)]++
+        return false
+    }
+    if (Number(result) != NO_TIME_SKIP_LEFT)
+        return false
+    resources[resourceOf(skip)] = 0
+    console.warn("skipTypeRanOut", skip)
+    return true
+}
+
+module.exports = { spendSkip, skipRefused, haveEnoughSkips, MinuteSkipType }
