@@ -46,7 +46,7 @@ test("a skin follows the colour alone, since it has no slot choice", async () =>
 test("loose gems sell up to the level set, and not at all when unticked", async () => {
     const run = options => sold(options, {
         stored: [], gemList: [[1, 2], [2, 3]],
-        gemItems: [{ gemID: 1, gemLevelID: "2" }, { gemID: 2, gemLevelID: "9" }],
+        gemItems: [{ gemID: 1, gemColorID: 1, gemLevelID: "2" }, { gemID: 2, gemColorID: 1, gemLevelID: "9" }],
     }).then(result => result.gems)
     expect(await run({})).toEqual([1, 1, 2, 2, 2])
     expect(await run({ sellGemMaxLevel: 5 })).toEqual([1, 1])
