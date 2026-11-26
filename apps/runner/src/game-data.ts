@@ -65,7 +65,8 @@ export async function fetchClientBuild({ fetch = globalThis.fetch } = {}) {
     }
 }
 
-export type ServerRow = { id: number; label: string; wsHost: string; zone: string }
+/** `zoneId` names the server in the game's maintenance file (./gameMaintenance.ts). */
+export type ServerRow = { id: number; label: string; wsHost: string; zone: string; zoneId?: string }
 
 /** Servers players can pick, labelled the way the game names them ("Germany 1"). */
 export async function readServers(dataDir: string, locale = "en"): Promise<ServerRow[]> {
@@ -80,6 +81,7 @@ export async function readServers(dataDir: string, locale = "en"): Promise<Serve
             label: `${lang[String(i.instanceLocaId)] ?? i.instanceLocaId} ${i.instanceName}`,
             wsHost: String(i.server),
             zone: String(i.zone),
+            ...(i.zoneId !== undefined && { zoneId: String(i.zoneId) }),
         }))
     // Not in 1.xml; the legacy panel always offered it.
     servers.push({ id: 103, label: "SP 3", wsHost: "ep-live-mz-nw2-game.goodgamestudios.com", zone: "EmpireExSP_3" })

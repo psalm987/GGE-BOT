@@ -8,6 +8,7 @@ import { publishCatalog } from "./catalog.ts"
 import { createDiscordClient, DiscordHub } from "./discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
 import { fetchClientBuild, readServers, refreshGameData } from "./game-data.ts"
+import { gameMaintenance } from "./gameMaintenance.ts"
 import { publishGameItems, readGameItems } from "./game-items.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
@@ -32,7 +33,11 @@ const discord = new DiscordHub({ token: env.DISCORD_TOKEN, createClient: createD
 discord.start()
 
 let applyMetrics: (batch: MetricBatch) => void = () => {}
+/** Each server's zoneId, which names it in the game's maintenance file. Filled from 1.xml below, before any bot starts. */
+const zoneIds = new Map<number, string | undefined>()
+const maintenanceEndsAt = gameMaintenance()
 const supervisor = new Supervisor({
+    maintenanceEndsAt: spec => maintenanceEndsAt(zoneIds.get(spec.serverId)),
     discord,
     spawn: workerData => new Worker(ggeBotPath, { workerData, resourceLimits: { maxOldGenerationSizeMb: env.WORKER_MAX_OLD_MB } }),
     onMetrics: (batch: MetricBatch) => applyMetrics(batch),
@@ -77,8 +82,10 @@ async function followClientBuild() {
     }
 }
 await followClientBuild()
-for (const server of await readServers(paths.data))
+for (const { zoneId, ...server } of await readServers(paths.data)) {
+    zoneIds.set(server.id, zoneId)
     await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
+}
 await publishGameItems(db, await readGameItems(paths.data))
 
 const registry = readPluginRegistry(ggeConfig)

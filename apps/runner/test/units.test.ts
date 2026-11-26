@@ -19,10 +19,14 @@ describe("blameFor", () => {
         ["CONNECTION_STALE", "outside"],
         ["LOGIN_TIMEOUT", "outside"],
         ["TOO_MANY_TIMEOUTS", "outside"],
+        ["KICKED", "player"],
+        ["tooManyImportantErrors", "inGame"],
+        ["MOVEMENT_HAS_NO_UNITS", "inGame"],
+        ["CANT_START_NEW_ARMIES", "inGame"],
+        ["constructor", "account"],
         ["The bot stopped responding", "account"],
         ["The bot stopped unexpectedly", "account"],
         ["The bot ran out of memory", "account"],
-        ["tooManyImportantErrors", "account"],
     ])("%s is blamed on the %s", (why, blame) => {
         expect(blameFor(why)).toBe(blame)
     })
@@ -43,11 +47,11 @@ test("servers are read from 1.xml with the game's labels, skipping unlabelled in
     await mkdir(path.join(dir, "lang"))
     await writeFile(path.join(dir, "lang", "en.json"), JSON.stringify({ generic_country_DE: "Germany" }))
     await writeFile(path.join(dir, "1.xml"), `<network><instances>
-        <instance value="2"><server>de1.test</server><zone>EmpireEx_2</zone><instanceName>1</instanceName><instanceLocaId>generic_country_DE</instanceLocaId></instance>
+        <instance value="2"><server>de1.test</server><zone>EmpireEx_2</zone><zoneId>163</zoneId><instanceName>1</instanceName><instanceLocaId>generic_country_DE</instanceLocaId></instance>
         <instance value="9"><server>hidden.test</server><zone>EmpireEx_9</zone><instanceName>1</instanceName></instance>
     </instances></network>`)
     expect(await readServers(dir)).toEqual([
-        { id: 2, label: "Germany 1", wsHost: "de1.test", zone: "EmpireEx_2" },
+        { id: 2, label: "Germany 1", wsHost: "de1.test", zone: "EmpireEx_2", zoneId: "163" },
         { id: 103, label: "SP 3", wsHost: "ep-live-mz-nw2-game.goodgamestudios.com", zone: "EmpireExSP_3" },
     ])
 })

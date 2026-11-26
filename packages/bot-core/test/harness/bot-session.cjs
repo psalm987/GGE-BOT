@@ -34,6 +34,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
     })
 
     let chatter
+    const configWaiters = []
     const session = {
         sent: [],
         /** When the bot sent each frame of `sent`, on the worker's clock. */
@@ -66,11 +67,18 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             }
         },
         /** Starts a waitForResult in the bot. Resolves to `{ done }` once its listener is registered. */
-        startWaitForResult: (key, timeout) => new Promise(listening => {
+        startWaitForResult: (key, timeout, quietErrors) => new Promise(listening => {
             const id = Math.random()
             const done = new Promise(resolve => session.waits.set(id, { listening, resolve }))
             session.waits.get(id).done = done
-            port1.postMessage({ type: "wait", key, timeout, id })
+            port1.postMessage({ type: "wait", key, timeout, id, quietErrors })
+        }),
+        /** Sends the bot a message from its host, as the runner does. */
+        post: message => worker.postMessage(message),
+        /** The bot's plugin options now, the options object the first plugin read at load, and whether Object.prototype was polluted. */
+        config: () => new Promise(resolve => {
+            configWaiters.push(resolve)
+            port1.postMessage({ type: "config" })
         }),
         async login() {
             await session.until(() => session.sent.some(m => /action=["']verChk/.test(m)))
@@ -99,6 +107,7 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
         if (m.type === "closed") session.closed = true
         if (m.type === "listening") session.waits.get(m.id)?.listening({ done: session.waits.get(m.id).done })
         if (m.type === "waited") session.waits.get(m.id)?.resolve(m)
+        if (m.type === "config") configWaiters.shift()?.(m)
     })
     worker.on("message", m => session.toParent.push(m))
     for (const stream of [worker.stdout, worker.stderr])

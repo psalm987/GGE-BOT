@@ -52,6 +52,7 @@
     "retryLogin": "Logging in again in ",
     "retryLoginSeconds": " seconds",
     "retryLoginHours": " hours",
+    "kickedByOtherClient": "The account was opened on another device, so the bot stepped aside",
     "loggedIn": "Logged in",
     "loggedInWithoutEventData": " (without event data)",
     "featuresMightNotWork": "Some features might not work.",

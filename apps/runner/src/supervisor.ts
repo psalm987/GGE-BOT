@@ -34,24 +34,58 @@ const STOPPED_RESPONDING = "The bot stopped responding"
 const EVENT_SERVER_NOT_FOUND = "Couldn't find the event server"
 
 /**
- * Whose fault an unexpected end is, which decides whether it counts toward
- * giving up on the account. Only "account" counts, and even then not while
- * the fleet is failing together, so a bad deploy doesn't stop every bot.
+ * Whose doing an unexpected end is, which decides how long to wait and whether it counts toward giving up on the account.
+ * Counted failures never stop an account while the fleet is failing together, so a bad deploy doesn't stop every bot.
+ * - account: counts, with backoff.
+ * - outside: the game, the network, the client version, the event server or a proxy. Backoff forever, so a game outage
+ *   never stops a player's bot.
+ * - player: the player opened the account on another device. The bot steps aside for a while, and it never counts.
+ * - inGame: the game refused something serious, such as too many armies out. A long pause, and it counts.
  */
-export type Blame = "account" | "outside"
+export type Blame = "account" | "outside" | "player" | "inGame"
 
 /** A worker's reason for failing to reach or sign in to its proxy starts with this. */
 const PROXY_FAILURE = "PROXY_"
 
-/**
- * Failures the account can't cause: the game, the network, the client version,
- * the event server or a proxy. They retry with backoff forever, so a game
- * outage never stops a player's bot.
- */
-const OUTSIDE = {
-    exact: ["CLIENT_VERSION_REJECTED", EVENT_SERVER_NOT_FOUND, "CONNECTION_STALE", "LOGIN_TIMEOUT", "TOO_MANY_TIMEOUTS"],
-    prefixes: [PROXY_FAILURE, "SOCKET_ERROR:"],
+const BLAME = new Map<string, Blame>([
+    ["CLIENT_VERSION_REJECTED", "outside"], [EVENT_SERVER_NOT_FOUND, "outside"], ["CONNECTION_STALE", "outside"], ["LOGIN_TIMEOUT", "outside"], ["TOO_MANY_TIMEOUTS", "outside"],
+    ["KICKED", "player"],
+    ["tooManyImportantErrors", "inGame"], ["MOVEMENT_HAS_NO_UNITS", "inGame"], ["CANT_START_NEW_ARMIES", "inGame"],
+])
+const OUTSIDE_PREFIXES = [PROXY_FAILURE, "SOCKET_ERROR:"]
+
+const MINUTE = 60_000
+
+/** The waits that protect the account: from the player, from the game, and from logging in too often. */
+export const WAITS = {
+    /** After another login took the account. Doubled for each earlier kick within the reconnect window, up to 8 times. */
+    kickedMs: 5 * MINUTE,
+    /** After an in-game problem. */
+    inGameMs: 30 * MINUTE,
+    /** No two logins of one account closer than this, however they were started. */
+    loginGapMs: MINUTE,
+    /** A counted failure with this many counted reconnects already in the window stops the account. */
+    reconnectsPerWindow: 6,
+    reconnectWindowMs: 60 * MINUTE,
+    /** An account logs in at a random moment this long after the game's maintenance ends, so accounts don't all log in at once. */
+    afterMaintenanceMs: [MINUTE, 4 * MINUTE] as [number, number],
+    /** How often an account waiting out a maintenance reads the file again, to notice an end that moved. */
+    maintenanceRecheckMs: 10 * MINUTE,
 }
+
+type Reconnect = { at: number; blame: Blame }
+
+/** How the runner answers one class of failure. */
+type RetryPolicy = {
+    counts: boolean
+    /** `recent` is this account's reconnects within the window, oldest first. */
+    delayMs(recent: Reconnect[]): number
+    status(why: string, delayMs: number): StatusPatch
+}
+
+/** `ms` moved at random by up to `fraction` of itself either way. */
+const spread = (ms: number, fraction: number) => Math.round(ms * (1 - fraction + Math.random() * 2 * fraction))
+const minutes = (ms: number) => Math.max(1, Math.round(ms / MINUTE))
 
 /** The short-lived worker that looks up the event server stopped, for the reason it reported. */
 class ProbeFailed extends Error {
@@ -63,7 +97,7 @@ class ProbeFailed extends Error {
 }
 
 export function blameFor(why: string): Blame {
-    return OUTSIDE.exact.includes(why) || OUTSIDE.prefixes.some(prefix => why.startsWith(prefix)) ? "outside" : "account"
+    return BLAME.get(why) ?? (OUTSIDE_PREFIXES.some(prefix => why.startsWith(prefix)) ? "outside" : "account")
 }
 
 /** How often checkLiveness expects to be called, and what it tolerates. */
@@ -83,8 +117,13 @@ type Bot = {
     startedAt?: number
     /** When the current worker last sent anything. */
     lastBeat?: number
-    /** Unexpected exits in a row, which set the retry delay; reset once a run lasts stableMs. */
-    attempt: number
+    /**
+     * Automatic reconnects within WAITS.reconnectWindowMs. They set the backoff and the reconnect cap. A long run doesn't
+     * clear them, so a fault that comes back every quarter of an hour still adds up.
+     */
+    reconnects: Reconnect[]
+    /** The game maintenance this account is waiting out, and when it will log in after it. */
+    maintenance?: { end: number; loginAt: number }
     retryTimer?: NodeJS.Timeout
     terminal?: Terminal
     failure?: Failure
@@ -127,6 +166,9 @@ export type SupervisorDeps = {
     stableMs?: number
     liveness?: Partial<typeof LIVENESS>
     giveUp?: Partial<typeof GIVE_UP>
+    waits?: Partial<typeof WAITS>
+    /** When the game's maintenance on this account's server ends, in ms since the epoch, or undefined when there is none. */
+    maintenanceEndsAt?: (spec: BotSpec) => Promise<number | undefined>
     eventTimeoutMs?: number
     /** The clock, in ms since the epoch. */
     now?: () => number
@@ -183,7 +225,11 @@ export class Supervisor {
     private readonly stableMs: number
     private readonly liveness: typeof LIVENESS
     private readonly giveUp: typeof GIVE_UP
+    private readonly waits: typeof WAITS
+    private readonly policies: Record<Blame, RetryPolicy>
     private lastLivenessCheck: number | undefined
+    /** When each account last began to log in, kept across stops so a quick stop and start still keeps the gap. */
+    private readonly lastLogin = new Map<string, number>()
     /** When each account last started and last ended early, to tell one broken account from a fleet outage. */
     private readonly lastStart = new Map<string, number>()
     private readonly lastEarlyEnd = new Map<string, number>()
@@ -198,8 +244,25 @@ export class Supervisor {
         this.stableMs = deps.stableMs ?? 10 * 60_000
         this.liveness = { ...LIVENESS, ...deps.liveness }
         this.giveUp = { ...GIVE_UP, ...deps.giveUp }
+        this.waits = { ...WAITS, ...deps.waits }
         this.log = deps.logger ?? console
         this.now = deps.now ?? Date.now
+        const backoff: RetryPolicy["delayMs"] = recent => spread(Math.min(this.backoff.maxMs, this.backoff.baseMs * 2 ** recent.length), 0.5)
+        const retrying: RetryPolicy["status"] = (why, delayMs) => ({ actualState: "error", lastError: `${why}; retrying in ${Math.ceil(delayMs / 1000)}s` })
+        this.policies = {
+            account: { counts: true, delayMs: backoff, status: retrying },
+            outside: { counts: false, delayMs: backoff, status: retrying },
+            player: {
+                counts: false,
+                delayMs: recent => spread(this.waits.kickedMs * 2 ** Math.min(recent.filter(r => r.blame === "player").length, 3), 0.2),
+                status: (_, delayMs) => ({ actualState: "starting", lastError: `Paused: you're playing on another device. Back in ${minutes(delayMs)} min` }),
+            },
+            inGame: {
+                counts: true,
+                delayMs: () => spread(this.waits.inGameMs, 0.2),
+                status: (why, delayMs) => ({ actualState: "error", lastError: `${why}; paused in the game, reconnecting in ${minutes(delayMs)} min` }),
+            },
+        }
     }
 
     get running() {
@@ -255,11 +318,11 @@ export class Supervisor {
                     continue
                 }
                 this.atCapacity.delete(spec.accountId)
-                this.bots.set(spec.accountId, { spec, attempt: 0 })
+                this.bots.set(spec.accountId, { spec, reconnects: [] })
                 this.enqueue(spec.accountId)
             } else if (bot.spec.restartKey !== spec.restartKey) {
                 bot.spec = spec
-                bot.attempt = 0
+                bot.reconnects = []
                 this.track(this.restart(bot))
             } else if (bot.spec.optionsKey !== spec.optionsKey) {
                 bot.spec = spec
@@ -382,6 +445,13 @@ export class Supervisor {
         if (!bot || bot.worker)
             return
         const spec = bot.spec
+        const wait = await this.loginWait(bot)
+        if (this.bots.get(id) !== bot || bot.worker || bot.spec !== spec)
+            return
+        if (wait)
+            return this.retryIn(bot, wait.ms, wait.status)
+        // Before the event server probe, which logs the account in too.
+        this.lastLogin.set(id, this.now())
         const { openSealed } = this.deps
         let workerData: Record<string, unknown> = workerDataFor(spec, openSealed(spec.passwordSealed), { ...this.deps.ggeConfig, humanize: this.deps.humanizeFor?.(spec.accountId) ?? {} }, spec.proxy ? openSealed(spec.proxy.urlSealed) : undefined)
         bot.proxyId = spec.proxy?.id
@@ -534,7 +604,6 @@ export class Supervisor {
             return
         const now = this.now()
         if (now - (bot.startedAt ?? 0) > this.stableMs) {
-            bot.attempt = 0
             this.streaks.delete(bot.spec.accountId)
         } else {
             this.lastEarlyEnd.set(bot.spec.accountId, now)
@@ -550,16 +619,71 @@ export class Supervisor {
         // While most of the fleet is failing, the cause is more likely the game or the network than every proxy at once.
         if (bot.proxyId && why.startsWith(PROXY_FAILURE))
             this.track(this.deps.store.proxyFailed(bot.proxyId, why, { counts: !this.fleetOutage(now) }))
-        if (blameFor(why) === "account") {
+        // A drop during the game's maintenance is nobody's fault. The next start waits the maintenance out.
+        if (await this.maintenanceEnd(bot)) {
+            if (this.bots.get(accountId) === bot)
+                this.enqueue(accountId)
+            return
+        }
+        const blame = blameFor(why)
+        const policy = this.policies[blame]
+        if (policy.counts) {
             let streak = this.streaks.get(accountId)
             // A changed login is a new thing to try, so what failed before it doesn't count.
             if (streak?.restartKey !== restartKey)
                 this.streaks.set(accountId, streak = { count: 0, since: now, restartKey })
             streak.count++
             if (streak.count >= this.giveUp.failures && now - streak.since >= this.giveUp.minAgeMs && !this.fleetOutage(now))
-                return this.giveUpOn(bot, streak.count, why)
+                return this.giveUpOn(bot, streak.count, why, `Stopped after ${streak.count} failed starts in a row: ${why}`)
         }
-        await this.scheduleRetry(bot, why)
+        const recent = bot.reconnects = bot.reconnects.filter(r => now - r.at < this.waits.reconnectWindowMs)
+        const counted = recent.filter(r => this.policies[r.blame].counts).length
+        if (policy.counts && counted >= this.waits.reconnectsPerWindow && !this.fleetOutage(now))
+            return this.giveUpOn(bot, counted + 1, why, `Stopped after ${counted + 1} failures within an hour: ${why}`)
+        const delayMs = policy.delayMs(recent)
+        recent.push({ at: now, blame })
+        await this.retryIn(bot, delayMs, policy.status(why, delayMs))
+    }
+
+    /** When the maintenance on this account's game server ends, or undefined when there is none or it can't be told. */
+    private async maintenanceEnd(bot: Bot) {
+        const end = await this.deps.maintenanceEndsAt?.(bot.spec).catch(error => {
+            this.log.warn("checking the game's maintenance failed", error)
+            return undefined
+        })
+        return end !== undefined && end > this.now() ? end : undefined
+    }
+
+    /** Why this account must not log in yet and for how long, or undefined when it may. */
+    private async loginWait(bot: Bot): Promise<{ ms: number; status: StatusPatch } | undefined> {
+        const end = await this.maintenanceEnd(bot)
+        const now = this.now()
+        const [afterMin, afterMax] = this.waits.afterMaintenanceMs
+        const afterMaintenance = () => afterMin + Math.random() * (afterMax - afterMin)
+        if (end) {
+            // What failed during it doesn't count against the account.
+            bot.reconnects = []
+            if (bot.maintenance?.end !== end)
+                bot.maintenance = { end, loginAt: end + afterMaintenance() }
+            const until = new Date(end).toISOString().slice(11, 16)
+            return {
+                ms: Math.min(bot.maintenance.loginAt - now, this.waits.maintenanceRecheckMs),
+                status: { actualState: "starting", lastError: `Game maintenance until ${until} UTC; logging in a few minutes after it` },
+            }
+        }
+        if (bot.maintenance) {
+            // Over, perhaps before its announced end: a few minutes from now at the latest.
+            const loginAt = bot.maintenance.loginAt = Math.min(bot.maintenance.loginAt, now + afterMaintenance())
+            if (now < loginAt)
+                return { ms: loginAt - now, status: { actualState: "starting", lastError: "Game maintenance is over; logging in in a few minutes" } }
+            bot.maintenance = undefined
+        }
+        const sinceLogin = now - (this.lastLogin.get(bot.spec.accountId) ?? -Infinity)
+        if (sinceLogin < this.waits.loginGapMs) {
+            const ms = this.waits.loginGapMs - sinceLogin
+            return { ms, status: { actualState: "starting", lastError: `Logging in in ${Math.ceil(ms / 1000)}s; logins of one account are at least a minute apart` } }
+        }
+        return undefined
     }
 
     private fleetOutage(now: number) {
@@ -574,22 +698,20 @@ export class Supervisor {
         return endedEarly >= outageMinBots && endedEarly >= outageShare * recent(this.lastStart)
     }
 
-    private giveUpOn(bot: Bot, failures: number, why: string) {
+    private giveUpOn(bot: Bot, failures: number, why: string, lastError: string) {
         this.bots.delete(bot.spec.accountId)
         this.streaks.delete(bot.spec.accountId)
-        this.end(bot, { actualState: "crash_loop", lastError: `Stopped after ${failures} failed starts in a row: ${why}` }, { kind: "crash_loop", failures, lastError: why })
+        this.end(bot, { actualState: "crash_loop", lastError }, { kind: "crash_loop", failures, lastError: why })
     }
 
-    private async scheduleRetry(bot: Bot, why: string) {
-        bot.attempt++
-        const { baseMs, maxMs } = this.backoff
-        const delay = Math.round(Math.min(maxMs, baseMs * 2 ** (bot.attempt - 1)) * (0.5 + Math.random()))
-        await this.deps.store.setStatus(bot.spec.accountId, { actualState: "error", lastError: `${why}; retrying in ${Math.ceil(delay / 1000)}s` })
+    /** Tells the player why the account is waiting, and starts it again after `delayMs`. */
+    private async retryIn(bot: Bot, delayMs: number, status: StatusPatch) {
+        await this.deps.store.setStatus(bot.spec.accountId, status)
         bot.retryTimer = setTimeout(() => {
             bot.retryTimer = undefined
             if (this.bots.get(bot.spec.accountId) === bot)
                 this.enqueue(bot.spec.accountId)
-        }, delay)
+        }, delayMs)
     }
 
     /**
