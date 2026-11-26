@@ -39,6 +39,8 @@ if (workerData.surviveExit)
     process.exit = () => {}
 
 const bot = require(path.join(repo, "ggeBot.js"))
+/** What a plugin holds when it reads its options at load: the first plugin's options object. */
+const [loadedOptions] = Object.values(bot.botConfig.plugins)
 bot.events.on("load", () => control.postMessage({ type: "load" }))
 
 control.on("message", m => {
@@ -51,9 +53,11 @@ control.on("message", m => {
     if (m.type === "socketError")
         FakeWebSocket.instance.onerror?.({ message: m.message, error: Object.assign(new Error(m.message), { code: m.code }) })
     if (m.type === "wait") {
-        bot.waitForResult(m.key, m.timeout).then(
+        bot.waitForResult(m.key, m.timeout, undefined, m.quietErrors).then(
             ([, result]) => control.postMessage({ type: "waited", id: m.id, result }),
             error => control.postMessage({ type: "waited", id: m.id, error: String(error) }))
         control.postMessage({ type: "listening", id: m.id })
     }
+    if (m.type === "config")
+        control.postMessage({ type: "config", plugins: bot.botConfig.plugins, loaded: loadedOptions, polluted: ({}).polluted })
 })

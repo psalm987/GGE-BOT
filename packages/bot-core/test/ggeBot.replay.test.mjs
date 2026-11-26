@@ -204,15 +204,16 @@ describe("reasons for stopping", () => {
 
     test("a retry-later reply pushes the login deadline past the wait", async () => {
         bot = startBot()
-        const started = Date.now()
         await bot.login()
-        bot.xt("lli", 453, { CD: 1 })
+        const replied = Date.now()
+        bot.xt("lli", 453, { CD: 50 })
         await bot.until(() => bot.sentXT("lli").length === 2, 2000)
         expect(bot.botStates()).toEqual([])
 
         await bot.until(() => bot.exited, 3000)
         expect(bot.botStates()).toEqual([{ state: "error", reason: "LOGIN_TIMEOUT" }])
-        expect(Date.now() - started).toBeGreaterThanOrEqual(1500)
+        // At least (50 + 5) s of waiting and then the 60 s deadline, at timeoutMultiplier 0.01.
+        expect(Date.now() - replied).toBeGreaterThanOrEqual(1150)
     }, 15000)
 
     test("the server closing the socket is reported with its close code", async () => {
@@ -387,7 +388,8 @@ describe("humanization flags", () => {
         ])
         expect(bot.sent[3]).toMatch(/^%xt%EmpireEx_1%vck%1%1173009%web-html5%<RoundHouseKick>%\d\.\d+e\+30\d%$/)
         expect(bot.sent[4]).toBe('%xt%EmpireEx_1%lli%1%{"CONM":212,"RTM":25,"ID":0,"PL":1,"NOM":"tester","PW":"pw","LT":null,"LANG":"en","DID":"0","AID":"1745592024940879420","KID":"","REF":"https://empire.goodgamestudios.com","GCI":"","SID":9,"PLFID":1}%')
-        expect(bot.sent.slice(5).every(frame => frame === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")).toBe(true)
+        expect(bot.sent[5]).toBe("%xt%EmpireEx_1%gie%1%{}%")
+        expect(bot.sent.slice(6).every(frame => frame === "%xt%EmpireEx_1%pin%1%<RoundHouseKick>%")).toBe(true)
         expect(pinTimes().length).toBeGreaterThanOrEqual(5)
         expect(pinTimes().length).toBeLessThanOrEqual(8)
     }, 15000)

@@ -157,7 +157,7 @@ function fatal(reason) {
  * @param {function(object,number)} func 
  * @returns {Promise<[obj: object, result: Number]>}
  */
-const waitForResult = (key, timeout, func) => metrics.time("bot_game_rtt_seconds", { command: key }, waitForReply(key, timeout, func))
+const waitForResult = (key, timeout, func, quietErrors) => metrics.time("bot_game_rtt_seconds", { command: key }, waitForReply(key, timeout, func, quietErrors))
 
 /** A refusal from the game, at the level its class says: severe is an error, "not now" has its own level, anything else a warning. */
 function logRefusal(key, msg) {
@@ -165,24 +165,32 @@ function logRefusal(key, msg) {
     log(key, msg)
 }
 
-const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
+/** Counts inbound game frames, so a reply that several waiting plugins hear is judged once. */
+let inboundFrame = 0
+let lastJudgedFrame
+function checkForIssues(result) {
+    if (lastJudgedFrame === inboundFrame)
+        return
+    lastJudgedFrame = inboundFrame
+    if (["LORD_IS_USED", "ATTACK_TOO_MANY_UNITS"].includes(err[result]))
+        importantErrors++
+    if (importantErrors == 8)
+        return fatal("tooManyImportantErrors")
+    if (err[result] == "MOVEMENT_HAS_NO_UNITS")
+        return fatal("MOVEMENT_HAS_NO_UNITS")
+    if (err[result] == "CANT_START_NEW_ARMIES")
+        return fatal("CANT_START_NEW_ARMIES")
+}
+
+/** `quietErrors` names the refusals the caller expects and handles itself, which are not logged. */
+const waitForReply = (key, timeout, func, quietErrors = []) => new Promise((resolve, reject) => {
     if (timeout == undefined)
-        reject(`waitForResult: No timeout specified`)
+        return reject(`waitForResult: No timeout specified`)
 
     func ??= _ => true
 
     let timer
     let result
-    const checkForIssues = () => {
-        if (["LORD_IS_USED", "ATTACK_TOO_MANY_UNITS", "ATTACK_TOO_MANY_UNITS", "MISSING_UNITS"].includes(err[result]))
-            importantErrors++
-        if (importantErrors == 8)
-            return fatal("tooManyImportantErrors")
-        if (err[result] == "MOVEMENT_HAS_NO_UNITS")
-            return fatal("MOVEMENT_HAS_NO_UNITS")
-        if (err[result] == "CANT_START_NEW_ARMIES")
-            return fatal("CANT_START_NEW_ARMIES")
-    }
 
     if (timeout > 0) {
         timer = setTimeout(() => {
@@ -192,8 +200,9 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
 
             if (msg == "TIMED_OUT" && timedOut++ == 5)
                 exitWorker("TOO_MANY_TIMEOUTS")
-            
-            logRefusal(key, msg)
+
+            if (!quietErrors.includes(msg))
+                logRefusal(key, msg)
 
             reject(msg)
         }, timeout * timeoutMultiplier * 5)
@@ -205,10 +214,10 @@ const waitForReply = (key, timeout, func) => new Promise((resolve, reject) => {
 
         const msg = (_result == undefined || _result == 0) ? "TIMED_OUT" : !err[_result] ? _result : err[_result]
         if(result != 0)
-            checkForIssues()
+            checkForIssues(result)
         if (!func(Object(data), Number(_result)))
             return
-        if(_result != 0)
+        if (_result != 0 && !quietErrors.includes(msg))
             logRefusal(key, msg)
 
         xtHandler.removeListener(key, helperFunction)
@@ -279,6 +288,8 @@ webSocket.onopen = () => {
 }
 let errorCount = 0
 let versionRejected = false
+/** The game's error for "this account was opened on another device" (CoreErrorIdConstants in the client). */
+const KICKED_BY_OTHER_CLIENT = 10020
 
 webSocket.onmessage = ({data : message}) => {
     message = message.toString()
@@ -288,7 +299,13 @@ webSocket.onmessage = ({data : message}) => {
     if (message.charAt(0) == "%") {
         let [,,cmd,, r, obj] = message.split("%")
         const result = Number(r)
+        inboundFrame++
         metrics.count("bot_messages_total", { direction: "in", command: cmd })
+        // The player logged in themselves. Leave at once; the runner waits before logging back in.
+        if (result == KICKED_BY_OTHER_CLIENT) {
+            console.warn("kickedByOtherClient")
+            return exitWorker("KICKED")
+        }
         try { obj = JSON.parse(obj) }
         catch(e) {
             console.debug(e)
@@ -429,20 +446,30 @@ xtHandler.on("gai", obj => {
     })
     parentPort.postMessage([ActionType.StatusUser, status])
 })
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"])
+/**
+ * Each plugin's options become the new set as a whole: an option left out is gone, and an object option is taken as it is.
+ * They go into the object the plugin read at load, which it keeps.
+ */
+function applyPluginOptions(plugins) {
+    for (const [name, options] of Object.entries(plugins ?? {})) {
+        if (PROTOTYPE_KEYS.has(name) || typeof options !== "object" || options === null)
+            continue
+        const current = Object.hasOwn(botConfig.plugins, name) ? botConfig.plugins[name] : botConfig.plugins[name] = {}
+        for (const key of Object.keys(current))
+            if (!Object.hasOwn(options, key))
+                delete current[key]
+        for (const [key, value] of Object.entries(options))
+            if (!PROTOTYPE_KEYS.has(key))
+                current[key] = value
+    }
+}
+
 parentPort.on("message", async obj => {
     switch (obj[0]) {
         case ActionType.SetPluginOptions:
-            function deepCopy(old_, new_) {
-                Object.keys(new_).forEach(key => {
-                    if (typeof new_[key] === "object" && !Array.isArray(new_[key]) && new_[key] !== null)
-                        deepCopy(old_[key], new_[key])
-                    else
-                        old_[key] = new_[key]
-                })
-            }
-            deepCopy(botConfig, obj[1])
+            applyPluginOptions(obj[1]?.plugins)
             events.emit("configModified")
-            break
             break
         case ActionType.StatusUser:
             parentPort.postMessage([ActionType.StatusUser, status])
@@ -533,11 +560,16 @@ const LOGIN_BURST = [
     ["asc", {}], ["sie", {}], ["ffi", { FIDS: [1] }], ["kli", {}],
 ]
 let greeted = false
-/** The first `nch` and the burst leave together, as in the capture, and `gcs` a little later. Nothing waits for a reply. */
+/**
+ * The first `nch` and the burst leave together, as in the capture, and `gcs` a little later. Nothing waits for a reply.
+ * Without the burst, the general inventory (`gie`) is still asked for, since commander bonuses are read from it.
+ */
 async function afterLogin() {
     if (greeted)
         return
     greeted = true
+    if (!humanize.login_sequence)
+        sendXT("gie", JSON.stringify({}))
     await humanPause(2000, 4000)
     if (humanize.nch)
         await startNch()
@@ -552,10 +584,12 @@ async function afterLogin() {
 let loginAttempts = 0
 xtHandler.on("lli", async (obj, r) => {
     if (r == 453) {
-        console.log("retryLogin", obj.CD, "retryLoginSeconds")
-        setTimeout(retry, obj.CD * 1000)
+        // A missing CD once meant logging in again at once. A person also takes a moment before trying again.
+        const seconds = Math.max(Number(obj?.CD) || 0, 5) + 5 + Math.random() * 25
+        console.log("retryLogin", Math.round(seconds), "retryLoginSeconds")
+        setTimeout(retry, seconds * 1000 * timeoutMultiplier)
         clearTimeout(loginWatchdog)
-        loginWatchdog = setTimeout(loginTimedOut, obj.CD * 1000 + 60 * 1000 * timeoutMultiplier)
+        loginWatchdog = setTimeout(loginTimedOut, (seconds + 60) * 1000 * timeoutMultiplier)
         return
     }
 
@@ -593,13 +627,15 @@ xtHandler.on("lli", async (obj, r) => {
         })
         events.emit("earlyLoad")
         startPinging()
-        if (humanize.nch || humanize.login_sequence)
-            afterLogin()
+        afterLogin()
         return
     }
 
-    if (err[r] === "INVALID_LOGIN_TOKEN" && loginAttempts++ < 3) {
-        setTimeout(retry, 5 * 1000 * timeoutMultiplier)
+    if (err[r] === "INVALID_LOGIN_TOKEN" && loginAttempts < 3) {
+        const seconds = 30 * 2 ** loginAttempts++ * (0.8 + Math.random() * 0.4)
+        setTimeout(retry, seconds * 1000 * timeoutMultiplier)
+        clearTimeout(loginWatchdog)
+        loginWatchdog = setTimeout(loginTimedOut, (seconds + 60) * 1000 * timeoutMultiplier)
         return
     }
     if (botConfig.internalWorker)
