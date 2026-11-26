@@ -228,7 +228,7 @@ function clientSkipTarget(type, x, y, kingdomID, skip) {
 async function sendSkip(type, x, y, kingdomID, skip) {
     await sendXT("msd", JSON.stringify({ X: x, Y: y, MID: -1, NID: -1, MST: skip, KID: `${kingdomID}` }))
     let [obj, result] = await waitForResult("msd", 7000, (obj, result) => result != 0 ||
-        obj.AI[0] == type && obj.AI[1] == x && obj.AI[2] == y)
+        obj.AI?.[0] == type && obj.AI?.[1] == x && obj.AI?.[2] == y)
 
     if (result != 0)
         return { result }

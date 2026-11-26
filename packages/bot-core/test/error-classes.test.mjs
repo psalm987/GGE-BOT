@@ -27,6 +27,7 @@ describe("the classification", () => {
         ["LORD_IS_USED", "notNow"],
         ["PLAYER_HAS_PEACE", "notNow"],
         ["TAX_COLLECTOR_NOT_FINISHED", "notNow"],
+        ["INVALID_POSITION", null],
         ["ALL_OK", null],
         ["TIMED_OUT", null],
         ["NOT_A_CODE", null],

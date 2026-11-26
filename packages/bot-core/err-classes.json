@@ -5,7 +5,6 @@
         "MISSING_PARAMETER",
         "INVALID_WOD_ID",
         "INVALID_OBJECT_ID",
-        "INVALID_POSITION",
         "FEATURE_NOT_IN_THIS_NETWORK",
         "NO_PAY_USER",
         "WRONG_INPUT_SCREEN",

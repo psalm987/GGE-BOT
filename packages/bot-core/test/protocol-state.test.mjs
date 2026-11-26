@@ -259,6 +259,17 @@ describe("replies that name no request", () => {
         expect(await second).toBe(0)
     })
 
+    test("a camp skip waiting for its reply passes over an msd that carries no camp", async () => {
+        const { mod, bot } = loadModule("protocols.js")
+        const skip = mod.ClientCommands.skipTarget(29, 694, 525, 0, "MS5")
+        await tick()
+
+        expect(() => bot.xtHandler.emit("msd", {}, 0)).not.toThrow()
+        bot.xtHandler.emit("msd", { AI: [29, 694, 525] }, 0)
+
+        expect(await skip).toMatchObject({ result: 0, areaInfo: { type: 29, x: 694, y: 525 } })
+    })
+
     test("kut moves troops between kingdoms as the client sends it", async () => {
         const { mod, bot } = loadModule("protocols.js")
         mod.ClientCommands.kingdomTroopTransfer(1234, 0, 10, [[546, 81], [507, 104]])
