@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Botten skickar från det första slottet i listan som har mer mjöd än det behåller. Lämna den tom för att skicka från ditt huvudslott och behålla mängden ovan.",
     "meadReplaceStorm.meadSources.keep.column": "Behåll minst",
     "meadSourcesKeepReached": "Inget slott i din lista har mer mjöd än det behåller, så inget skickades",
-    "meadLevelsNotRefreshed": "Kunde inte läsa de senaste mjödnivåerna, så de senast kända används",
     "meadTransferInFlight": "En överföring till Stormöarna är på väg, så inget mjöd skickas än. Den kommer fram om ",
     "minutesMeadReplace": " minuter",
     "keep": "Behåll",

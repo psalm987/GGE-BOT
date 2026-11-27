@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "O bot envia do primeiro castelo desta lista que tiver mais hidromel do que guarda. Deixe-a vazia para enviar do seu castelo principal, guardando a quantidade acima.",
     "meadReplaceStorm.meadSources.keep.column": "Guardar pelo menos",
     "meadSourcesKeepReached": "Nenhum castelo da sua lista tem mais hidromel do que guarda, então nada foi enviado",
-    "meadLevelsNotRefreshed": "Não foi possível ler os níveis mais recentes de hidromel, então os últimos conhecidos são usados",
     "meadTransferInFlight": "Uma transferência para as Ilhas da Tempestade está a caminho, então ainda não é enviado hidromel. Ela chega em ",
     "minutesMeadReplace": " minutos",
     "keep": "Guardar",

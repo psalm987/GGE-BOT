@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "De bot stuurt vanuit het eerste kasteel in deze lijst dat meer honingwijn heeft dan het bewaart. Laat de lijst leeg om vanuit je hoofdkasteel te sturen, met behoud van de hoeveelheid hierboven.",
     "meadReplaceStorm.meadSources.keep.column": "Minstens bewaren",
     "meadSourcesKeepReached": "Geen kasteel in je lijst heeft meer honingwijn dan het bewaart, dus er is niets gestuurd",
-    "meadLevelsNotRefreshed": "De nieuwste honingwijnstanden konden niet worden gelezen, dus de laatst bekende worden gebruikt",
     "meadTransferInFlight": "Er is een overdracht naar de Stormeilanden onderweg, dus er wordt nog geen honingwijn gestuurd. Die komt aan over ",
     "minutesMeadReplace": " minuten",
     "keep": "Bewaren",

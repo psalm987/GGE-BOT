@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Der Bot sendet aus der ersten Burg dieser Liste, die mehr Met hat, als sie behält. Lasst sie leer, um aus Eurer Hauptburg zu senden, die dabei die obige Menge behält.",
     "meadReplaceStorm.meadSources.keep.column": "Mindestens behalten",
     "meadSourcesKeepReached": "Keine Burg in Eurer Liste hat mehr Met, als sie behält, daher wurde nichts gesendet",
-    "meadLevelsNotRefreshed": "Die neuesten Met-Stände konnten nicht gelesen werden, daher werden die zuletzt bekannten verwendet",
     "meadTransferInFlight": "Ein Transport zu den Sturminseln ist unterwegs, daher wird noch kein Met gesendet. Er kommt an in ",
     "minutesMeadReplace": " Minuten",
     "keep": "Behalten",

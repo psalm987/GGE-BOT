@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "Bot šalje iz prvog dvorca na ovom popisu koji ima više medovine nego što zadržava. Ostavi popis prazan da se šalje iz tvog glavnog dvorca, uz zadržavanje gore postavljene količine.",
     "meadReplaceStorm.meadSources.keep.column": "Zadrži barem",
     "meadSourcesKeepReached": "Nijedan dvorac na tvom popisu nema medovine iznad one koju zadržava, pa ništa nije poslano",
-    "meadLevelsNotRefreshed": "Nije bilo moguće pročitati najnovije razine medovine, pa se koriste posljednje poznate",
     "meadTransferInFlight": "Prijenos na Olujne otoke je na putu, pa se medovina još ne šalje. Stiže za ",
     "minutesMeadReplace": " minuta",
     "keep": "Zadrži",

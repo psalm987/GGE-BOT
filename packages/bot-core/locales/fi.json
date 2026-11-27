@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Botti lähettää tämän luettelon ensimmäisestä linnasta, jossa on enemmän simaa kuin siihen jätetään. Jätä luettelo tyhjäksi, niin lähetetään päälinnastasi ja siihen jätetään yllä asetettu määrä.",
     "meadReplaceStorm.meadSources.keep.column": "Jätä vähintään",
     "meadSourcesKeepReached": "Missään luettelosi linnassa ei ole simaa yli siihen jätettävän määrän, joten mitään ei lähetetty",
-    "meadLevelsNotRefreshed": "Uusimpia simamääriä ei voitu lukea, joten käytetään viimeksi tunnettuja",
     "meadTransferInFlight": "Siirto Myrskysaarille on matkalla, joten simaa ei vielä lähetetä. Se saapuu ",
     "minutesMeadReplace": " minuutin kuluttua",
     "keep": "Jätä",

@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "Il bot invia dal primo castello di questa lista che ha più idromele di quanto ne tiene. Lasciala vuota per inviare dal tuo castello principale, tenendo la quantità indicata sopra.",
     "meadReplaceStorm.meadSources.keep.column": "Tieni almeno",
     "meadSourcesKeepReached": "Nessun castello della tua lista ha più idromele di quanto ne tiene, quindi non è stato inviato nulla",
-    "meadLevelsNotRefreshed": "Impossibile leggere i livelli di idromele più recenti, quindi si usano gli ultimi noti",
     "meadTransferInFlight": "Un trasferimento verso le Isole della Tempesta è in viaggio, quindi per ora non si invia idromele. Arriva tra ",
     "minutesMeadReplace": " minuti",
     "keep": "Tieni",

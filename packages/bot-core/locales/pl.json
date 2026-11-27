@@ -1016,7 +1016,6 @@
     "meadReplaceStorm.meadSources.help": "Bot wysyła z pierwszego zamku na tej liście, który ma więcej miodu pitnego, niż zachowuje. Zostaw ją pustą, aby wysyłać z zamku głównego, zachowując ilość podaną wyżej.",
     "meadReplaceStorm.meadSources.keep.column": "Zachowaj co najmniej",
     "meadSourcesKeepReached": "Żaden zamek z Twojej listy nie ma więcej miodu pitnego, niż zachowuje, więc nic nie wysłano",
-    "meadLevelsNotRefreshed": "Nie udało się odczytać najnowszych stanów miodu pitnego, więc użyto ostatnich znanych",
     "meadTransferInFlight": "Transfer na Archipelag Sztormu jest w drodze, więc miód pitny nie jest jeszcze wysyłany. Dotrze za ",
     "minutesMeadReplace": " min",
     "keep": "Zachowaj",

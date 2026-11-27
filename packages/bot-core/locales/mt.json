@@ -1018,7 +1018,6 @@
     "meadReplaceStorm.meadSources.help": "Il-bot jibgħat mill-ewwel kastell f'din il-lista li għandu aktar idromel milli jżomm. Ħalliha vojta biex jibgħat mill-kastell prinċipali tiegħek, filwaqt li jżomm l-ammont ta' hawn fuq.",
     "meadReplaceStorm.meadSources.keep.column": "Żomm mill-inqas",
     "meadSourcesKeepReached": "L-ebda kastell fil-lista tiegħek m'għandu idromel aktar milli jżomm, mela xejn ma ntbagħat",
-    "meadLevelsNotRefreshed": "Il-livelli l-aktar ġodda tal-idromel ma setgħux jinqraw, mela qed jintużaw l-aħħar magħrufa",
     "meadTransferInFlight": "Trasferiment lejn il-Gżejjer tat-Tempesti qiegħed fit-triq, mela għadu ma jintbagħatx idromel. Jasal fi ",
     "minutesMeadReplace": " minuti",
     "keep": "Żomm",

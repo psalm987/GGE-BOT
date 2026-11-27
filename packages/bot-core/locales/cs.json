@@ -1016,7 +1016,6 @@
     "meadReplaceStorm.meadSources.help": "Bot posílá z prvního hradu v tomto seznamu, který má víc medoviny, než si nechává. Když seznam necháte prázdný, posílá se z vašeho hlavního hradu a zůstane v něm výše nastavené množství.",
     "meadReplaceStorm.meadSources.keep.column": "Nechat aspoň",
     "meadSourcesKeepReached": "Žádný hrad ve vašem seznamu nemá víc medoviny, než si nechává, takže se nic neposlalo",
-    "meadLevelsNotRefreshed": "Aktuální stav medoviny se nepodařilo načíst, takže se použije poslední známý",
     "meadTransferInFlight": "Převod na Bouřlivé ostrovy je na cestě, takže se medovina zatím neposílá. Dorazí za ",
     "minutesMeadReplace": " minut",
     "keep": "Nechat",

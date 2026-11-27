@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "A bot a lista első olyan kastélyából küld, amelyben több mézsör van, mint amennyit megtart. Hagyd üresen, hogy a főkastélyodból küldjön, a fenti mennyiséget megtartva.",
     "meadReplaceStorm.meadSources.keep.column": "Legalább ennyit tart meg",
     "meadSourcesKeepReached": "A listád egyik kastélyában sincs több mézsör, mint amennyit megtart, ezért nem ment el semmi",
-    "meadLevelsNotRefreshed": "Nem sikerült beolvasni a legfrissebb mézsörszinteket, ezért a legutóbb ismertek érvényesek",
     "meadTransferInFlight": "Egy szállítmány úton van a Vihar Szigetekre, ezért még nem megy mézsör. Megérkezik ",
     "minutesMeadReplace": " perc múlva",
     "keep": "Megtart",

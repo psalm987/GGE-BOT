@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Botten sender fra den første borg på listen, der har mere mjød, end den beholder. Lad den være tom for at sende fra din hovedborg og beholde mængden ovenfor.",
     "meadReplaceStorm.meadSources.keep.column": "Behold mindst",
     "meadSourcesKeepReached": "Ingen borg på din liste har mjød ud over det, den beholder, så der blev ikke sendt noget",
-    "meadLevelsNotRefreshed": "De nyeste mjødniveauer kunne ikke læses, så de sidst kendte bruges",
     "meadTransferInFlight": "En overførsel til Stormøerne er undervejs, så der sendes ikke mjød endnu. Den ankommer om ",
     "minutesMeadReplace": " minutter",
     "keep": "Behold",

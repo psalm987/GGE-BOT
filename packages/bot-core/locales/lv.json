@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "Bots sūta no pirmās pils šajā sarakstā, kurā ir vairāk medalus, nekā tā patur. Atstāj tukšu, lai sūtītu no galvenās pils, paturot augstāk norādīto daudzumu.",
     "meadReplaceStorm.meadSources.keep.column": "Paturēt vismaz",
     "meadSourcesKeepReached": "Nevienā tava saraksta pilī nav medalus vairāk, nekā tā patur, tāpēc nekas netika nosūtīts",
-    "meadLevelsNotRefreshed": "Neizdevās nolasīt jaunākos medalus līmeņus, tāpēc tiek izmantoti pēdējie zināmie",
     "meadTransferInFlight": "Pārvedums uz Vētru salām jau ir ceļā, tāpēc medalus vēl netiek sūtīts. Tas ieradīsies pēc ",
     "minutesMeadReplace": " minūtēm",
     "keep": "Paturēt",
