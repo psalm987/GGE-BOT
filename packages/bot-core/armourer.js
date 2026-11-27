@@ -61,7 +61,7 @@ function liveOffers() {
  *
  * `sbp` names no castle, so the bot first joins the castle and opens its armourer (`gbc`), as the game's client does.
  * The reply names no purchase either: the armourer's buys wait their turn in `shopTurn`, and a success whose `grc`
- * is another kingdom's castle, such as a Storm shop buy that `attackStormForts.js` sends outside the turn, is not ours.
+ * is another kingdom's castle, such as the late reply to a Storm shop buy that timed out, is not ours.
  */
 async function buy(offer, packagesToBuy, castle, dryRun) {
     const kingdom = castle.kingdomID
