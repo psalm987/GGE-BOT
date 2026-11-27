@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Vrata su otvorena u {{castle}} na računu {{accountName}}",
   "station_result.gates_opened.body": "Nijedan savezni dvorac nije mogao primiti trupe, pa su vrata otvorena za {{rubies}} rubina.",
   "station_result.unprotected.title": "Automatsko stacioniranje nije moglo povući trupe iz {{castle}} na računu {{accountName}}",
-  "station_result.unprotected.body": "Nijedan savezni dvorac nije ih mogao primiti, a vrata su ostala zatvorena. Razlog piše u zapisnicima."
+  "station_result.unprotected.body": "Nijedan savezni dvorac nije ih mogao primiti, a vrata su ostala zatvorena. Razlog piše u zapisnicima.",
+  "plugin_finished.title": "{{plugin}} se isključio na računu {{accountName}}",
+  "plugin_finished.body.done": "Napravio je sve što može u ovom događaju. Ponovno ga uključi kad se događaj vrati.",
+  "plugin_finished.body.eventOver": "Njegov događaj nije u tijeku. Ponovno ga uključi kad se događaj vrati."
 }

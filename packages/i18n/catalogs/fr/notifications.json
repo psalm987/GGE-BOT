@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Portes ouvertes à {{castle}} sur {{accountName}}",
   "station_result.gates_opened.body": "Aucun château d'alliance n'a pu accueillir les troupes, donc les portes ont été ouvertes pour {{rubies}} rubis.",
   "station_result.unprotected.title": "Le stationnement auto n'a pas pu retirer les troupes de {{castle}} sur {{accountName}}",
-  "station_result.unprotected.body": "Aucun château d'alliance n'a pu les accueillir et les portes sont restées fermées. Les journaux en donnent la raison."
+  "station_result.unprotected.body": "Aucun château d'alliance n'a pu les accueillir et les portes sont restées fermées. Les journaux en donnent la raison.",
+  "plugin_finished.title": "{{plugin}} désactivé sur {{accountName}}",
+  "plugin_finished.body.done": "Il a fait tout ce qu'il pouvait pendant cet événement. Réactivez-le quand l'événement reviendra.",
+  "plugin_finished.body.eventOver": "Son événement n'est pas en cours. Réactivez-le quand l'événement reviendra."
 }

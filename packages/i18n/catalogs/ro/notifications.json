@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Porți deschise la {{castle}} de pe {{accountName}}",
   "station_result.gates_opened.body": "Niciun castel al alianței nu a putut primi trupele, așa că porțile au fost deschise pentru {{rubies}} rubine.",
   "station_result.unprotected.title": "Auto Station nu a putut scoate trupele din {{castle}} de pe {{accountName}}",
-  "station_result.unprotected.body": "Niciun castel al alianței nu le-a putut primi, iar porțile au rămas închise. Jurnalele spun de ce."
+  "station_result.unprotected.body": "Niciun castel al alianței nu le-a putut primi, iar porțile au rămas închise. Jurnalele spun de ce.",
+  "plugin_finished.title": "{{plugin}} s-a oprit pe {{accountName}}",
+  "plugin_finished.body.done": "A făcut tot ce putea în acest eveniment. Pornește-l din nou când evenimentul revine.",
+  "plugin_finished.body.eventOver": "Evenimentul lui nu rulează. Pornește-l din nou când evenimentul revine."
 }

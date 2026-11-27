@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Portarna öppnades vid {{castle}} på {{accountName}}",
   "station_result.gates_opened.body": "Inget alliansslott kunde ta emot trupperna, så portarna öppnades för {{rubies}} rubiner.",
   "station_result.unprotected.title": "Auto Station kunde inte flytta ut trupperna från {{castle}} på {{accountName}}",
-  "station_result.unprotected.body": "Inget alliansslott kunde ta emot dem och portarna förblev stängda. Loggarna förklarar varför."
+  "station_result.unprotected.body": "Inget alliansslott kunde ta emot dem och portarna förblev stängda. Loggarna förklarar varför.",
+  "plugin_finished.title": "{{plugin}} stängdes av på {{accountName}}",
+  "plugin_finished.body.done": "Det har gjort allt det kan under det här eventet. Slå på det igen när eventet kommer tillbaka.",
+  "plugin_finished.body.eventOver": "Dess event pågår inte. Slå på det igen när eventet kommer tillbaka."
 }

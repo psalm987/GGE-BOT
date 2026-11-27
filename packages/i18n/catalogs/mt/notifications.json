@@ -42,5 +42,8 @@
   "station_result.gates_opened.title": "Il-bibien infetħu f'{{castle}} fuq {{accountName}}",
   "station_result.gates_opened.body": "Ebda kastell tal-alleanza ma seta' jilqa' t-truppi, mela l-bibien infetħu għal {{rubies}} rubini.",
   "station_result.unprotected.title": "Auto Station ma setax iċaqlaq it-truppi minn {{castle}} fuq {{accountName}}",
-  "station_result.unprotected.body": "Ebda kastell tal-alleanza ma seta' jilqagħhom u l-bibien baqgħu magħluqa. Ir-reġistri jgħidu għaliex."
+  "station_result.unprotected.body": "Ebda kastell tal-alleanza ma seta' jilqagħhom u l-bibien baqgħu magħluqa. Ir-reġistri jgħidu għaliex.",
+  "plugin_finished.title": "{{plugin}} intefa fuq {{accountName}}",
+  "plugin_finished.body.done": "Għamel kull ma jista' jagħmel f'dan l-avveniment. Erġa' ixgħlu meta l-avveniment jerġa' jiġi.",
+  "plugin_finished.body.eventOver": "L-avveniment tiegħu mhux għaddej. Erġa' ixgħlu meta l-avveniment jerġa' jiġi."
 }

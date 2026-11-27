@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Portit avattiin linnassa {{castle}}, tili {{accountName}}",
   "station_result.gates_opened.body": "Mikään liittouman linna ei voinut ottaa joukkoja vastaan, joten portit avattiin {{rubies}} rubiinilla.",
   "station_result.unprotected.title": "Auto Station ei voinut siirtää joukkoja pois linnasta {{castle}}, tili {{accountName}}",
-  "station_result.unprotected.body": "Mikään liittouman linna ei voinut ottaa niitä vastaan, ja portit pysyivät kiinni. Lokista näet syyn."
+  "station_result.unprotected.body": "Mikään liittouman linna ei voinut ottaa niitä vastaan, ja portit pysyivät kiinni. Lokista näet syyn.",
+  "plugin_finished.title": "{{plugin}} kytkeytyi pois tililtä {{accountName}}",
+  "plugin_finished.body.done": "Se teki tässä tapahtumassa kaiken, minkä pystyy. Kytke se uudelleen päälle, kun tapahtuma palaa.",
+  "plugin_finished.body.eventOver": "Sen tapahtuma ei ole käynnissä. Kytke se uudelleen päälle, kun tapahtuma palaa."
 }

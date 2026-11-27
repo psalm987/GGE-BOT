@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Portene i {{castle}} på {{accountName}} blev åbnet",
   "station_result.gates_opened.body": "Ingen alliance-borg kunne tage imod tropperne, så portene blev åbnet for {{rubies}} rubiner.",
   "station_result.unprotected.title": "Auto-udstationering kunne ikke flytte tropperne ud af {{castle}} på {{accountName}}",
-  "station_result.unprotected.body": "Ingen alliance-borg kunne tage imod dem, og portene forblev lukkede. Loggene fortæller hvorfor."
+  "station_result.unprotected.body": "Ingen alliance-borg kunne tage imod dem, og portene forblev lukkede. Loggene fortæller hvorfor.",
+  "plugin_finished.title": "{{plugin}} slog sig fra på {{accountName}}",
+  "plugin_finished.body.done": "Det har gjort alt, det kan i dette event. Slå det til igen, når eventet kommer tilbage.",
+  "plugin_finished.body.eventOver": "Dets event kører ikke. Slå det til igen, når eventet kommer tilbage."
 }

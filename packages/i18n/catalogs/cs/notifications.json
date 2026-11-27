@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Brány hradu {{castle}} na účtu {{accountName}} byly otevřeny",
   "station_result.gates_opened.body": "Žádný hrad aliance nemohl jednotky přijmout, proto byly brány otevřeny za {{rubies}} rubínů.",
   "station_result.unprotected.title": "Automatické umístění nedokázalo odvést jednotky z hradu {{castle}} na účtu {{accountName}}",
-  "station_result.unprotected.body": "Žádný hrad aliance je nemohl přijmout a brány zůstaly zavřené. Důvod najdete v záznamech."
+  "station_result.unprotected.body": "Žádný hrad aliance je nemohl přijmout a brány zůstaly zavřené. Důvod najdete v záznamech.",
+  "plugin_finished.title": "{{plugin}} se na účtu {{accountName}} vypnul",
+  "plugin_finished.body.done": "V této události udělal vše, co mohl. Až se událost vrátí, znovu ho zapněte.",
+  "plugin_finished.body.eventOver": "Jeho událost neprobíhá. Až se událost vrátí, znovu ho zapněte."
 }

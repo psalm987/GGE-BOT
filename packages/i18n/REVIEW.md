@@ -38,6 +38,4 @@ Priority review: `ga` and `mt` have no official game terms, and `ar` has the mos
 
 These keys of `client.json` hold the English text in every other locale. Translate them, then delete the row.
 
-| Keys | Added | Screen |
-| --- | --- | --- |
-| `liveView.read`, `liveView.defence.*`, `liveView.rage.*` (41 keys) | 2026-11-25 | Live view, the defence card and the Khan rage card |
+None. The Live view, defence and Khan rage keys added on 2026-11-25 were machine-translated on 2026-11-27, with the Blade Coast, commander map and plugin-fix strings. Their native review is pending, like the rest of each catalog.

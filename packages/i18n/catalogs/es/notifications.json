@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Puertas abiertas en {{castle}} de {{accountName}}",
   "station_result.gates_opened.body": "Ningún castillo de la alianza pudo acoger a las tropas, así que se abrieron las puertas por {{rubies}} rubíes.",
   "station_result.unprotected.title": "El Estacionamiento auto no pudo sacar las tropas de {{castle}} en {{accountName}}",
-  "station_result.unprotected.body": "Ningún castillo de la alianza pudo acogerlas y las puertas siguieron cerradas. Los registros explican por qué."
+  "station_result.unprotected.body": "Ningún castillo de la alianza pudo acogerlas y las puertas siguieron cerradas. Los registros explican por qué.",
+  "plugin_finished.title": "{{plugin}} se desactivó en {{accountName}}",
+  "plugin_finished.body.done": "Hizo todo lo que podía en este evento. Vuelve a activarlo cuando regrese el evento.",
+  "plugin_finished.body.eventOver": "Su evento no está activo. Vuelve a activarlo cuando regrese el evento."
 }

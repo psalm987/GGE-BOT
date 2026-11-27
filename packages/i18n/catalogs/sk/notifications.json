@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Brány boli otvorené v {{castle}} na účte {{accountName}}",
   "station_result.gates_opened.body": "Žiadny hrad aliancie nemohol vojsko prijať, preto sa brány otvorili za {{rubies}} rubínov.",
   "station_result.unprotected.title": "Auto Station nedokázal odsunúť vojsko z {{castle}} na účte {{accountName}}",
-  "station_result.unprotected.body": "Žiadny hrad aliancie ho nemohol prijať a brány ostali zatvorené. Prečo, ukazujú záznamy."
+  "station_result.unprotected.body": "Žiadny hrad aliancie ho nemohol prijať a brány ostali zatvorené. Prečo, ukazujú záznamy.",
+  "plugin_finished.title": "{{plugin}} sa vypol na účte {{accountName}}",
+  "plugin_finished.body.done": "Urobil všetko, čo sa v tomto evente dá. Keď sa event vráti, znova ho zapni.",
+  "plugin_finished.body.eventOver": "Jeho event práve nebeží. Keď sa event vráti, znova ho zapni."
 }

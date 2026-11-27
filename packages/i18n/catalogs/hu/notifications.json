@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Kinyíltak a kapuk: {{castle}} ({{accountName}})",
   "station_result.gates_opened.body": "Egyik szövetségi kastély sem tudta fogadni a csapatokat, ezért {{rubies}} rubinért kinyitottuk a kapukat.",
   "station_result.unprotected.title": "Az Auto Station nem tudta kivonni a csapatokat a(z) {{castle}} kastélyból ({{accountName}})",
-  "station_result.unprotected.body": "Egyik szövetségi kastély sem tudta fogadni őket, a kapuk pedig zárva maradtak. A naplóban megtalálod az okot."
+  "station_result.unprotected.body": "Egyik szövetségi kastély sem tudta fogadni őket, a kapuk pedig zárva maradtak. A naplóban megtalálod az okot.",
+  "plugin_finished.title": "{{plugin}} kikapcsolt ({{accountName}})",
+  "plugin_finished.body.done": "Mindent megtett, amit ebben az eseményben tud. Kapcsold be újra, amikor az esemény visszatér.",
+  "plugin_finished.body.eventOver": "Az eseménye nem fut. Kapcsold be újra, amikor az esemény visszatér."
 }

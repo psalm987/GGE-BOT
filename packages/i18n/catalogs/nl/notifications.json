@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Poorten van {{castle}} van {{accountName}} geopend",
   "station_result.gates_opened.body": "Geen enkel bondgenootschapskasteel kon de troepen opnemen, dus de poorten zijn geopend voor {{rubies}} robijnen.",
   "station_result.unprotected.title": "Auto-stationering kon de troepen niet uit {{castle}} van {{accountName}} halen",
-  "station_result.unprotected.body": "Geen enkel bondgenootschapskasteel kon ze opnemen en de poorten bleven dicht. In de logboeken staat waarom."
+  "station_result.unprotected.body": "Geen enkel bondgenootschapskasteel kon ze opnemen en de poorten bleven dicht. In de logboeken staat waarom.",
+  "plugin_finished.title": "{{plugin}} uitgeschakeld op {{accountName}}",
+  "plugin_finished.body.done": "Het heeft alles gedaan wat het in dit evenement kan. Zet het weer aan als het evenement terugkomt.",
+  "plugin_finished.body.eventOver": "Het evenement ervan loopt niet. Zet het weer aan als het evenement terugkomt."
 }

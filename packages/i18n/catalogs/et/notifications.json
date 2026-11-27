@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Väravad avati lossis {{castle}}, konto {{accountName}}",
   "station_result.gates_opened.body": "Ükski liidu loss ei saanud vägesid vastu võtta, seega avati väravad {{rubies}} rubiini eest.",
   "station_result.unprotected.title": "Auto Station ei saanud vägesid lossist {{castle}} välja viia, konto {{accountName}}",
-  "station_result.unprotected.body": "Ükski liidu loss ei saanud neid vastu võtta ja väravad jäid kinni. Logist näed põhjust."
+  "station_result.unprotected.body": "Ükski liidu loss ei saanud neid vastu võtta ja väravad jäid kinni. Logist näed põhjust.",
+  "plugin_finished.title": "{{plugin}} lülitus kontol {{accountName}} välja",
+  "plugin_finished.body.done": "See tegi selles sündmuses kõik, mis suutis. Lülita see uuesti sisse, kui sündmus naaseb.",
+  "plugin_finished.body.eventOver": "Selle sündmus ei käi. Lülita see uuesti sisse, kui sündmus naaseb."
 }

@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Portões abertos em {{castle}} de {{accountName}}",
   "station_result.gates_opened.body": "Nenhum castelo da aliança pôde receber as tropas, então os portões foram abertos por {{rubies}} rubis.",
   "station_result.unprotected.title": "A Auto Station não conseguiu tirar as tropas de {{castle}} em {{accountName}}",
-  "station_result.unprotected.body": "Nenhum castelo da aliança pôde recebê-las e os portões ficaram fechados. Os registros dizem o motivo."
+  "station_result.unprotected.body": "Nenhum castelo da aliança pôde recebê-las e os portões ficaram fechados. Os registros dizem o motivo.",
+  "plugin_finished.title": "{{plugin}} desligado em {{accountName}}",
+  "plugin_finished.body.done": "Ele fez tudo o que podia neste evento. Ligue-o de novo quando o evento voltar.",
+  "plugin_finished.body.eventOver": "O evento dele não está acontecendo. Ligue-o de novo quando o evento voltar."
 }

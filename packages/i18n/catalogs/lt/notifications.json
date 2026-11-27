@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Atidaryti vartai: {{castle}} paskyroje {{accountName}}",
   "station_result.gates_opened.body": "Nė viena sąjungininkų pilis negalėjo priimti karių, todėl vartai atidaryti už {{rubies}} rubinų.",
   "station_result.unprotected.title": "Automatinis dislokavimas nepajėgė išvesti karių iš {{castle}} paskyroje {{accountName}}",
-  "station_result.unprotected.body": "Nė viena sąjungininkų pilis negalėjo jų priimti, o vartai liko uždaryti. Priežastį rasite žurnaluose."
+  "station_result.unprotected.body": "Nė viena sąjungininkų pilis negalėjo jų priimti, o vartai liko uždaryti. Priežastį rasite žurnaluose.",
+  "plugin_finished.title": "{{plugin}} išsijungė paskyroje {{accountName}}",
+  "plugin_finished.body.done": "Jis padarė viską, ką gali per šį įvykį. Įjunkite jį vėl, kai įvykis sugrįš.",
+  "plugin_finished.body.eventOver": "Jo įvykis nevyksta. Įjunkite jį vėl, kai įvykis sugrįš."
 }

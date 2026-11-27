@@ -42,5 +42,8 @@
   "station_result.gates_opened.title": "Osclaíodh na geataí ag {{castle}} ar {{accountName}}",
   "station_result.gates_opened.body": "Ní fhéadfadh aon chaisleán comhghuaillíochta na trúpaí a ghlacadh, mar sin osclaíodh na geataí ar {{rubies}} rubaí.",
   "station_result.unprotected.title": "Níorbh fhéidir le Auto Station na trúpaí a bhogadh amach as {{castle}} ar {{accountName}}",
-  "station_result.unprotected.body": "Ní fhéadfadh aon chaisleán comhghuaillíochta iad a ghlacadh agus d’fhan na geataí dúnta. Insíonn na logleabhair cén fáth."
+  "station_result.unprotected.body": "Ní fhéadfadh aon chaisleán comhghuaillíochta iad a ghlacadh agus d’fhan na geataí dúnta. Insíonn na logleabhair cén fáth.",
+  "plugin_finished.title": "Mhúch {{plugin}} é féin ar {{accountName}}",
+  "plugin_finished.body.done": "Rinne sé gach a bhféadfadh sé a dhéanamh san ócáid seo. Cas air arís é nuair a thagann an ócáid ar ais.",
+  "plugin_finished.body.eventOver": "Níl a ócáid ar siúl. Cas air arís é nuair a thagann an ócáid ar ais."
 }

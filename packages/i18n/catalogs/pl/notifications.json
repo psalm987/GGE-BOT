@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Otwarto bramy w {{castle}} na koncie {{accountName}}",
   "station_result.gates_opened.body": "Żaden zamek sojuszniczy nie mógł przyjąć wojsk, więc otwarto bramy za {{rubies}} rubinów.",
   "station_result.unprotected.title": "Auto Station nie zdołał wyprowadzić wojsk z {{castle}} na koncie {{accountName}}",
-  "station_result.unprotected.body": "Żaden zamek sojuszniczy nie mógł ich przyjąć, a bramy pozostały zamknięte. Powód znajdziesz w dziennikach."
+  "station_result.unprotected.body": "Żaden zamek sojuszniczy nie mógł ich przyjąć, a bramy pozostały zamknięte. Powód znajdziesz w dziennikach.",
+  "plugin_finished.title": "{{plugin}}: wyłączono na koncie {{accountName}}",
+  "plugin_finished.body.done": "Wtyczka zrobiła wszystko, co mogła w tym wydarzeniu. Włącz ją ponownie, gdy wydarzenie wróci.",
+  "plugin_finished.body.eventOver": "Wydarzenie tej wtyczki nie trwa. Włącz ją ponownie, gdy wydarzenie wróci."
 }

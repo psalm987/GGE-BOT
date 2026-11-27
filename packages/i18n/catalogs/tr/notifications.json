@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "{{accountName}} hesabındaki {{castle}} kalesinin kapıları açıldı",
   "station_result.gates_opened.body": "Hiçbir ittifak kalesi birlikleri alamadı, bu yüzden kapılar {{rubies}} yakut karşılığında açıldı.",
   "station_result.unprotected.title": "Otomatik Konuşlandırma, birlikleri {{accountName}} hesabındaki {{castle}} kalesinden çıkaramadı",
-  "station_result.unprotected.body": "Hiçbir ittifak kalesi onları alamadı ve kapılar kapalı kaldı. Nedeni günlüklerde yazıyor."
+  "station_result.unprotected.body": "Hiçbir ittifak kalesi onları alamadı ve kapılar kapalı kaldı. Nedeni günlüklerde yazıyor.",
+  "plugin_finished.title": "{{plugin}}, {{accountName}} hesabında kapandı",
+  "plugin_finished.body.done": "Bu etkinlikte yapabileceği her şeyi bitirdi. Etkinlik geri geldiğinde onu yeniden aç.",
+  "plugin_finished.body.eventOver": "Etkinliği şu an devam etmiyor. Etkinlik geri geldiğinde onu yeniden aç."
 }

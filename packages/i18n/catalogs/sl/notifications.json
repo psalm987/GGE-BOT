@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Vrata so odprta v {{castle}} na računu {{accountName}}",
   "station_result.gates_opened.body": "Noben zavezniški grad ni mogel sprejeti čet, zato so bila vrata odprta za {{rubies}} rubinov.",
   "station_result.unprotected.title": "Samodejna namestitev ni mogla umakniti čet iz {{castle}} na računu {{accountName}}",
-  "station_result.unprotected.body": "Noben zavezniški grad jih ni mogel sprejeti, vrata pa so ostala zaprta. Razlog je v dnevnikih."
+  "station_result.unprotected.body": "Noben zavezniški grad jih ni mogel sprejeti, vrata pa so ostala zaprta. Razlog je v dnevnikih.",
+  "plugin_finished.title": "{{plugin}} se je izklopil na računu {{accountName}}",
+  "plugin_finished.body.done": "Naredil je vse, kar lahko v tem dogodku. Ko se dogodek vrne, ga spet vklopi.",
+  "plugin_finished.body.eventOver": "Njegov dogodek trenutno ne poteka. Ko se dogodek vrne, ga spet vklopi."
 }

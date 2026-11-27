@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Porte aperte a {{castle}} su {{accountName}}",
   "station_result.gates_opened.body": "Nessun castello della coalizione ha potuto accogliere le truppe, quindi le porte sono state aperte per {{rubies}} rubini.",
   "station_result.unprotected.title": "Il Posizionamento auto non è riuscito a spostare le truppe da {{castle}} su {{accountName}}",
-  "station_result.unprotected.body": "Nessun castello della coalizione ha potuto accoglierle e le porte sono rimaste chiuse. I log ne spiegano il motivo."
+  "station_result.unprotected.body": "Nessun castello della coalizione ha potuto accoglierle e le porte sono rimaste chiuse. I log ne spiegano il motivo.",
+  "plugin_finished.title": "{{plugin}} disattivato su {{accountName}}",
+  "plugin_finished.body.done": "Ha fatto tutto ciò che poteva in questo evento. Riattivalo quando l'evento torna.",
+  "plugin_finished.body.eventOver": "Il suo evento non è in corso. Riattivalo quando l'evento torna."
 }

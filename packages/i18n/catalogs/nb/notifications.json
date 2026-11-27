@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Portene ble åpnet ved {{castle}} på {{accountName}}",
   "station_result.gates_opened.body": "Ingen alliansens slott kunne ta imot troppene, så portene ble åpnet for {{rubies}} rubiner.",
   "station_result.unprotected.title": "Auto Station fikk ikke flyttet troppene ut av {{castle}} på {{accountName}}",
-  "station_result.unprotected.body": "Ingen alliansens slott kunne ta imot dem, og portene ble stående stengt. Loggene forklarer hvorfor."
+  "station_result.unprotected.body": "Ingen alliansens slott kunne ta imot dem, og portene ble stående stengt. Loggene forklarer hvorfor.",
+  "plugin_finished.title": "{{plugin}} slo seg av på {{accountName}}",
+  "plugin_finished.body.done": "Den har gjort alt den kan i dette eventet. Slå den på igjen når eventet kommer tilbake.",
+  "plugin_finished.body.eventOver": "Eventet dens pågår ikke. Slå den på igjen når eventet kommer tilbake."
 }

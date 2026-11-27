@@ -46,5 +46,8 @@
   "station_result.gates_opened.title": "فُتحت بوابات {{castle}} في {{accountName}}",
   "station_result.gates_opened.body": "لم تستطع أي قلعة تحالف استقبال الجنود، فُتحت البوابات مقابل {{rubies}} ياقوت.",
   "station_result.unprotected.title": "تعذّر على التمركز التلقائي إخراج الجنود من {{castle}} في {{accountName}}",
-  "station_result.unprotected.body": "لم تستطع أي قلعة تحالف استقبالهم وبقيت البوابات مغلقة. السجلات توضح السبب."
+  "station_result.unprotected.body": "لم تستطع أي قلعة تحالف استقبالهم وبقيت البوابات مغلقة. السجلات توضح السبب.",
+  "plugin_finished.title": "توقفت {{plugin}} على {{accountName}}",
+  "plugin_finished.body.done": "أنهت كل ما يمكنها فعله في هذا الحدث. شغّلها من جديد عندما يعود الحدث.",
+  "plugin_finished.body.eventOver": "حدثها لا يجري الآن. شغّلها من جديد عندما يعود الحدث."
 }

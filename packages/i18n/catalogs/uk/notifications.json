@@ -38,5 +38,8 @@
   "station_result.gates_opened.title": "Ворота відчинено в {{castle}} на {{accountName}}",
   "station_result.gates_opened.body": "Жоден замок альянсу не зміг прийняти війська, тож ворота відчинили за {{rubies}} рубінів.",
   "station_result.unprotected.title": "Автодислокація не змогла вивести війська з {{castle}} на {{accountName}}",
-  "station_result.unprotected.body": "Жоден замок альянсу не зміг їх прийняти, і ворота лишилися зачиненими. Причину видно в журналах."
+  "station_result.unprotected.body": "Жоден замок альянсу не зміг їх прийняти, і ворота лишилися зачиненими. Причину видно в журналах.",
+  "plugin_finished.title": "{{plugin}} вимкнувся на {{accountName}}",
+  "plugin_finished.body.done": "Він зробив усе, що може в цій події. Увімкни його знову, коли подія повернеться.",
+  "plugin_finished.body.eventOver": "Його подія зараз не триває. Увімкни його знову, коли подія повернеться."
 }

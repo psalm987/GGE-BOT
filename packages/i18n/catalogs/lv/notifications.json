@@ -34,5 +34,8 @@
   "station_result.gates_opened.title": "Vārti atvērti {{castle}} kontā {{accountName}}",
   "station_result.gates_opened.body": "Neviena alianses pils nevarēja uzņemt karavīrus, tāpēc vārti tika atvērti par {{rubies}} rubīniem.",
   "station_result.unprotected.title": "Automātiskā izvietošana nevarēja izvest karavīrus no {{castle}} kontā {{accountName}}",
-  "station_result.unprotected.body": "Neviena alianses pils nevarēja viņus uzņemt, un vārti palika aizvērti. Iemeslu skaties žurnālos."
+  "station_result.unprotected.body": "Neviena alianses pils nevarēja viņus uzņemt, un vārti palika aizvērti. Iemeslu skaties žurnālos.",
+  "plugin_finished.title": "{{plugin}} izslēdzās kontā {{accountName}}",
+  "plugin_finished.body.done": "Tas izdarīja visu, ko šajā notikumā var. Ieslēdz to atkal, kad notikums atgriezīsies.",
+  "plugin_finished.body.eventOver": "Tā notikums pašlaik nenotiek. Ieslēdz to atkal, kad notikums atgriezīsies."
 }

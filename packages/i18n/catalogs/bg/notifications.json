@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Портите на {{castle}} на {{accountName}} са отворени",
   "station_result.gates_opened.body": "Нито един замък на съюза не можа да приеме войските, затова портите бяха отворени за {{rubies}} рубини.",
   "station_result.unprotected.title": "Автоматичното разквартируване не успя да изведе войските от {{castle}} на {{accountName}}",
-  "station_result.unprotected.body": "Нито един замък на съюза не можа да ги приеме и портите останаха затворени. Дневниците казват защо."
+  "station_result.unprotected.body": "Нито един замък на съюза не можа да ги приеме и портите останаха затворени. Дневниците казват защо.",
+  "plugin_finished.title": "{{plugin}} се изключи на {{accountName}}",
+  "plugin_finished.body.done": "Направи всичко, което може в това събитие. Включете го отново, когато събитието се върне.",
+  "plugin_finished.body.eventOver": "Събитието му не тече. Включете го отново, когато събитието се върне."
 }

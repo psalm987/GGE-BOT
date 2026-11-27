@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Tore von {{castle}} auf {{accountName}} geöffnet",
   "station_result.gates_opened.body": "Keine Allianzburg konnte die Truppen aufnehmen, daher wurden die Tore für {{rubies}} Rubine geöffnet.",
   "station_result.unprotected.title": "Auto-Stationierung konnte die Truppen nicht aus {{castle}} auf {{accountName}} abziehen",
-  "station_result.unprotected.body": "Keine Allianzburg konnte sie aufnehmen, und die Tore blieben geschlossen. Das Protokoll nennt den Grund."
+  "station_result.unprotected.body": "Keine Allianzburg konnte sie aufnehmen, und die Tore blieben geschlossen. Das Protokoll nennt den Grund.",
+  "plugin_finished.title": "{{plugin}} auf {{accountName}} ausgeschaltet",
+  "plugin_finished.body.done": "Es hat in diesem Event alles erledigt, was es kann. Schaltet es wieder ein, wenn das Event zurückkommt.",
+  "plugin_finished.body.eventOver": "Sein Event läuft nicht. Schaltet es wieder ein, wenn das Event zurückkommt."
 }
