@@ -111,7 +111,7 @@ export const MODULES: readonly ModuleDef[] = [
     soon("food-manager", "account", "bread"),
     live("messages", "account", "envelope", ["chat"]),
     soon("rift-raid", "attacks", "magic-portal"),
-    soon("berimond", "attacks", "crossed-axes"),
+    live("berimond", "attacks", "crossed-axes", ["berimondKingdom"]),
     {
         ...live("towers", "attacks", "stone-tower",
             ["attackBarronsGreatEmpire", "attackBarronsBurningSands", "attackBarronsEverWinterGlacier", "attackBarronsFirePeaks"], "kingdoms"),

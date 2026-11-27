@@ -18,6 +18,7 @@ export const sidebar: Group[] = [
             { slug: "modules/storms" },
             { slug: "modules/khan" },
             { slug: "modules/green-berimond" },
+            { slug: "modules/berimond" },
             { slug: "modules/invasion-events" },
             { slug: "modules/blade-coast" },
             { slug: "modules/virtual-presets" },

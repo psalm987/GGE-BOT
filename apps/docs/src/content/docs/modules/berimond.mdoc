@@ -1,0 +1,89 @@
+---
+title: Berimond
+description: Attack the watchtowers of the Berimond kingdom from your camp during the Berimond Kingdom event, and keep the camp stocked with troops, never with rubies.
+appRoute: /m/berimond
+plugin: berimondKingdom
+sources:
+  - packages/bot-core/plugins/berimondKingdom.js
+  - packages/bot-core/berimondKingdomPlan.js
+  - packages/bot-core/eventPlugins.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="crossed-axes" size=32 /%}Take the towers. The {% ui key="client:modules.berimond.name" /%} {% term id="module" %}module{% /term %} attacks the watchtowers of the {% term id="berimond" %}Berimond{% /term %} {% term id="kingdom" %}kingdom{% /term %} from your camp there during the Berimond Kingdom event. It attacks the towers you list, one after another, and keeps the camp stocked with troops from your {% term id="main-castle" %}main castle{% /term %}.
+
+{% terms_on_page /%}
+
+This is not the {% term id="berimond-invasion" %}Berimond Invasion{% /term %} event of the {% term id="great-empire" %}Great Empire{% /term %}. That event has its own module, [{% ui key="client:modules.green-berimond.name" /%}](/modules/green-berimond/).
+
+It never pays with {% term id="ruby" %}rubies{% /term %}. It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}. The account's {% term id="daily-attack-limit" %}daily cap{% /term %} on the {% ui key="client:drawer.accountSettings" /%} tab still applies.
+
+## It runs only during the event {% #event-only %}
+
+The page shows {% ui key="client:plugins.eventOnly" /%}. The plugin switches itself off when the event isn't running. Each event has a new camp and new towers, so set the towers again and switch it on for the next event.
+
+While the switch is on and the event hasn't started, the status says the bot is waiting for the Berimond Kingdom event. Join the event in the game first: the bot attacks from the camp you have there, and it does not join for you.
+
+## How it works {% #how-it-works %}
+
+1. **Look at the tower.** The bot looks at the first tower in your list. A tower that is gone, or a position with no tower, is taken off the list. That does not count as a refusal.
+2. **Open the attack screen.** It opens the attack screen from the camp, as you would. The screen tells it the camp's troops and your {% term id="commander-game" %}commander's{% /term %} bonuses there.
+3. **Attack.** It sends one attack with a free commander from the {% ui key="client:plugins.commanderPicker.title" /%} card, then goes on with the same tower until it is destroyed.
+4. **Refill the camp.** Beside the attacks, it asks the game how much room the camp has. Once there is room for **Send troops once the camp has room for**, it sends the troops you listed from your main castle and skips their two-hour trip with {% term id="time-skip" %}time skips{% /term %}.
+
+When the game refuses an attack on a tower, the bot takes that tower off the list for this event. When it refuses two attacks in a row, the bot stops for the rest of the event. When the list is empty, the bot stops too. Your tower boxes stay as you set them. The bot remembers which towers it took off until the event ends, also across a restart.
+
+## List the towers {% #towers %}
+
+**Tower 1** to **Tower 5** take one position each, as the game shows it, such as `1,264:67`. The bot attacks them in that order.
+
+With every box empty, the bot attacks the tower the game's own **Next tower** button picks.
+
+## Army: Autofill or Waves {% #army %}
+
+{% ui key="client:army.mode.waves" /%} sends exactly the {% term id="wave" %}waves{% /term %} you write, or a [virtual preset](/modules/virtual-presets/).
+
+{% ui key="client:army.mode.autofill" /%} sends one wave. It fills the left {% term id="flank" %}flank{% /term %}, the middle and the right flank with as many soldiers as the game lets your commander send at that tower, and adds wall, gate and shield {% term id="tool" %}tools{% /term %}. It leaves Berimond's own auxiliary troops in the camp. {% term id="autofill" %}Autofill{% /term %} waits until the camp can fill the whole wave. When the bot refills the camp and the game says no more troops fit, it sends what the camp holds.
+
+How many soldiers a side takes:
+
+- A tower's attackers are 5 times its level plus 8, at most 260. From level 70 they are 320.
+- A flank takes 20% of them and the middle the rest. Your commander's flank and middle bonuses raise each side.
+- A side holds at most 30 tools on a flank and 40 in the middle.
+
+The first wave must hold at least 32 soldiers. If the game says a wave has too many soldiers, the bot sends fewer with that commander from then on, and a little fewer with every commander.
+
+## Refill the camp {% #refill %}
+
+**Troops to send to the camp** lists the troops your main castle sends, in the order the bot takes them. Only troops that eat food or {% term id="mead" %}mead{% /term %} can go. Leave it empty to fill the camp yourself.
+
+**Send troops once the camp has room for** is the least the bot sends at once. The default is 100. When the main castle can't send that many, or the game refuses the troops, the bot waits 2 minutes, then twice as long each time, up to 30 minutes.
+
+**Skip the trip to the camp with time skips** is on by default. It spends the skips your account settings allow. It never buys time with rubies.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the attacks to the log instead of sending them**. The bot still looks at the towers, but it writes each attack and each troop transfer to the {% term id="log" %}log{% /term %} instead of sending it, and it spends no skips. After an attack it logged, it waits 5 minutes before the next one.
+
+## What it never does {% #never %}
+
+- It never pays with rubies. Skips come from your own time skips, and the only horses are the {% term id="coin-horse" %}coin horse{% /term %} and {% term id="horse-feather" %}feathers{% /term %}.
+- It never changes your saved settings. A tower it takes off the list stays in its box.
+- It never joins the event or picks a faction for you.
+
+## Settings {% #settings %}
+
+{% settings plugin="berimondKingdom" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+The attack and the transfer come from our own capture of one session, and the rest from another bot's code. Before you trust it on your main account, check these on a spare account with **Log only** off:
+
+- The tower's level is what the bot reads from the map, so Autofill's soldier count matches what the game allows.
+- A refused attack, and a destroyed tower, look as the bot expects.
+- The camp's room and the troop transfer go through, and the skips clear the trip.
+- The game's **Next tower** button picks a tower the bot can attack.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_ARMY](/errors/#plugin-option-army): the army setting can't be read.
