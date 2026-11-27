@@ -1,4 +1,5 @@
 import { createRequire } from "node:module"
+import { runStorm, GREAT_EMPIRE, STORM } from "./harness/storm.mjs"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 const require = createRequire(import.meta.url)
@@ -8,6 +9,7 @@ afterEach(() => vi.useRealTimers())
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
+const BOTH = "test/fixtures/storm-supply-both.cjs"
 
 const protocols = { KingdomID: { stormIslands: 4 }, AreaType: { externalKingdom: 12 }, castles: [], unlockInfoList: [], ClientCommands: {} }
 const { decide, fillAmount, BUSY_RETRY_MS, SENT_LOOK_MS } = loadModule("stormTransfer.js", { extra: { "protocols.js": protocols } }).mod
@@ -59,7 +61,14 @@ describe("the one transfer slot into Storm", () => {
     })
 
     test("with nothing to send, the next look is the soonest any goods asks for", () => {
-        expect(decide(0, [want({ waitMs: 2 * HOUR }), want({ waitMs: 30 * MINUTE })])).toEqual({ act: "wait", ms: 30 * MINUTE })
+        expect(decide(0, [want({ waitMs: 2 * HOUR }), want({ waitMs: 30 * MINUTE })])).toEqual({ act: "wait", logOnly: [], ms: 30 * MINUTE })
+    })
+
+    test("a log-only order never holds the slot: it is logged, and the real order behind it is sent", () => {
+        const dryFood = order({ food: 10 }, { name: "food", hoursLeft: 0.5, dryRun: true })
+        const mead = order({ mead: 10 }, { name: "mead", hoursLeft: 1.5 })
+        expect(decide(0, [dryFood, mead])).toMatchObject({ act: "send", want: mead, logOnly: [dryFood] })
+        expect(decide(0, [dryFood])).toEqual({ act: "wait", logOnly: [dryFood], ms: SENT_LOOK_MS })
     })
 })
 
@@ -76,3 +85,46 @@ describe("filling the Storm storehouse", () => {
     })
 })
 
+describe("mead and food share the slot", () => {
+    const meadEaten = (mead, rate = 1000) => ({ mead, getProductionData: { MeadConsumptionRate: rate, maxAmountMead: 10_000 } })
+
+    test("mead that runs out first goes first; food waits for the slot and goes once the mead has landed", async () => {
+        const t0 = Date.now()
+        const { transfers, said } = runStorm(BOTH, {
+            storm: { ...meadEaten(1000), food: 100, getProductionData: { ...meadEaten(1000).getProductionData, maxAmountFood: 9000, FoodConsumptionRate: 50 } },
+            held: {},
+            fresh: ([storm]) => { if (Date.now() - t0 >= HOUR) storm.mead = 10_000 },
+        })
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(transfers.map(t => t.args[3])).toEqual([[["MEAD", 9000]]])
+        expect(said("foodTransferInFlight")).toBe(true)
+        await vi.advanceTimersByTimeAsync(HOUR + 5 * MINUTE)
+        expect(transfers.map(t => t.args[3][0][0])).toEqual(["MEAD", "F"])
+    })
+
+    test("food that runs out first goes first", async () => {
+        const { transfers } = runStorm(BOTH, {
+            storm: { mead: 1500, food: 10, getProductionData: { MeadConsumptionRate: 1000, maxAmountMead: 10_000, maxAmountFood: 900, FoodConsumptionRate: 100 } },
+            held: {},
+        })
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(transfers.map(t => t.args)).toEqual([[1, GREAT_EMPIRE, STORM, [["F", 988]]]])
+    })
+
+    test("food on Log only never holds up the mead: the mead is sent and the food only logged", async () => {
+        const { transfers, said } = runStorm(BOTH, {
+            storm: { mead: 1000, food: 10, getProductionData: { MeadConsumptionRate: 1000, maxAmountMead: 10_000, maxAmountFood: 900, FoodConsumptionRate: 100 } },
+            options: { foodSendStorm: { foodDryRun: true } },
+            held: {},
+        })
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(transfers.map(t => t.args[3])).toEqual([[["MEAD", 9000]]])
+        expect(said("dryRunKgt")).toBe(true)
+    })
+
+    test("both senders refresh the figures with one dcl per look", async () => {
+        const { checks } = runStorm(BOTH, { storm: meadEaten(100_000), held: {} })
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(checks()).toBe(1)
+    })
+})

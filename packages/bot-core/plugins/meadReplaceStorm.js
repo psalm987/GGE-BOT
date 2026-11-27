@@ -39,11 +39,7 @@ function source() {
         const main = mainCastle()
         return main && { castle: main, spare: sourceReserve > 0 ? Math.floor((Number(main.mead) || 0) - sourceReserve) : Infinity }
     }
-    return rows
-        .map(row => ({ castle: castles.find(c => c.kingdomID == row.castle?.kingdom && c.id == row.castle?.id), keep: Number(row.keep) || 0 }))
-        .filter(({ castle }) => castle && ![KingdomID.stormIslands, KingdomID.berimond].includes(castle.kingdomID))
-        .map(({ castle, keep }) => ({ castle, spare: Math.floor((Number(castle.mead) || 0) - keep) }))
-        .find(({ spare }) => spare > 0)
+    return stormTransfer.firstSource(rows, "mead")
 }
 
 /** How long the Storm castle's mead lasts and, once that is under the hours set, the mead to send. */

@@ -63,22 +63,26 @@ const byUrgency = (a, b) => (a.hoursLeft - b.hoursLeft) || (Number(Boolean(b.fee
 
 /**
  * Who gets the slot. `secondsLeft` is the transfer in flight, 0 for none. `skipped` is true once this look has
- * skipped. Returns `{ act: "skip" }`, `{ act: "send", want, ms }` with the next look after a send that goes through,
- * or `{ act: "wait", ms }`.
+ * skipped. Returns `{ act: "skip" }`, `{ act: "send", want, logOnly, ms }` with the next look after a send that goes
+ * through, or `{ act: "wait", ms }` (with `logOnly` when the slot is free). A dry run never holds the slot: with the
+ * slot free, its order is in `logOnly` to be written to the log, and the real orders compete without it.
  * @param {number} secondsLeft
  * @param {Want[]} wants
  */
 function decide(secondsLeft, wants, { skipped = false } = {}) {
-    const orders = wants.filter(want => want.order).sort(byUrgency)
     const waits = wants.filter(want => !want.order).map(want => want.waitMs ?? Infinity)
     if (secondsLeft > 0) {
         if (!skipped && wants.some(want => want.maySkip && !want.dryRun && want.hoursLeft * 3600 <= secondsLeft))
             return { act: "skip" }
-        return { act: "wait", ms: Math.min(...waits, ...orders.length ? [BUSY_RETRY_MS] : []) }
+        return { act: "wait", ms: Math.min(...waits, ...wants.some(want => want.order) ? [BUSY_RETRY_MS] : []) }
     }
+    const orders = wants.filter(want => want.order && !want.dryRun).sort(byUrgency)
+    const logOnly = wants.filter(want => want.order && want.dryRun)
+    if (logOnly.length)
+        waits.push(SENT_LOOK_MS)
     if (orders.length)
-        return { act: "send", want: orders[0], ms: Math.min(SENT_LOOK_MS, ...waits, ...orders.length > 1 ? [BUSY_RETRY_MS] : []) }
-    return { act: "wait", ms: Math.min(...waits) }
+        return { act: "send", want: orders[0], logOnly, ms: Math.min(SENT_LOOK_MS, ...waits, ...orders.length > 1 ? [BUSY_RETRY_MS] : []) }
+    return { act: "wait", logOnly, ms: Math.min(...waits) }
 }
 
 /** What to send to fill `storm`'s storehouse of `goods`, counting what is lost on the way. */
@@ -86,6 +90,20 @@ function fillAmount(storm, goods) {
     const { max, loss } = GOODS[goods]
     const space = (Number(storm.getProductionData?.[max]) || 0) - (Number(storm[goods]) || 0)
     return space > 0 ? Math.floor(space / (1 - loss)) : 0
+}
+
+/**
+ * The first castle of a source list holding more `goods` than its keep, and how much it can spare. A row is
+ * `{ castle: { kingdom, id }, keep }`, as the castle-and-keep Rows option saves it. Storm and Berimond never send to Storm.
+ * @param {{ castle?: { kingdom: number, id: number }, keep?: number }[]} rows
+ * @param {keyof typeof GOODS} goods
+ */
+function firstSource(rows, goods) {
+    return rows
+        .map(row => ({ castle: castles.find(c => c.kingdomID == row.castle?.kingdom && c.id == row.castle?.id), keep: Number(row.keep) || 0 }))
+        .filter(({ castle }) => castle && ![STORM, KingdomID.berimond].includes(castle.kingdomID))
+        .map(({ castle, keep }) => ({ castle, spare: Math.floor((Number(castle[goods]) || 0) - keep) }))
+        .find(({ spare }) => spare > 0)
 }
 
 const stormCastle = () => castles.find(castle => castle.kingdomID == STORM && castle.areaInfo.type == AreaType.externalKingdom)
@@ -152,14 +170,14 @@ function lookAll(storm) {
     })
 }
 
-/** Sends `order` to Storm, or writes it to the log on a dry run. Resolves to the game's code. */
-async function send({ from, goods }, dryRun) {
-    const G = Object.entries(goods).filter(([, n]) => n > 0).map(([name, n]) => [GOODS[name].code, n])
-    if (dryRun) {
-        console.log("dryRunKgt", JSON.stringify({ SCID: from.id, SKID: from.kingdomID, TKID: STORM, G }))
-        return 0
-    }
-    const result = await ClientCommands.kingdomUnitTransfer(from.id, from.kingdomID, STORM, G)
+const goodsList = goods => Object.entries(goods).filter(([, n]) => n > 0).map(([name, n]) => [GOODS[name].code, n])
+
+/** Writes the kgt a dry run would send to the log. */
+const logOrder = ({ from, goods }) => console.log("dryRunKgt", JSON.stringify({ SCID: from.id, SKID: from.kingdomID, TKID: STORM, G: goodsList(goods) }))
+
+/** Sends `order` to Storm. Resolves to the game's code. */
+async function send({ from, goods }) {
+    const result = await ClientCommands.kingdomUnitTransfer(from.id, from.kingdomID, STORM, goodsList(goods))
     if (result == 0)
         for (const [name, n] of Object.entries(goods))
             from[name] -= n
@@ -189,30 +207,31 @@ async function look() {
         plan = decide(secondsLeft(storm.resourceTransfer), looks.map(l => l.want), { skipped: true })
     }
 
+    const logOnly = plan.logOnly ?? []
     const busy = () => {
         const minutes = Math.ceil(secondsLeft(storm.resourceTransfer) / 60)
         for (const { requester, want } of looks)
-            if (want.order && want !== plan.want)
+            if (want.order && want !== plan.want && !logOnly.includes(want))
                 requester.busy?.(minutes)
     }
     for (const { want } of looks)
         if (!want.order && want.note)
             console.log(...want.note)
+    for (const want of logOnly)
+        logOrder(want.order)
     if (plan.act == "wait") {
         busy()
         return plan.ms
     }
 
     const { requester } = looks.find(l => l.want === plan.want)
-    const code = await send(plan.want.order, plan.want.dryRun)
+    const code = await send(plan.want.order)
     if (code != 0) {
         requester.refused?.(code)
         return BUSY_RETRY_MS
     }
-    if (!plan.want.dryRun) {
-        requester.sent?.(plan.want.order)
-        busy()
-    }
+    requester.sent?.(plan.want.order)
+    busy()
     return plan.ms
 }
 
@@ -234,4 +253,4 @@ events.once("load", () => {
     wakeLook = chore("stormTransfer", async () => Math.min(await look(), TIMER_MAX), 0)
 })
 
-module.exports = { register, wake, decide, fillAmount, slotSecondsLeft, GOODS, BUSY_RETRY_MS, SENT_LOOK_MS }
+module.exports = { register, wake, decide, fillAmount, firstSource, slotSecondsLeft, GOODS, BUSY_RETRY_MS, SENT_LOOK_MS }
