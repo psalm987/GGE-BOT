@@ -37,6 +37,8 @@ export const DataExport = z.object({
     runs: z.array(Run.extend({ accountId: z.uuid() })),
     /** Whatever the log retention still holds. */
     logs: z.array(z.object({ accountId: z.uuid(), ts: z.date(), level: z.number().int(), message: z.string() })),
+    /** What the accounts' plugins keep across runs, such as the event levels they have finished. */
+    pluginMemory: z.array(z.object({ accountId: z.uuid(), plugin: z.string(), data: z.unknown(), updatedAt: z.date() })),
     /** The wave plans of the accounts above, by `accountId`. */
     virtualPresets: z.array(VirtualPreset),
     notifications: z.array(Notification),

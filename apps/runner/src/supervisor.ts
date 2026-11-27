@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { BotNotice, PluginState } from "@gge/contracts"
+import { BotNotice, PluginMemoryWrite, PluginState, type PluginMemory } from "@gge/contracts"
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
@@ -114,6 +114,8 @@ export const GIVE_UP = { failures: 8, minAgeMs: 30 * 60_000, outageWindowMs: 10 
 type Bot = {
     spec: BotSpec
     worker?: WorkerLike
+    /** The plugins the current worker loaded when it started. */
+    loaded?: Set<string>
     startedAt?: number
     /** When the current worker last sent anything. */
     lastBeat?: number
@@ -152,6 +154,9 @@ export type SupervisorDeps = {
         recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
         /** The day's wheel spins in the last status report, which a starting bot counts against its daily spin limit. */
         wheelSpins?(accountId: string): Promise<unknown>
+        /** What each plugin kept on the account in earlier runs, which a starting bot is handed. */
+        pluginMemory?(accountId: string): Promise<PluginMemory>
+        rememberForPlugin(accountId: string, write: PluginMemoryWrite): Promise<boolean>
     }
     /** Opens a sealed game password or proxy URL. */
     openSealed: (sealed: Buffer) => string
@@ -474,7 +479,7 @@ export class Supervisor {
         await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        const [attackHistory, wheelSpins] = await Promise.all([
+        const [attackHistory, wheelSpins, pluginMemory] = await Promise.all([
             this.deps.store.recentAttacks?.(id).catch(error => {
                 this.log.warn("reading the last 24 hours of attacks failed; the daily limits start from nothing", error)
                 return undefined
@@ -483,13 +488,18 @@ export class Supervisor {
                 this.log.warn("reading the day's wheel spins failed; the daily spin limit starts from nothing", error)
                 return undefined
             }),
+            this.deps.store.pluginMemory?.(id).catch(error => {
+                this.log.warn("reading the plugins' memory failed; they start from nothing", error)
+                return undefined
+            }),
         ])
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        workerData = { ...workerData, ...(attackHistory && { attackHistory }), ...(wheelSpins !== undefined && { wheelSpins }) }
+        workerData = { ...workerData, ...(attackHistory && { attackHistory }), ...(wheelSpins !== undefined && { wheelSpins }), ...(pluginMemory && { pluginMemory }) }
 
         const worker = this.deps.spawn(workerData)
         bot.worker = worker
+        bot.loaded = new Set(Object.keys(spec.plugins))
         bot.startedAt = bot.lastBeat = this.now()
         this.lastStart.set(id, bot.startedAt)
         bot.terminal = undefined
@@ -534,6 +544,16 @@ export class Supervisor {
                     this.track(store.setPluginState(id, plugin, state.data))
                 else
                     this.log.warn("dropped an invalid plugin status", id)
+                break
+            }
+            case Action.PluginMemory: {
+                const write = PluginMemoryWrite.safeParse(payload)
+                if (write.success && bot.loaded?.has(write.data.plugin))
+                    this.track(store.rememberForPlugin(id, write.data).then(kept => {
+                        if (!kept) this.log.warn("refused a plugin memory write over the size cap", id, write.data.plugin)
+                    }))
+                else
+                    this.log.warn("dropped an invalid plugin memory write", id)
                 break
             }
             case Action.Notify: {

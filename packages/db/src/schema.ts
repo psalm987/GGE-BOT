@@ -254,6 +254,17 @@ export const botStatus = pgTable("bot_status", {
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
 })
 
+/**
+ * What one plugin keeps on one account across runs, such as the event levels it has finished: a `PluginMemory` entry,
+ * key by key. The runner hands it to a starting bot and caps it at PLUGIN_MEMORY_MAX_BYTES.
+ */
+export const pluginMemory = pgTable("plugin_memory", {
+    accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),
+    plugin: text("plugin").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    updatedAt: updatedAt(),
+}, t => [primaryKey({ columns: [t.accountId, t.plugin] })])
+
 export const botLogs = pgTable("bot_logs", {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),

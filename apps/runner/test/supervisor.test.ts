@@ -157,6 +157,27 @@ describe("notices from a running bot", () => {
     })
 })
 
+describe("plugin memory", () => {
+    test("a plugin's memory reaches the next run, and a write for a plugin the bot didn't load or without a key is dropped with a warning", async () => {
+        const warnings: unknown[][] = []
+        supervisor = makeSupervisor({ logger: { warn: (...args) => void warnings.push(args), error() {} } })
+        const id = await addAccount("memory-a")
+        await reconcile()
+        await until(async () => (await store.pluginMemory(id)).attack?.runs === 1 && warnings.length === 2)
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "stopped")
+        await db.update(gameAccounts).set({ desiredState: "running" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+
+        await until(async () => (await store.pluginMemory(id)).attack?.runs === 2)
+        expect(spawned.map(d => d.pluginMemory)).toEqual([{}, { attack: { runs: 1 } }])
+        expect(await store.pluginMemory(id)).toEqual({ attack: { runs: 2 } })
+        expect(warnings.slice(0, 2)).toEqual([["dropped an invalid plugin memory write", id], ["dropped an invalid plugin memory write", id]])
+    })
+})
+
 describe("starting and stopping", () => {
     test("a bot starts with its tower attacks of the last 24 hours, so its daily limits carry on", async () => {
         const a = await addAccount("ok-history")

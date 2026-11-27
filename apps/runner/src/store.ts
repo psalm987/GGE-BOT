@@ -1,8 +1,11 @@
 import { createRequire } from "node:module"
 import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
-import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type BotNotice, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
+    PLUGIN_MEMORY_MAX_BYTES, PROXY_MAX_FAILURES, botChannel, userChannel,
+    type BotChannelEvent, type BotNotice, type NotificationContent, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
+} from "@gge/contracts"
+import {
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 import { logTag } from "./log-render.ts"
 
@@ -162,6 +165,41 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         async wheelSpins(accountId: string): Promise<unknown> {
             const [row] = await db.select({ resources: botStatus.resources }).from(botStatus).where(eq(botStatus.accountId, accountId))
             return (row?.resources as { wheelSpins?: unknown } | null | undefined)?.wheelSpins
+        },
+
+        /** What each plugin kept on the account in earlier runs, which a starting bot is handed. */
+        async pluginMemory(accountId: string): Promise<PluginMemory> {
+            const rows = await db.select({ plugin: pluginMemory.plugin, data: pluginMemory.data }).from(pluginMemory).where(eq(pluginMemory.accountId, accountId))
+            return Object.fromEntries(rows.map(row => [row.plugin, row.data])) as PluginMemory
+        },
+
+        /**
+         * Keeps one plugin's value under its key, or forgets the key for a null value. Refused, leaving the memory as it
+         * was, when the plugin's memory would pass PLUGIN_MEMORY_MAX_BYTES as JSON text, which the bot measures the same
+         * way. Also false for a deleted account.
+         */
+        async rememberForPlugin(accountId: string, { plugin, key, value }: PluginMemoryWrite): Promise<boolean> {
+            const fits = (data: object) => Buffer.byteLength(JSON.stringify(data)) <= PLUGIN_MEMORY_MAX_BYTES
+            // Checked before the row exists too, so a refused first write leaves no empty memory behind.
+            if (!fits({ [key]: value }))
+                return false
+            try {
+                return await db.transaction(async tx => {
+                    await tx.insert(pluginMemory).values({ accountId, plugin }).onConflictDoNothing()
+                    const [row] = await tx.select({ data: pluginMemory.data }).from(pluginMemory)
+                        .where(and(eq(pluginMemory.accountId, accountId), eq(pluginMemory.plugin, plugin))).for("update")
+                    const { [key]: _, ...rest } = row!.data
+                    const data = value === null ? rest : { ...rest, [key]: value }
+                    if (!fits(data))
+                        return false
+                    await tx.update(pluginMemory).set({ data, updatedAt: new Date() })
+                        .where(and(eq(pluginMemory.accountId, accountId), eq(pluginMemory.plugin, plugin)))
+                    return true
+                })
+            } catch (error) {
+                if (!isMissingAccount(error)) throw error
+                return false
+            }
         },
 
         /** Merges one plugin's report into the account's states and tells the owner, in one statement and one transaction. */
