@@ -6,6 +6,7 @@ const { buildReadBack } = require("./readBack.js")
 const { watchDefence, lastDefence } = require("./defenceRead.js")
 const { watchCastleList } = require("./castleListRead.js")
 const { khanRage } = require("./khanRage.js")
+const bladeMovements = require("./bladeMovements.js")
 const { RateLimiter } = require("limiter")
 const { waitForResult, sendXT, xtHandler, events, status, playerInfo } = require("./ggeBot.js")
 const currencies = require("./paths.js").loadItem("currencies")
@@ -1346,7 +1347,10 @@ class Movement {
 
         this.station = Array.from(movement.A ?? []).map(Unit)
         this.resources = new Resources(Object.fromEntries(movement.G ?? []))
-        newMovement(this)
+        if (bladeMovements.isIslandMarch(movement))
+            bladeMovements.note(this.id, this.arrivesAt)
+        else
+            newMovement(this)
     }
 }
 
@@ -1419,6 +1423,7 @@ async function syncMovements() {
 xtHandler.on("mrm", (obj, result) => {
     if (result != 0)
         return
+    bladeMovements.forget(obj?.MID)
     const movement = movements.find(e => e.id == Number(obj?.MID))
     if (movement)
         endMovement(movement)
