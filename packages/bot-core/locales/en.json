@@ -1050,5 +1050,6 @@
     "statusHealTroopsRefused": "The game refused a heal. This tries again later, waiting longer each time, up to an hour.",
     "statusHealTroopsNoAnswer": "The game did not answer. Trying again soon.",
     "statusHealTroopsNoHospital": "A castle in your list has no hospital, so it is skipped. The list is left as you set it.",
-    "statusHealTroopsNoCastle": "A castle in your list isn't on this account, or isn't known yet. This tries again on the next check."
+    "statusHealTroopsNoCastle": "A castle in your list isn't on this account, or isn't known yet. This tries again on the next check.",
+    "recruitTools.askAllianceHelp.help": "Asks your alliance to speed up the barracks when a batch of 5 or more soldiers has had no help yet, as the game's button does."
 }

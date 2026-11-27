@@ -14,6 +14,7 @@ const optionDefs = [
     { type: "Number", key: "coinFloor", min: 0, max: 2_147_483_647, step: 1000, unit: "coins", default: 100_000 },
     { type: "Number", key: "resourceFloor", min: 0, max: 100_000_000, step: 1000, default: 0 },
     { type: "Checkbox", key: "dryRunOrders", default: false },
+    { type: "Checkbox", key: "askAllianceHelp", default: false },
 ]
 
 if (require('node:worker_threads').isMainThread)
@@ -21,12 +22,13 @@ if (require('node:worker_threads').isMainThread)
 
 const err = require("../err.json")
 const { events, botConfig, xtHandler } = require("../ggeBot.js")
-const { setCastle, castles, resources } = require("../protocols.js")
+const { setCastle, castleQueue, castles, resources } = require("../protocols.js")
 const { ask, chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
 const { UNITS_LIST, TOOLS_LIST, orderListOf, priceOf } = require("../orderable.js")
 const stock = require("./stock.js")
 const { BUP_REFUSALS, refusalMemory } = require("../refusals.js")
+const { askAllianceHelp, HELP_RECRUIT } = require("../allianceHelp.js")
 const loadItem = require("../paths.js").loadItem
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
@@ -102,6 +104,28 @@ const STATUS_KEY = {
 }
 
 const fewMinutes = () => boxMullerRandom(60_000, 3 * 60_000)
+
+/** The game's help button takes a batch of at least this many soldiers, and the bot asks only while it has more than a minute to go. */
+const MIN_HELP_BATCH = 5, HELP_TIME_LEFT_MS = 60_000
+/** The barracks list (`spl` LID 0) each castle's last order showed, `{ spl, at }`, by `kingdom:id`. */
+const barracksSeen = new Map()
+
+/** The barracks as the bot last saw them: from the castle's join (`spl0`) or from its last order, whichever is newer. */
+function barracksOf(castle) {
+    const joined = castleQueue(castle.kingdomID, castle.id, UNITS_LIST)
+    return [barracksSeen.get(`${castle.kingdomID}:${castle.id}`), joined].filter(seen => seen?.spl).sort((a, b) => b.at - a.at)[0]
+}
+
+/**
+ * Whether the game's help button would take the barracks: a batch made by the player (`PID`) with no help yet (`RAH`)
+ * and at least 5 soldiers (`TUA`), either the one in production with more than a minute left or one waiting in a slot.
+ */
+function barracksNeedHelp({ spl, at }) {
+    const unhelped = batch => Number(batch?.PID) > 0 && !batch.RAH && Number(batch.TUA) >= MIN_HELP_BATCH
+    const making = spl.PS?.P ?? spl.PS
+    return unhelped(making) && at + (Number(making.RCT) || 0) * 1000 > Date.now() + HELP_TIME_LEFT_MS ||
+        (Array.isArray(spl.QS) ? spl.QS : []).some(slot => unhelped(slot?.P))
+}
 
 /**
  * Whether the reply to an order shows the game took it: the production list now has it in production when nothing
@@ -260,6 +284,8 @@ async function cycle(active) {
                                 room.empty = 0
                                 break
                             }
+                            if (list == UNITS_LIST)
+                                barracksSeen.set(`${castle.kingdomID}:${castle.id}`, { spl: reply.spl, at: Date.now() })
                             const after = stock.parseQueue(reply.spl)
                             room.idle = after.psIdle
                             room.empty = after.emptySlots
@@ -277,6 +303,9 @@ async function cycle(active) {
                 }
             }
         })
+        const barracks = pluginOptions.askAllianceHelp && indexes.some(i => rows[i].list == UNITS_LIST) && barracksOf(castle)
+        if (barracks && barracksNeedHelp(barracks) && active())
+            await askAllianceHelp(castle, { type: HELP_RECRUIT, id: 0, ticket: barracks.at, dryRun })
         await pause(2000, 6000)
     }
 

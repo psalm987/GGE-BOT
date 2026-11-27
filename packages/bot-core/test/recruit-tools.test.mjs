@@ -42,7 +42,7 @@ const splOf = (c, list) => {
 }
 
 /** The plugin against a game that answers dcl, jca, spl and bup from `world`. */
-function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup, unitItems = units, buildingItems = [] } = {}) {
+function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup, unitItems = units, buildingItems = [], onAhr = () => "confirm" } = {}) {
     vi.useFakeTimers()
     const bot = fakeBot()
     bot.playerInfo.playerID = 7
@@ -60,11 +60,18 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
         if (cmd == "jca") {
             const c = find(p)
             world.forEach(w => { w.current = w === c })
-            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: c.buildings.map(wodID => [wodID, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), scl: { OIDL: [] } }, gpa: {} })
+            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: c.buildings.map(wodID => [wodID, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), scl: { OIDL: [] } }, gpa: {}, spl0: splOf(c, 0) })
         }
         if (cmd == "spl") {
             const c = world.find(w => w.current)
             reply("spl", spl?.(c, p.LID) ?? splOf(c, p.LID))
+        }
+        if (cmd == "ahr") {
+            const answer = onAhr(p)
+            if (answer == "confirm")
+                reply("ahh", { LID: 90, PID: 7, TID: p.T, P: 0, AC: 0, OP: { AID: world.find(w => w.current)?.id }, RT: 3600 })
+            else
+                reply("ahr", {}, answer)
         }
         if (cmd == "bup") {
             const c = find(p)
@@ -96,7 +103,7 @@ describe("the catalog entry", () => {
         const { mod } = loadModule("plugins/recruitTools.js", { mainThread: true })
         const entry = { key: "recruitTools", force: Boolean(mod.force), hidden: Boolean(mod.hidden), options: mod.pluginOptions, checks: mod.checks }
         expect(PluginCatalogEntry.safeParse(entry).error).toBeUndefined()
-        expect(mod.pluginOptions.map(o => o.key)).toEqual(["troopTargets", "toolStockTargets", "coinFloor", "resourceFloor", "dryRunOrders"])
+        expect(mod.pluginOptions.map(o => o.key)).toEqual(["troopTargets", "toolStockTargets", "coinFloor", "resourceFloor", "dryRunOrders", "askAllianceHelp"])
     })
 
     test("only lists items a plugin may order, and starts with no rows and a coin floor", () => {
@@ -494,5 +501,73 @@ describe("what the game's refusals mean", () => {
         })
         await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
         expect(bups().filter(p => p.WID == 2000).length).toBeGreaterThan(bups().filter(p => p.WID == HALBERD).length)
+    })
+})
+
+describe("alliance help", () => {
+    const inAlliance = bot => { bot.playerInfo.alliance = { id: 5 } }
+    const ahrs = bot => bot.sent.filter(([cmd]) => cmd == "ahr").map(([, p]) => p)
+
+    test("asks for help with the barracks after ordering a batch of soldiers, from inside the castle", async () => {
+        const { bot } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true } })
+        inAlliance(bot)
+        await settle()
+        expect(ahrs(bot)).toEqual([{ ID: 0, T: 6 }])
+        const sent = bot.sent.map(([cmd]) => cmd)
+        expect(sent.lastIndexOf("bup")).toBeLessThan(sent.indexOf("ahr"))
+    })
+
+    test("asks nothing when the option is off", async () => {
+        const { bot } = run({ options: { troopTargets: [unitRow(HALBERD, 100)] } })
+        inAlliance(bot)
+        await settle()
+        expect(ahrs(bot)).toEqual([])
+    })
+
+    test.each([
+        ["fewer than 5 soldiers", { TUA: 4 }],
+        ["a batch that had help", { RAH: true }],
+        ["a batch with a minute or less to go", { RCT: 60 }],
+    ])("never asks for %s", async (_name, fields) => {
+        const onBup = (c, p) => ({ spl: { ...splOf(c, p.LID), PS: { ...splOf(c, p.LID).PS, ...fields } } })
+        const { bot } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true }, onBup })
+        inAlliance(bot)
+        await settle()
+        expect(ahrs(bot)).toEqual([])
+    })
+
+    test("asks for a waiting batch with no help when the batch in production had help", async () => {
+        const onBup = (c, p) => ({ spl: { ...splOf(c, p.LID), PS: { ...splOf(c, p.LID).PS, RAH: true }, QS: [{ P: { WID: HALBERD, TUA: 50, PID: 2, RAH: false } }] } })
+        const { bot } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true }, onBup })
+        inAlliance(bot)
+        await settle()
+        expect(ahrs(bot)).toEqual([{ ID: 0, T: 6 }])
+    })
+
+    test("never asks again while its request is open, though every look shows the batch", async () => {
+        const { bot } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true } })
+        inAlliance(bot)
+        await vi.advanceTimersByTimeAsync(50 * MINUTE)
+        expect(bot.sent.filter(([cmd]) => cmd == "jca").length).toBeGreaterThan(2)
+        expect(ahrs(bot)).toHaveLength(1)
+    })
+
+    test("after a refusal, the castle waits an hour before asking again", async () => {
+        const { bot, warns } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true }, onAhr: () => 114 })
+        inAlliance(bot)
+        await vi.advanceTimersByTimeAsync(50 * MINUTE)
+        expect(ahrs(bot)).toHaveLength(1)
+        expect(warns).toContain("allianceHelpRefused")
+        await vi.advanceTimersByTimeAsync(30 * MINUTE)
+        expect(ahrs(bot)).toHaveLength(2)
+    })
+
+    test("a batch the castle's join shows is asked for too, and a dry run only logs the ask", async () => {
+        const world = [castle(10, { queues: { 0: [[HALBERD, 50]] } })]
+        const { bot, logs } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true, dryRunOrders: true }, world })
+        inAlliance(bot)
+        await settle()
+        expect(ahrs(bot)).toEqual([])
+        expect(logs.find(line => line[0] == "dryRunAhr")).toEqual(["dryRunAhr", JSON.stringify({ ID: 0, T: 6 })])
     })
 })
