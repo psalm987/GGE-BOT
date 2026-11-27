@@ -1,10 +1,11 @@
 /**
  * Buying tools from the armourer with coins: what the Armourer plugin and the Khan plugin's defence stock share.
- * A buy is one `sbp` for a package the armourer lists right now.
+ * A buy joins the castle, opens its armourer (`gbc`) and sends one `sbp` for a package the armourer lists right now,
+ * as the game's client does. After Lazy Lord's armorerTools.js (MIT).
  */
 const err = require("./err.json")
 const { xtHandler } = require("./ggeBot.js")
-const { resources, activeEvent } = require("./protocols.js")
+const { resources, activeEvent, castles, AreaType, setCastle, shopTurn } = require("./protocols.js")
 const { events } = require("./ggeBot.js")
 const { ask, chore } = require("./chores.js")
 const { pause, boxMullerRandom } = require("./pacing.js")
@@ -15,9 +16,26 @@ const ARMOURER_EVENT = 27
 const units = new Map(loadItem("units").map(unit => [Number(unit.wodID), unit]))
 const packages = new Map(loadItem("packages").map(pack => [Number(pack.packageID), pack]))
 
-/** The package ids the armourer lists in the latest `sei`, whether the game sends an array or a comma list. */
+/**
+ * The armourer's entry when a list last brought it in, and when it closes (ms). The game sends the event list of the
+ * place the player is in, and a place without the armourer, such as the Berimond camp, leaves it out. So a list
+ * without it does not close it: only its end time (`RS`, seconds left) does. Lazy Lord (medium).
+ */
+let lastListed
+events.on("eventStart", e => {
+    if (e?.EID == ARMOURER_EVENT)
+        lastListed = { entry: e, closesAt: Date.now() + Number(e.RS) * 1000 }
+})
+/** The armourer's `sei` entry while it is open, or undefined. */
+const armourerEntry = () => activeEvent(ARMOURER_EVENT) ?? (Date.now() < lastListed?.closesAt ? lastListed.entry : undefined)
+
+const MAIN_TYPES = [AreaType.mainCastle, AreaType.externalKingdom, AreaType.beriCastle]
+/** The kingdom's main castle: the home castle, or the castle of an outer kingdom. */
+const mainCastle = kingdom => castles.find(castle => castle.kingdomID == kingdom && castle.areaInfo && MAIN_TYPES.includes(castle.areaInfo.type))
+
+/** The package ids the armourer lists in its `sei` entry, whether the game sends an array or a comma list. */
 function livePackageIDs() {
-    const listed = activeEvent(ARMOURER_EVENT)?.PIDS
+    const listed = armourerEntry()?.PIDS
     return (Array.isArray(listed) ? listed : String(listed ?? "").split(",")).map(Number).filter(Number.isInteger)
 }
 
@@ -37,16 +55,32 @@ function liveOffers() {
 }
 
 /**
- * Buys `packagesToBuy` of `offer` for kingdom `kingdom`. Resolves to the game's result (0 when the buy went
- * through), after taking the new coin count from the reply. With `dryRun` it logs the order and sends nothing.
+ * Buys `packagesToBuy` of `offer` into `castle`, one of the account's castles. Resolves to the game's result (0 when
+ * the buy went through), after taking the new coin count from the reply: undefined when no reply came, or the error's
+ * name when the castle could not be joined. With `dryRun` it logs the order and sends nothing.
+ *
+ * `sbp` names no castle, so the bot first joins the castle and opens its armourer (`gbc`), as the game's client does.
+ * The reply names no purchase either: the armourer's buys wait their turn in `shopTurn`, and a success whose `grc`
+ * is another kingdom's castle, such as a Storm shop buy that `attackStormForts.js` sends outside the turn, is not ours.
  */
-async function buy(offer, packagesToBuy, kingdom, dryRun) {
+async function buy(offer, packagesToBuy, castle, dryRun) {
+    const kingdom = castle.kingdomID
     const order = { PID: offer.pid, BT: 0, TID: ARMOURER_EVENT, AMT: packagesToBuy, KID: kingdom, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 }
     if (dryRun) {
         console.log("dryRunSbp", JSON.stringify(order))
         return 0
     }
-    const { reply, result } = await ask("sbp", order)
+    const ours = (reply, result) => result != 0 || reply.grc?.KID === undefined || reply.grc.KID == kingdom
+    let reply, result
+    try {
+        ({ reply, result } = await setCastle(castle, () => shopTurn(async () => {
+            await ask("gbc", { CID: castle.id, KID: kingdom })
+            return ask("sbp", order, undefined, ours)
+        })))
+    } catch (error) {
+        result = String(error?.message ?? error)
+    }
+    console.debug("armourerBuyReply", castle.id, result, reply?.grc?.AID)
     if (result === 0 && reply.gcu)
         xtHandler.emit("gcu", reply.gcu)
     if (result !== 0)
@@ -55,14 +89,16 @@ async function buy(offer, packagesToBuy, kingdom, dryRun) {
 }
 
 /**
- * Tops up tools that have run low, one batch each: a row is `{ tool, keep, have, batch? }`, and a tool with `have` below
- * `keep` gets its row's `batch` or else `batch` more, or as many as `maxPerClick` allows. Nothing is bought that would take the coins under
- * `coinFloor` or the run's spending over `spendCap`. Resolves to `{ bought, spent }` in tools and coins.
+ * Tops up tools that have run low in `kingdom`'s main castle, one batch each: a row is `{ tool, keep, have, batch? }`,
+ * and a tool with `have` below `keep` gets its row's `batch` or else `batch` more, or as many as `maxPerClick` allows.
+ * Nothing is bought that would take the coins under `coinFloor` or the run's spending over `spendCap`. Resolves to
+ * `{ bought, spent }` in tools and coins.
  */
 async function topUp(rows, { kingdom, batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
     const offers = liveOffers()
+    const castle = mainCastle(kingdom)
     let coins = resources.coins, spent = 0, bought = 0
-    if (!Number.isFinite(coins))
+    if (!Number.isFinite(coins) || !castle)
         return { bought, spent }
     for (const row of rows) {
         const offer = offers.get(row.tool)
@@ -72,7 +108,7 @@ async function topUp(rows, { kingdom, batch = 0, coinFloor, spendCap, dryRun, ac
             Math.floor((coins - coinFloor) / offer.price), Math.floor((spendCap - spent) / offer.price))
         if (!(count > 0) || !active())
             continue
-        if (await buy(offer, count, kingdom, dryRun) !== 0)
+        if (await buy(offer, count, castle, dryRun) !== 0)
             continue
         spent += count * offer.price
         coins -= count * offer.price
@@ -109,4 +145,4 @@ function keepStocked(name, stocks, kingdom, options, logKeys) {
     }, boxMullerRandom(3 * 60_000, 8 * 60_000)))
 }
 
-module.exports = { ARMOURER_EVENT, units, liveOffers, buy, topUp, keepStocked }
+module.exports = { ARMOURER_EVENT, units, mainCastle, liveOffers, buy, topUp, keepStocked }

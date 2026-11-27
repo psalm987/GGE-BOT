@@ -8,8 +8,9 @@ const timeoutMultiplier = require("./config.js").timeoutMultiplier ?? 1
  * Sends a request and waits for its reply. Resolves to `{ reply, result }`,
  * or to `{}` when no reply comes in time. Unlike waitForResult, silence here
  * never counts toward TOO_MANY_TIMEOUTS: a chore must not end the bot.
+ * A reply `accept(reply, result)` turns down is someone else's and is left for them.
  */
-function ask(cmd, params, timeoutMs = 15_000) {
+function ask(cmd, params, timeoutMs = 15_000, accept = () => true) {
     return new Promise((resolve, reject) => {
         const started = performance.now()
         const settle = (answer, error) => {
@@ -18,6 +19,8 @@ function ask(cmd, params, timeoutMs = 15_000) {
             error ? reject(error) : resolve(answer)
         }
         const onReply = (reply, result) => {
+            if (!accept(Object(reply), Number(result)))
+                return
             metrics.observe("bot_game_rtt_seconds", { command: cmd }, (performance.now() - started) / 1000)
             settle({ reply: Object(reply), result: Number(result) })
         }

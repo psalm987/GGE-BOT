@@ -29,7 +29,7 @@ const LADDER_PRICE = 220
  * The plugin against a game with `coins`, whose armourer lists `live` package ids and whose castles hold `castles`
  * (`[kingdom, id, { tool: amount }, area type?]`, the type defaulting to the kingdom's main castle). `refuse` maps a purchase to an error code.
  */
-function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles = [[0, 10, {}]], movements = [], refuse = () => 0 } = {}) {
+function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles = [[0, 10, {}]], movements = [], refuse = () => 0, armourerEndsIn, foreignReply, refuseJoin = () => false } = {}) {
     vi.useFakeTimers()
     const bot = fakeBot()
     bot.playerInfo.playerID = 7
@@ -42,6 +42,16 @@ function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles =
         bot.sent.push([cmd, p])
         if (cmd == "dcl")
             reply("dcl", { C: [...new Set(castles.map(([kingdom]) => kingdom))].map(KID => ({ KID, AI: castles.filter(([k]) => k == KID).map(([, AID, tools]) => ({ AID, AC: Object.entries(tools).map(([id, n]) => [Number(id), n]) })) })) })
+        if (cmd == "jca" && refuseJoin(p.CID))
+            reply("jaa", {}, 14)
+        else if (cmd == "jca") {
+            const [kingdom, id, tools] = castles.find(([k, i]) => k == p.KID && i == p.CID)
+            reply("jaa", { KID: kingdom, grc: { KID: kingdom, AID: id, AC: Object.entries(tools).map(([wod, n]) => [Number(wod), n]) }, gca: { BD: [], scl: { OIDL: [] } }, gpa: {} })
+        }
+        if (cmd == "gbc")
+            reply("gbc", {})
+        if (cmd == "sbp" && foreignReply)
+            setTimeout(() => bot.xtHandler.emit("sbp", ...foreignReply), 10)
         if (cmd == "sbp") {
             if (refuse(p))
                 return reply("sbp", {}, refuse(p))
@@ -56,7 +66,7 @@ function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles =
     bot.events.emit("load")
     bot.xtHandler.emit("gcl", { C: [...new Set(castles.map(([kingdom]) => kingdom))].map(KID => ({ KID, AI: castles.filter(([k]) => k == KID).map(([, id, , type = KID == 0 ? 1 : 12]) => ({ AI: [type, 100 + id, 100, id, 0, 0, 0, 0, 0, 0, "Castle"] })) })) }, 0)
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)
-    bot.xtHandler.emit("sei", { E: [{ EID: 27, PIDS: live }, { EID: 72 }] }, 0)
+    bot.xtHandler.emit("sei", { E: [{ EID: 27, PIDS: live, ...armourerEndsIn && { RS: armourerEndsIn / 1000 } }, { EID: 72 }] }, 0)
     for (const movement of movements)
         bot.xtHandler.emit("gam", movement, 0)
     const buys = () => bot.sent.filter(([cmd]) => cmd == "sbp").map(([, p]) => p)
@@ -395,5 +405,56 @@ describe("a castle the game may not deliver to", () => {
         await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
         expect(buys()).toHaveLength(2)
         expect(buys()[1]).toEqual(order(LADDER, 200, 0))
+    })
+})
+
+describe("delivery to the row's castle", () => {
+    test("joins the row's castle and opens its armourer before each purchase", async () => {
+        const { bot } = run({ options: { targets: [...ladders(100, 10), ...ladders(100, 11)], margin: 0 }, castles: [[0, 10, {}], [0, 11, {}, 4]] })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        const shop = bot.sent.filter(([cmd]) => ["jca", "gbc", "sbp"].includes(cmd)).map(([cmd, p]) => [cmd, p.CID ?? p.PID, p.KID])
+        expect(shop).toEqual([["jca", 10, 0], ["gbc", 10, 0], ["sbp", LADDER, 0], ["jca", 11, 0], ["gbc", 11, 0], ["sbp", LADDER, 0]])
+    })
+
+    test("a castle the game won't let the bot join is not bought for, and the next row still is", async () => {
+        const { buys, status } = run({ options: { targets: [...ladders(100, 11), castleRow(611, 50, 10)], margin: 0 }, castles: [[0, 10, {}], [0, 11, {}, 4]], refuseJoin: id => id == 11 })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys().map(p => p.PID)).toEqual([RAM])
+        expect(status()).toMatchObject({ state: "running" })
+    })
+
+    test("takes only a reply about its own kingdom, not another shop's purchase that lands meanwhile", async () => {
+        const { status } = run({
+            options: { targets: ladders(100), margin: 0 },
+            refuse: () => 154,
+            foreignReply: [{ gcu: { C1: 9_000_000 }, grc: { KID: 4, AID: 900 } }, 0],
+        })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsStorageFull" })
+    })
+
+    test("too many tools reads as full storage", async () => {
+        const { status } = run({ options: { targets: ladders(100), margin: 0 }, refuse: () => 240 })
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsStorageFull" })
+    })
+})
+
+describe("the armourer's opening hours", () => {
+    test("an event list from a place without the armourer does not close it before its end time", async () => {
+        const { bot, buys } = run({ options: { targets: ladders(100), margin: 0 }, armourerEndsIn: 5 * 60 * MINUTE })
+        await vi.advanceTimersByTimeAsync(MINUTE)
+        bot.xtHandler.emit("sei", { E: [{ EID: 72 }] }, 0)
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([order(LADDER, 100)])
+    })
+
+    test("past its end time it is closed, whatever list came last", async () => {
+        const { bot, buys, status } = run({ options: { targets: ladders(100), margin: 0 }, armourerEndsIn: 2 * MINUTE })
+        await vi.advanceTimersByTimeAsync(MINUTE)
+        bot.xtHandler.emit("sei", { E: [{ EID: 72 }] }, 0)
+        await vi.advanceTimersByTimeAsync(15 * MINUTE)
+        expect(buys()).toEqual([])
+        expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusBuyToolsNoOffer" })
     })
 })
