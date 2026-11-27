@@ -37,6 +37,8 @@ The header reads `areaType+subtypeAttack+subtypeResult[+...]#kingdomID+ownerID[+
 
 While a glory run is active, each report on the plugin's area type in the Great Empire is read. The log shows the glory of the hit and the run's total. A failed read is skipped and the run goes on.
 
+Spy reports, and which reports the cleanup never deletes, are in [attacks.md](attacks.md#spy-reports).
+
 ## Evidence and confidence
 
 | Fact | Confidence | Confirm with |

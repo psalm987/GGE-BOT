@@ -198,6 +198,8 @@ While tools are missing, `keepDefence` reads `dfc` again every 5 minutes, so too
 
 The trace's tools were elite Nomad defence tools: unit 110 on the walls (ranged defence +70), 622 at the gate (gate +75) and 112 in the moat (moat +110).
 
+For the taunt confirmation and the defender gate's rules, see [attacks.md](attacks.md#the-khan).
+
 ## Evidence and confidence
 
 | Fact | Confidence | Confirm with |
