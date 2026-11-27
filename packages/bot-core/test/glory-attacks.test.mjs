@@ -51,11 +51,12 @@ const army = () => [melee(1, 5000), ranged(2, 5000), ...siegeTools()]
 /**
  * Runs one glory plugin against a stand-in game. The real attack engine builds and sends the `cra`; the map,
  * the castle, the commanders and the game's replies are stood in for. `attacks` commanders are handed out, then
- * the event ends.
+ * the event ends. With `marches` each accepted attack adds the player's march on its camp to `movements`.
  */
 async function glory(plugin, {
     options = {}, start = {}, camps = [camp(20, 20, { type: EVENT[plugin].type })], nextCamp, inventory = army(),
     player = {}, resources = {}, attacks = 1, points = 0, replies = {}, protection = { NS: 0, PMS: -1, PMT: 0 }, movements = [], onCommander,
+    marches = false,
 } = {}) {
     const { EID } = EVENT[plugin]
     const bot = fakeBot()
@@ -72,7 +73,15 @@ async function glory(plugin, {
         await send(cmd, params)
         const payload = JSON.parse(params)
         const reply = replies[cmd] ? replies[cmd](payload, bot) : {
-            cra: () => [{ AAM: { UM: { L: { VIS: 0 } }, M: { KID: 0, TA: [0, payload.TX, payload.TY], TT: 60, PT: 0 } } }, 0],
+            cra: () => {
+                if (marches)
+                    movements.push({ kingdomID: 0, targetAttack: { x: payload.TX, y: payload.TY }, owner: { ownerID: bot.playerInfo.playerID } })
+                return [{ AAM: { UM: { L: { VIS: 0 } }, M: { KID: 0, TA: [0, payload.TX, payload.TY], TT: 60, PT: 0 } } }, 0]
+            },
+            adi: () => {
+                const area = camps.find(c => c.x == payload.TX && c.y == payload.TY) ?? nextCamp
+                return [{ gaa: { AI: [area.type, area.x, area.y, ...area.extraData] } }, 0]
+            },
             pep: () => [{ EID, OR: [1, 1], OP: [points, 0] }, 0],
             uap: () => [{ KID: 0, ...protection }, 0],
             sede: () => [{}, 0],
@@ -105,7 +114,7 @@ async function glory(plugin, {
                         bot.events.emit("eventStop", { EID })
                     return { lordID: handedOut, getEffects: () => ({}) }
                 },
-                freeCommander() {}, useCommander() {},
+                freeCommander() {}, commanderRefused() {},
             },
         },
     })
@@ -150,15 +159,17 @@ describe("targets", () => {
             camp(13, 13, { type: 1 }),
         ]
 
-        const { targets } = await glory("attackForeign", { camps, attacks: 3 })
+        const { targets } = await glory("attackForeign", { camps, attacks: 3, marches: true })
 
-        expect(targets()).toEqual([[14, 14], [40, 40], [14, 14]])
+        // A camp with an attack of the player's on its way is passed over until it lands.
+        expect(targets()).toEqual([[14, 14], [40, 40]])
     })
 
     test("the camps are searched around the castle in the Great Empire", async () => {
         const { askedForArea } = await glory("attackForeign")
 
         expect(askedForArea[0]).toEqual([0, 10 - 50, 10 - 50, 10 + 50, 10 + 50])
+        expect(askedForArea.every(area => area.join() == askedForArea[0].join())).toBe(true)
     })
 
     test("a camp the game says is cooling down is passed over for the next one", async () => {
@@ -178,6 +189,39 @@ describe("targets", () => {
 
         expect(targets()).toEqual([[14, 14], [30, 30]])
         expect(statuses.map(s => s.state)).not.toContain("error")
+    })
+
+    test("the map is read again before each attack, so a castle that shows up meanwhile is attacked", async () => {
+        const camps = [camp(40, 40)]
+        const { targets, askedForArea } = await glory("attackForeign", { camps, attacks: 2, onCommander: handedOut => handedOut == 1 && camps.push(camp(12, 12)) })
+        expect(targets()).toEqual([[40, 40], [12, 12]])
+        expect(askedForArea.length).toBeGreaterThanOrEqual(2)
+    })
+
+    test("extraData[2] is the seconds until a beaten castle is back: any wait passes it over", async () => {
+        const { targets } = await glory("attackForeign", { camps: [camp(14, 14, { peace: 300 }), camp(30, 30)] })
+        expect(targets()).toEqual([[30, 30]])
+    })
+
+    test("a castle that is not back for the player yet (291) is left out, longer each time, and the run goes on", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        let first = true
+        const { targets, statuses } = await glory("attackForeign", {
+            camps: [camp(14, 14), camp(30, 30)], attacks: 2,
+            replies: {
+                cra: payload => {
+                    if (first) {
+                        first = false
+                        return [{}, 291]
+                    }
+                    return [{ AAM: { UM: { L: { VIS: 0 } }, M: { KID: 0, TA: [0, payload.TX, payload.TY], TT: 60, PT: 0 } } }, 0]
+                },
+            },
+        })
+        expect(targets()).toEqual([[14, 14], [30, 30]])
+        expect(statuses.map(s => s.state)).not.toContain("error")
+        expect(console.error).not.toHaveBeenCalled()
     })
 
     test("with no camp in reach it asks the game for the next invasion camp, as the event dialog does", async () => {
@@ -511,7 +555,7 @@ describe("dethrone", () => {
 
         test("the server's count replaces ours: a push that resets it makes the next exile cost the first row again", async () => {
             const { sent, resources } = await glory("attackForeign", {
-                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, marches: true, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
                 onCommander: (handed, bot) => handed == 1 && bot.xtHandler.emit("rce", { RCSC: 0, RCHC: 0 }),
             })
 
@@ -521,10 +565,10 @@ describe("dethrone", () => {
 
         test("without a push our own count carries on, and a push of a higher count moves the cost up", async () => {
             const own = await glory("attackForeign", {
-                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, marches: true, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
             })
             const pushed = await glory("attackForeign", {
-                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
+                options: gold, camps: [camp(14, 14), camp(30, 30)], attacks: 2, marches: true, start: { RCKS: ["GTO"] }, resources: { goldToken: 1000 },
                 onCommander: (handed, bot) => handed == 1 && bot.xtHandler.emit("rce", { RCSC: 4, RCHC: 0 }),
             })
 

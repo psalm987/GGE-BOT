@@ -1013,5 +1013,11 @@
     "recruitToolsLevelLocked": "This account can't make this yet, so it is no longer ordered: ",
     "statusToolsmithTooMany": "The game takes fewer {{tool}} in one order, so the next order is halved.",
     "statusToolsmithRefused": "The game refused to build {{tool}}. This tries again later, waiting longer each time, up to an hour.",
-    "toolsmithLevelLocked": "This account can't build this tool level yet, so it is no longer ordered: "
+    "toolsmithLevelLocked": "This account can't build this tool level yet, so it is no longer ordered: ",
+    "attackErrorRepeated": "The game refused this plugin the same way again, so it waits longer before its next attack. The reason and the wait in seconds: ",
+    "attackScreenRefused": "The game would not open the attack screen, so the target is not ready yet. The reason and the target: ",
+    "campOutOfSkips": "No skips are left for a camp's wait, so for now the plugin attacks only camps that are ready on their own.",
+    "outOfFeathersCoinHorse": "No fast horse feathers are left, so the troops ride the coin horse instead.",
+    "khanTaunted": "The Khan was taunted: the rage bar emptied.",
+    "khanTauntNotConfirmed": "The Khan taunt was not confirmed: the rage bar did not empty, so the next full bar tries again."
 }

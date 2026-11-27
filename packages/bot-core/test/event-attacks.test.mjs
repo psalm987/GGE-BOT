@@ -29,13 +29,14 @@ async function firstAttack(plugin, { eventID, start = {}, target, inventory, pro
             "./attack.js": {
                 ...engine,
                 waitToAttack: job => job(),
+                openAttackScreen: async (castle, areaInfo, kingdomID, commander) => commander,
                 sendAttack: async attackInfo => {
                     sent.push(attackInfo)
                     bot.events.emit("eventStop", { EID: eventID })
                     return { AAM: { UM: { L: { VIS: 0 } }, M: { TA: [0, target.x, target.y], TT: 60, PT: 0 } } }
                 },
             },
-            "commander.js": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, useCommander() {} },
+            "commander.js": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, commanderRefused() {} },
             "skips.js": { spendSkip() {} },
             ...extra,
         },

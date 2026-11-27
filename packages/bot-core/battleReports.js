@@ -25,6 +25,28 @@ function battleReportHeader(message) {
     return { messageID, areaType, subtypeAttack, subtypeResult, kingdomID, ownerID }
 }
 
+/** `MESSAGE_TYPE_SPY_PLAYER` and `MESSAGE_TYPE_SPY_NPC` in the client, per Lazy Lord's reportCleaner.js: spy reports on a player's target and on an NPC's. */
+const SPY_REPORTS = new Set([3, 4])
+
+/**
+ * Splits a `sne` spy report `[id, type, header, ...]`, or returns undefined when it isn't one. The header reads
+ * `spyKind+result[+areaType]#kingdomID+ownerID[+areaName]` (Lazy Lord's reading of the client; our Bloodcrow capture's
+ * `1+0+34#0+-1002+` fits it). The result is the attacker's: 0 the spies got through, 2 they were caught.
+ */
+function spyReportHeader(message) {
+    const [messageID, type, header] = Array.isArray(message) ? message : []
+    if (!SPY_REPORTS.has(Number(type)) || typeof header != "string")
+        return undefined
+    const [left, right] = header.split("#")
+    if (right === undefined)
+        return undefined
+    const [, subtypeResult, areaType] = left.split("+").map(Number)
+    const [kingdomID, ownerID] = right.split("+").map(Number)
+    if ([subtypeResult, areaType, kingdomID, ownerID].some(Number.isNaN))
+        return undefined
+    return { messageID, areaType, subtypeResult, kingdomID, ownerID }
+}
+
 /**
  * The glory and loot a battle log gives the player, from the `PBI` row with their id, or else the attacker's row.
  * `PBI` rows start `[ownerID, side, ?, ?, loot pairs, glory, ...]`. Returns undefined when the log has no such row.
@@ -51,4 +73,4 @@ async function readBattleLog({ sendXT, waitForResult, playerInfo }, messageID) {
     }
 }
 
-module.exports = { BATTLE_LOG, battleReportHeader, parseBattleLog, readBattleLog }
+module.exports = { BATTLE_LOG, SPY_REPORTS, battleReportHeader, spyReportHeader, parseBattleLog, readBattleLog }

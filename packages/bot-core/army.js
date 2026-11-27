@@ -183,6 +183,35 @@ function readArmy(options, reportStatus) {
 const isSoldier = info => Boolean(info.role) && info.fightType == 0
 const fitsSide = (info, key) => info.slotTypes?.split(",").includes(key == "M" ? "1" : "2") ?? true
 
+/** Effect ids of the type that adds waves (effect type 156, "additionalWaves"), such as the Warwagon's. */
+const waveEffects = (() => {
+    try {
+        return new Set(require("./paths.js").loadItem("effects").filter(effect => String(effect.effectTypeID) == "156").map(effect => String(effect.effectID)))
+    } catch {
+        // The game data is downloaded at boot; without it support tools add no waves.
+        return new Set()
+    }
+})()
+
+/**
+ * Adds the waves that `supportTools` (inventory units) give, on top of the commander's own, as empty copies of the
+ * attack's first wave. The game client adds them the same way (Lazy Lord's attackTemplates.js supportToolWaves).
+ */
+function addSupportToolWaves(attackInfo, supportTools) {
+    const ids = waveEffects
+    let extra = 0
+    for (const unit of supportTools)
+        for (const effect of String(unit.unitInfo.effects ?? "").split(",")) {
+            const [id, value] = effect.split("&")
+            if (ids.has(id))
+                extra += Number(value) || 0
+        }
+    const [first] = attackInfo.A
+    for (let i = 0; first && i < Math.floor(extra); i++)
+        attackInfo.A.push(Object.fromEntries(Object.entries(first).map(([side, { T, U }]) =>
+            [side, { T: T.map(() => [-1, 0]), U: U.map(() => [-1, 0]) }])))
+}
+
 /**
  * Fills the empty `cra` that `getAttackInfo` built from a wave plan, taking what it sends out of `inventory`.
  * The plan's last wave repeats for every wave after it. A wave that names an in-game preset sends what the game
@@ -191,19 +220,27 @@ const fitsSide = (info, key) => info.slotTypes?.split(",").includes(key == "M" ?
  * `room` is `{ flankUnits, frontUnits, flankTools, frontTools, courtyard }` for this target and commander, and a
  * slot the target's level hasn't opened is left out. Support tools the castle lacks are left out too.
  * `target` is the `{ kingdom, areaType }` being attacked: a tool its `allowedToAttack` bars from there is left out, with a warning.
+ * A tool the game limits per wave (`amountPerWave`) gets no more than that in a wave, and support tools that add waves
+ * add them.
  *
  * Throws "NO_MORE_TROOPS", taking nothing, while the castle holds less than a slot needs.
  */
 function fillFromPlan(attackInfo, plan, inventory, room, target) {
     const left = new Map(inventory.map(unit => [unit, unit.amount]))
     const find = (item, soldier) => inventory.find(unit => unit.unitInfo.wodID == item && isSoldier(unit.unitInfo) == soldier)
+    addSupportToolWaves(attackInfo, filled(plan.ast).map(item => find(item, false)).filter(unit => unit?.amount > 0).slice(0, SUPPORT_TOOL_SLOTS))
     const picks = []
     const short = []
+    /** unit -> what the current wave already takes of it, for a tool the game limits per wave. */
+    let inWave = new Map()
     function pick(slot, planned, space, soldier, fits = () => true) {
-        const amount = planned ? Math.min(planned.amount, space) : 0
+        const found = planned && find(planned.item, soldier)
+        // Some tools, such as the veteran banner, the game takes only so many of in one wave (amountPerWave).
+        const perWave = Number(found?.unitInfo.amountPerWave) > 0 ? Number(found.unitInfo.amountPerWave) - (inWave.get(found) ?? 0) : Infinity
+        const amount = planned ? Math.min(planned.amount, space, perWave) : 0
         if (amount <= 0)
             return 0
-        const unit = find(planned.item, soldier)
+        const unit = found
         if (unit && !fits(unit.unitInfo)) {
             console.warn("armyToolWrongSide", planned.item)
             return 0
@@ -217,11 +254,13 @@ function fillFromPlan(attackInfo, plan, inventory, room, target) {
             return 0
         }
         left.set(unit, left.get(unit) - amount)
+        inWave.set(unit, (inWave.get(unit) ?? 0) + amount)
         picks.push([slot, unit, amount])
         return amount
     }
 
     attackInfo.A.forEach((wave, i) => {
+        inWave = new Map()
         const named = plan.waves[Math.min(i, plan.waves.length - 1)]
         const planned = named.kind == "preset" ? listedPresets?.get(named.preset)?.wave : named
         if (!planned)

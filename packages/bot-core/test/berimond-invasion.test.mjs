@@ -71,13 +71,13 @@ describe("the Berimond invasion", () => {
         expect(sent).toHaveLength(1)
     })
 
-    test("a skip that fails after a march home goes to the plugin's log", async () => {
+    test("running out of skips after a march home goes to the plugin's log", async () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         const movementEvents = new EventEmitter()
         await berimond({}, { areas: [camp(110, RED)], movementEvents, spendSkip: () => undefined })
         movementEvents.emit("returning", { targetOwner: { ownerID: 7 }, sourceAttack: { ...camp(110, RED), extraData: [0, 12, 300, 0, RED, 0, 100] } })
         await new Promise(resolve => setTimeout(resolve, 5))
-        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        expect(warn).toHaveBeenCalledWith("campOutOfSkips")
         warn.mockRestore()
     })
 
@@ -102,5 +102,42 @@ describe("the Berimond invasion", () => {
     test("log only sends no attack and spends no skip", async () => {
         const { sent, skipped } = await berimond({ dryRun: true }, { areas: [{ ...camp(110, RED), extraData: [0, 12, 300, 0, RED, 0, 100] }], wait: 10 })
         expect([sent, skipped]).toEqual([[], []])
+    })
+})
+
+describe("camps that are not ready", () => {
+    const cooling = (x, owner) => ({ ...camp(x, owner), extraData: [0, 12, 600, 0, owner, 0, 100], timeSinceRequest: Date.now() })
+    const quiet = () => { vi.spyOn(console, "warn").mockImplementation(() => {}); vi.spyOn(console, "error").mockImplementation(() => {}) }
+
+    test("out of skips the plugin does not stop: it attacks the camp that is ready on its own", async () => {
+        quiet()
+        const { sent, statuses } = await berimond({}, { areas: [cooling(110, BLUE), camp(120, RED)], spendSkip: () => undefined, wait: 20 })
+        expect(sent.map(cra => cra.TX)).toEqual([120])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        vi.restoreAllMocks()
+    })
+
+    test("a camp whose attack screen is refused is held while the plugin attacks the other", async () => {
+        quiet()
+        const openAttackScreen = async (castle, areaInfo, kingdomID, commander) => {
+            if (areaInfo.x == 110)
+                throw "ATTACK_SCREEN_REFUSED"
+            return commander
+        }
+        // The refused attempt uses one of the three commanders the stand-in hands out.
+        const { sent, statuses } = await berimond({}, { openAttackScreen, sends: 3, wait: 30 })
+        expect(sent.map(cra => cra.TX)).toEqual([120, 120])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        vi.restoreAllMocks()
+    })
+
+    test.each(["NOT_ENOUGH_CURRENCY1", "WONT_REACH_IN_TIME"])("%s does not stop the plugin", async refusal => {
+        quiet()
+        let first = true
+        const { refused, statuses } = await berimond({}, { sendRefusal: () => first ? (first = false, refusal) : undefined, sends: 2, wait: 20 })
+        expect(refused).toEqual([refusal])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        expect(console.error).not.toHaveBeenCalled()
+        vi.restoreAllMocks()
     })
 })

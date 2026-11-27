@@ -103,13 +103,13 @@ describe("Khan skips", () => {
         expect(sent).toHaveLength(1)
     })
 
-    test("a skip that fails after a march home goes to the plugin's log", async () => {
+    test("running out of skips after a march home goes to the plugin's log", async () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         const movementEvents = new EventEmitter()
         await khan({}, { movementEvents, spendSkip: () => undefined })
         movementEvents.emit("returning", { owner: { ownerID: 7 }, sourceAttack: waiting() })
         await new Promise(resolve => setTimeout(resolve, 5))
-        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        expect(warn).toHaveBeenCalledWith("campOutOfSkips")
         warn.mockRestore()
     })
 })
@@ -481,8 +481,10 @@ const defenders = () => [defender(220, 959), defender(729, 30), defender(222, 74
 
 describe("the defender gate on taunts", () => {
     const slots = (...amounts) => amounts.map(amount => amount > 0 ? [110, amount] : [-1, 0])
+    // A side with any tool also has a troop share here, so it counts as defended.
+    const side = S => ({ S, UP: S.some(([tool]) => tool != -1) ? 30 : 0 })
     const layout = ({ L = slots(10, 10), M = slots(10, 10), R = slots(10, 10) } = {}) =>
-        ({ dfw: { L: { S: L }, M: { S: M }, R: { S: R }, U: 5031 }, dfk: { U: 433000 } })
+        ({ dfw: { L: side(L), M: side(M), R: side(R), U: 5031 }, dfk: { U: 433000 } })
 
     test("a fixed order puts a short troop count before short tools, and both after a short defence", () => {
         expect(tauntHold({ gate: "toolsShort", defenceShort: true })).toBe("defenceShort")
@@ -524,7 +526,7 @@ describe("the defender gate on taunts", () => {
 describe("Khan taunts and the defender gate", () => {
     afterEach(() => vi.restoreAllMocks())
     const running = { waitToAttack: () => new Promise(() => {}), wait: 10 }
-    const slot = amount => ({ S: [[110, amount], [110, amount]] })
+    const slot = amount => ({ S: [[110, amount], [110, amount]], UP: 30 })
     const dfc = ({ amount = 10 } = {}) => ({ dfw: { L: slot(amount), M: slot(amount), R: slot(amount), U: 5031 }, dfk: { U: 433000 } })
     async function gated(replies, stored = { tauntMinDefenders: 8000 }, troops = defenders()) {
         const asked = []
@@ -593,5 +595,94 @@ describe("Khan taunts and the defender gate", () => {
         const { run, rage } = await gated([dfc()], { tauntMinDefenders: 9000 })
         await rage()
         expect(run.statuses.at(-1)).toMatchObject({ reasonKey: "statusKhanTauntDefendersShort", params: { have: 8405, need: 9000 } })
+    })
+})
+
+describe("Khan attacks and taunts, as Lazy Lord's Khan plugin does them", () => {
+    afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+
+    test("the camp is found again before each attack", async () => {
+        const { sent, found } = await khan({}, { sends: 3, wait: 30 })
+        expect(sent).toHaveLength(3)
+        expect(found.length).toBeGreaterThanOrEqual(3)
+    })
+
+    test("out of skips the plugin does not stop and sends nothing to the camp while it cools down", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        const cooling = { type: 35, x: 110, y: 105, extraData: [0, 0, 600, 0, 0, 0, 5] }
+        const { sent, statuses } = await khan({}, { areas: [cooling], spendSkip: () => undefined, wait: 20 })
+        expect(sent).toEqual([])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        expect(console.error).not.toHaveBeenCalled()
+    })
+
+    test.each(["NOT_ENOUGH_CURRENCY1", "ATTACK_SCREEN_REFUSED", "WONT_REACH_IN_TIME"])("%s does not stop the plugin", async refusal => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        let first = true
+        const { refused, statuses } = await khan({}, { sendRefusal: () => first ? (first = false, refusal) : undefined, sends: 2, wait: 20 })
+        expect(refused).toEqual([refusal])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        expect(console.error).not.toHaveBeenCalled()
+    })
+
+    const fullBar = run => run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 1500 }, 0)
+    async function taunting() {
+        const run = await khan({}, { waitToAttack: () => new Promise(() => {}), wait: 10 })
+        run.movementEvents.emit("outgoing", { owner: { ownerID: 7 }, targetAttack: { type: 35, extraData: [0, 0, 0, 0, 0, 0, 5] } })
+        return { run, taunts: () => run.frames.filter(([command]) => command == "lta") }
+    }
+
+    test("one taunt at a time: a second full bar before the first is confirmed sends no second lta", async () => {
+        const { run, taunts } = await taunting()
+        fullBar(run)
+        fullBar(run)
+        expect(taunts()).toHaveLength(1)
+    })
+
+    test("a taunt counts as sent when the rage bar drops below the cap, as the captured lta and rpr show", async () => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {})
+        const { run, taunts } = await taunting()
+        fullBar(run)
+        run.bot.xtHandler.emit("rpr", { EID: 72, PCRP: 0 }, 0)
+        await new Promise(resolve => setTimeout(resolve, 1))
+        expect(info).toHaveBeenCalledWith("khanTaunted")
+        fullBar(run)
+        expect(taunts()).toHaveLength(2)
+    })
+
+    test("a taunt with no drop of the rage bar within 15 seconds is not confirmed, and the next full bar may taunt again", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { run, taunts } = await taunting()
+        vi.useFakeTimers()
+        fullBar(run)
+        await vi.advanceTimersByTimeAsync(15_000)
+        expect(warn).toHaveBeenCalledWith("khanTauntNotConfirmed")
+        fullBar(run)
+        expect(taunts()).toHaveLength(2)
+    })
+})
+
+describe("the defender gate, as Lazy Lord reads the defence", () => {
+    const side = (UP, ...amounts) => ({ S: amounts.map(amount => amount > 0 ? [110, amount] : [-1, 0]), UP })
+    const wall = ({ L = side(30, 10, 10), M = side(40, 10, 10), R = side(30, 10, 10) } = {}) => ({ dfw: { L, M, R } })
+
+    test("a side is defended when it has a troop share (UP above 0), whatever tools it holds", () => {
+        expect(defenceGate(wall({ L: side(0, 0, 0) }), 10, 1)).toBeUndefined()
+        expect(defenceGate(wall({ L: side(30, 0, 0) }), 10, 1)).toEqual({ hold: "toolsShort", short: 2, need: 10 })
+        expect(defenceGate(wall({ L: side(0, 5, 5) }), 10, 1)).toBeUndefined()
+    })
+
+    test("each slot needs 10 tools for every Khan army on its way and the new one", () => {
+        expect(defenceGate(wall(), 10, 1, 0)).toBeUndefined()
+        expect(defenceGate(wall(), 10, 1, 1)).toEqual({ hold: "toolsShort", short: 6, need: 20 })
+        expect(defenceGate(wall({ L: side(30, 30, 30), M: side(40, 30, 30), R: side(30, 30, 30) }), 10, 1, 2)).toBeUndefined()
+    })
+
+    test("the captured defence of a real account has every side defended and enough tools for several armies", () => {
+        const dfc = capture.dfc_1.reply.payload
+        expect(defenceGate(dfc, 8405, 1000, 10)).toBeUndefined()
+        expect(defenceGate(dfc, 8405, 1000, 30)).toMatchObject({ hold: "toolsShort", need: 310 })
     })
 })

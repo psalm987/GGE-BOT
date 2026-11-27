@@ -37,6 +37,7 @@ function setup(reply = () => 0) {
 
 const err = require(path.join(repo, "err.json"))
 const refusalCode = Object.keys(err).find(code => err[code] == "ATTACK_TOO_MANY_UNITS")
+const newArmiesCode = Object.keys(err).find(code => err[code] == "CANT_START_NEW_ARMIES")
 
 test("a sent attack counts as sent and records its round trip as twice the one-way travel", async () => {
     vi.useFakeTimers()
@@ -49,25 +50,31 @@ test("a sent attack counts as sent and records its round trip as twice the one-w
     expect(observations['bot_attack_round_trip_seconds{"kingdom":"0"}']).toEqual([420])
 })
 
-test("a refusal counts by reason, and the queue pause it triggers is counted as refusal-pause idle time", async () => {
+test("a refusal counts by reason, and the pause CANT_START_NEW_ARMIES triggers is counted as refusal-pause idle time", async () => {
     vi.useFakeTimers()
-    let refuse = true
-    const { sendAttack, waitToAttack, collect } = setup(() => refuse ? refusalCode : 0)
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    let refusal = refusalCode
+    const { sendAttack, waitToAttack, collect } = setup(() => refusal)
     const attack = () => waitToAttack(() => sendAttack({ x: 1, y: 2 }, 0, 1, 2)).catch(e => e)
     const first = attack()
     await vi.advanceTimersByTimeAsync(30_000)
     expect(await first).toBe("ATTACK_TOO_MANY_UNITS")
-    refuse = false
+    refusal = newArmiesCode
     const second = attack()
-    await vi.advanceTimersByTimeAsync(6 * 60_000)
-    await second
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(await second).toBe("CANT_START_NEW_ARMIES")
+    refusal = 0
+    const third = attack()
+    await vi.advanceTimersByTimeAsync(31 * 60_000)
+    await third
     const { counters } = collect()
-    expect(counters['bot_attacks_total{"result":"refused","kingdom":"0"}']).toBe(1)
+    expect(counters['bot_attacks_total{"result":"refused","kingdom":"0"}']).toBe(2)
     expect(counters['bot_attacks_total{"result":"sent","kingdom":"0"}']).toBe(1)
     expect(counters['bot_attack_refusals_total{"reason":"ATTACK_TOO_MANY_UNITS"}']).toBe(1)
-    expect(counters['bot_attack_pauses_total{"reason":"ATTACK_TOO_MANY_UNITS"}']).toBe(1)
-    expect(counters['bot_attack_idle_seconds_total{"cause":"refusal_pause"}']).toBeGreaterThan(200)
-    expect(counters['bot_attack_idle_seconds_total{"cause":"refusal_pause"}']).toBeLessThanOrEqual(300)
+    expect(counters['bot_attack_pauses_total{"reason":"ATTACK_TOO_MANY_UNITS"}']).toBeUndefined()
+    expect(counters['bot_attack_pauses_total{"reason":"CANT_START_NEW_ARMIES"}']).toBe(1)
+    expect(counters['bot_attack_idle_seconds_total{"cause":"refusal_pause"}']).toBeGreaterThan(25 * 60)
+    expect(counters['bot_attack_idle_seconds_total{"cause":"refusal_pause"}']).toBeLessThanOrEqual(30 * 60)
 })
 
 test("a locked castle counts as castle_locked and sends nothing", async () => {

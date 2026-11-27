@@ -63,8 +63,8 @@ if (require('node:worker_threads').isMainThread)
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID } = require("../../protocols.js")
-const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require('../commander.js')
 const { areasAround } = require("../../mapScan.js")
 const { pickSourceCastle, castleName } = require("../../towers.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require('../../ggeBot.js')
@@ -89,17 +89,36 @@ const type = AreaType.beriCamp
 const minTroopCount = 100
 const eventID = 85
 
+/** A camp the game refused as not ready (a refused skip or screen, COOLING_DOWN, WONT_REACH_IN_TIME) is left alone this long. */
+const NOT_READY_HOLD_MS = 5 * 60_000
+/** Short of coins, the plugin waits this long before it tries again. */
+const COINS_WAIT_MS = 10 * 60_000
+/** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
+const IDLE_MS = [5_000, 60_000]
+/** Camp -> when a refusal's hold on it ends. */
+const heldUntil = new Map()
+const keyOf = areaInfo => `${areaInfo.x}:${areaInfo.y}`
+const readyAt = areaInfo => Math.max((areaInfo.timeSinceRequest ?? 0) + (Number(areaInfo.extraData[2]) || 0) * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0)
+
+let saidOutOfSkips = false
+/** Skips a camp's wait. With no skip left the plugin attacks camps that are ready on their own instead of stopping. */
 const skipTarget = oneSkipPerCamp(async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
-        let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
-
-        if (skip == undefined)
-            throw new Error("couldntFindSkip")
+        const skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
+        if (skip == undefined) {
+            if (!saidOutOfSkips)
+                console.warn("campOutOfSkips")
+            saidOutOfSkips = true
+            break
+        }
 
         const { result } = await ClientCommands.skipTarget(type, areaInfo.x, areaInfo.y, kingdomID, skip)
 
-        if (result != 0)
+        if (result != 0) {
+            heldUntil.set(keyOf(areaInfo), Date.now() + NOT_READY_HOLD_MS)
             break
+        }
+        saidOutOfSkips = false
     }
 })
 
@@ -153,26 +172,45 @@ events.on("eventStart", async eventInfo => {
     else
         reportStatus("running")
 
+    /**
+     * The next camp in turn that is ready, its wait skipped where the player has skips, or undefined. A camp still
+     * cooling down after that is passed over: before, it got the attack anyway.
+     */
+    async function readyCamp() {
+        for (let tries = 0; tries < areas.length; tries++) {
+            const areaInfo = areas.shift()
+            areas.push(areaInfo)
+            if ((heldUntil.get(keyOf(areaInfo)) ?? 0) > Date.now())
+                continue
+            if (pluginOptions.dryRun)
+                return areaInfo
+            await skipTarget(areaInfo)
+            if (readyAt(areaInfo) <= Date.now())
+                return areaInfo
+        }
+    }
+
     while (!quit) {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
+        let target
         try {
             const attackInfo = await waitToAttack(async () => {
-                const areaInfo = areas.shift()
-
-                areas.push(areaInfo)
-
-                if (!pluginOptions.dryRun)
-                    await skipTarget(areaInfo)
+                const areaInfo = target = await readyCamp()
+                if (!areaInfo)
+                    return
+                const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: pluginOptions.dryRun })
+                if (readyAt(areaInfo) > Date.now() && !pluginOptions.dryRun)
+                    return
                 const level = areaInfo.extraData[1] + (areaInfo.extraData[6] == 100 ? 70 : 56)
                 const context = { level, extraData: areaInfo.extraData, dryRun: pluginOptions.dryRun }
 
                 if (army.mode == "waves") {
-                    const effects = commander.getEffects()
-                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    const effects = lord.getEffects(type)
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, pluginOptions, effects.additionalWaves)
                     fillFromPlan(planned, army.waves, castle.unitInventory, {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
-                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                        courtyard: courtyardRoom(level, effects),
                     }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                 }
@@ -268,8 +306,8 @@ events.on("eventStart", async eventInfo => {
                 attackerWallBerimondTools.push(...attackerWallTools)
                 attackerShieldBerimondTools.push(...attackerShieldTools)
 
-                const commanderStats = commander.getEffects()
-                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, commanderStats.additionalWaves)
+                const commanderStats = lord.getEffects(type)
+                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, pluginOptions, commanderStats.additionalWaves)
 
                 const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                 const maxToolsFront = getTotalAmountToolsFront(level)
@@ -364,7 +402,7 @@ events.on("eventStart", async eventInfo => {
                                 attackerMeleeTroops : attackerRangeTroops, maxTroops))
                     }
                 })
-                let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | commanderStats.attackUnitAmountReinforcementBonus)
+                let maxTroops = courtyardRoom(level, commanderStats)
                 attackInfo.RW.forEach((unitSlot, i) => {
                     let attacker = i & 1 ?
                         (attackerMeleeTroops.length > 0 ? attackerMeleeTroops : attackerRangeTroops) :
@@ -375,8 +413,14 @@ events.on("eventStart", async eventInfo => {
                 })
 
                 return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
-            })
-            if (!attackInfo || attackInfo.dryRun) {
+            }, __filename)
+            if (!attackInfo) {
+                freeCommander(commander.lordID)
+                const nextReady = Math.min(...areas.map(readyAt))
+                await new Promise(resolve => setTimeout(resolve, Math.min(Math.max(nextReady - Date.now(), IDLE_MS[0]), IDLE_MS[1])).unref())
+                continue
+            }
+            if (attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 continue
             }
@@ -386,19 +430,19 @@ events.on("eventStart", async eventInfo => {
             reportStatus("running")
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
+            if (target && ["ATTACK_SCREEN_REFUSED", "COOLING_DOWN", "WONT_REACH_IN_TIME"].includes(e))
+                heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
+                case "NOT_ENOUGH_CURRENCY1":
+                    await new Promise(resolve => setTimeout(resolve, COINS_WAIT_MS).unref())
+                    break
                 case "NO_MORE_TROOPS":
-                    await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
-                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                            return
-
-                        movementEvents.off("return", self)
-                        resolve()
-                    }))
+                    await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     break
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
+                case "ATTACK_SCREEN_REFUSED":
+                case "WONT_REACH_IN_TIME":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":
                 case "MISSING_UNITS":

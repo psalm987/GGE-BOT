@@ -152,3 +152,45 @@ test("sendAttack watches for its report only when the plugin asked", async () =>
         vi.useRealTimers()
     }
 })
+
+/** A spy report as Lazy Lord reads the client: type 4 on an NPC target, 3 on a player's, header `kind+result[+areaType]#kingdomID+ownerID`. */
+const spyReport = (header, id, type = 4, { archived = 0, forwarded = 0 } = {}) => [id, type, header, "", -1, 0, 0, archived, forwarded]
+/** A `csm` reply's movement for spies sent to a Bloodcrow castle (area type 34, owner -1002), 60 s away. */
+const spies = { MID: 77, TA: [34, 30, 30], TID: -1002, OID: 7, PT: 0, TT: 60, KID: 0 }
+
+test("spies that got through have their report deleted, once the cleanup heard the game accept them (csm)", async () => {
+    vi.useFakeTimers()
+    try {
+        const xtHandler = new EventEmitter()
+        const sent = []
+        createReportCleanup({ xtHandler, sendXT: async (cmd, body) => { sent.push([cmd, JSON.parse(body)]) } })
+        xtHandler.emit("csm", { A: { M: spies } }, 0)
+        await vi.advanceTimersByTimeAsync(60 * SECOND)
+        xtHandler.emit("sne", { MSG: [spyReport("1+2+34#0+-1002+", 8)] }, 0)
+        xtHandler.emit("sne", { MSG: [spyReport("1+0+34#0+-1002+", 9)] }, 0)
+        await vi.advanceTimersByTimeAsync(10 * SECOND)
+        expect(sent, "caught spies are kept, and they use up the spying").toEqual([])
+        xtHandler.emit("csm", { A: { M: spies } }, 0)
+        await vi.advanceTimersByTimeAsync(60 * SECOND)
+        xtHandler.emit("sne", { MSG: [spyReport("1+0+34#0+-1002+", 10, 3)] }, 0)
+        await vi.advanceTimersByTimeAsync(10 * SECOND)
+        expect(sent).toEqual([["dms", { MID: 10 }]])
+    } finally {
+        vi.useRealTimers()
+    }
+})
+
+test("a spy report the bot did not send for is left alone", () => {
+    const cleaner = reportCleaner(() => 0)
+    expect(cleaner.judge(spyReport("1+0+34#0+-1002+", 11))).toBeUndefined()
+})
+
+test("an archived or forwarded report is never deleted", () => {
+    let now = 0
+    const cleaner = reportCleaner(() => now)
+    cleaner.track(march())
+    cleaner.track(march())
+    now = 163 * SECOND
+    expect(cleaner.judge([1, 6, WON, "", -1, 0, 0, 1, 0])).toBe("keep")
+    expect(cleaner.judge([2, 6, WON, "", -1, 0, 0, 0, 1])).toBe("keep")
+})

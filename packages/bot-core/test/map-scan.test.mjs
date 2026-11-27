@@ -176,7 +176,7 @@ describe("the attack plugins", () => {
                 "protocols": protocols,
                 "./attack": { waitToAttack: job => job(), getAttackInfo() {}, accountLimits: () => ({ used: 0, limit: 4000, hourly: 120, hourlyLeft: true }) },
                 "./attack.js": { waitToAttack: job => job(), getAttackInfo() {}, accountLimits: () => ({ used: 0, limit: 4000, hourly: 120, hourlyLeft: true }) },
-                "../commander": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, useCommander() {} },
+                "../commander": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, commanderRefused() {} },
                 "../skips.js": { spendSkip() {}, haveEnoughSkips: () => false },
             },
         })
@@ -186,13 +186,12 @@ describe("the attack plugins", () => {
     const wide = ([x1, , x2]) => x2 - x1 == 100
     const fortresses = [[FORTRESS, 620, 590], [FORTRESS, 900, 100]]
 
-    test("the fortress scan asks for the whole map in 169 requests with map_grid off", async () => {
+    test("the fortress scan looks within 50 tiles of the castle: one wide request with map_grid off", async () => {
         const { run, requests } = loadPlugin("plugins/attack/sharedFortressAttackLogic.js", fortresses, false)
         run(1, 60, {}, "/plugins/attackFortressesBurningSands.js")
         await settle()
 
-        expect(requests).toHaveLength(169)
-        expect(requests.every(([x1, y1, x2, y2]) => x2 - x1 > 12 && y2 - y1 > 12)).toBe(true)
+        expect(requests).toEqual([[550, 550, 650, 650]])
     })
 
     test("the fortress scan asks for 49 grid boxes with map_grid on", async () => {
@@ -204,12 +203,13 @@ describe("the attack plugins", () => {
         expect(requests.every(([x1, y1, x2, y2]) => x2 - x1 == 12 && y2 - y1 == 12)).toBe(true)
     })
 
-    test("a fortress grid scan that finds nothing is followed by the whole-map scan", async () => {
+    test("a fortress grid scan that finds nothing never asks for the whole map", async () => {
         const { run, requests } = loadPlugin("plugins/attack/sharedFortressAttackLogic.js", [fortresses[1]], true)
         run(1, 60, {}, "/plugins/attackFortressesBurningSands.js")
         await settle()
 
-        expect(requests).toHaveLength(49 + 169)
+        expect(requests.length).toBeLessThanOrEqual(50)
+        expect(requests.every(([x1, y1, x2, y2]) => x1 >= 550 && y1 >= 550 && x2 <= 650 && y2 <= 650)).toBe(true)
     })
 
     test("the robber baron scan is one wide request with map_grid off and 49 boxes with it on", async () => {

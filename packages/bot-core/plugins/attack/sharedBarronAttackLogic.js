@@ -88,9 +88,9 @@ const {
     assignUnit,
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
-    getMaxUnitsInReinforcementWave,
-    getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, accountLimits } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
+    courtyardRoom,
+    getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, openAttackScreen, waitForTroops, accountLimits } = require("./attack.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
@@ -121,6 +121,15 @@ const DAILY_LIMIT_RECHECK_MS = 30 * 60_000
 const STATUS_STEPS = { attacks: 10 }
 /** A castle short of troops is looked at again after this long even when no march comes home, in milliseconds. */
 const TROOPS_RECHECK_MS = 10 * 60_000
+/**
+ * Map data older than this is looked at again (`ssi`) before an attack. Any packet about a tower rewrites the shared
+ * map entry, so the bot's view drifts (Lazy Lord's sharedBarronAttackLogic.js).
+ */
+const LOOK_AGAIN_AFTER_MS = 2 * 60_000
+/** A tower the game refused as not ready (COOLING_DOWN, a refused skip or screen) is left alone this long. */
+const NOT_READY_HOLD_MS = 5 * 60_000
+/** Short of coins, the plugin waits this long before it tries again. */
+const COINS_WAIT_MS = 10 * 60_000
 
 /** `filename` is the plugin's file, which its status goes by. */
 async function barronHit(type, kingdomID, stored, maxLevel, filename) {
@@ -235,19 +244,32 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     }
     const inFlight = areaInfo => movements.some(movement =>
         movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
-    const readyAt = areaInfo => areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000
+    /** Tower -> when the plugin's own record says it is ready: its wait as the plugin's own march home saw it, or a refusal's hold. */
+    const heldUntil = new Map()
+    const keyOf = areaInfo => `${areaInfo.x}:${areaInfo.y}`
+    const readyAt = areaInfo => Math.max(areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0)
+    /** Looks at a tower again when the bot's data on it is old, and takes what the game says. */
+    async function lookIfStale(areaInfo) {
+        if (Date.now() - areaInfo.timeSinceRequest <= LOOK_AGAIN_AFTER_MS)
+            return
+        const look = await ClientCommands.preSpyInfo(areaInfo.x, areaInfo.y, kingdomID, false)
+        if (look?.areaInfo?.extraData)
+            Object.assign(areaInfo, { extraData: look.areaInfo.extraData, timeSinceRequest: look.areaInfo.timeSinceRequest })
+    }
 
     const skipTarget = oneSkipPerCamp(async areaInfo => {
         while (areaInfo.extraData[2] > 0) {
-            let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
-
+            const skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
             if (skip == undefined)
-                throw new Error("couldntFindSkip")
+                break
 
             const { result } = await ClientCommands.skipTarget(type, areaInfo.x, areaInfo.y, kingdomID, skip)
 
-            if (result != 0)
+            if (result != 0) {
+                heldUntil.set(keyOf(areaInfo), Date.now() + NOT_READY_HOLD_MS)
                 break
+            }
+            heldUntil.delete(keyOf(areaInfo))
         }
     })
 
@@ -263,8 +285,10 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
         // The march home carries the tower as the attack left it: its new level and the wait before the next attack.
         const hit = areas.find(areaInfo => areaInfo.x == movement.sourceAttack.x && areaInfo.y == movement.sourceAttack.y)
-        if (hit)
+        if (hit) {
             Object.assign(hit, { extraData: movement.sourceAttack.extraData, timeSinceRequest: movement.sourceAttack.timeSinceRequest })
+            heldUntil.set(keyOf(hit), (movement.sourceAttack.timeSinceRequest ?? Date.now()) + (Number(movement.sourceAttack.extraData[2]) || 0) * 1000)
+        }
 
         const shouldUpgradeTower = options.upgradeTowers && getLevel(movement.sourceAttack.extraData[1]) != maxLevel
 
@@ -302,7 +326,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
 
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, undefined, filename)
-        const hasShieldMadiens = commander.getEffects(type).AttackSupportUnits
+        let target
         try {
             const attackInfo = await waitToAttack(async () => {
                 let index = -1
@@ -318,18 +342,14 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     const enoughSkips = haveEnoughSkips(skipsPerTower * movements.reduce((count, movement) =>
                         (movement.targetAttack.type == type ? count++ : count, count), 0) - coinSkips, options.skipTypes) || (recruitTroops && resources.coins > 25000)
 
-                    if (enoughSkips && (options.useTimeSkips || shouldUpgradeTower)) {
-                        try {
-                            await skipTarget(areaInfo)
-                        }
-                        catch (e) {
-                            console.warn(e)
-                            continue
-                        }
-                    }
-                    else if (readyAt(areaInfo) - timeSinceEpoch > 0)
-                        continue
+                    if (enoughSkips && (options.useTimeSkips || shouldUpgradeTower))
+                        await skipTarget(areaInfo)
                     else if (inFlight(areaInfo))
+                        continue
+                    if (readyAt(areaInfo) - timeSinceEpoch > 0)
+                        continue
+                    await lookIfStale(areaInfo)
+                    if (readyAt(areaInfo) - Date.now() > 0)
                         continue
 
                     index = i
@@ -338,7 +358,10 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 if (index == -1)
                     return
 
-                const areaInfo = areas[index]
+                const areaInfo = target = areas[index]
+                const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: options.dryRun })
+                const commanderStats = lord.getEffects(type)
+                const hasShieldMadiens = commanderStats.AttackSupportUnits
                 const level = getLevel(areaInfo.extraData[1])
                 const horse = horseFor(areaInfo)
                 /** Sends the frame and counts the attack against the kingdom's limits. */
@@ -351,12 +374,11 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 }
 
                 if (army.mode == "waves") {
-                    const stats = commander.getEffects()
-                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse, stats.additionalWaves)
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, horse, commanderStats.additionalWaves)
                     fillFromPlan(attackInfo, army.waves, castle.unitInventory, {
-                        flankUnits: getAmountSoldiersFlank(level, stats.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, stats.attackUnitAmountFront),
+                        flankUnits: getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
-                        courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | stats.attackUnitAmountReinforcementBonus),
+                        courtyard: hasShieldMadiens ? 0 : courtyardRoom(level, commanderStats),
                     }, { kingdom: kingdomID, areaType: areaInfo.type })
                     return await sendFrame(attackInfo)
                 }
@@ -426,8 +448,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 const attackLeft = autoConfigure || options.attackLeft
                 const attackRight = autoConfigure || options.attackRight
                 const attackMiddle = autoConfigure || options.attackMiddle
-                const commanderStats = commander.getEffects()
-                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, Number(options.attackWaves), horse, commanderStats.additionalWaves)
+                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, lord, level, Number(options.attackWaves), horse, commanderStats.additionalWaves)
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                 const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
                 const maxToolsFlank = useShields ? getTotalAmountToolsFlank(level, 0) : 10
@@ -493,7 +514,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 })
 
                 if (autoConfigure ? (hasShieldMadiens ? false : true) : options.attackCourtyard) {
-                    let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | commanderStats.attackUnitAmountReinforcementBonus)
+                    let maxTroops = courtyardRoom(level, commanderStats)
                     attackInfo.RW.forEach((unitSlot, i) => {
                         let attacker = i & 1 ?
                             (attackerRangeTroops.length > 0 ? attackerRangeTroops : attackerMeleeTroops) :
@@ -520,8 +541,13 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), attackInfo.tools))
             return true
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
+            if (target && (e == "COOLING_DOWN" || e == "ATTACK_SCREEN_REFUSED"))
+                heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
+                case "NOT_ENOUGH_CURRENCY1":
+                    await sleep(COINS_WAIT_MS)
+                    return true
                 case "NO_MORE_TROOPS":
                     try {
                         if (botConfig.externalEvent && kingdomID == KingdomID.greatEmpire && recruitTroops) {
@@ -534,23 +560,11 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     }
                     console.log("[", KingdomID[kingdomID], "] ", "waitingForMoreTroops")
                     reportStatus("waiting", "statusTowersNoTroops", { castle: from })
-                    await new Promise(resolve => {
-                        const recheck = setTimeout(done, TROOPS_RECHECK_MS)
-                        recheck.unref?.()
-                        function done() {
-                            clearTimeout(recheck)
-                            movementEvents.off("return", home)
-                            resolve()
-                        }
-                        function home(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
-                            if (movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
-                                done()
-                        }
-                        movementEvents.on("return", home)
-                    })
+                    await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id, TROOPS_RECHECK_MS)
                     return true
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
+                case "ATTACK_SCREEN_REFUSED":
+                case "CANT_START_NEW_ARMIES":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":
                 case "MISSING_UNITS":
@@ -560,7 +574,6 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 case "ATTACK_LIMIT_REACHED":
                     // The loop's own look at the limits reports it and waits.
                     return false
-                case "CANT_START_NEW_ARMIES":
                 default:
                     throw e
             }

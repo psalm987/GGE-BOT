@@ -135,3 +135,22 @@ describe("mead for the Storm Islands", () => {
         expect(await mead(stored, 20_000)).toEqual([])
     })
 })
+
+describe("a refused attack screen", () => {
+    test("holds that fort, and the plugin attacks another without stopping", async () => {
+        const { runEvent } = require("./harness/event-bots.cjs")
+        const { tool, melee, ranged } = require("./harness/army-bots.cjs")
+        const fort = x => ({ type: 25, x, y: 100, extraData: [0, 0, 8, 0, 3, 0], timeSinceRequest: 0 })
+        const openAttackScreen = async (castle, areaInfo, kingdomID, commander) => {
+            if (areaInfo.x == 105)
+                throw "ATTACK_SCREEN_REFUSED"
+            return commander
+        }
+        const { sent, statuses } = await runEvent("attackStormForts", { commanderWhiteList: "1-99", allowLvl70Easy: true, allowLvl80Easy: true }, {
+            inventory: [melee(601, 5000), ranged(603, 5000), tool(614, 400, { wallBonus: "10" })], areas: [fort(105), fort(108)],
+            castle: { aqua: 0, getProductionData: { maxAmountAqua: 1_000_000 } }, openAttackScreen, sends: 3, wait: 30,
+        })
+        expect(sent.map(cra => cra.TX)).toEqual([108, 108])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+    })
+})

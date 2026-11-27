@@ -21,7 +21,7 @@ const MAP_MAX = 1286
 const DIFFICULTIES = ["Classic", "Easy", "Easy+", "Intermediate", "Intermediate+", "Hard", "Hard+", "Expert", "Expert+", "Master", "Master+", "Archmaster"]
 /** The `eventDifficulty` choice that leaves the event on the difficulty the player set in the game. */
 const KEEP_DIFFICULTY = DIFFICULTIES.length
-/** The `eventDifficulty` choice that sets the event's highest tier that costs no rubies to rent. */
+/** The `eventDifficulty` choice that sets the event's highest tier the player has unlocked, the default. */
 const HIGHEST_DIFFICULTY = DIFFICULTIES.length + 1
 /** The horse of an attack, by the choice of the `horse` Select. "distance" picks one for each camp. */
 const CAMP_HORSES = ["none", "coin", "feather", "distance"]
@@ -46,7 +46,7 @@ const eventCampOptions = profile => [
     { type: "Label", key: "targetSettings" },
     { type: "Select", key: "targetMode", selection: TARGET_MODE_CHOICES, default: 0 },
     ...profile.targetOptions ?? [],
-    { type: "Select", key: "eventDifficulty", selection: [...DIFFICULTIES, "Keep the game's current difficulty", "Highest unlocked difficulty"], default: "4" },
+    { type: "Select", key: "eventDifficulty", selection: [...DIFFICULTIES, "Keep the game's current difficulty", "Highest unlocked difficulty"], default: String(HIGHEST_DIFFICULTY) },
     { type: "Number", key: "targetX", min: 0, max: MAP_MAX, showWhen: { key: "targetMode", in: [SINGLE] } },
     { type: "Number", key: "targetY", min: 0, max: MAP_MAX, showWhen: { key: "targetMode", in: [SINGLE] } },
     { type: "CastlePicker", key: "sourceCastle", kingdom: profile.kingdom, default: null },
@@ -99,6 +99,8 @@ function parseTarget(options) {
 }
 
 /** When a camp can be attacked again, in epoch milliseconds: its wait counts from when the game last described it. */
+/** How long a plugin out of skips attacks only camps that are ready on their own before it tries a skip again. */
+const OUT_OF_SKIPS_MS = 5 * 60_000
 const readyAt = area => (area.timeSinceRequest ?? 0) + (Number(area.extraData[2]) || 0) * 1000
 
 /**
@@ -127,22 +129,35 @@ function hitsBeforeCooldown(camps, campID) {
  */
 function campQueue(target, areas = [], room = () => 1) {
     const spent = new RollingWindow(DAY)
+    /** Camp -> when a refusal's hold on it ends. */
+    const holds = new Map()
+    const keyOf = area => `${area.x}:${area.y}`
+    const heldUntil = area => holds.get(keyOf(area)) ?? 0
+    const readyFrom = area => Math.max(readyAt(area), heldUntil(area))
+    let skipsGoneUntil = 0
     const queue = {
         areas,
         room,
-        /** Whether one more skip fits the plugin's budget of skips in any 24 hours. */
-        maySkip: (now = Date.now()) => target.skips && (target.skipBudget == 0 || spent.total(now) < target.skipBudget),
+        /** Whether one more skip fits the plugin's budget of skips in any 24 hours, and the player had one last time. */
+        maySkip: (now = Date.now()) => target.skips && now >= skipsGoneUntil && (target.skipBudget == 0 || spent.total(now) < target.skipBudget),
         skipped: (now = Date.now()) => spent.add(now),
         /**
-         * The next camp to attack, or undefined when none can be attacked now. While skips may be spent it is the camp at
-         * the front, whatever its wait. Otherwise it is the first camp whose wait is over and that fewer marches of
-         * `movements` are heading for than its room.
+         * The player has no skip for a camp's wait: for OUT_OF_SKIPS_MS the queue hands out only camps that are ready on
+         * their own, instead of the plugin stopping (Lazy Lord's camp plugins).
+         */
+        outOfSkips: (now = Date.now()) => { skipsGoneUntil = now + OUT_OF_SKIPS_MS },
+        /** Keeps `area` from being handed out for `ms`, after the game refused it as not ready. */
+        hold: (area, ms, now = Date.now()) => { holds.set(keyOf(area), now + ms) },
+        /**
+         * The next camp to attack, or undefined when none can be attacked now. While skips may be spent it is the first
+         * camp not held, whatever its wait. Otherwise it is the first camp whose wait and hold are over and that fewer
+         * marches of `movements` are heading for than its room.
          */
         pick(movements = [], now = Date.now()) {
             const full = area => movements.filter(march => march.targetAttack?.x == area.x && march.targetAttack?.y == area.y).length >= queue.room(area)
-            if (areas.length == 0)
-                return undefined
-            const index = queue.maySkip(now) ? 0 : areas.findIndex(area => readyAt(area) <= now && !full(area))
+            const index = queue.maySkip(now)
+                ? areas.findIndex(area => heldUntil(area) <= now)
+                : areas.findIndex(area => readyFrom(area) <= now && !full(area))
             if (index < 0)
                 return undefined
             const [area] = areas.splice(index, 1)
@@ -156,7 +171,7 @@ function campQueue(target, areas = [], room = () => 1) {
                 Object.assign(area, { extraData: seen.extraData, timeSinceRequest: seen.timeSinceRequest ?? Date.now() })
         },
         /** The earliest time a camp is ready, or Infinity with no camps. */
-        nextReadyAt: () => Math.min(Infinity, ...areas.map(readyAt)),
+        nextReadyAt: () => Math.min(Infinity, ...areas.map(readyFrom)),
     }
     return queue
 }

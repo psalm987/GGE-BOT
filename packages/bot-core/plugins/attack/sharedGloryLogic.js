@@ -50,14 +50,14 @@ const pretty = require("pretty-time")
 const err = require("../../err.json")
 const { castles, movements, movementEvents, AreaType, KingdomID, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, sendAttack, getTotalAmountToolsFlank, getTotalAmountToolsFront,
-    getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
-const { areasAround } = require("../../mapScan.js")
+    getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, openAttackScreen, waitForTroops } = require("./attack.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
+const { areasAround, rectsAround } = require("../../mapScan.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
-const { rentCost } = require("../../eventDifficulty.js")
+const { rentCost, unlocked } = require("../../eventDifficulty.js")
 const { battleReportHeader, readBattleLog } = require("../../battleReports.js")
 
 const difficultyRows = loadItem("eventAutoScalingDifficulties")
@@ -71,6 +71,17 @@ const DETHRONE_MIN_LEVEL = 70
 const NO_CAMPS_RETRY_MS = 10 * 60 * 1000
 const PROTECTION_RETRY_MS = 30 * 60 * 1000
 const ATTACK_LIMIT_RETRY_MS = 30 * 60 * 1000
+/** The map around the castle read again before each attack, this many tiles each way, as the first search reaches. */
+const RESCAN_RADIUS = 50
+/**
+ * A castle the game says is not there for the player yet (NO_PLAYER_SPAWNED_YET, 291), or refuses as not ready, is
+ * left out this long, longer each time it says so again (Lazy Lord's sharedRealmInvasionLogic.js NOT_BACK_WAITS_MS).
+ */
+const NOT_BACK_WAITS_MS = [5, 15, 30, 60].map(minutes => minutes * 60_000)
+/** With every castle beaten, out of sight or under attack, the plugin looks again after this long. */
+const NO_TARGET_RETRY_MS = 30_000
+/** Refusals that mean "this castle is not ready for you", which leave it out for a while instead of stopping the run. */
+const NOT_BACK = ["NO_PLAYER_SPAWNED_YET", "ATTACK_SCREEN_REFUSED", "COOLING_DOWN"]
 /** `uap` peace mode statuses that protect the account: before the peace starts, and during it. */
 const PEACE_PROTECTS = [0, 1]
 
@@ -122,7 +133,9 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
     const usableHere = info =>
         (!info.usageEventID || String(info.usageEventID).split(",").includes(String(eventID))) &&
         toolAllowedAt(info, { kingdom: kingdomID, areaType })
-    const openCamp = area => area?.type == areaType && area.extraData.length > 1 && area.extraData[2] != 1
+    // extraData[2] is the seconds until a beaten castle is back for the player, 0 when it is there (Lazy Lord; medium
+    // confidence). Before, only 1 counted as closed.
+    const openCamp = area => area?.type == areaType && area.extraData.length > 1 && !(Number(area.extraData[2]) > 0)
 
     /** @type {{ stopped: boolean, halted: Promise<void>, halt: () => void, endsAt: number, counts: object, spent: number, dethroneAllowed: boolean, keys: string[], glory: number, hits: number, considered: Set<string> }} */
     let run
@@ -217,7 +230,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             .filter(row => row.eventID == eventID && row.difficultyID >= firstDifficulty && row.difficultyID <= lastDifficulty)
             .sort((a, b) => a.difficultyTypeID - b.difficultyTypeID)
         const wanted = Number(setting("gloryDifficulty"))
-        const tier = wanted == 0 ? tiers.findLast(row => rentCost(row) == 0) : tiers.find(row => row.difficultyTypeID == wanted)
+        const tier = wanted == 0 ? tiers.findLast(unlocked) : tiers.find(row => row.difficultyTypeID == wanted)
         if (!tier) {
             console.error("gloryDifficultyUnknown")
             stop(target, "error", "statusDifficultyUnknown")
@@ -255,6 +268,35 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         } catch {
             return true
         }
+    }
+
+    /** Castle -> how often in a row it was not back, and until when it is left out. */
+    const notBack = new Map()
+    const keyOf = area => `${area.x}:${area.y}`
+    const leftOut = area => (notBack.get(keyOf(area))?.until ?? 0) > Date.now()
+    const underAttack = area => movements.some(movement => movement.kingdomID == kingdomID &&
+        movement.targetAttack?.x == area.x && movement.targetAttack?.y == area.y && movement.owner?.ownerID == playerInfo.playerID)
+    function leaveOut(area) {
+        const times = (notBack.get(keyOf(area))?.times ?? 0) + 1
+        notBack.set(keyOf(area), { times, until: Date.now() + NOT_BACK_WAITS_MS[Math.min(times, NOT_BACK_WAITS_MS.length) - 1] })
+    }
+    /**
+     * The castle to attack now: the nearest open one that the player is not already attacking and that is not left
+     * out, from a fresh look at the map. Before, the castles were found once per run and taken in turn.
+     */
+    async function nextCamp(castle, camps) {
+        for (const rect of rectsAround(castle.areaInfo.x, castle.areaInfo.y, RESCAN_RADIUS)) {
+            const { areaInfo = [] } = await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)
+            for (const area of areaInfo.filter(area => area.type == areaType)) {
+                const known = camps.find(camp => keyOf(camp) == keyOf(area))
+                if (known)
+                    Object.assign(known, { extraData: area.extraData, timeSinceRequest: area.timeSinceRequest })
+                else
+                    camps.push(area)
+            }
+        }
+        return camps.filter(camp => openCamp(camp) && !leftOut(camp) && !underAttack(camp))
+            .sort((a, b) => distance(castle.areaInfo, a) - distance(castle.areaInfo, b))[0]
     }
 
     async function findCamps(castle) {
@@ -326,8 +368,9 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
 
     /** Builds the `cra` for `camp` from the castle's units, taking what it sends out of `inventory`. */
     function buildAttack(castle, camp, commander, inventory) {
+        // The level read is unconfirmed: Lazy Lord uses a fixed 70 for these castles.
         const level = Number(camp.extraData[0])
-        const effects = commander.getEffects()
+        const effects = commander.getEffects(areaType)
         const horse = HORSES[Number(setting("horse"))] ?? {}
         const maxTools = { flank: getTotalAmountToolsFlank(level, 0), front: getTotalAmountToolsFront(level) }
         if (army.mode == "waves") {
@@ -335,7 +378,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             fillFromPlan(attackInfo, army.waves, inventory, {
                 flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                 flankTools: maxTools.flank, frontTools: maxTools.front,
-                courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                courtyard: courtyardRoom(level, effects),
             }, { kingdom: kingdomID, areaType })
             return { attackInfo, level }
         }
@@ -395,7 +438,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         console.log("gloryBannersUsed", banners)
 
         if (setting("courtyardWave")) {
-            let room = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus)
+            let room = courtyardRoom(level, effects)
             attackInfo.RW.forEach((slot, i) => {
                 const sent = assignUnit(slot, i & 1 ? firstWithAny(meleeTroops, rangedTroops) : firstWithAny(rangedTroops, meleeTroops),
                     Math.min(Math.ceil(room / (attackInfo.RW.length - i)), budget))
@@ -452,37 +495,47 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 }
                 break
             }
+            let camp
             try {
                 const sent = await waitToAttack(async () => {
-                    const camp = camps.shift()
-                    camps.push(camp)
+                    camp = await nextCamp(castle, camps)
+                    if (!camp)
+                        return
                     console.log("gloryTargetFound", `${camp.x}:${camp.y}`)
                     await maybeDethrone(target, camp)
                     const dryRun = Boolean(setting("dryRun"))
+                    const lord = await openAttackScreen(castle, camp, kingdomID, commander, { dryRun })
+                    if (!openCamp(camp))
+                        return
                     const inventory = dryRun ? castle.unitInventory.map(unit => ({ ...unit })) : castle.unitInventory
-                    const { attackInfo, level } = buildAttack(castle, camp, commander, inventory)
+                    const { attackInfo, level } = buildAttack(castle, camp, lord, inventory)
                     return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun, deleteReports: Boolean(setting("deleteReports")) })
-                })
-                if (!sent || sent.dryRun) {
+                }, filename)
+                if (!sent) {
+                    freeCommander(commander.lordID)
+                    await wait(target, NO_TARGET_RETRY_MS)
+                    continue
+                }
+                if (sent.dryRun) {
                     freeCommander(commander.lordID)
                     continue
                 }
+                notBack.delete(keyOf(camp))
                 console.info("gloryAttackSent", `${sent.AAM.M.TA[1]}:${sent.AAM.M.TA[2]}`, " ",
                     pretty(Math.round(1000000000 * Math.abs(Math.max(0, sent.AAM.M.TT - sent.AAM.M.PT))), "s"), "tillImpactAttack")
             } catch (e) {
-                freeCommander(commander.lordID)
+                e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
+                if (camp && NOT_BACK.includes(e)) {
+                    leaveOut(camp)
+                    console.debug("gloryNotBackYet", `${camp.x}:${camp.y}`, e)
+                    continue
+                }
                 switch (e) {
                     case "NO_MORE_TROOPS":
                         console.warn(e)
-                        await Promise.race([target.halted, new Promise(resolve => movementEvents.on("return", function self(movement) {
-                            if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                                return
-                            movementEvents.off("return", self)
-                            resolve()
-                        }))])
+                        await Promise.race([target.halted, waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)])
                         break
                     case "LORD_IS_USED":
-                        useCommander(commander.lordID)
                         break
                     case "COOLING_DOWN":
                     case "TIMED_OUT":

@@ -76,6 +76,31 @@ describe("a camp plugin's target", () => {
         expect(queue.pick([], 6000)).toBeUndefined()
         expect(queue.nextReadyAt()).toBe(905_000)
     })
+    test("a held camp is not handed out, with or without skips, until its hold ends", () => {
+        const now = 1_000_000
+        const first = { x: 1, y: 1, extraData: [0, 0, 600], timeSinceRequest: now }
+        const second = { x: 2, y: 2, extraData: [0, 0, 0], timeSinceRequest: now }
+        const skipping = campQueue(parseTarget({}), [first, second])
+        skipping.hold(first, 5 * 60_000, now)
+        expect(skipping.pick([], now)).toBe(second)
+        expect(skipping.pick([], now)).toBe(second)
+        expect(skipping.pick([], now + 5 * 60_000)).toBe(first)
+
+        const waiting = campQueue(parseTarget({ targetMode: 1 }), [{ ...second }])
+        waiting.hold(waiting.areas[0], 60_000, now)
+        expect(waiting.pick([], now)).toBeUndefined()
+        expect(waiting.nextReadyAt()).toBe(now + 60_000)
+    })
+    test("out of skips the queue falls back to camps that are ready on their own for 5 minutes, then may skip again", () => {
+        const now = 1_000_000
+        const cooling = { x: 1, y: 1, extraData: [0, 0, 600], timeSinceRequest: now }
+        const ready = { x: 2, y: 2, extraData: [0, 0, 0], timeSinceRequest: now }
+        const queue = campQueue(parseTarget({}), [cooling, ready])
+        queue.outOfSkips(now)
+        expect(queue.maySkip(now)).toBe(false)
+        expect(queue.pick([], now)).toBe(ready)
+        expect(queue.maySkip(now + 5 * 60_000)).toBe(true)
+    })
     test("the skip budget counts skips over 24 hours", () => {
         const queue = campQueue(parseTarget({ skipBudgetPerDay: 2 }))
         const now = 1_000_000
@@ -140,6 +165,40 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         expect(targets(sent)).toEqual([[110, 105]])
     })
 
+    test("out of skips the plugin does not stop: it attacks a camp that is ready on its own", async () => {
+        const { sent, statuses } = await run({}, { areas: [camp(110, 105, 300, type), camp(120, 100, 0, type)], spendSkip: () => undefined, wait: 20 })
+        expect(targets(sent)).toEqual([[120, 100]])
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+    })
+
+    test("a refused skip sends no attack to the camp still cooling down", async () => {
+        const { sent, skipped } = await run({}, { areas: [camp(110, 105, 300, type)], skipRefusal: () => 95, wait: 20 })
+        expect(skipped).toEqual(["MS3"])
+        expect(sent).toEqual([])
+    })
+
+    test("an attack screen that still shows the camp's wait sends no attack", async () => {
+        const openAttackScreen = async (castle, areaInfo, kingdomID, commander) => {
+            areaInfo.extraData = [0, 0, 600, 0, 0, 5, 0]
+            areaInfo.timeSinceRequest = Date.now()
+            return commander
+        }
+        const { sent } = await run({ targetMode: 1 }, { areas: [camp(110, 105, 0, type)], openAttackScreen, wait: 20 })
+        expect(sent).toEqual([])
+    })
+
+    test.each(["WONT_REACH_IN_TIME", "NOT_ENOUGH_CURRENCY1", "ATTACK_SCREEN_REFUSED"])("%s does not stop the plugin", async refusal => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        let first = true
+        const sendRefusal = () => first ? (first = false, refusal) : undefined
+        const { sent, refused, statuses } = await run({ targetMode: 1 }, { areas: [camp(110, 105, 0, type), camp(120, 100, 0, type)], sendRefusal, sends: 2, wait: 30 })
+        expect(refused).toEqual([refusal])
+        expect(sent.length).toBeGreaterThan(0)
+        expect(statuses.map(status => status.state)).not.toContain("stopped")
+        expect(console.error).not.toHaveBeenCalled()
+    })
+
     test("log only sends no attack and spends no skip", async () => {
         const { sent, skipped } = await run({ dryRun: true }, { areas: [camp(110, 105, 300, type)], wait: 10 })
         expect([sent, skipped]).toEqual([[], []])
@@ -177,13 +236,13 @@ describe.each([["Nomads", nomads, 27], ["Samurai", samurai, 29]])("%s", (_, run,
         expect(sent).toHaveLength(1)
     })
 
-    test("a skip that fails after a march home goes to the plugin's log", async () => {
+    test("running out of skips after a march home goes to the plugin's log", async () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
         const movementEvents = new EventEmitter()
         await run({}, { areas: [camp(110, 105, 0, type)], movementEvents, spendSkip: () => undefined })
         movementEvents.emit("returning", { targetOwner: { ownerID: 7 }, sourceAttack: camp(110, 105, 300, type) })
         await new Promise(resolve => setTimeout(resolve, 5))
-        expect(warn).toHaveBeenCalledWith(expect.objectContaining({ message: "couldntFindSkip" }))
+        expect(warn).toHaveBeenCalledWith("campOutOfSkips")
         warn.mockRestore()
     })
 

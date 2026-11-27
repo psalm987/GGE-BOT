@@ -29,7 +29,19 @@ const allowsTarget = (pairs, target) =>
     pairs === null || pairs.length == 0 || pairs.some(pair =>
         (pair.kingdom == ANY || pair.kingdom == target.kingdom) && (pair.areaType == ANY || pair.areaType == target.areaType))
 
-/** Whether the item `info` from the items file may attack `target`. */
-const toolAllowedAt = (info, target) => allowsTarget(parseAllowedToAttack(info.allowedToAttack), target)
+/**
+ * Area types of computer-controlled targets: barons, fortresses, towers, storm forts and event camps. Not Foreign Lords
+ * (21) or Bloodcrow (34) castles, which the game treats as player castles (Lazy Lord's attackTemplates.js, after the
+ * client's AttackHelper.canUseToolForAttackOnTarget; medium confidence).
+ */
+const NPC_AREA_TYPES = new Set([2, 11, 17, 24, 25, 27, 29, 30, 35, 37])
 
-module.exports = { ANY, parseAllowedToAttack, allowsTarget, toolAllowedAt }
+/**
+ * Whether the item `info` from the items file may attack `target`. `canBeUsedToAttackNPC` "0" marks an item only for
+ * player targets, such as the royal and emperor's sets.
+ */
+const toolAllowedAt = (info, target) =>
+    !(NPC_AREA_TYPES.has(Number(target.areaType)) && info.canBeUsedToAttackNPC != undefined && Number(info.canBeUsedToAttackNPC) == 0) &&
+    allowsTarget(parseAllowedToAttack(info.allowedToAttack), target)
+
+module.exports = { ANY, NPC_AREA_TYPES, parseAllowedToAttack, allowsTarget, toolAllowedAt }

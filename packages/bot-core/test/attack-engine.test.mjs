@@ -162,3 +162,13 @@ describe("the coin horse", () => {
         expect(ride(captured.gbd_1.reply.payload.gpc.A[0].UH)).toMatchObject({ HBW: 1001, PTT: 0 })
     })
 })
+
+describe("the courtyard's room", () => {
+    test("adds the commander's flat bonus first, then applies its % boost to the whole", () => {
+        const { courtyardRoom, getMaxUnitsInReinforcementWave } = engine({ playerLevel: 70 })
+        const base = getMaxUnitsInReinforcementWave(70, 50)
+        expect(courtyardRoom(50, {})).toBe(base)
+        expect(courtyardRoom(50, { attackUnitAmountReinforcementBonus: 100 })).toBe(base + 100)
+        expect(courtyardRoom(50, { attackUnitAmountReinforcementBonus: 100, attackUnitAmountReinforcementBoost: 50 })).toBe(Math.round((base + 100) * 1.5))
+    })
+})
