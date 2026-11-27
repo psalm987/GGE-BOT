@@ -2,7 +2,7 @@
 
 Berimond is kingdom 10, a faction kingdom. A player joins a faction there, owns one camp (a castle of area type 15) and attacks the enemy faction's watchtowers (area type 17) for faction points. This is not the Berimond Invasion event of [event-camps.md](event-camps.md) and [invasions.md](invasions.md), which the bot already attacks from `plugins/attack/attackBerimondInvasion.js`. That event uses invasion camps of type 30 in the home kingdoms. This page is about the towers of kingdom 10 and the commands a towers plugin sends.
 
-Each fact below is labelled. **Live** was seen in the trace. **Client** comes from the client's class names (`tools/trace/cmd-names.json`), its error names (`packages/bot-core/err.json`) or the existing protocol pages. **Inferred** is a reading of the live data that the data supports but the server never states.
+Each fact below is labelled. **Live** was seen in the trace. **Client** comes from the client's class names (`tools/trace/cmd-names.json`), its error names (`packages/bot-core/err.json`) or the existing protocol pages. **Inferred** is a reading of the live data that the data supports but the server never states. **Lazy Lord** comes from Lazy Lord's own plugin for these towers, `be/plugins/berimondKingdom.js` (MIT), which we read but did not run. Its facts are in "What Lazy Lord's plugin adds".
 
 The page comes from one recorder session of the player's own account, `20261126-032939-2aa831` of 2026-11-26 (zone `EmpireEx_26`, 360 s, 200 steps). The player joined the camp, attacked one tower twice, moved troops in from the Green kingdom and left the camp again. The masked capture is `packages/bot-core/test/fixtures/protocol/berimond-kingdom.json`. The client bundle was not read for this page, so no field order here comes from a `C2S*VO` constructor.
 
@@ -140,6 +140,31 @@ kut {SCID: <castle>, SKID: 0, TKID: 10, CID: -1, A: [[546, 81], [507, 104]]}
 
 `packages/bot-core/protocols.js` already sends `msk` with this shape (`clientSkipResourceTransfer`, `KID` as a string) and reads `kut`, `msk`, `kgt` and `fjf` replies through `skipUnitTransferList`. It has no sender for `kut`. Its unit-transfer helper sends `kgt`, which is a goods transfer (`C2SKingdomGoodsTransferVO`, client). A towers plugin that tops up the camp has to add a `kut` call. `kpi`'s `UL` entry for kingdom 10 read `{KID: 10, U: 1, C: 0}` (live).
 
+## What Lazy Lord's plugin adds
+
+Lazy Lord's plugin attacks these towers from a list the player types, and refills the camp. What its code says about the game, with each fact's source and how far we trust it. "Lazy Lord" means its code or its comments. None of these was seen in our trace unless the row says so. `packages/bot-core/plugins/berimondKingdom.js` and `packages/bot-core/berimondKingdomPlan.js` follow them.
+
+| Fact | Source | Confidence |
+|---|---|---|
+| Event 3 is the Berimond Kingdom event. The player's points in it are `pep {EID: 3}` `OP[0]`, pushed when they change and answered when asked with `pep {EID: 3}` | Lazy Lord, and live for the push (see "Faction points and sides") | high |
+| `ssi {TX, TY, KID: 10}` looks at a tower. `INVALID_POSITION` (6) means nothing stands there: the tower was destroyed, or the position was never a tower | Lazy Lord; the request is live | medium |
+| A look that fails some other way is no refusal. Lazy Lord looks again after 2 minutes, then 4, and drops the tower at the third failure in a row | Lazy Lord's own choice | not a game fact |
+| The tower's level is `AI[7]`, `extraData[4]`. Lazy Lord matched it to a tower where the game showed 111 soldiers on a flank with a +73.6% bonus: level 87 gives 64 a flank, and 64 x 1.736 is 111 | Lazy Lord, one sample | medium |
+| A side holds at most 52 soldiers on a flank and 156 in the middle when the numbers are typed, and 30 tools on a flank and 40 in the middle | Lazy Lord | medium |
+| A side set to the maximum holds what the game allows the commander: attackers are 5 x level + 8, at most 260, and 320 from level 70. A flank takes 20% of them, rounded up, and the middle the rest. The commander's flank and front bonuses raise each side, rounded down. The camp's castle bonuses (`AE` in the `aci` reply) count too | Lazy Lord; the same formula as `getMaxAttackers` in `plugins/attack/attack.js` | medium |
+| The first wave needs at least 32 soldiers | Lazy Lord's settings editor | low (why 32 is not stated) |
+| `aci {TX, TY, SX, SY, KID: 10}` opens the attack screen from the camp. Its reply is matched on `gaa.AI[1]` and `gaa.AI[2]`. `INVALID_AREA` (203) means the tower is gone | Lazy Lord; the request is live | medium for `INVALID_AREA` |
+| `cra` against a tower carries `AV: 1` and a courtyard `RW` of 8 slots, and its reply is matched on `AAM.M.KID == 10` and `AAM.M.TA[1..2]` | Live (`cra_1`, `cra_2`), and Lazy Lord | high |
+| An attack the game refuses means the tower should not be tried again, except `MISSING_UNITS`, `ATTACK_TOO_MANY_UNITS` and `WONT_REACH_IN_TIME`. Lazy Lord stops after two refusals in a row | Lazy Lord's own choice | not a game fact |
+| `ATTACK_TOO_MANY_UNITS` (313) on a maximum side: Lazy Lord takes 1 soldier off that commander's sides, then 2, 4 and so on, and 2% more off every commander's, at most 20% | Lazy Lord's own choice | not a game fact |
+| `WONT_REACH_IN_TIME` (315) means the event ends before the attack lands | Lazy Lord | medium |
+| `fuc {CID}` returns `{FUC}`, the camp's free places. It counts troops out on attacks and follows camp upgrades. `CID` is the camp's id, which is new each event (Lazy Lord saw 120 and then 41). `INVALID_AREA` means the id is wrong | Lazy Lord; one reply is live (`{FUC: 185}` for camp 55) | medium |
+| A refill is `kut` from the main castle, then `msk` with `TT` 1 to skip its trip (see "Moving troops in") | Live, and Lazy Lord | high |
+| Two army starts (`cra`, `kut`) too close together can get the connection closed with `CANT_START_NEW_ARMIES`. Lazy Lord keeps 3.5 to 6 seconds between them | Lazy Lord | medium |
+| The bot's count of the main castle lags behind attacks that left it, and a `kut` built on it was refused with `MISSING_UNITS` (Lazy Lord, 26 Nov 2026). Lazy Lord asks for `dcl` right before a `kut`, and after troops come home to the camp | Lazy Lord | medium |
+| A refill that fails, or finds too few troops at home, waits 2 minutes, then twice as long each time, at most 30 | Lazy Lord's own choice | not a game fact |
+| Each event has a new camp and new towers. Lazy Lord forgets everything at each event's start and switches the plugin off when the event ends | Lazy Lord | medium |
+
 ## What a towers plugin needs
 
 1. **Find a tower.** Send `fnt {}`. Read `X`, `Y` and the `gaa.AI[0]` record. Skip the tower if `AI[3]` is the player's own side. Which sign that is, see "Sides".
@@ -152,7 +177,7 @@ kut {SCID: <castle>, SKID: 0, TKID: 10, CID: -1, A: [[546, 81], [507, 104]]}
 Cases the trace did not show:
 
 - What `fnt` returns when no tower is left. `err.json` has `205 NO_MORE_TOWERS` and `1009 TOWER_DEPLETED`, which are the likely replies (inferred from the names alone).
-- Where the tower's level comes from. `AI[7]` (55) and `ssu`'s `DL` (55) are candidates, but the camp id is also 55.
+- Where the tower's level comes from. `AI[7]` (55) and `ssu`'s `DL` (55) are candidates, but the camp id is also 55. Lazy Lord reads `AI[7]` as the level (see below).
 - The side mapping from `FID` to -410 and -411, and what a player of the other side is shown by `fnt`.
 - How the defence `S` scales with the tower, and how many towers one account can hit or how often (a cooldown). The same tower was attacked again 117 s after the first landing.
 - The failure replies of `cra`, `aci` and `csm` against a tower, such as a tower under attack by someone else.
@@ -181,4 +206,7 @@ Cases the trace did not show:
 | `kut` request and reply, `msk` skips 3600 s per `MS5` | high | |
 | `packages/bot-core/protocols.js` has no `kut` sender and sends `joa` where the client sent `jaa` | high (read from the code) | |
 | `fnt` replies `NO_MORE_TOWERS` when none is left | low | Attack until no tower is free |
-| The tower's level source | low | `ssu` on towers of different `AI[7]` |
+| The tower's level source | medium: Lazy Lord reads `AI[7]`, one sample | `ssu` on towers of different `AI[7]`, and the most soldiers the attack screen allows |
+| `fuc {CID}` returns the camp's free places | medium | One `fuc` before and after a `kut` |
+| `ssi` answers `INVALID_POSITION` for a destroyed tower | medium (Lazy Lord) | A look after a tower falls |
+| `aci` answers `INVALID_AREA` for a tower that is gone | medium (Lazy Lord) | An attack screen on a tower that just fell |
