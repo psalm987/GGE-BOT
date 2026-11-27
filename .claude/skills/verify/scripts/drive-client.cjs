@@ -2224,6 +2224,92 @@ async function driveUxArmourer(page) {
 }
 
 /**
+ * The Live view of what the bot last read, as the seeded demo player. A snapshot written into Ironhold's last report
+ * carries every kind of march, a stationed army, a castle's order and units, the defence's gate, locked and courtyard
+ * slots and defenders by kind, and the Khan camp's figures and rage tools; the page must show each of them.
+ */
+async function driveLiveView(page) {
+    const castles = [{ kingdom: 0, id: 1001, name: "Ironhold", x: 412, y: 288, type: 1 }, { kingdom: 0, id: 1002, name: "Ironhold Watch", x: 430, y: 301, type: 4 }]
+    const now = Date.now()
+    const keep = { type: 1, x: 412, y: 288, name: "Ironhold" }, watch = { type: 4, x: 430, y: 301, name: "Ironhold Watch" }, camp = { type: 35, x: 114, y: 320, name: null }
+    const march = (id, side, kind, from, to, arrivesIn, over = {}) => ({ id, side, kind, kingdom: 0, from, to, sender: null, troops: 120, totalSeconds: 900, arrivesAt: now + arrivesIn, stationedUntil: null, ...over })
+    const units = { defenders: [{ wodID: 222, amount: 7416 }, { wodID: 220, amount: 959 }], attackers: [{ wodID: 271, amount: 120 }], defenceTools: [{ wodID: 110, amount: 5000 }], attackTools: [{ wodID: 950, amount: 30 }] }
+    const tool = (wodID, amount) => ({ wodID, amount })
+    const readBack = {
+        at: now, movementCount: 5, session: { startedAt: now - 2 * 3_600_000, coins: 44_400, rubies: 2 },
+        movements: [
+            march(1, "incoming", "attack", camp, keep, 300_000, { sender: null, troops: null }),
+            march(2, "own", "market", keep, watch, 400_000),
+            march(3, "own", "transfer", watch, keep, 500_000),
+            march(4, "own", "return", camp, keep, 600_000),
+            march(5, "support", "station", { type: 1, x: 500, y: 500, name: "Friend Hall" }, keep, -60_000, { sender: "Friend", stationedUntil: now + 3_600_000 }),
+        ],
+        castles: [
+            { kingdom: 0, id: 1001, readAt: now, stock: { wood: { amount: 120_000, max: 175_000, perHour: 1_600 } }, units, publicOrder: 2500, productivity: 200, guards: 640, population: 1210 },
+            { kingdom: 0, id: 1002, readAt: now, stock: { food: { amount: 9_000, max: 50_000, perHour: -300 } }, units: { defenders: [], attackers: [], defenceTools: [], attackTools: [] }, publicOrder: -400, productivity: 71, guards: null, population: null },
+        ],
+        defence: {
+            kingdom: 0, id: 1001, readAt: now,
+            wall: {
+                level: 8, defence: 315.7, troops: 5031, room: 5031, extraFlankSlot: false,
+                sides: { left: { share: 30, slots: Array(4).fill(tool(110, 686)) }, front: { share: 40, slots: [tool(110, 699), tool(622, 303), tool(110, 699), tool(110, 699), null, tool(110, 699)] }, right: { share: 30, slots: Array(4).fill(tool(110, 686)) } },
+            },
+            gate: { level: 7, defence: 306.6 },
+            moat: { level: 2, defence: 147, sides: { left: [tool(112, 686)], front: [tool(112, 699)], right: [tool(112, 686)] } },
+            courtyard: { troops: 433_000, room: 433_000, allianceRoom: 252_500, slots: [tool(622, 40), null, null] },
+            defenders: 8375, defenderUnits: units.defenders, tools: [tool(110, 50_497), tool(112, 41_263)],
+        },
+        khanRage: { rage: 1426, needed: 2460, campLevel: 113, lastGain: 1426, lastGainAt: now - 60_000, eventRunning: true, hold: null, baseRage: 230, critChance: 12, rageTools: [tool(106, 40), tool(563, 2)] },
+    }
+    await insertResources({ accountName: "Ironhold", resources: { castles, readBack } })
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    assert(ironhold.status?.readBack?.defence?.wall.extraFlankSlot === false && ironhold.status.readBack.khanRage.baseRage === 230, "the API reads the snapshot back with its new fields")
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/live-view?account=${ironhold.id}`)
+    const marches = page.locator(".gge-live-marches")
+    await marches.waitFor()
+
+    const tags = await marches.locator(".ant-tag").allInnerTexts()
+    assert(["Attack", "Market cart", "Transfer", "Returning", "Stationing"].every(kind => tags.includes(kind)), `each kind of march has its tag: ${tags.join(", ")}`)
+    const stay = marches.locator(".gge-live-march", { hasText: "Friend Hall" })
+    assert(/^Leaves in (59|1:00):\d\d/.test(await stay.locator(".gge-live-eta").innerText()), "a stationed army that has arrived shows when it leaves, not when it lands")
+
+    const keepCastle = page.locator(".gge-live-castle", { has: page.locator(".gge-live-castle-name", { hasText: /^Ironhold$/ }) })
+    const order = await keepCastle.locator(".gge-live-order").innerText()
+    assert(/Public order\s+\+2,500/.test(order) && /Productivity\s+200%/.test(order) && /Guards\s+640/.test(order) && /Population\s+1,210/.test(order), `the castle shows its public order, productivity, guards and population: ${order.replace(/\s+/g, " ")}`)
+    const watchOrder = await page.locator(".gge-live-castle", { hasText: "Ironhold Watch" }).locator(".gge-live-order").innerText()
+    assert(/Public order\s+-400/.test(watchOrder.replace("−", "-")) && /71%/.test(watchOrder) && !/Guards/.test(watchOrder), "negative order shows with its sign, and a figure the game didn't send is left out")
+    const groups = await keepCastle.locator(".gge-live-units-head").allInnerTexts()
+    assert(groups.join("|") === "Defenders|Attackers|Defence tools|Attack tools", `the castle's units are grouped by what they do: ${groups.join(", ")}`)
+    assert(/: 7,416$/.test(await keepCastle.locator(".gge-live-units").first().locator("li").first().innerText()), "the largest defender stock comes first, with its amount")
+    assert(await page.locator(".gge-live-castle", { hasText: "Ironhold Watch" }).locator(".gge-live-units").count() === 0, "a castle with no units lists no empty groups")
+
+    const defence = page.locator(".gge-live-stores", { has: page.getByRole("columnheader", { name: "Wall tools" }) })
+    const front = defence.getByRole("row", { name: /^Front/ })
+    assert(await front.locator(".gge-live-gate").count() === 2, "the front wall's two gate slots are labelled Gate")
+    assert(/Gate\s*Empty slot/i.test(await front.locator("li").nth(4).innerText()), "an empty gate slot is still labelled as one")
+    for (const side of ["Left flank", "Right flank"])
+        assert(await defence.getByRole("row", { name: new RegExp(`^${side}`) }).locator("li[data-locked]").count() === 1, `the ${side.toLowerCase()} shows its fifth slot as locked`)
+    assert(await page.getByText("Each flank's fifth tool slot opens with the legendary skill for it.").isVisible(), "the page says what opens the locked slot")
+    const subheads = await page.locator(".gge-live-subhead").allInnerTexts()
+    assert(["Courtyard tools", "Defenders by kind", "Defence tools in storage", "Rage tools in storage"].every(head => subheads.includes(head)), `the defence and rage cards have their new lists: ${subheads.join(", ")}`)
+
+    const rageFacts = await page.locator(".gge-live-rage-figure").locator("xpath=..").innerText()
+    assert(/230 rage a hit/.test(rageFacts) && /12% chance of a critical hit/.test(rageFacts), "the rage bar shows the camp's rage per hit and critical chance")
+    assert(/: 40$/.test(await page.locator(".gge-live-subhead", { hasText: "Rage tools in storage" }).locator("xpath=following-sibling::ul[1]/li[1]").innerText()), "the rage tools in storage are listed with their amounts")
+
+    await axe(page, "live view 1440")
+    await page.screenshot({ path: `${out}/live-view-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Live view at 390")
+    await axe(page, "live view 390")
+    await page.screenshot({ path: `${out}/live-view-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+    await insertResources({ accountName: "Ironhold", resources: { castles } })
+}
+
+/**
  * The Recruit, tools and heal page: live with its two row tables, the pickers listing only what the plugin may order
  * (checked against the game's units file: nothing that costs rubies, components or tokens), healing still to come,
  * rows saved and read back through the API and after a reload, and axe at 1440, 390 and in Arabic. The runner is off,
@@ -2977,6 +3063,17 @@ async function driveUxCommanders(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveRecruitTools(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "live-view") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveLiveView(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
