@@ -165,6 +165,13 @@ describe("the richer option types", () => {
             .toEqual({ destinations: [{ kingdom: 2, x: 10 }, { kingdom: 0, x: 5 }] })
     })
 
+    test("a kingdom column refuses the kingdoms it excludes, and takes the rest", () => {
+        const noBerimond = [{ ...richer[0]!, options: [{ type: "Rows", key: "rules", default: [], columns: [{ key: "to", type: "kingdom", exclude: [10] }] }] }] as never
+        const saveRules = (rules: unknown) => normalizePluginSettings(noBerimond, { attackForeign: { enabled: true, options: { rules } as never } })
+        expect(saveRules([{ to: 2 }]).attackForeign!.options).toEqual({ rules: [{ to: 2 }] })
+        expect(() => saveRules([{ to: 10 }])).toThrow()
+    })
+
     test.each([
         ["a number out of range", { stopMinutesBefore: 241 }, "PLUGIN_OPTION_RANGE"],
         ["a number off its step", { stopMinutesBefore: 7 }, "PLUGIN_OPTION_STEP"],

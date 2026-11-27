@@ -47,7 +47,8 @@ export type LegacyChoice = z.infer<typeof LegacyChoice>
 export const RowColumn = z.discriminatedUnion("type", [
     /** `legacyKingdom` names the kingdom column this one replaced: a stored row that has only that reads as the kingdom's main castle. */
     z.object({ key, type: z.literal("castle"), legacyKingdom: key.optional() }),
-    z.object({ key, type: z.literal("kingdom") }),
+    /** `exclude` lists kingdoms the plugin can't use, which the editor doesn't offer and saving refuses. */
+    z.object({ key, type: z.literal("kingdom"), exclude: z.array(z.number().int()).optional() }),
     /** `orderable` lists only the items a plugin may order with coins or resources, which `GameItem.orderList` marks. */
     z.object({ key, type: z.literal("tool"), orderable: z.literal(true).optional() }),
     z.object({ key, type: z.literal("troop"), orderable: z.literal(true).optional() }),
@@ -313,7 +314,7 @@ function checkRow(columns: RowColumn[], row: unknown, where: string): RowValue {
         const cell = parsed.data[column.key]
         const at = `${where}.${column.key}`
         const valid = column.type === "castle" ? CastleRef.safeParse(cell).success
-            : column.type === "kingdom" ? (KINGDOM_IDS as readonly unknown[]).includes(cell)
+            : column.type === "kingdom" ? (KINGDOM_IDS as readonly unknown[]).includes(cell) && !column.exclude?.includes(cell as number)
             : column.type === "number" || Number.isInteger(cell)
         if (!valid)
             throw new PluginSettingsError({ code: column.type === "castle" ? "PLUGIN_OPTION_CASTLE" : "PLUGIN_OPTION_ITEM", params: { where: at } })

@@ -762,7 +762,7 @@
   "modules.mp-builder.name": "MP builder",
   "modules.mp-builder.description": "Builds the event server's mighty place from the twin of your account.",
   "modules.recruit-tools-heal.name": "Recruit, tools and heal",
-  "modules.recruit-tools-heal.description": "Keeps each castle's troops and tools at the stock you set, ordering from the barracks and the workshops with coins and resources. Healing is coming soon.",
+  "modules.recruit-tools-heal.description": "Keeps each castle's troops and tools at the stock you set, ordering from the barracks and the workshops with coins and resources, and heals the wounded with coins.",
   "modules.refinery-toolsmith.name": "Toolsmith",
   "modules.refinery-toolsmith.description": "Builds siege and defence tools in your workshops until each one reaches the stock you set.",
   "modules.auto-feast.name": "Auto-feast",

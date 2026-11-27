@@ -1,6 +1,7 @@
+/** Berimond (10) has no kingdom castle to send from or to, so the editor doesn't offer it. */
 const ruleColumns = item => [
-    { key: "toKingdom", type: "kingdom" },
-    { key: "fromKingdom", type: "kingdom" },
+    { key: "toKingdom", type: "kingdom", exclude: [10] },
+    { key: "fromKingdom", type: "kingdom", exclude: [10] },
     { key: item, type: item },
     { key: "below", type: "number", min: 1, max: 10_000_000, default: 100 },
     { key: "upTo", type: "number", min: 1, max: 10_000_000, default: 500 },

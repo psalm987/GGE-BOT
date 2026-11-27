@@ -171,10 +171,10 @@ function ItemSelect({ kind, orderable, value, onChange, label }: { kind: GameIte
         options={items.filter(item => !orderable || item.orderList !== null).map(optionOf)} />
 }
 
-function KingdomSelect({ value, onChange, label }: { value?: number; onChange: (v: number | undefined) => void; label: string }) {
+function KingdomSelect({ value, onChange, label, exclude = [] }: { value?: number; onChange: (v: number | undefined) => void; label: string; exclude?: readonly number[] }) {
     const kingdomName = useKingdomName()
     return <Select aria-label={label} value={value} onChange={onChange} style={{ width: "100%" }}
-        options={KINGDOM_IDS.map(kingdom => ({ value: kingdom, label: kingdomName(kingdom) }))} />
+        options={KINGDOM_IDS.filter(kingdom => !exclude.includes(kingdom)).map(kingdom => ({ value: kingdom, label: kingdomName(kingdom) }))} />
 }
 
 /** A table the player adds rows to: per castle, kingdom, tool or troop, with a number. */
@@ -209,7 +209,7 @@ function Rows({ columns, castles, scope, value = [], onChange, id }: { columns: 
                                 return (
                                     <div key={c.key}>
                                         {c.type === "castle" ? <CastleSelect castles={castles} aria-label={label} value={row[c.key] as CastleRef | undefined} onChange={v => set(index, c.key, v)} />
-                                            : c.type === "kingdom" ? <KingdomSelect label={label} value={row[c.key] as number | undefined} onChange={v => set(index, c.key, v)} />
+                                            : c.type === "kingdom" ? <KingdomSelect label={label} value={row[c.key] as number | undefined} exclude={c.exclude} onChange={v => set(index, c.key, v)} />
                                             : c.type === "number" ? <InputNumber aria-label={label} min={c.min} max={c.max} value={row[c.key] as number | undefined} style={{ width: "100%" }}
                                                 onChange={v => set(index, c.key, v ?? undefined)} />
                                             : <ItemSelect kind={COLUMN_KIND[c.type]} orderable={c.orderable} label={label} value={row[c.key] as number | undefined} onChange={v => set(index, c.key, v)} />}
