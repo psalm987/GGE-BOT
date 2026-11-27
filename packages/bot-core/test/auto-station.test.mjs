@@ -90,7 +90,7 @@ function autoStation({ options = {}, members = [ALLY], inventory = { [ARCHER]: 2
     }
     for (const level of ["log", "warn", "info", "error"])
         vi.spyOn(console, level).mockImplementation((...args) => logs.push(args))
-    loadModule("plugins/autoStation.js", { bot, parentPort, items: { units } })
+    loadModule("plugins/autoStation.js", { bot, parentPort, items: { units }, extra: { "./castleListRead.js": { watchCastleList() {} } } })
     const commander = { ...require(path.join(repo, "plugins/commander.js")), ...require(path.join(repo, "castleLock.js")) }
     bot.xtHandler.emit("gcl", { C: [0, 10].map(KID => ({ KID, AI: CASTLES.filter(([k]) => k == KID).map(([, id, type, x, y, name]) => ({ AI: [type, x, y, id, 0, 0, 0, 0, 0, 0, name] })) })) }, 0)
     const castleList = () => ({ C: [0, 10].map(KID => ({ KID, AI: CASTLES.filter(([k]) => k == KID).map(([, AID]) => ({ AID, ...(openGateCount != null && { OGC: openGateCount }), gpa: {}, AC: Object.entries(inventory).map(([wod, n]) => [Number(wod), n]) })) })) })

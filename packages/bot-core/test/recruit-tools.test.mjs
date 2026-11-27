@@ -79,7 +79,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
     const parentPort = { postMessage: message => message[0] == PluginStatus && reports.push(message[1]), on() {} }
     vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args))
     vi.spyOn(console, "warn").mockImplementation((...args) => warns.push(args[0]))
-    loadModule("plugins/recruitTools.js", { bot, parentPort, items: { units: unitItems, buildings: buildingItems } })
+    loadModule("plugins/recruitTools.js", { bot, parentPort, items: { units: unitItems, buildings: buildingItems }, extra: { "./castleListRead.js": { watchCastleList() {} } } })
     bot.events.emit("load")
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)
     const bups = () => bot.sent.filter(([cmd]) => cmd == "bup").map(([, p]) => p)

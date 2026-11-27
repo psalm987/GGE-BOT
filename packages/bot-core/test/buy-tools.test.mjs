@@ -52,7 +52,7 @@ function run({ options = {}, coins = 10_000_000, live = [LADDER, RAM], castles =
     const parentPort = { postMessage: message => message[0] == PluginStatus && reports.push(message[1]), on() {} }
     vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args))
     vi.spyOn(console, "warn").mockImplementation(() => {})
-    loadModule("plugins/buyTools.js", { bot, parentPort, items: { units, packages } })
+    loadModule("plugins/buyTools.js", { bot, parentPort, items: { units, packages }, extra: { "./castleListRead.js": { watchCastleList() {} } } })
     bot.events.emit("load")
     bot.xtHandler.emit("gcl", { C: [...new Set(castles.map(([kingdom]) => kingdom))].map(KID => ({ KID, AI: castles.filter(([k]) => k == KID).map(([, id, , type = KID == 0 ? 1 : 12]) => ({ AI: [type, 100 + id, 100, id, 0, 0, 0, 0, 0, 0, "Castle"] })) })) }, 0)
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)

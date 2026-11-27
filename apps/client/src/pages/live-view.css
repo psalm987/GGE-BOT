@@ -50,3 +50,8 @@
 .gge-live-rage-state { margin: 8px 0 4px; }
 .gge-live-rage-state[data-state="held"] { color: var(--gge-crimson); }
 .gge-live-rage-state[data-state="eventOver"] { color: var(--gge-muted); }
+.gge-live-castle { display: grid; gap: 10px; min-width: 0; }
+.gge-live-order { margin: 0; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.gge-live-units-head { margin: 0 0 4px; color: var(--gge-muted); font-size: 13px; font-weight: 500; }
+.gge-live-gate { margin-inline-end: 6px; padding: 0 4px; border-radius: 4px; background: var(--gge-heading); color: var(--gge-raised); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.gge-live-slots li[data-locked] { font-style: italic; }

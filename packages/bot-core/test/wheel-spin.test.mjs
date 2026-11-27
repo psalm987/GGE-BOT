@@ -61,7 +61,7 @@ function run({ options = {}, tickets = [12, 0], events = [wheelEvent(AFFLUENCE)]
     }
     vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args))
     vi.spyOn(console, "warn").mockImplementation((...args) => logs.push(args))
-    loadModule("plugins/wheelSpin.js", { bot, parentPort, items: { currencies } })
+    loadModule("plugins/wheelSpin.js", { bot, parentPort, items: { currencies }, extra: { "./castleListRead.js": { watchCastleList() {} } } })
     bot.events.emit("load")
     bot.xtHandler.emit("sce", [["SLWT", held.SLWT], ["LWT", held.LWT]], 0)
     bot.xtHandler.emit("sei", { E: events }, 0)
