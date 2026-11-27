@@ -19,6 +19,11 @@ const REPORT_AFTER_MS = 60_000
 const STALE_MS = 5 * 60_000
 /** A report is deleted after a pause this long at least and this much longer at most, in milliseconds. */
 const DELETE_AFTER_MS = [1000, 3000]
+/**
+ * A spy report waits longer: spy-filled wave 1 (attack.js `spyTarget`) reopens the attack screen 5 to 10 s after the
+ * spies land to read the report, and a report deleted first could leave nothing to read.
+ */
+const SPY_DELETE_AFTER_MS = [120_000, 60_000]
 
 /**
  * The attacks a plugin sent that have not been reported yet. `track` takes the movement a `cra` reply carried
@@ -79,7 +84,7 @@ function createReportCleanup({ xtHandler, sendXT, clock = Date.now }) {
         for (const message of Array.isArray(MSG) ? MSG : []) {
             if (cleaner.judge(message) != "delete")
                 continue
-            const [shortest, spread] = DELETE_AFTER_MS
+            const [shortest, spread] = spyReportHeader(message) ? SPY_DELETE_AFTER_MS : DELETE_AFTER_MS
             setTimeout(() => {
                 Promise.resolve(sendXT("dms", JSON.stringify({ MID: message[0] })))
                     .catch(error => console.warn("couldntDeleteReport", String(error)))

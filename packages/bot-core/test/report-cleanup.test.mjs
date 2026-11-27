@@ -173,7 +173,9 @@ test("spies that got through have their report deleted, once the cleanup heard t
         xtHandler.emit("csm", { A: { M: spies } }, 0)
         await vi.advanceTimersByTimeAsync(60 * SECOND)
         xtHandler.emit("sne", { MSG: [spyReport("1+0+34#0+-1002+", 10, 3)] }, 0)
-        await vi.advanceTimersByTimeAsync(10 * SECOND)
+        await vi.advanceTimersByTimeAsync(30 * SECOND)
+        expect(sent, "spy-filled wave 1 reads the report a few seconds after it lands, so it is still there").toEqual([])
+        await vi.advanceTimersByTimeAsync(3 * 60 * SECOND)
         expect(sent).toEqual([["dms", { MID: 10 }]])
     } finally {
         vi.useRealTimers()
