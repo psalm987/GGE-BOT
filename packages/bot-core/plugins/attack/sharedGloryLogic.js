@@ -10,7 +10,7 @@ const DIFFICULTIES = [
 ]
 
 const { toolAllowedAt } = require("../../attackTargets.js")
-const { armyOptions, unitOrderOption, parseAutofill, readArmy, fillFromPlan, orderUnits, HORSES } = require("../../army.js")
+const { armyOptions, unitOrderOption, parseAutofill, readArmy, fillFromPlan, withoutFirstWave, orderUnits, HORSES } = require("../../army.js")
 
 const gloryOptions = [
     { type: "Select", key: "gloryDifficulty", selection: DIFFICULTIES, default: 0 },
@@ -18,6 +18,7 @@ const gloryOptions = [
     { type: "Number", key: "stopMinutesBefore", min: 0, max: 240, step: 5, unit: "minutes", default: 30 },
     ...require("../../commanderOptions.js").commanderOptions(),
     { type: "Select", key: "horse", selection: ["No horse", "Coin horse", "Feather"], default: 0 },
+    { type: "Checkbox", key: "spyWaveOne", default: false },
     ...armyOptions({
         sides: { left: true, front: true, right: true, courtyard: "courtyardWave" }, waves: "all", tools: ["waveTemplate"],
         unitOrder: "unitOrder", supply: "soldiers", minTroops: "minTroopsHome",
@@ -50,7 +51,7 @@ const pretty = require("pretty-time")
 const err = require("../../err.json")
 const { castles, movements, movementEvents, AreaType, KingdomID, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, sendAttack, getTotalAmountToolsFlank, getTotalAmountToolsFront,
-    getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, openAttackScreen, waitForTroops } = require("./attack.js")
+    getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, openAttackScreen, waitForTroops, spyTarget, spyWave, NO_SPY_REPORT_WAIT_MS } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { areasAround, rectsAround } = require("../../mapScan.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
@@ -366,20 +367,26 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
         camp.extraData[6] = 1
     }
 
-    /** Builds the `cra` for `camp` from the castle's units, taking what it sends out of `inventory`. */
-    function buildAttack(castle, camp, commander, inventory) {
+    const horse = () => HORSES[Number(setting("horse"))] ?? {}
+
+    /**
+     * Builds the `cra` for `camp` from the castle's units, taking what it sends out of `inventory`. With a spy
+     * `report` (spyTarget), wave 1 is filled from it first.
+     */
+    function buildAttack(castle, camp, commander, inventory, report) {
         // The level read is unconfirmed: Lazy Lord uses a fixed 70 for these castles.
         const level = Number(camp.extraData[0])
         const effects = commander.getEffects(areaType)
-        const horse = HORSES[Number(setting("horse"))] ?? {}
+        const firstWave = report && spyWave(report, { inventory, level, effects })
         const maxTools = { flank: getTotalAmountToolsFlank(level, 0), front: getTotalAmountToolsFront(level) }
         if (army.mode == "waves") {
-            const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse, effects.additionalWaves)
-            fillFromPlan(attackInfo, army.waves, inventory, {
+            const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse(), effects.additionalWaves)
+            fillFromPlan(attackInfo, firstWave ? withoutFirstWave(army.waves) : army.waves, inventory, {
                 flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                 flankTools: maxTools.flank, frontTools: maxTools.front,
                 courtyard: courtyardRoom(level, effects),
             }, { kingdom: kingdomID, areaType })
+            firstWave?.place(attackInfo)
             return { attackInfo, level }
         }
         const units = inventory.filter(unit => unit.amount > 0 && usableHere(unit.unitInfo))
@@ -404,7 +411,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             .filter(Boolean).slice(0, 3)
         supportTools.forEach(unit => unit.amount--)
 
-        const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse,
+        const attackInfo = getAttackInfo(kingdomID, castle, camp, commander, level, undefined, horse(),
             effects.additionalWaves, { supportTools: supportTools.map(unit => unit.unitInfo.wodID) })
         const template = TEMPLATES[Number(setting("waveTemplate"))] ?? TEMPLATES[0]
         const toolWaves = Number(setting("toolWaves"))
@@ -446,6 +453,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 budget -= sent
             })
         }
+        firstWave?.place(attackInfo)
         return { attackInfo, level }
     }
 
@@ -497,18 +505,24 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             }
             let camp
             try {
-                const sent = await waitToAttack(async () => {
+                const sent = await waitToAttack(async turn => {
                     camp = await nextCamp(castle, camps)
                     if (!camp)
                         return
                     console.log("gloryTargetFound", `${camp.x}:${camp.y}`)
                     await maybeDethrone(target, camp)
                     const dryRun = Boolean(setting("dryRun"))
-                    const lord = await openAttackScreen(castle, camp, kingdomID, commander, { dryRun })
+                    let lord = await openAttackScreen(castle, camp, kingdomID, commander, { dryRun })
                     if (!openCamp(camp))
                         return
+                    let report
+                    if (setting("spyWaveOne")) {
+                        ({ lord, report } = await spyTarget(turn, { castle, areaInfo: camp, kingdomID, commander, horse: horse(), dryRun }))
+                        if (!openCamp(camp))
+                            return
+                    }
                     const inventory = dryRun ? castle.unitInventory.map(unit => ({ ...unit })) : castle.unitInventory
-                    const { attackInfo, level } = buildAttack(castle, camp, lord, inventory)
+                    const { attackInfo, level } = buildAttack(castle, camp, lord, inventory, report)
                     return await sendAttack(attackInfo, kingdomID, camp.x, camp.y, { level, extraData: camp.extraData, dryRun, deleteReports: Boolean(setting("deleteReports")) })
                 }, filename)
                 if (!sent) {
@@ -547,6 +561,13 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                     case "ATTACK_LIMIT_REACHED":
                         reportStatus("waiting", "statusDailyLimitWaiting")
                         await wait(target, ATTACK_LIMIT_RETRY_MS)
+                        break
+                    case "NO_SPY_REPORT":
+                        reportStatus("waiting", "statusSpyNoReport", { minutes: NO_SPY_REPORT_WAIT_MS / 60_000 })
+                        await wait(target, NO_SPY_REPORT_WAIT_MS)
+                        break
+                    case "NOT_ENOUGH_TOOLS":
+                        stop(target, "error", "statusSpyToolsShort")
                         break
                     default:
                         console.error(e)

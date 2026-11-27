@@ -296,7 +296,7 @@ const EVENT_PROFILES = {
         eventID: 80, areaType: "daimyoCastle", logName: "daimyoCastle", kingdom: 0, booster: undefined, classicCamps: "daimyoCastles",
         plainToolCount: 20, splitToolRoom: false,
         targetOptions: DAIMYO_RANKS.map(rank => ({ type: "Checkbox", key: `daimyoRank${rank}`, default: rank == 1 })),
-        ownOptions: [],
+        ownOptions: [{ type: "Checkbox", key: "spyWaveOne", default: false }],
         omitOptions: ["eventDifficulty", "scoreShutoff", "lowValueChests"],
         isEventTool: () => false,
         isTroop: info => info.fightType == 0,

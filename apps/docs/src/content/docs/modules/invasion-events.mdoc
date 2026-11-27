@@ -7,6 +7,7 @@ sources:
   - packages/bot-core/plugins/attack/attackForeign.js
   - packages/bot-core/plugins/attack/attackBloodcrows.js
   - packages/bot-core/plugins/attack/sharedGloryLogic.js
+  - packages/bot-core/spyFill.js
   - packages/contracts/src/modules.ts
 ---
 
@@ -71,6 +72,19 @@ Three limits keep the cost in check. The bot spends nothing until the first two 
 - **Soldiers to send** limits the troops to those that eat food, or those that eat {% term id="mead" %}mead{% /term %}.
 
 For the horse, **Horse** is **No horse** by default. A {% term id="coin-horse" %}coin horse{% /term %} costs coins, and a {% term id="horse-feather" %}feather{% /term %} uses one fast horse feather on each attack.
+
+## Wave 1 from a spy report {% #spy-wave %}
+
+**Fill wave 1 from a spy report** spies the camp before each attack and builds the first {% term id="wave" %}wave{% /term %} from what the spies saw. It works with {% ui key="client:army.mode.autofill" /%} and with {% ui key="client:army.mode.waves" /%}. The other waves stay as those build them.
+
+1. The bot sends every spy in the castle. Your other attacks go on while the spies travel.
+2. When they land, it opens the attack screen again and reads the report.
+3. Wave 1 gets one ranged troop on every side: the strongest one the castle has enough of.
+4. Each side gets just enough {% term id="tool" %}tools{% /term %} to break its wall, the front's gate and the defenders' ranged defence, with event and elite tools first. Wave 1 takes them before the other waves.
+
+A feather goes only when **Horse** is **Feather** and you have one. Otherwise the spies ride the coin horse with the best spy speed when **Horse** picks any horse, and walk when it is **No horse**.
+
+If 10 spy trips bring no report, or the castle has no spies, the bot waits 10 minutes and tries again. If the castle lacks the tools to break a wall or a gate, the bot stops and says so.
 
 ## Test with Log only {% #log-only %}
 

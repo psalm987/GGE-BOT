@@ -5,10 +5,10 @@ const pretty = require('pretty-time')
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops, waitOutDailyLimit } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops, waitOutDailyLimit, spyTarget, spyWave, NO_SPY_REPORT_WAIT_MS } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
-const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
+const { readArmy, fillFromPlan, withoutFirstWave, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { parseTarget, campQueue, hitsBeforeCooldown, areaAt, readCamp, sortTargets, eventCampOptions, EVENT_PROFILES, CAMP_HORSES, CAMP_TOOL_SETS, KEEP_DIFFICULTY } = require("../../eventCamps.js")
 const { pickSourceCastle, castleName, marchDistance, horseByDistance } = require("../../towers.js")
@@ -276,7 +276,7 @@ function eventCampAttacks(profile, stored, filename) {
             /** What the log line says of the attack being built: the skips spent on the camp and the horse. */
             const sending = { skips: [], horse: "none", camp: undefined }
             try {
-                const attackInfo = await waitToAttack(async () => {
+                const attackInfo = await waitToAttack(async turn => {
                     const { areaInfo, read } = await readyCamp(sending) ?? {}
                     if (!areaInfo)
                         return
@@ -285,18 +285,26 @@ function eventCampAttacks(profile, stored, filename) {
 
                     const { level } = read
                     const context = { level, extraData: areaInfo.extraData, campID: read.campID, dryRun: options.dryRun, deleteReports: options.deleteReports }
-                    const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: options.dryRun })
+                    let lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: options.dryRun })
                     if (areaInfo.extraData[2] > 0 && !options.dryRun)
                         return
+                    let report
+                    if (options.spyWaveOne) {
+                        ({ lord, report } = await spyTarget(turn, { castle, areaInfo, kingdomID, commander, horse: horse.ride, dryRun: options.dryRun }))
+                        if (areaInfo.extraData[2] > 0 && !options.dryRun)
+                            return
+                    }
+                    const firstWave = report && spyWave(report, { inventory: castle.unitInventory, level, effects: lord.getEffects(areaInfo.type) })
 
                     if (army.mode == "waves") {
                         const effects = lord.getEffects(areaInfo.type)
                         const planned = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, horse.ride, effects.additionalWaves)
-                        fillFromPlan(planned, army.waves, castle.unitInventory, {
+                        fillFromPlan(planned, firstWave ? withoutFirstWave(army.waves) : army.waves, castle.unitInventory, {
                             flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                             flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                             courtyard: courtyardRoom(level, effects),
                         }, { kingdom: kingdomID, areaType: areaInfo.type })
+                        firstWave?.place(planned)
                         return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                     }
 
@@ -511,6 +519,7 @@ function eventCampAttacks(profile, stored, filename) {
                             Math.floor(maxTroops / 2) - 1)
                     })
 
+                    firstWave?.place(attackInfo)
                     return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
                 }, filename)
                 if (!attackInfo) {
@@ -545,6 +554,14 @@ function eventCampAttacks(profile, stored, filename) {
                         break
                     case "ATTACK_LIMIT_REACHED":
                         await waitOutDailyLimit(reportStatus)
+                        break
+                    case "NO_SPY_REPORT":
+                        reportStatus("waiting", "statusSpyNoReport", { minutes: NO_SPY_REPORT_WAIT_MS / 60_000 })
+                        await sleep(NO_SPY_REPORT_WAIT_MS)
+                        break
+                    case "NOT_ENOUGH_TOOLS":
+                        reportStatus("error", "statusSpyToolsShort")
+                        quit = true
                         break
                     case "NO_MORE_TROOPS":
                         reportStatus("waiting", army.mode == "waves" ? "statusCampPlanShort" : "statusCampNoTroops", { castle: from, floor: troopFloor })

@@ -93,7 +93,7 @@ async function glory(plugin, {
             setImmediate(() => bot.xtHandler.emit(cmd, ...reply))
     }
 
-    const engine = loadModule("plugins/attack/attack.js", { bot, extra: { protocols: { resources: {} } } }).mod
+    const engine = loadModule("plugins/attack/attack.js", { bot, extra: { protocols: { resources: {}, lookTurn: task => task() } } }).mod
     let handedOut = 0
     loadModule(`plugins/attack/${plugin}.js`, {
         bot, items, parentPort,
@@ -106,7 +106,7 @@ async function glory(plugin, {
                     getNextMapObject: async (...args) => { askedForNext.push(args); return nextCamp ? { areaInfo: nextCamp, result: 0 } : { result: 1 } },
                 },
             },
-            "./attack.js": { ...engine, waitToAttack: job => job() },
+            "./attack.js": { ...engine, waitToAttack: job => job({ outsideQueue: async () => {} }) },
             "commander.js": {
                 waitForCommanderAvailable: async () => {
                     onCommander?.(handedOut, bot)
@@ -779,5 +779,77 @@ describe("a wave plan", () => {
         const { sent, statuses } = await glory("attackForeign", { options: { armyMode: "waves", waves } })
         expect(sent("cra")).toEqual([])
         expect(statuses.at(-1)).toEqual({ plugin: "attackForeign", state: "error", reasonKey: "statusArmyServerPreset", params: { preset: 4 } })
+    })
+})
+
+describe("wave 1 from a spy report", () => {
+    const BONUSES = [[10000, [30]], [10001, [20]]]
+    const REPORT = [[[900, 40]], [[900, 80]], [[900, 40]], []]
+    const empty = [-1, 0]
+    /** The game's spy replies, and attack screens that show the report from the second one on (the first comes before the spies). */
+    const spyReplies = ({ csm = p => [{ A: { M: { TT: 1, PT: 0, TA: [21, p.TX, p.TY] } } }, 0] } = {}) => {
+        let screens = 0
+        return {
+            ssi: p => [{ TX: p.TX, TY: p.TY, AS: 30 }, 0],
+            csm,
+            adi: p => {
+                const area = camp(p.TX, p.TY)
+                return [{ gaa: { AI: [area.type, area.x, area.y, ...area.extraData] }, ...screens++ > 0 && { S: REPORT, B: { AIE: BONUSES } } }, 0]
+            },
+        }
+    }
+    const order = bot => bot.sent.map(([cmd]) => cmd).filter(cmd => ["adi", "ssi", "csm", "cra"].includes(cmd))
+
+    test("spies the camp before the attack, and wave 1 takes one ranged troop and the tools the report calls for", async () => {
+        const { sent, bot } = await glory("attackForeign", { options: { spyWaveOne: true }, replies: spyReplies() })
+        expect(order(bot)).toEqual(["adi", "ssi", "csm", "adi", "cra"])
+        expect(sent("csm")[0]).toMatchObject({ SID: 1, TX: 20, TY: 20, SC: 30, SE: 100, HBW: -1, PTT: 0 })
+        const [cra] = sent("cra")
+        // Level 50: 52 troops on a flank and 154 on the front; wall 30, gate 20 and ranged defence 100 to cancel.
+        expect(cra.A[0].L).toEqual({ T: [[LADDER, 3], [MANTLET, 10]], U: [[2, 52], empty] })
+        expect(cra.A[0].M).toEqual({ T: [[LADDER, 3], [RAM, 2], [MANTLET, 10]], U: [[2, 154], ...Array(5).fill(empty)] })
+        expect(cra.A[0].R).toEqual({ T: [[LADDER, 3], [MANTLET, 10]], U: [[2, 52], empty] })
+        expect(cra.A[1].L.T[0][0], "the later waves are autofill's").toBe(LADDER)
+    })
+
+    test("with Waves, wave 1 comes from the report and the plan's own wave 1 is not filled", async () => {
+        const side = (tools, units) => ({ tools: Array(tools).fill(null), units: Array(units).fill(null) })
+        const custom = () => ({ kind: "custom", left: side(2, 2), front: side(3, 6), right: side(2, 2) })
+        const first = custom()
+        first.left.units[0] = { item: 2, amount: 50 }
+        const second = custom()
+        second.left.units[0] = { item: 1, amount: 30 }
+        const waves = { kind: "manual", waves: [first, second], ast: [null, null, null], rw: Array(8).fill(null) }
+        // 300 archers: wave 1 takes 258, which leaves too few for the plan's own wave 1.
+        const inventory = [melee(1, 5000), ranged(2, 300), ...siegeTools()]
+        const { sent } = await glory("attackForeign", { options: { spyWaveOne: true, armyMode: "waves", waves }, inventory, replies: spyReplies() })
+        const [cra] = sent("cra")
+        expect(cra.A[0].L.U[0]).toEqual([2, 52])
+        expect(cra.A.slice(1).map(wave => wave.L.U[0]), "the plan's last wave repeats").toEqual([[1, 30], [1, 30], [1, 30]])
+    })
+
+    test("no report waits 10 minutes, with a status saying so, and sends nothing", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const { sent, statuses } = await glory("attackForeign", { options: { spyWaveOne: true }, replies: spyReplies({ csm: () => [{}, 105] }) })
+        expect(sent("cra")).toEqual([])
+        expect(statuses.at(-1)).toMatchObject({ state: "waiting", reasonKey: "statusSpyNoReport", params: { minutes: 10 } })
+    })
+
+    test("a wall the castle's tools can't cancel stops the plugin, with a status saying so", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const inventory = army().filter(unit => unit.unitInfo.wodID != LADDER)
+        const { sent, statuses } = await glory("attackForeign", { options: { spyWaveOne: true }, inventory, replies: spyReplies() })
+        expect(sent("cra")).toEqual([])
+        expect(statuses.at(-1)).toMatchObject({ state: "error", reasonKey: "statusSpyToolsShort" })
+    })
+
+    test("with dry run no spy goes out, and wave 1 is planned against the camp's map entry", async () => {
+        const log = vi.spyOn(console, "log").mockImplementation(() => {})
+        const { sent } = await glory("attackForeign", { options: { spyWaveOne: true, dryRun: true }, replies: spyReplies() })
+        expect(sent("ssi")).toEqual([])
+        expect(sent("csm")).toEqual([])
+        expect(logged(log)).toContain("dryRunSpy")
+        const attack = JSON.parse(log.mock.calls.find(([key]) => key == "dryRunAttack")[1])
+        expect(attack.A[0].L).toEqual({ T: [[MANTLET, 10], empty], U: [[2, 52], empty] })
     })
 })
