@@ -43,7 +43,7 @@ export const LegacyChoice = z.object({
 })
 export type LegacyChoice = z.infer<typeof LegacyChoice>
 
-/** A column of a Rows option: a castle, a kingdom, a game item, or a bounded number. */
+/** A column of a Rows option: a castle, a kingdom, a game item, a bounded number, or one of a few choices. */
 export const RowColumn = z.discriminatedUnion("type", [
     /** `legacyKingdom` names the kingdom column this one replaced: a stored row that has only that reads as the kingdom's main castle. */
     z.object({ key, type: z.literal("castle"), legacyKingdom: key.optional() }),
@@ -53,10 +53,12 @@ export const RowColumn = z.discriminatedUnion("type", [
     z.object({ key, type: z.literal("tool"), orderable: z.literal(true).optional() }),
     z.object({ key, type: z.literal("troop"), orderable: z.literal(true).optional() }),
     z.object({ key, type: z.literal("number"), min: z.number(), max: z.number(), default: z.number().optional() }),
+    /** Keeps the index of the picked choice, like a Select option. Each choice is a bot-locale key. A new row starts on the first. */
+    z.object({ key, type: z.literal("choice"), selection: z.array(z.string()).min(1) }),
 ])
 export type RowColumn = z.infer<typeof RowColumn>
 
-/** One row of a Rows option, by column key: a castle, a kingdom id, an item's wodID, or a number. */
+/** One row of a Rows option, by column key: a castle, a kingdom id, an item's wodID, a number, or a choice's index. */
 export const RowValue = z.record(z.string(), z.union([z.number(), CastleRef]))
 export type RowValue = z.infer<typeof RowValue>
 
@@ -313,6 +315,11 @@ function checkRow(columns: RowColumn[], row: unknown, where: string): RowValue {
     for (const column of columns) {
         const cell = parsed.data[column.key]
         const at = `${where}.${column.key}`
+        if (column.type === "choice") {
+            if (!Number.isInteger(cell) || (cell as number) < 0 || (cell as number) >= column.selection.length)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_CHOICE", params: { where: at, last: column.selection.length - 1 } })
+            continue
+        }
         const valid = column.type === "castle" ? CastleRef.safeParse(cell).success
             : column.type === "kingdom" ? (KINGDOM_IDS as readonly unknown[]).includes(cell) && !column.exclude?.includes(cell as number)
             : column.type === "number" || Number.isInteger(cell)

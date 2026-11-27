@@ -26,7 +26,7 @@ const plugins = pluginFiles.map(file => {
 const visible = plugins.filter(plugin => !plugin.hidden)
 
 const source = collectSourceKeys()
-/** Option keys, Select choices and Rows column keys, from the loaded plugins and from the source's literals. */
+/** Option keys, the choices of Selects and choice columns, and Rows column keys, from the loaded plugins and from the source's literals. */
 const optionKeys = new Map()
 const selectChoices = new Set(source.choices.keys())
 for (const plugin of plugins)
@@ -34,8 +34,11 @@ for (const plugin of plugins)
         if (!def.key)
             continue
         optionKeys.set(def.key, plugin.key)
-        for (const column of def.columns ?? [])
+        for (const column of def.columns ?? []) {
             optionKeys.set(column.key, plugin.key)
+            for (const choice of column.selection ?? [])
+                selectChoices.add(choice)
+        }
         for (const choice of def.selection ?? [])
             selectChoices.add(choice)
     }

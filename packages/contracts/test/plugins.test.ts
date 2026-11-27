@@ -172,6 +172,14 @@ describe("the richer option types", () => {
         expect(() => saveRules([{ to: 10 }])).toThrow()
     })
 
+    test("a choice column keeps the index of one of its choices, and refuses any other value", () => {
+        const sends = [{ ...richer[0]!, options: [{ type: "Rows", key: "sends", default: [], columns: [{ key: "resource", type: "choice", selection: ["wood", "stone", "food"] }] }] }] as never
+        const saveSends = (rows: unknown) => normalizePluginSettings(sends, { attackForeign: { enabled: true, options: { sends: rows } as never } })
+        expect(saveSends([{ resource: 0 }, { resource: 2 }]).attackForeign!.options).toEqual({ sends: [{ resource: 0 }, { resource: 2 }] })
+        for (const bad of [3, -1, 1.5, { kingdom: 0, id: 1 }])
+            expect(problemOf(() => saveSends([{ resource: bad }]))).toEqual({ code: "PLUGIN_OPTION_CHOICE", params: { where: "attackForeign.sends[0].resource", last: 2 } })
+    })
+
     test.each([
         ["a number out of range", { stopMinutesBefore: 241 }, "PLUGIN_OPTION_RANGE"],
         ["a number off its step", { stopMinutesBefore: 7 }, "PLUGIN_OPTION_STEP"],

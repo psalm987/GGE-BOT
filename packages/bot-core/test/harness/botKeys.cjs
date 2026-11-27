@@ -124,15 +124,18 @@ function collectSourceKeys() {
     return { logs, statuses, options, choices, literals, templateLogs: raw }
 }
 
-/** Every option of a plugin as the settings dialog reads it: the keys it translates and the choices of each Select. */
+/** Every option of a plugin as the settings dialog reads it: the keys it translates and the choices of each Select and choice column. */
 function optionKeys(options) {
     const keys = new Set()
     const choices = new Set()
     for (const def of options)
         if (def.key) {
             keys.add(def.key)
-            for (const column of def.columns ?? [])
+            for (const column of def.columns ?? []) {
                 keys.add(column.key)
+                for (const choice of column.selection ?? [])
+                    choices.add(choice)
+            }
             for (const choice of def.selection ?? [])
                 choices.add(choice)
         }

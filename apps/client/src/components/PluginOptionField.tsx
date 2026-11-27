@@ -160,7 +160,8 @@ function OrderedList({ catalog, value = [], onChange, id }: { catalog: ItemCatal
     )
 }
 
-const emptyRow = (columns: RowColumn[]) => Object.fromEntries(columns.flatMap(c => c.type === "number" && c.default !== undefined ? [[c.key, c.default]] : []))
+const emptyRow = (columns: RowColumn[]) => Object.fromEntries(columns.flatMap(c => c.type === "number" && c.default !== undefined ? [[c.key, c.default]]
+    : c.type === "choice" ? [[c.key, 0]] : []))
 
 export const rowsComplete = (columns: RowColumn[], rows: RowValue[] = []) => rows.every(row => columns.every(c => row[c.key] !== undefined && row[c.key] !== null))
 
@@ -177,7 +178,7 @@ function KingdomSelect({ value, onChange, label, exclude = [] }: { value?: numbe
         options={KINGDOM_IDS.filter(kingdom => !exclude.includes(kingdom)).map(kingdom => ({ value: kingdom, label: kingdomName(kingdom) }))} />
 }
 
-/** A table the player adds rows to: per castle, kingdom, tool or troop, with a number. */
+/** A table the player adds rows to: per castle, kingdom, tool or troop, with numbers and choices. */
 function Rows({ columns, castles, scope, value = [], onChange, id }: { columns: RowColumn[]; castles: AccountCastle[]; scope: string; value?: RowValue[]; onChange?: (v: RowValue[]) => void; id?: string }) {
     const { t } = useTranslation("client")
     const { t: tb } = useTranslation("bot")
@@ -212,6 +213,8 @@ function Rows({ columns, castles, scope, value = [], onChange, id }: { columns: 
                                             : c.type === "kingdom" ? <KingdomSelect label={label} value={row[c.key] as number | undefined} exclude={c.exclude} onChange={v => set(index, c.key, v)} />
                                             : c.type === "number" ? <InputNumber aria-label={label} min={c.min} max={c.max} value={row[c.key] as number | undefined} style={{ width: "100%" }}
                                                 onChange={v => set(index, c.key, v ?? undefined)} />
+                                            : c.type === "choice" ? <Select aria-label={label} value={row[c.key] as number | undefined} style={{ width: "100%" }} onChange={v => set(index, c.key, v)}
+                                                options={c.selection.map((choice, value) => ({ value, label: tb(choice, { defaultValue: choice }) }))} />
                                             : <ItemSelect kind={COLUMN_KIND[c.type]} orderable={c.orderable} label={label} value={row[c.key] as number | undefined} onChange={v => set(index, c.key, v)} />}
                                     </div>
                                 )
