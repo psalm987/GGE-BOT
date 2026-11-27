@@ -106,7 +106,7 @@ A tier counts as unlocked when it is not locked (`isLocked`), or when the achiev
 
 ## Spy reports
 
-`sne` entries are `[id, type, header, sender, playerID, age in seconds, read, archived, forwarded]`. Types 3 and 4 are spy reports, on a player's target and on an NPC's. Their header reads `spyKind+result[+areaType]#kingdomID+ownerID[+name]`. Our Bloodcrow capture's `1+0+34#0+-1002+` fits it. With "Delete reports" on, the report of the bot's own spies (an accepted `csm`) is deleted when they got through (result 0), and kept when they were caught (2). An archived or forwarded report is never deleted, battle or spy.
+`sne` entries are `[id, type, header, sender, playerID, age in seconds, read, archived, forwarded]`. Types 3 and 4 are spy reports, on a player's target and on an NPC's. Their header reads `spyKind+result[+areaType]#kingdomID+ownerID[+name]`. Our Bloodcrow capture's `1+0+34#0+-1002+` fits it. With "Delete reports" on, the report of the bot's own spies (an accepted `csm`) is deleted when they got through (result 0), and kept when they were caught (2). A spy report is deleted 2 to 3 minutes after it arrives, not 1 to 3 seconds like a battle report, so spy-filled wave 1 can still read it on the reopened attack screen. An archived or forwarded report is never deleted, battle or spy.
 
 ## Spy-filled wave 1
 
