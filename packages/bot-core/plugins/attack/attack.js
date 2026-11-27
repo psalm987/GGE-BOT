@@ -28,10 +28,14 @@ if (require('node:worker_threads').isMainThread) {
 }
 
 const { RateLimiter } = require('limiter')
-const { resources, ClassTypes, movementEvents } = require('../../protocols')
+const { resources, ClassTypes, movementEvents, lookTurn } = require('../../protocols')
 const { botConfig, playerInfo, xtHandler, sendXT, waitForResult } = require('../../ggeBot')
 const { isCastleLocked } = require("../../castleLock.js")
-const stables = require("../../paths.js").loadItem("horses")
+const { loadItem } = require("../../paths.js")
+const stables = loadItem("horses")
+/** The items file's units, for the defence tools a spy report names. */
+const unitRows = loadItem("units")
+const { planSpyWave, structureOf, wallOrGateLeft } = require("../../spyFill.js")
 
 const getTotalAmountTools = (e, t, n) =>
     1 === e ? t < 11 ? 10 :
@@ -134,14 +138,14 @@ function fillEventTools(waves, owned, { maxTools, maxPerAttack = Infinity, order
     return placed
 }
 
-/** The castle's fastest horse paid in coins alone, or -1 when its stables have none. */
-function coinHorse(castle) {
+/** The castle's fastest horse paid in coins alone, by `boost` (troops' or spies' speed), or -1 when its stables have none. */
+function coinHorse(castle, boost = "unitBoost") {
     let bestHorse = -1
     let maxSpeed = -Infinity
     for (const id of castle.unlockedHorses ?? []) {
         const horse = stables.find(a => id == a.wodID)
-        if (horse && Number(horse.costFactorC1) > 0 && Number(horse.costFactorC2) == 0 && Number(horse.unitBoost) > maxSpeed) {
-            maxSpeed = Number(horse.unitBoost)
+        if (horse && Number(horse.costFactorC1) > 0 && Number(horse.costFactorC2) == 0 && Number(horse[boost]) > maxSpeed) {
+            maxSpeed = Number(horse[boost])
             bestHorse = id
         }
     }
@@ -177,6 +181,8 @@ function chooseHorse(castle, options) {
 
 const SUPPORT_TOOL_SLOTS = 3
 const COURTYARD_SLOTS = 8
+/** The target level each slot of a wave side opens at, one entry per slot. */
+const WAVE_SLOT_LEVELS = { flankTools: [0, 37], flankUnits: [0, 13], frontTools: [0, 11, 37], frontUnits: [0, 0, 13, 13, 26, 26] }
 
 /**
  * Builds the `cra` for one attack with empty wave slots for the plugin to fill.
@@ -233,12 +239,12 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
             wallLevelRequirement.every(e =>
                 e <= level ? row.push([-1, 0]) : false)
 
-        setupWave([0, 37], wave.L.T)
-        setupWave([0, 13], wave.L.U)
-        setupWave([0, 11, 37], wave.M.T)
-        setupWave([0, 0, 13, 13, 26, 26], wave.M.U)
-        setupWave([0, 37], wave.R.T)
-        setupWave([0, 13], wave.R.U)
+        setupWave(WAVE_SLOT_LEVELS.flankTools, wave.L.T)
+        setupWave(WAVE_SLOT_LEVELS.flankUnits, wave.L.U)
+        setupWave(WAVE_SLOT_LEVELS.frontTools, wave.M.T)
+        setupWave(WAVE_SLOT_LEVELS.frontUnits, wave.M.U)
+        setupWave(WAVE_SLOT_LEVELS.flankTools, wave.R.T)
+        setupWave(WAVE_SLOT_LEVELS.flankUnits, wave.R.U)
         attackTarget.A.push(wave)
     }
     Object.assign(attackTarget, chooseHorse(castle, options))
@@ -375,9 +381,16 @@ xtHandler.on("cra", (_, result) => {
         turnRejected = true
 })
 
+/** What a turn in the queue returns when its attack stepped out of the queue to wait (see `outsideQueue`). */
+const STEPPED_OUT = Symbol("stepped out")
+
 /**
- * Runs `callback` in the account's shared attack queue, one attack at a time with a gap between them. `plugin` names
- * the caller, whose repeated errors make it alone wait longer (see REPEATED_ERROR_WAITS_MS).
+ * Runs `callback(turn)` in the account's shared attack queue, one attack at a time with a gap between them. `plugin`
+ * names the caller, whose repeated errors make it alone wait longer (see REPEATED_ERROR_WAITS_MS).
+ *
+ * `turn.outsideQueue(wait)` runs a slow wait, such as spies travelling, outside the queue: the other attacks go on
+ * meanwhile, and this one carries on at the front of the queue once `wait` settles (Lazy Lord's attack.js
+ * outsideQueue).
  */
 const waitToAttack = (callback, plugin = "attack") => new Promise(async (resolve, reject) => {
     startNewDayIfDue()
@@ -399,16 +412,35 @@ const waitToAttack = (callback, plugin = "attack") => new Promise(async (resolve
     }
 
     const queuedAt = Date.now()
+    let attack, steppedOut
+    /** Settles with the attack's outcome, or STEPPED_OUT when it leaves the queue to wait first. */
+    const turnOver = () => Promise.race([attack, new Promise(step => steppedOut = () => step(STEPPED_OUT))])
+    const turn = {
+        async outsideQueue(wait) {
+            steppedOut()
+            try {
+                return await wait()
+            } finally {
+                await new Promise(carryOn => {
+                    attacks.unshift({ plugin, run: () => (carryOn(), turnOver()) })
+                    runQueue()
+                })
+            }
+        },
+    }
     attacks.push({
         plugin,
         run: () => {
             metrics.observe("bot_attack_queue_wait_seconds", {}, (Date.now() - queuedAt) / 1000)
-            const ret = Promise.resolve().then(callback)
-            resolve(ret)
-            return ret
+            attack = Promise.resolve().then(() => callback(turn))
+            resolve(attack)
+            return turnOver()
         },
     })
+    runQueue()
+})
 
+async function runQueue() {
     if (alreadyRunning)
         return
     alreadyRunning = true
@@ -432,6 +464,11 @@ const waitToAttack = (callback, plugin = "attack") => new Promise(async (resolve
         } catch (e) {
             error = e ?? "UNKNOWN"
         }
+        if (ret === STEPPED_OUT) {
+            console.debug("attackDelayAttack", naturalDelay)
+            await sleep(naturalDelay)
+            continue
+        }
         if (error === undefined && ret)
             pluginErrors.delete(job.plugin)
         if (LOCAL_ERRORS.has(error) || (error === undefined && !ret && !turnRejected))
@@ -451,7 +488,7 @@ const waitToAttack = (callback, plugin = "attack") => new Promise(async (resolve
         await sleep(delay)
     }
     alreadyRunning = false
-})
+}
 
 /** Out of troops: waits until `isOurReturn` picks a march coming home, or this long at most, so troops recruited meanwhile are used too. */
 const TROOPS_RECHECK_MS = 5 * 60_000
@@ -522,9 +559,15 @@ const screenCommand = areaType => areaType == 11 ? "abi" : areaType == 17 ? "aci
  * it does not answer. A dry run opens no screen.
  */
 async function openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun } = {}) {
+    const screen = dryRun ? undefined : await readAttackScreen(castle, areaInfo, kingdomID)
+    return screen ? commanderOnScreen(screen, commander) : commander
+}
+
+/** The attack screen's reply, with the castle's units and the target's extraData updated from it, or undefined where there is no screen. */
+async function readAttackScreen(castle, areaInfo, kingdomID) {
     const command = screenCommand(Number(areaInfo?.type))
-    if (dryRun || !command || !castle?.areaInfo)
-        return commander
+    if (!command || !castle?.areaInfo)
+        return undefined
     await sendXT(command, JSON.stringify({ SX: castle.areaInfo.x, SY: castle.areaInfo.y, TX: areaInfo.x, TY: areaInfo.y, KID: kingdomID }))
     const [screen, result] = await waitForResult(command, 1000 * 10, (obj, result) =>
         result != 0 || (obj.gaa?.AI?.[1] == areaInfo.x && obj.gaa?.AI?.[2] == areaInfo.y), Object.values(err))
@@ -539,6 +582,10 @@ async function openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun
         Object.assign(castle, new ClassTypes.UnitInventory(screen.gui))
     if (Array.isArray(screen.gaa?.AI) && screen.gaa.AI.length > 3)
         Object.assign(areaInfo, { extraData: screen.gaa.AI.slice(3), timeSinceRequest: Date.now() })
+    return screen
+}
+
+function commanderOnScreen(screen, commander) {
     const raw = screen.gli?.C?.find?.(lord => Number(lord.ID) == Number(commander.lordID))
     if (!raw)
         return commander
@@ -547,6 +594,140 @@ async function openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun
     } catch (e) {
         console.debug("attackScreenCommanderUnread", e)
         return commander
+    }
+}
+
+/** Spies on a try: all the castle has, at 100 % accuracy, as the game's spy screen sends them (from Lazy Lord's source). */
+const SPY_ACCURACY = 100
+/** Spy trips without a report before the attack gives up for now with NO_SPY_REPORT. */
+const SPY_TRIES = 10
+/** The longest the bot waits for spies to land, whatever their trip says. */
+const MAX_SPY_TRIP_MS = 15 * 60_000
+/** How long a plugin waits after NO_SPY_REPORT before it tries the target again. */
+const NO_SPY_REPORT_WAIT_MS = 10 * 60_000
+
+/** `csm`'s horse: a feather only when the plugin rides one and one is left, else the coin horse spies run fastest on when it rides any. */
+function spyHorse(castle, horse) {
+    if (horse.useFeather && resources.pegasusTicket > 0)
+        return { HBW: -1, PTT: 1 }
+    return { HBW: horse.useFeather || horse.useCoin ? coinHorse(castle, "spyBoost") : -1, PTT: 0 }
+}
+
+/** Sends every spy the castle has to the target (`ssi` for the count, then `csm`). Returns the trip in ms, or throws NO_SPY_REPORT. */
+async function sendSpies(castle, areaInfo, kingdomID, horse) {
+    const where = `${areaInfo.x}:${areaInfo.y}`
+    const [look, looked] = await lookTurn(async () => {
+        await sendXT("ssi", JSON.stringify({ TX: areaInfo.x, TY: areaInfo.y, KID: kingdomID }))
+        return await waitForResult("ssi", 1000 * 10, (obj, result) => result != 0 || (obj.TX == areaInfo.x && obj.TY == areaInfo.y), Object.values(err))
+            .catch(timedOut => [{}, timedOut])
+    })
+    if (looked != 0) {
+        console.warn("spyWaveRefused", where, " ", err[looked] ?? String(looked))
+        throw "NO_SPY_REPORT"
+    }
+    const spies = Number(look.AS)
+    if (!(spies > 0)) {
+        console.warn("spyWaveNoSpies", where)
+        throw "NO_SPY_REPORT"
+    }
+    await sendXT("csm", JSON.stringify({ SID: castle.id, TX: areaInfo.x, TY: areaInfo.y, SC: spies, ST: 0, SE: SPY_ACCURACY, ...spyHorse(castle, horse), KID: kingdomID, SD: 0 }))
+    const trip = movement => movement?.TA?.[1] == areaInfo.x && movement?.TA?.[2] == areaInfo.y
+    const [reply, result] = await waitForResult("csm", 1000 * 10, (obj, result) => result != 0 || trip(obj.A?.M ?? obj.AAM?.M ?? obj.M), Object.values(err))
+    if (result != 0) {
+        const reason = err[result] ?? String(result)
+        if (reason == "NOT_ENOUGH_CURRENCY1")
+            throw reason
+        if (reason == "NOT_ENOUGH_SPIES")
+            console.warn("spyWaveNoSpies", where)
+        else
+            console.warn("spyWaveRefused", where, " ", reason)
+        throw "NO_SPY_REPORT"
+    }
+    const movement = reply.A?.M ?? reply.AAM?.M ?? reply.M
+    return Math.max(0, (Number(movement?.TT) || 60) - (Number(movement?.PT) || 0)) * 1000
+}
+
+const hasSpyReport = spy => Array.isArray(spy) && spy.slice(0, 3).some(side => side?.length > 0)
+
+/**
+ * Spies `areaInfo` from `castle` for an attack whose wave 1 is filled from the report, as Lazy Lord's attack.js does:
+ * every spy goes, the queue goes on while they travel (`turn.outsideQueue`), and once they land the attack screen is
+ * opened again to read the report (`S`) and the target's bonuses (`B.AIE`). Spies go again while the screen shows no
+ * report. `horse` is the plugin's `{ useFeather, useCoin }`.
+ *
+ * Returns `{ lord, report }`: the commander as the reopened screen gives it, and what `spyWave` plans from. Throws
+ * NO_SPY_REPORT with no spies or after SPY_TRIES trips without a report, NOT_ENOUGH_CURRENCY1 when the horse can't be
+ * paid, and what the attack screen throws. A dry run sends nothing and plans against the target's map entry alone.
+ */
+async function spyTarget(turn, { castle, areaInfo, kingdomID, commander, horse, dryRun }) {
+    const target = { kingdom: kingdomID, areaType: Number(areaInfo.type) }
+    const reportOf = (spy, targetEffects) => ({ spy, targetEffects, structure: structureOf(areaInfo.type, areaInfo.extraData), target })
+    if (dryRun) {
+        console.log("dryRunSpy", JSON.stringify({ SID: castle.id, TX: areaInfo.x, TY: areaInfo.y, SE: SPY_ACCURACY, ...spyHorse(castle, horse), KID: kingdomID }))
+        return { lord: commander, report: reportOf([], []) }
+    }
+    for (let tries = 1; tries <= SPY_TRIES; tries++) {
+        const trip = await sendSpies(castle, areaInfo, kingdomID, horse)
+        await turn.outsideQueue(() => sleep(Math.min(MAX_SPY_TRIP_MS, trip + 5000 + Math.random() * 5000)))
+        const screen = await readAttackScreen(castle, areaInfo, kingdomID)
+        if (hasSpyReport(screen?.S))
+            return { lord: commanderOnScreen(screen, commander), report: reportOf(screen.S, screen.B?.AIE ?? []) }
+        console.debug("spyWaveRetry", `${areaInfo.x}:${areaInfo.y}`)
+    }
+    console.warn("spyWaveGaveUp", `${areaInfo.x}:${areaInfo.y}`)
+    throw "NO_SPY_REPORT"
+}
+
+/** How many tool and troop slots each side of a wave has at a target's level, as `getAttackInfo` opens them. */
+const slotsAt = (levels, level) => levels.filter(needed => needed <= level).length
+
+/**
+ * Plans wave 1 from a spy `report` (spyTarget) and takes its troops and tools out of `inventory` at once, so they go
+ * to wave 1 before the plugin builds its other waves. `level` is the target's and `effects` the commander's bonuses
+ * against it. Call `place(attackInfo)` once the plugin has built the attack: the plugin's own wave 1 goes back to
+ * `inventory` and the plan takes its place.
+ *
+ * Throws NOT_ENOUGH_TOOLS, taking nothing, when the castle's tools leave a wall or gate standing, and NO_MORE_TROOPS
+ * with no ranged troop.
+ */
+function spyWave(report, { inventory, level, effects = {} }) {
+    const wave = planSpyWave({
+        ...report, effects, inventory,
+        room: {
+            flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
+            flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
+        },
+        slots: { flankTools: slotsAt(WAVE_SLOT_LEVELS.flankTools, level), frontTools: slotsAt(WAVE_SLOT_LEVELS.frontTools, level) },
+        unitInfo: id => unitRows.find(row => row.wodID == id),
+    })
+    const sides = Object.entries(wave)
+    if (wallOrGateLeft(wave)) {
+        console.warn("spyWaveToolsShort", JSON.stringify(Object.fromEntries(sides.map(([side, { uncancelled }]) => [side, uncancelled]))))
+        throw "NOT_ENOUGH_TOOLS"
+    }
+    if (sides.every(([, { troop }]) => !troop))
+        throw "NO_MORE_TROOPS"
+    const picks = side => [...side.tools, ...side.troop ? [side.troop] : []]
+    for (const [, side] of sides)
+        for (const { unit, amount } of picks(side))
+            unit.amount -= amount
+    console.debug("spyWavePlanned", JSON.stringify(Object.fromEntries(sides.map(([key, side]) => [key, picks(side).map(({ unit, amount }) => [unit.unitInfo.wodID, amount])]))))
+    return {
+        place(attackInfo) {
+            const first = attackInfo.A[0]
+            for (const [key, side] of sides) {
+                for (const slot of [...first[key].T, ...first[key].U]) {
+                    const unit = slot[0] != -1 && inventory.find(owned => owned.unitInfo.wodID == slot[0])
+                    if (unit)
+                        unit.amount += slot[1]
+                    slot[0] = -1
+                    slot[1] = 0
+                }
+                side.tools.forEach(({ unit, amount }, i) => first[key].T[i] = [unit.unitInfo.wodID, amount])
+                if (side.troop)
+                    first[key].U[0] = [side.troop.unit.unitInfo.wodID, side.troop.amount]
+            }
+        },
     }
 }
 
@@ -617,6 +798,9 @@ module.exports = {
     assignUnit,
     fillEventTools,
     waitToAttack,
+    spyTarget,
+    spyWave,
+    NO_SPY_REPORT_WAIT_MS,
     waitForTroops,
     waitOutDailyLimit,
     getTotalAmountToolsFlank,

@@ -175,3 +175,22 @@ test("feather with none left rides the coin horse instead, and warns at most eve
     resources.pegasusTicket = 1
     expect(ride()).toMatchObject({ HBW: -1, PTT: 1 })
 })
+
+test("an attack waiting outside the queue lets the others run, carries on ahead of the attacks still queued, and its error still reaches its plugin", async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, "debug").mockImplementation(() => {})
+    const { waitToAttack } = engine()
+    const ran = []
+    const stepping = waitToAttack(async turn => {
+        ran.push("spy sent")
+        await turn.outsideQueue(() => new Promise(resolve => setTimeout(resolve, 10_000)))
+        ran.push("spy read")
+        throw "NO_SPY_REPORT"
+    }, "khan").catch(e => e)
+    const others = Array.from({ length: 5 }, (_, i) => waitToAttack(async () => (ran.push(`attack ${i}`), true), "camps"))
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(await stepping).toBe("NO_SPY_REPORT")
+    await Promise.all(others)
+    // Each turn has a 3 s gap after it, so attacks 0 to 2 run while the spies travel 10 s.
+    expect(ran).toEqual(["spy sent", "attack 0", "attack 1", "attack 2", "spy read", "attack 3", "attack 4"])
+})
