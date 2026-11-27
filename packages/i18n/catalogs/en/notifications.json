@@ -30,5 +30,8 @@
   "station_result.gates_opened.title": "Gates opened at {{castle}} on {{accountName}}",
   "station_result.gates_opened.body": "No alliance castle could take the troops, so the gates were opened for {{rubies}} rubies.",
   "station_result.unprotected.title": "Auto Station couldn't move the troops out of {{castle}} on {{accountName}}",
-  "station_result.unprotected.body": "No alliance castle could take them and the gates stayed shut. The logs say why."
+  "station_result.unprotected.body": "No alliance castle could take them and the gates stayed shut. The logs say why.",
+  "plugin_finished.title": "{{plugin}} switched off on {{accountName}}",
+  "plugin_finished.body.done": "It finished everything it can do this event. Switch it on again when the event comes back.",
+  "plugin_finished.body.eventOver": "Its event isn't running. Switch it on again when the event comes back."
 }

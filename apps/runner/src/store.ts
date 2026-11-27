@@ -2,10 +2,10 @@ import { createRequire } from "node:module"
 import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
 import {
     PLUGIN_MEMORY_MAX_BYTES, PROXY_MAX_FAILURES, botChannel, userChannel,
-    type BotChannelEvent, type BotNotice, type NotificationContent, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
+    type BotChannelEvent, type BotNotice, type NotificationContent, type PluginFinishReason, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
 } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, pluginSettings, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 import { logTag } from "./log-render.ts"
 
@@ -267,6 +267,28 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     return
                 const content = { kind, data: { ...data, accountName: account.name, serverLabel: account.label } } as NotificationContent
                 await insertNotification(tx, { ...content, userId: account.ownerId, accountId, dedupKey: `${kind}:${accountId}:${key}` })
+            })
+        },
+
+        /**
+         * An event plugin is done: it is switched off in the account's saved settings, the ones the player edits, and the
+         * owner is told. A plugin that is off already, or a deleted account, is left alone.
+         */
+        async finishPlugin(accountId: string, plugin: string, reason: PluginFinishReason) {
+            await db.transaction(async tx => {
+                const [switched] = await tx.update(pluginSettings).set({ enabled: false })
+                    .where(and(eq(pluginSettings.accountId, accountId), eq(pluginSettings.pluginKey, plugin), eq(pluginSettings.enabled, true)))
+                    .returning({ accountId: pluginSettings.accountId })
+                if (!switched)
+                    return
+                const [account] = await tx.select({ ownerId: gameAccounts.ownerId, name: gameAccounts.name, label: servers.label })
+                    .from(gameAccounts).innerJoin(servers, eq(servers.id, gameAccounts.serverId)).where(eq(gameAccounts.id, accountId))
+                await insertNotification(tx, {
+                    kind: "plugin_finished", data: { plugin, reason, accountName: account!.name, serverLabel: account!.label },
+                    userId: account!.ownerId, accountId,
+                    // Only the write that switched it off gets here, so each switch-off is its own event.
+                    dedupKey: `plugin_finished:${accountId}:${plugin}:${Date.now()}`,
+                })
             })
         },
 

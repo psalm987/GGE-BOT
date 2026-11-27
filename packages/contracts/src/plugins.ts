@@ -129,6 +129,11 @@ export const PluginCatalogEntry = z.object({
     breaksPeace: z.boolean().optional(),
     /** What the plugin attacks. A wave editor offers only the tools that may attack one of these; absent means every tool. */
     targets: z.array(AttackTarget).optional(),
+    /**
+     * The game event the plugin works in, by event id. It is switched off in the account's settings while that event
+     * isn't running, and it may switch itself off once it is done (PluginFinished).
+     */
+    eventOnly: z.number().int().min(0).optional(),
 })
 
 /** How many attack plugins one account may run at once. Set by an admin: a global default and a per-user override. */

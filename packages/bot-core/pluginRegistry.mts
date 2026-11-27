@@ -9,7 +9,7 @@ export type PluginRegistry = { catalog: PluginCatalogEntry[]; filenames: Map<str
 /** Loads bot-core's plugins in this (main) thread for their declarations only. */
 export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRegistry {
     Object.assign(require("./config.js"), ggeConfig)
-    const plugins = require("./plugins") as [string, { force?: boolean; hidden?: boolean; targets?: unknown[]; pluginOptions?: unknown[]; checks?: unknown[]; breaksPeace?: boolean }][]
+    const plugins = require("./plugins") as [string, { force?: boolean; hidden?: boolean; targets?: unknown[]; pluginOptions?: unknown[]; checks?: unknown[]; breaksPeace?: boolean; eventOnly?: number }][]
     const catalog: PluginCatalogEntry[] = []
     const filenames = new Map<string, string>()
     for (const [filename, mod] of plugins) {
@@ -18,6 +18,7 @@ export function readPluginRegistry(ggeConfig: Record<string, unknown>): PluginRe
         const category = !force && !hidden && filename.startsWith("plugins/attack/") ? "attack" : null
         catalog.push(PluginCatalogEntry.parse({ key, force, hidden, options: mod.pluginOptions ?? [], category,
             ...(mod.checks && { checks: mod.checks }), ...(mod.targets && { targets: mod.targets }), ...(mod.breaksPeace && { breaksPeace: true }),
+            ...(mod.eventOnly !== undefined && { eventOnly: mod.eventOnly }),
         }))
         filenames.set(key, filename)
     }

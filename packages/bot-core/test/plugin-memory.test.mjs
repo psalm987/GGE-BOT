@@ -68,6 +68,6 @@ describe("a plugin that is done", () => {
         const { mod } = loadModule("pluginStatus.js", { parentPort: host.port })
         mod.finishPlugin("/bot/plugins/bladeCoast.js")
         mod.finishPlugin("/bot/plugins/bladeCoast.js")
-        expect(host.messages).toEqual([[PluginFinished, { plugin: "bladeCoast" }]])
+        expect(host.messages).toEqual([[PluginFinished, { plugin: "bladeCoast", reason: "done" }]])
     })
 })

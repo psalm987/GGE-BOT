@@ -16,6 +16,13 @@ export type PluginMemoryWrite = z.infer<typeof PluginMemoryWrite>
 export const PluginMemory = z.record(name, z.record(name, z.json()))
 export type PluginMemory = z.infer<typeof PluginMemory>
 
-/** A worker's PluginFinished message: the plugin is done until its event comes round again. */
-export const PluginFinished = z.object({ plugin: name })
+/** Why a plugin is done: it did everything it can this event, or its event isn't running. */
+export const PluginFinishReason = z.enum(["done", "eventOver"])
+export type PluginFinishReason = z.infer<typeof PluginFinishReason>
+
+/**
+ * A worker's PluginFinished message: the plugin is done until its event comes round again, so the runner switches it
+ * off in the account's settings. Only a plugin its catalog marks `eventOnly` may send it.
+ */
+export const PluginFinished = z.object({ plugin: name, reason: PluginFinishReason.default("done") })
 export type PluginFinished = z.infer<typeof PluginFinished>

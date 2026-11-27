@@ -12,7 +12,7 @@ afterAll(() => api.close())
 const codeOf = async (promise: Promise<unknown>) => promise.then(() => "ok", (e: { code: string }) => e.code)
 
 const PLAN_PREFS = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true }
-const DEFAULT_PREFS = { banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...PLAN_PREFS, incoming_attack: false, station_result: false }
+const DEFAULT_PREFS = { banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...PLAN_PREFS, incoming_attack: false, station_result: false, plugin_finished: false }
 
 const banned = (accountName: string): NotificationContent => ({ kind: "banned", data: { accountName, serverLabel: "India 1", bannedUntil: null } })
 const shutoff = (accountName: string): NotificationContent => ({ kind: "shutoff", data: { accountName, serverLabel: "India 1" } })
@@ -173,7 +173,7 @@ describe("emailing notifications", () => {
 
     test("a kind the player turned off is skipped while the others still go out", async () => {
         const alice = await player()
-        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...PLAN_PREFS, incoming_attack: false, station_result: false })
+        await alice.api.account.setNotificationPrefs({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...PLAN_PREFS, incoming_attack: false, station_result: false, plugin_finished: false })
         const off = await notify(alice.id, banned("Ironhold"))
         const on = await notify(alice.id, shutoff("Ravenmoor"))
 
@@ -437,7 +437,7 @@ describe("email preferences", () => {
         const bob = await player()
         const chosen = {
             banned: false, auth_failed: true, crash_loop: false, shutoff: true, trial_started: true, plan_expiring: false, plan_expired: true, purchase_completed: false,
-            incoming_attack: true, station_result: false,
+            incoming_attack: true, station_result: false, plugin_finished: true,
         }
 
         await alice.api.account.setNotificationPrefs(chosen)

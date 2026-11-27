@@ -672,3 +672,5 @@ for (const [, val] of Object.entries(botConfig.plugins)) {
         console.warn(e)
     }
 }
+// Event-only plugins are switched off while their event isn't running.
+require("./eventPlugins.js")

@@ -219,6 +219,8 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     checks: jsonb("checks").notNull().default([]),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: boolean("breaks_peace").notNull().default(false),
+    /** The game event the plugin works in, by event id; null for a plugin that works any time. */
+    eventOnly: integer("event_only"),
     updatedAt: updatedAt(),
 })
 

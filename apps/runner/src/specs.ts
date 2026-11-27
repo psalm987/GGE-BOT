@@ -9,7 +9,8 @@ import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { planStanding } from "./plan.ts"
 import { enabledProxiesOf, type SpecProxy } from "./proxies.ts"
 
-export type WorkerPlugins = Record<string, Record<string, OptionValue> & { state: true; filename: string }>
+/** Each enabled plugin's options, and beside them where its file is and the catalog's `eventOnly`, which the bot acts on itself. */
+export type WorkerPlugins = Record<string, Record<string, OptionValue> & { state: true; filename: string; eventOnly?: number }>
 
 /** Everything needed to run one account, as the database wants it right now. */
 export type BotSpec = {
@@ -23,7 +24,10 @@ export type BotSpec = {
     plugins: WorkerPlugins
     /** The proxy the bot connects through; null connects directly. An event twin has its main's. */
     proxy: SpecProxy | null
-    /** Changes here need a fresh login: credentials, server, event mode, the set of plugins, the proxy. */
+    /**
+     * Changes here need a fresh login: credentials, server, event mode, the proxy. A change to the set of plugins does
+     * too, which the supervisor tells from `plugins`, since an event plugin that finished may be dropped without one.
+     */
     restartKey: string
     /** Changes here are pushed into the running worker. */
     optionsKey: string
@@ -95,8 +99,9 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
         const plans = new Map(presets.filter(p => p.accountId === account.id).map(p => [p.id, p.plan]))
         for (const [key, config] of Object.entries(effectivePluginConfig(registry.catalog, saved))) {
             const filename = registry.filenames.get(key)
+            const eventOnly = registry.catalog.find(entry => entry.key === key)?.eventOnly
             if (filename)
-                plugins[key] = { ...withPresetPlans(registry.catalog, key, config, plans), filename }
+                plugins[key] = { ...withPresetPlans(registry.catalog, key, config, plans), filename, ...(eventOnly !== undefined && { eventOnly }) }
         }
         const proxy = proxyOf.get(proxyHolder(account.id)) ?? null
         specs.set(account.id, {
@@ -110,7 +115,7 @@ export async function loadSpecs(db: Db, registry: PluginRegistry, now = new Date
             plugins,
             proxy,
             restartKey: JSON.stringify([
-                account.name, server.id, server.wsHost, server.zone, account.externalEvent, sha256(account.passwordSealed), Object.keys(plugins).sort(),
+                account.name, server.id, server.wsHost, server.zone, account.externalEvent, sha256(account.passwordSealed),
                 proxy && [proxy.id, sha256(proxy.urlSealed)],
             ]),
             optionsKey: JSON.stringify(plugins),

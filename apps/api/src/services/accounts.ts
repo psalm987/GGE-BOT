@@ -23,6 +23,7 @@ export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
             category: r.category === "attack" ? "attack" as const : null,
             ...checks?.length && { checks },
             ...r.breaksPeace && { breaksPeace: true },
+            ...r.eventOnly !== null && { eventOnly: r.eventOnly },
         }
     })
 }

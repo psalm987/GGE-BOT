@@ -19,8 +19,9 @@ const keys = generateSealKeyPair()
 const catalog: PluginCatalogEntry[] = [
     { key: "attack", force: true, hidden: false, options: [{ type: "Text", key: "attackDelaySeconds", default: "4.5" }] },
     { key: "feast", force: false, hidden: false, options: [{ type: "Checkbox", key: "useCoins", default: false }] },
+    { key: "blade", force: false, hidden: false, options: [], eventOnly: 4 },
 ]
-const registry: PluginRegistry = { catalog, filenames: new Map([["attack", "plugins/attack/attack"], ["feast", "plugins/feast"]]) }
+const registry: PluginRegistry = { catalog, filenames: new Map([["attack", "plugins/attack/attack"], ["feast", "plugins/feast"], ["blade", "plugins/blade"]]) }
 
 let db: Db
 let ownerId: string
@@ -175,6 +176,37 @@ describe("plugin memory", () => {
         expect(spawned.map(d => d.pluginMemory)).toEqual([{}, { attack: { runs: 1 } }])
         expect(await store.pluginMemory(id)).toEqual({ attack: { runs: 2 } })
         expect(warnings.slice(0, 2)).toEqual([["dropped an invalid plugin memory write", id], ["dropped an invalid plugin memory write", id]])
+    })
+})
+
+describe("event plugins that finish", () => {
+    test("one that says it is done is switched off in the saved settings and its owner told once, and the bot runs on without a new login", async () => {
+        const warnings: unknown[][] = []
+        supervisor = makeSupervisor({ logger: { warn: (...args) => void warnings.push(args), error() {} } })
+        const id = await addAccount("finish-a")
+        await db.insert(pluginSettings).values([
+            { accountId: id, pluginKey: "blade", enabled: true, options: {} },
+            { accountId: id, pluginKey: "feast", enabled: true, options: {} },
+        ])
+        await reconcile()
+        const enabled = async (key: string) => (await db.select().from(pluginSettings).where(eq(pluginSettings.accountId, id))).find(s => s.pluginKey === key)?.enabled
+
+        await until(async () => (await enabled("blade")) === false && warnings.length === 1)
+        expect(spawned[0]!.plugins).toMatchObject({ blade: { state: true, filename: "plugins/blade", eventOnly: 4 } })
+        await until(async () => (await notified(id)).length === 1)
+        expect(await notified(id)).toMatchObject([{ kind: "plugin_finished", data: { accountName: "finish-a", plugin: "blade", reason: "eventOver" } }])
+        expect(await enabled("feast"), "a plugin that isn't event-only can't switch itself off").toBe(true)
+        expect(warnings[0]).toEqual(["dropped a PluginFinished from a plugin that isn't event-only", id])
+
+        await reconcile()
+        await new Promise(r => setTimeout(r, 200))
+        expect(spawned).toHaveLength(1)
+        expect((await status(id))?.actualState).toBe("running")
+
+        await db.update(pluginSettings).set({ enabled: true }).where(eq(pluginSettings.accountId, id))
+        await reconcile()
+        await until(() => spawned.length === 2)
+        expect(spawned[1]!.plugins).toHaveProperty("blade")
     })
 })
 
@@ -382,6 +414,19 @@ describe("settings changes", () => {
 
         await until(async () => (await logs(id)).some(l => l.includes('"useCoins":true')))
         expect(spawned).toHaveLength(1)
+    })
+
+    test("disabling a plugin restarts the bot so it stops", async () => {
+        const id = await addAccount("ok-disable")
+        await db.insert(pluginSettings).values({ accountId: id, pluginKey: "feast", enabled: true, options: {} })
+        await reconcile()
+        await until(async () => (await status(id))?.actualState === "running")
+
+        await db.update(pluginSettings).set({ enabled: false }).where(eq(pluginSettings.accountId, id))
+        await reconcile()
+
+        await until(() => spawned.length === 2)
+        expect(spawned[1]!.plugins).not.toHaveProperty("feast")
     })
 
     test("enabling a plugin restarts the bot so it loads", async () => {

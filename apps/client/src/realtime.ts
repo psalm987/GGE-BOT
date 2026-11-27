@@ -135,8 +135,12 @@ export function useRealtime(userId: string | undefined, onNotification: (notific
                 return
             }
             patchQuery<NotificationPages>(queryClient, notificationsQuery.queryKey, loaded => applyNotificationEvent(loaded, event))
-            if (event.kind === "notification")
+            if (event.kind === "notification") {
+                // The runner switched a plugin off in the saved settings, which the account list carries.
+                if (event.notification.kind === "plugin_finished")
+                    void queryClient.invalidateQueries({ queryKey: listKey })
                 notify.current(event.notification)
+            }
         })
         subscription.on("subscribed", ctx => {
             if (!missedEvents(ctx))
