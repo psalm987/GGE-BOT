@@ -51,7 +51,7 @@ const err = require("../../err.json")
 const { castles, movements, movementEvents, AreaType, KingdomID, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, fillEventTools, sendAttack, getTotalAmountToolsFlank, getTotalAmountToolsFront,
     getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, openAttackScreen, waitForTroops } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { areasAround, rectsAround } = require("../../mapScan.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
@@ -524,7 +524,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                 console.info("gloryAttackSent", `${sent.AAM.M.TA[1]}:${sent.AAM.M.TA[2]}`, " ",
                     pretty(Math.round(1000000000 * Math.abs(Math.max(0, sent.AAM.M.TT - sent.AAM.M.PT))), "s"), "tillImpactAttack")
             } catch (e) {
-                freeCommander(commander.lordID)
+                e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
                 if (camp && NOT_BACK.includes(e)) {
                     leaveOut(camp)
                     console.debug("gloryNotBackYet", `${camp.x}:${camp.y}`, e)
@@ -536,7 +536,6 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
                         await Promise.race([target.halted, waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)])
                         break
                     case "LORD_IS_USED":
-                        useCommander(commander.lordID)
                         break
                     case "COOLING_DOWN":
                     case "TIMED_OUT":

@@ -36,7 +36,7 @@ async function firstAttack(plugin, { eventID, start = {}, target, inventory, pro
                     return { AAM: { UM: { L: { VIS: 0 } }, M: { TA: [0, target.x, target.y], TT: 60, PT: 0 } } }
                 },
             },
-            "commander.js": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, useCommander() {} },
+            "commander.js": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, commanderRefused() {} },
             "skips.js": { spendSkip() {} },
             ...extra,
         },

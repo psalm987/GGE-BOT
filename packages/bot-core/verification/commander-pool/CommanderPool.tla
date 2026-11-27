@@ -185,7 +185,7 @@ Respond(p) ==
 (*   noTarget   freeCommander                                              *)
 (*   noTroops   freeCommander, then wait for a march to return (parked)    *)
 (*   retry      freeCommander                                              *)
-(*   lordIsUsed freeCommander, then useCommander                           *)
+(*   lordIsUsed commanderRefused: kept used, no waiter woken               *)
 (* Then a loop plugin re-enters waitForCommanderAvailable in this same run *)
 (* (e.g. attackKhan.js:428-450). A sendHit loop returns: false for no      *)
 (* target (parked), true otherwise ("acquire", a later microtask)          *)
@@ -195,7 +195,7 @@ React(p) ==
     /\ pool.pc[p] = "settled"
     /\ LET l       == pool.lord[p]
            o       == outcome[p]
-           freed   == IF o = "ok" /\ Mutation # "okFreesLord"
+           freed   == IF (o = "ok" /\ Mutation # "okFreesLord") \/ o = "lordIsUsed"
                       THEN pool ELSE FreeState(pool, l)
            marked  == IF o = "lordIsUsed"
                       THEN [freed EXCEPT !.used = @ \cup {l}] ELSE freed

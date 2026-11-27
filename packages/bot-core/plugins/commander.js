@@ -7,7 +7,7 @@ if (require('node:worker_threads').isMainThread)
 const path = require('node:path')
 const { xtHandler, playerInfo, waitForResult, botConfig, events } = require('../ggeBot.js')
 const metrics = require('../metrics.js')
-const { ClassTypes : { Lord }, movementEvents } = require('../protocols.js')
+const { ClassTypes : { Lord }, movementEvents, movements, syncMovements } = require('../protocols.js')
 const { statusReporter } = require('../pluginStatus.js')
 
 const event = new EventTarget()
@@ -29,7 +29,20 @@ xtHandler.on("gli", (obj, r) => {
  */
 const WAKE_TIERS = ["reserved", "first", "waiting"]
 
+/** Commanders a plugin holds: handed out and neither sent nor freed yet. The safety net leaves them alone. */
+const held = new Set()
+/** lordID -> when it was marked busy. */
+const busySince = new Map()
+/** lordID -> when its army should be home, from the march the bot saw leave. */
+const homeBy = new Map()
+/** lordID -> until when it stays busy after the game refused it as busy (LORD_IS_USED). */
+const refusedUntil = new Map()
+
 function freeCommander(lordID) {
+    held.delete(lordID)
+    homeBy.delete(lordID)
+    refusedUntil.delete(lordID)
+    busySince.delete(lordID)
     const index = usedCommanders.findIndex(e => e == lordID)
     if (index == -1)
         return
@@ -42,19 +55,90 @@ function freeCommander(lordID) {
     }
 }
 function useCommander(lordID) {
-    if (!usedCommanders.includes(lordID))
+    if (!usedCommanders.includes(lordID)) {
         usedCommanders.push(lordID)
+        busySince.set(lordID, Date.now())
+    }
 
     return lordID
+}
+/** Marks a commander handed to a plugin, which frees it or sends it. */
+function handOut(lordID) {
+    useCommander(lordID)
+    held.add(lordID)
+    return lordID
+}
+
+/*
+ * The safety net, after Lazy Lord's commander.js. A commander counts as free again only once the bot sees its army
+ * come home, so a missed return left it busy until a restart and the plugins had fewer and fewer commanders. Every
+ * SAFETY_NET_EVERY_MS a busy commander with no army of the player's out and no plugin holding it is freed:
+ * - REFUSED_BUSY_MS after the game refused it as busy (LORD_IS_USED);
+ * - HOME_GRACE_MS after its army should have been home, when the bot saw the march leave;
+ * - RECLAIM_AFTER_MS after it was marked busy otherwise.
+ * Unlike Lazy Lord's, a commander a plugin holds is never freed: our attack queue can hold one longer than 10 minutes
+ * (the 30-minute CANT_START_NEW_ARMIES pause, the hourly limit), and freeing it would lend it to a second plugin.
+ */
+const SAFETY_NET_EVERY_MS = 15_000
+const REFUSED_BUSY_MS = 3 * 60_000
+const HOME_GRACE_MS = 60_000
+const RECLAIM_AFTER_MS = 10 * 60_000
+const armyOut = lordID => movements?.some(movement => movement.lord?.lordID == lordID && movement.owner?.ownerID == playerInfo.playerID)
+setInterval(() => {
+    const now = Date.now()
+    for (const lordID of [...usedCommanders]) {
+        if (held.has(lordID))
+            continue
+        if (armyOut(lordID)) {
+            busySince.set(lordID, now)
+            continue
+        }
+        const due = refusedUntil.get(lordID) ?? (homeBy.has(lordID) ? homeBy.get(lordID) + HOME_GRACE_MS : (busySince.get(lordID) ?? now) + RECLAIM_AFTER_MS)
+        if (now < due)
+            continue
+        console.debug("commanderReclaimed", lordID)
+        metrics.count("bot_commanders_reclaimed_total", {})
+        freeCommander(lordID)
+    }
+}, SAFETY_NET_EVERY_MS).unref?.()
+
+/**
+ * After a refusal the bot's view of the marches is wrong, so it asks the game for the movement list (`gam`) this long
+ * later, as the game frees a commander a few seconds after its march ends, and at most every MOVEMENT_SYNC_GAP_MS.
+ */
+const MOVEMENT_SYNC_AFTER_MS = 10_000
+const MOVEMENT_SYNC_GAP_MS = 30_000
+let movementSyncAt = -Infinity
+function resyncMovements() {
+    if (!syncMovements || Date.now() + MOVEMENT_SYNC_AFTER_MS - movementSyncAt < MOVEMENT_SYNC_GAP_MS)
+        return
+    movementSyncAt = Date.now() + MOVEMENT_SYNC_AFTER_MS
+    setTimeout(() => syncMovements().catch(error => console.debug("syncMovements", error)), MOVEMENT_SYNC_AFTER_MS).unref?.()
+}
+
+/**
+ * The plugin that got LORD_IS_USED reports its commander here instead of freeing it. Freed, it went straight to the
+ * next waiting plugin, which was refused too, and so on through every plugin. It stays busy REFUSED_BUSY_MS unless
+ * its march home frees it sooner.
+ */
+function commanderRefused(lordID) {
+    useCommander(lordID)
+    held.delete(lordID)
+    refusedUntil.set(lordID, Date.now() + REFUSED_BUSY_MS)
+    resyncMovements()
 }
 
 movementEvents.on("outgoing", (/** @type {import("../protocols.js").ClassTypes.Movement} */ movement) => {
     if(movement.owner.ownerID != playerInfo.playerID)
         return
 
-    // console.log(`using: ${movement.lord.lordID}`)
-
-    useCommander(movement.lord.lordID)
+    const lordID = movement.lord.lordID
+    useCommander(lordID)
+    held.delete(lordID)
+    refusedUntil.delete(lordID)
+    // A march home ends when it arrives; an attack's army is home after travelling as far again.
+    if (Number.isFinite(movement.endsAt))
+        homeBy.set(lordID, movement.endsAt + (movement.targetOwner.ownerID == movement.owner.ownerID ? 0 : Number(movement.totalTime) || 0))
 })
 
 movementEvents.on("return", (/** @type {import("../protocols.js").ClassTypes.Movement} */ movement) => {
@@ -156,7 +240,7 @@ function claimNextFreed(draw, filterCallback, take) {
         currentEvent.stopImmediatePropagation()
         // Mark it in the same run as the hand-off, so a loop that asks again
         // before the claimant resumes can't take it too.
-        useCommander(currentEvent.detail)
+        handOut(currentEvent.detail)
         take(currentEvent.detail)
     }
     event.addEventListener(draw.tier, onFreed)
@@ -176,7 +260,7 @@ function takeFreeCommander(commanderWhitelist, plugin) {
         free.sort(byWrittenOrder(draw.whitelist))
     const lord = free[0]
     if (lord)
-        useCommander(lord.lordID)
+        handOut(lord.lordID)
     return lord
 }
 
@@ -240,7 +324,7 @@ const waitForCommanderAvailable = async (commanderWhitelist, filterCallback, sor
 
     if (Date.now() > waitStarted)
         metrics.count("bot_attack_idle_seconds_total", { cause: "no_free_commander" }, (Date.now() - waitStarted) / 1000)
-    useCommander(lordID)
+    handOut(lordID)
     return commanders.find(e => e.lordID == lordID)
 }
 
@@ -282,5 +366,6 @@ module.exports = {
     mappedOut,
     parseWhitelist,
     useCommander,
+    commanderRefused,
     freeCommander
 }

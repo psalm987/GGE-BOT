@@ -90,7 +90,7 @@ const {
     getAmountSoldiersFront,
     courtyardRoom,
     getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, openAttackScreen, waitForTroops, accountLimits } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
@@ -541,7 +541,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), attackInfo.tools))
             return true
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
             if (target && (e == "COOLING_DOWN" || e == "ATTACK_SCREEN_REFUSED"))
                 heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
@@ -563,7 +563,6 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id, TROOPS_RECHECK_MS)
                     return true
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
                 case "ATTACK_SCREEN_REFUSED":
                 case "CANT_START_NEW_ARMIES":
                 case "COOLING_DOWN":

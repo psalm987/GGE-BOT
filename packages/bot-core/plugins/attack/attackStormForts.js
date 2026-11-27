@@ -76,7 +76,7 @@ if (require('node:worker_threads').isMainThread) {
 const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles } = require("../../protocols.js")
 const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
 const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { sendXT, waitForResult, botConfig, events, xtHandler, playerInfo } = require("../../ggeBot.js")
 const { marchDistance } = require("../../towers.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = require("../../army.js")
@@ -370,7 +370,7 @@ events.once("load", async () => {
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
             if (target && (e == "ATTACK_SCREEN_REFUSED" || e == "COOLING_DOWN"))
                 heldUntil.set(`${target.x}:${target.y}`, Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
@@ -379,7 +379,6 @@ events.once("load", async () => {
                     await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     return true
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
                 case "ATTACK_SCREEN_REFUSED":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":

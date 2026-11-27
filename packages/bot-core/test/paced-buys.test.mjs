@@ -29,7 +29,7 @@ test("Storm Forts buys from one snapshot, spaced out, even when resourceUpdate f
         extra: {
             "protocols.js": protocols,
             "./attack.js": { waitToAttack: never, getAttackInfo() {}, assignUnit() {}, getAmountSoldiersFlank() {} },
-            "commander.js": { waitForCommanderAvailable: never, freeCommander() {}, useCommander() {} },
+            "commander.js": { waitForCommanderAvailable: never, freeCommander() {}, commanderRefused() {} },
         },
     })
     bot.events.emit("load")

@@ -76,7 +76,7 @@ const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands, ClassTypes } = require("../../protocols.js")
 const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
 const { keepDefence } = require("../../khanDefence.js")
@@ -717,7 +717,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
             }
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
             console.warn(e)
             switch (e) {
                 case "NOT_ENOUGH_CURRENCY1":
@@ -727,7 +727,6 @@ events.on("eventStart", async ({ EID, EDID }) => {
                     await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     break
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
                 case "ATTACK_SCREEN_REFUSED":
                 case "WONT_REACH_IN_TIME":
                 case "ATTACK_TOO_MANY_UNITS":

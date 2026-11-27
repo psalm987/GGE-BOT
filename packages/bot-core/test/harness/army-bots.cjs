@@ -81,7 +81,7 @@ async function firstCra(relPath, start, {
             "./attack.js": attack, "./attack": attack,
             "../commander": commanders ? commanderPool(bot, movementEvents, commanders, effects) : {
                 waitForCommanderAvailable: () => handedOut++ ? new Promise(() => {}) : Promise.resolve({ lordID: 9, getEffects: () => effects }),
-                freeCommander() {}, useCommander() {},
+                freeCommander() {}, commanderRefused() {},
             },
             "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]), wholeMapRects: () => [], areasAround: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]) },
             ...extra,
@@ -243,7 +243,7 @@ function startTowers(options, {
             "./attack.js": attack, "./attack": attack,
             "../commander": pool ? commanderPool(bot, movementEvents, commanders, effects) : {
                 waitForCommanderAvailable: () => free.length ? Promise.resolve(free.shift()) : new Promise(resolve => waiting.push(resolve)),
-                freeCommander, useCommander() {},
+                freeCommander, commanderRefused() {},
             },
             "../skips.js": { spendSkip() {}, haveEnoughSkips: () => false },
         },

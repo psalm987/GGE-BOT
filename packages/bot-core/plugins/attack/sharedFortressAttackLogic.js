@@ -8,7 +8,7 @@ const { movements, castles, ClientCommands, AreaType, KingdomID } = require('../
 const { areasAround } = require('../../mapScan.js')
 const { waitToAttack, waitForTroops, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
     courtyardRoom, sendAttack, openAttackScreen } = require("./attack")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander")
 const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
@@ -148,7 +148,7 @@ async function fortressHit(kingdomID, fallbackLevel, options, filename) {
             console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', march.TA[1], ':', march.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, march.TT - march.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
             if (target && (e == "COOLING_DOWN" || e == "ATTACK_SCREEN_REFUSED"))
                 heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
@@ -156,7 +156,6 @@ async function fortressHit(kingdomID, fallbackLevel, options, filename) {
                     await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     return true
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
                 case "ATTACK_SCREEN_REFUSED":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":

@@ -433,3 +433,19 @@ describe("a commander's bonuses", () => {
         expect(lord.getEffects().speedBonus).toBe(17)
     })
 })
+
+describe("syncMovements", () => {
+    test("asks for the movement list and ends the player's own marches the game no longer lists", async () => {
+        const { mod, bot, seen, gam } = movementsBot()
+        bot.playerInfo.playerID = ME
+        gam(march({ id: 42 }), march({ id: 43 }))
+        await new Promise(resolve => setImmediate(resolve))
+        const synced = mod.syncMovements()
+        await new Promise(resolve => setImmediate(resolve))
+        bot.xtHandler.emit("gam", { M: [march({ id: 43 })], O: [] }, 0)
+        expect(await synced).toBe(true)
+        expect(bot.sent.filter(([cmd]) => cmd == "gam")).toEqual([["gam", {}]])
+        expect(seen.ended).toEqual([42])
+        expect(mod.movements.map(m => m.id)).toEqual([43])
+    })
+})

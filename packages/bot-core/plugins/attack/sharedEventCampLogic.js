@@ -6,7 +6,7 @@ const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
 const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops, waitOutDailyLimit } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { readLegacy } = require("../../legacyOptions.js")
@@ -535,7 +535,7 @@ function eventCampAttacks(profile, stored, filename) {
                     quit = true
                 }
             } catch (e) {
-                freeCommander(commander.lordID)
+                e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
                 console.warn(e)
                 if (sending.camp && ["ATTACK_SCREEN_REFUSED", "COOLING_DOWN", "WONT_REACH_IN_TIME"].includes(e))
                     queue.hold(sending.camp, NOT_READY_HOLD_MS)
@@ -551,7 +551,6 @@ function eventCampAttacks(profile, stored, filename) {
                         await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                         break
                     case "LORD_IS_USED":
-                        useCommander(commander.lordID)
                     case "ATTACK_SCREEN_REFUSED":
                     case "COOLING_DOWN":
                     case "WONT_REACH_IN_TIME":

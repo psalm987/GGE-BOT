@@ -64,7 +64,7 @@ const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, ClassTypes, castles, ClientCommands, AreaType, KingdomID } = require("../../protocols.js")
 const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, useCommander } = require('../commander.js')
+const { waitForCommanderAvailable, freeCommander, commanderRefused } = require('../commander.js')
 const { areasAround } = require("../../mapScan.js")
 const { pickSourceCastle, castleName } = require("../../towers.js")
 const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = require('../../ggeBot.js')
@@ -430,7 +430,7 @@ events.on("eventStart", async eventInfo => {
             reportStatus("running")
             console.info("hittingTargetAttack", 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
         } catch (e) {
-            freeCommander(commander.lordID)
+            e == "LORD_IS_USED" ? commanderRefused(commander.lordID) : freeCommander(commander.lordID)
             if (target && ["ATTACK_SCREEN_REFUSED", "COOLING_DOWN", "WONT_REACH_IN_TIME"].includes(e))
                 heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
@@ -441,7 +441,6 @@ events.on("eventStart", async eventInfo => {
                     await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     break
                 case "LORD_IS_USED":
-                    useCommander(commander.lordID)
                 case "ATTACK_SCREEN_REFUSED":
                 case "WONT_REACH_IN_TIME":
                 case "COOLING_DOWN":

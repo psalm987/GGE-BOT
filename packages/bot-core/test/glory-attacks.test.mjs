@@ -114,7 +114,7 @@ async function glory(plugin, {
                         bot.events.emit("eventStop", { EID })
                     return { lordID: handedOut, getEffects: () => ({}) }
                 },
-                freeCommander() {}, useCommander() {},
+                freeCommander() {}, commanderRefused() {},
             },
         },
     })

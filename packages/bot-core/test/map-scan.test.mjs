@@ -176,7 +176,7 @@ describe("the attack plugins", () => {
                 "protocols": protocols,
                 "./attack": { waitToAttack: job => job(), getAttackInfo() {}, accountLimits: () => ({ used: 0, limit: 4000, hourly: 120, hourlyLeft: true }) },
                 "./attack.js": { waitToAttack: job => job(), getAttackInfo() {}, accountLimits: () => ({ used: 0, limit: 4000, hourly: 120, hourlyLeft: true }) },
-                "../commander": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, useCommander() {} },
+                "../commander": { waitForCommanderAvailable: async () => ({ lordID: 1, getEffects: () => ({}) }), freeCommander() {}, commanderRefused() {} },
                 "../skips.js": { spendSkip() {}, haveEnoughSkips: () => false },
             },
         })

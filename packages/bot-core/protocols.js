@@ -1394,6 +1394,24 @@ xtHandler.on("mcm", (o, r) => {
 xtHandler.on("gam", (o, r) => r == 0 ? 
     Array.from(o.M ?? []).map(e => new Movement(e, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))) : undefined)
 
+/**
+ * Asks the game for the movement list (`gam`): marches the bot missed come in through the handler above, and the
+ * player's own marches the game no longer lists are over (Lazy Lord's protocols.js syncMovements). Resolves whether the
+ * game answered. commander.js asks after a LORD_IS_USED, at most every 30 seconds.
+ */
+async function syncMovements() {
+    const known = movements.filter(movement => movement.owner?.ownerID == playerInfo.playerID)
+    await sendXT("gam", JSON.stringify({}))
+    const [obj, result] = await waitForResult("gam", 1000 * 10)
+    if (result != 0)
+        return false
+    const listed = new Set(Array.from(obj?.M ?? []).map(entry => Number(entry?.M?.MID)))
+    for (const movement of known)
+        if (!listed.has(movement.id))
+            endMovement(movement)
+    return true
+}
+
 // The game removed a movement before its time, such as a cancelled attack (docs/protocol/movements.md). `dms` is the
 // game's delete-message reply and says nothing about movements.
 xtHandler.on("mrm", (obj, result) => {
@@ -1579,6 +1597,7 @@ module.exports = {
     kingdomSkipTurn,
     setCastle,
     forgetCurrentCastle,
+    syncMovements,
     castleQueue,
     movementEvents,
     movements,

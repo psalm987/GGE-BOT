@@ -88,7 +88,7 @@ function fortressBot({ attackDialog = false, failing, options = {}, items = {}, 
                     return { lordID: LORD, getEffects: type => type == FORTRESS ? effects : {} }
                 },
                 freeCommander: lordID => { pool.held = false; pool.freed++; pool.wake?.() },
-                useCommander() {},
+                commanderRefused() {},
             },
         },
     })
