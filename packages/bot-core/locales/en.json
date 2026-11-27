@@ -1019,5 +1019,11 @@
     "outOfFeathersCoinHorse": "No fast horse feathers are left, so the troops ride the coin horse instead.",
     "khanTaunted": "The Khan was taunted: the rage bar emptied.",
     "khanTauntNotConfirmed": "The Khan taunt was not confirmed: the rage bar did not empty, so the next full bar tries again.",
-    "bladeSetup": "Blade Coast setup"
+    "bladeSetup": "Blade Coast setup",
+    "allianceHelp": "Alliance help",
+    "allianceHelpAsked": "Asked the alliance for help",
+    "allianceHelpForHeal": "with healing in the castle at kingdom and id",
+    "allianceHelpForRecruit": "with recruiting in the castle at kingdom and id",
+    "allianceHelpRefused": "The game refused to ask the alliance for help, so the bot waits an hour before asking there again. What, kingdom, castle and reason: ",
+    "dryRunAhr": "Log only, help request not sent: "
 }
