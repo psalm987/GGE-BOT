@@ -237,3 +237,57 @@ describe("the bot's plan check agrees with the contracts", () => {
         expect(parseArmy({ armyMode: "autofill", waves: plan() })).toEqual({ mode: "autofill" })
     })
 })
+
+describe("what the game limits in a wave plan, as Lazy Lord's attackTemplates.js reads it", () => {
+    const { loadModule } = require("./harness/load.cjs")
+    const room = { flankUnits: 100, frontUnits: 100, flankTools: 50, frontTools: 50, courtyard: 0 }
+    const slots = n => Array.from({ length: n }, () => [-1, 0])
+    const side = (tools, units) => ({ T: slots(tools), U: slots(units) })
+    const cra = (waveCount = 1) => ({
+        A: Array.from({ length: waveCount }, () => ({ L: side(2, 2), M: side(3, 6), R: side(2, 2) })),
+        AST: [-1, -1, -1], RW: slots(8),
+    })
+    const VETERAN = 720, NPC_SHIELD = 721, WARWAGON = 722
+    const units = () => [
+        melee(MELEE, 900), tool(VETERAN, 50, { amountPerWave: "5" }), tool(NPC_SHIELD, 50, { canBeUsedToAttackNPC: "0" }),
+        tool(WARWAGON, 3, { toolCategory: "Support", effects: "9001&2" }),
+    ]
+    const withTools = (left, ast = [null, null, null]) => {
+        const wave = emptyCustomWave()
+        wave.left = { tools: left, units: [slot(MELEE, 10), null] }
+        return { ...emptyPlan(), waves: [wave], ast, rw: Array(8).fill(null) }
+    }
+    const army = () => loadModule("army.js", { items: { effects: [{ effectID: "9001", effectTypeID: "156" }, { effectID: "9002", effectTypeID: "1" }] } }).mod
+
+    test("a tool limited per wave (amountPerWave) is sent only up to that limit", () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const attack = army().fillFromPlan(cra(), withTools([slot(VETERAN, 20), null]), units(), room, { kingdom: 0, areaType: 27 })
+        expect(attack.A[0].L.T[0]).toEqual([VETERAN, 5])
+    })
+
+    test("a tool the game marks as not for NPC targets (canBeUsedToAttackNPC 0) is left out against a camp", () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
+        const attack = army().fillFromPlan(cra(), withTools([slot(NPC_SHIELD, 10), null]), units(), room, { kingdom: 0, areaType: 27 })
+        expect(attack.A[0].L.T[0]).toEqual(EMPTY)
+        expect(console.warn).toHaveBeenCalledWith("armyToolNotAllowed", NPC_SHIELD)
+    })
+
+    test("a support tool that adds waves (effect type 156) adds them to the attack, filled as the plan's last wave", () => {
+        const attack = army().fillFromPlan(cra(1), withTools([null, null], [WARWAGON, null, null]), units(), room, { kingdom: 0, areaType: 27 })
+        expect(attack.AST).toEqual([WARWAGON, -1, -1])
+        expect(attack.A).toHaveLength(3)
+        expect(attack.A.map(wave => wave.L.U[0])).toEqual([[MELEE, 10], [MELEE, 10], [MELEE, 10]])
+    })
+})
+
+describe("toolAllowedAt and NPC targets", () => {
+    const { toolAllowedAt } = require("../attackTargets.js")
+    test("canBeUsedToAttackNPC 0 bars a tool from NPC targets, and not from Foreign or Bloodcrow castles, which the game treats as players", () => {
+        const playerOnly = { canBeUsedToAttackNPC: "0" }
+        for (const areaType of [2, 11, 17, 24, 25, 27, 29, 30, 35, 37])
+            expect(toolAllowedAt(playerOnly, { kingdom: 0, areaType })).toBe(false)
+        expect(toolAllowedAt(playerOnly, { kingdom: 0, areaType: 21 })).toBe(true)
+        expect(toolAllowedAt(playerOnly, { kingdom: 0, areaType: 34 })).toBe(true)
+        expect(toolAllowedAt({ canBeUsedToAttackNPC: "1" }, { kingdom: 0, areaType: 27 })).toBe(true)
+    })
+})

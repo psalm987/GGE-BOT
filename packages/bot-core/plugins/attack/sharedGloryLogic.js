@@ -57,7 +57,7 @@ const { sendXT, waitForResult, xtHandler, events, playerInfo, botConfig } = requ
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { loadItem } = require("../../paths.js")
-const { rentCost } = require("../../eventDifficulty.js")
+const { rentCost, unlocked } = require("../../eventDifficulty.js")
 const { battleReportHeader, readBattleLog } = require("../../battleReports.js")
 
 const difficultyRows = loadItem("eventAutoScalingDifficulties")
@@ -230,7 +230,7 @@ module.exports = function farmGlory(filename, { eventID, areaType, difficultyIDs
             .filter(row => row.eventID == eventID && row.difficultyID >= firstDifficulty && row.difficultyID <= lastDifficulty)
             .sort((a, b) => a.difficultyTypeID - b.difficultyTypeID)
         const wanted = Number(setting("gloryDifficulty"))
-        const tier = wanted == 0 ? tiers.findLast(row => rentCost(row) == 0) : tiers.find(row => row.difficultyTypeID == wanted)
+        const tier = wanted == 0 ? tiers.findLast(unlocked) : tiers.find(row => row.difficultyTypeID == wanted)
         if (!tier) {
             console.error("gloryDifficultyUnknown")
             stop(target, "error", "statusDifficultyUnknown")

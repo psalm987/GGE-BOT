@@ -111,7 +111,7 @@ describe("event camp options stored before the horse and tools Selects and the n
             const fromOld = read(options, { noChests: false, useFeather: false, useCoin: false, scoreShutoff: "" })
             expect(read(options, {})).toEqual(fromOld)
             expect(fromOld).toMatchObject({
-                targetMode: 0, eventDifficulty: "4", horse: 0, tools: 2, attackWaves: 0, minTroops: 0, attacksPerRun: 0, scoreShutoff: 0,
+                targetMode: 0, eventDifficulty: "13", horse: 0, tools: 2, attackWaves: 0, minTroops: 0, attacksPerRun: 0, scoreShutoff: 0,
                 attackLeft: true, attackMiddle: true, attackRight: true, attackCourtyard: true, sourceCastle: null,
             })
             expect(Object.keys(fromOld).filter(key => ["noChests", "useFeather", "useCoin"].includes(key))).toEqual([])

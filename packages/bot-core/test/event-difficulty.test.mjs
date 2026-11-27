@@ -59,9 +59,9 @@ describe("Highest unlocked difficulty", () => {
         expect(await settleDifficulty(72, -1, HIGHEST)).toEqual({ EDID: 724 })
         expect(sedes()).toEqual([["sede", { EID: 72, EDID: 724, C2U: 0 }]])
     })
-    test("a tier with no rent cost counts as unlocked even when flagged locked", async () => {
+    test("a locked tier with no rent cost is not unlocked: only its achievement unlocks it", async () => {
         const { settleDifficulty } = load(["", 0], [tier(72, 4), tier(72, 6, "1", "0")])
-        expect(await settleDifficulty(72, -1, HIGHEST)).toEqual({ EDID: 726 })
+        expect(await settleDifficulty(72, -1, HIGHEST)).toEqual({ EDID: 724 })
     })
     test("an event whose every tier needs rubies is refused rather than rented", async () => {
         const { settleDifficulty, sedes } = load(["", 0], [tier(72, 4, "1", "50")])
@@ -72,5 +72,41 @@ describe("Highest unlocked difficulty", () => {
         const { settleDifficulty, sedes } = load(["", 0], [tier(72, 4)])
         expect(await settleDifficulty(72, 105, HIGHEST)).toEqual({ EDID: 105 })
         expect(sedes()).toEqual([])
+    })
+})
+
+describe("the highest unlocked difficulty", () => {
+    const { HIGHEST_DIFFICULTY, eventCampOptions, EVENT_PROFILES } = require("../eventCamps.js")
+    const tiers = [
+        { eventID: 72, difficultyTypeID: 4, difficultyID: 104, isLocked: "0" },
+        { eventID: 72, difficultyTypeID: 6, difficultyID: 106, isLocked: "1", rentC2Cost: "500" },
+        { eventID: 72, difficultyTypeID: 11, difficultyID: 111, isLocked: "0", rentC2Cost: "2000" },
+    ]
+    const achievements = [{ achievementID: "900", unlocksDifficulty: "106" }]
+    function highest(finished) {
+        const bot = fakeBot()
+        const record = bot.sendXT
+        bot.sendXT = async (cmd, params) => {
+            await record(cmd, params)
+            setImmediate(() => bot.xtHandler.emit(cmd, "", 0))
+        }
+        const { mod } = loadModule("eventDifficulty.js", { bot, items: { eventAutoScalingDifficulties: tiers, achievements } })
+        if (finished)
+            bot.xtHandler.emit("vli", { FA: finished }, 0)
+        return mod.settleDifficulty(72, -1, HIGHEST_DIFFICULTY)
+    }
+
+    test("counts a locked tier the player unlocked with its achievement (vli FA)", async () => {
+        expect(await highest([900])).toEqual({ EDID: 106 })
+    })
+    test("leaves out a locked tier whose achievement is not finished", async () => {
+        expect(await highest([1])).toEqual({ EDID: 104 })
+    })
+    test("never picks a tier above 10 that can only be rented", async () => {
+        expect(await highest([900])).not.toEqual({ EDID: 111 })
+    })
+    test("is the default choice for event camps", () => {
+        const option = eventCampOptions(Object.values(EVENT_PROFILES)[0]).find(o => o.key == "eventDifficulty")
+        expect(option.default).toBe(String(HIGHEST_DIFFICULTY))
     })
 })

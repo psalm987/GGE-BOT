@@ -21,7 +21,7 @@ const MAP_MAX = 1286
 const DIFFICULTIES = ["Classic", "Easy", "Easy+", "Intermediate", "Intermediate+", "Hard", "Hard+", "Expert", "Expert+", "Master", "Master+", "Archmaster"]
 /** The `eventDifficulty` choice that leaves the event on the difficulty the player set in the game. */
 const KEEP_DIFFICULTY = DIFFICULTIES.length
-/** The `eventDifficulty` choice that sets the event's highest tier that costs no rubies to rent. */
+/** The `eventDifficulty` choice that sets the event's highest tier the player has unlocked, the default. */
 const HIGHEST_DIFFICULTY = DIFFICULTIES.length + 1
 /** The horse of an attack, by the choice of the `horse` Select. "distance" picks one for each camp. */
 const CAMP_HORSES = ["none", "coin", "feather", "distance"]
@@ -46,7 +46,7 @@ const eventCampOptions = profile => [
     { type: "Label", key: "targetSettings" },
     { type: "Select", key: "targetMode", selection: TARGET_MODE_CHOICES, default: 0 },
     ...profile.targetOptions ?? [],
-    { type: "Select", key: "eventDifficulty", selection: [...DIFFICULTIES, "Keep the game's current difficulty", "Highest unlocked difficulty"], default: "4" },
+    { type: "Select", key: "eventDifficulty", selection: [...DIFFICULTIES, "Keep the game's current difficulty", "Highest unlocked difficulty"], default: String(HIGHEST_DIFFICULTY) },
     { type: "Number", key: "targetX", min: 0, max: MAP_MAX, showWhen: { key: "targetMode", in: [SINGLE] } },
     { type: "Number", key: "targetY", min: 0, max: MAP_MAX, showWhen: { key: "targetMode", in: [SINGLE] } },
     { type: "CastlePicker", key: "sourceCastle", kingdom: profile.kingdom, default: null },
