@@ -19,6 +19,7 @@ export const sidebar: Group[] = [
             { slug: "modules/khan" },
             { slug: "modules/green-berimond" },
             { slug: "modules/invasion-events" },
+            { slug: "modules/blade-coast" },
             { slug: "modules/virtual-presets" },
             { slug: "modules/armourer" },
         ],
@@ -26,7 +27,8 @@ export const sidebar: Group[] = [
     {
         label: "Utilities",
         translations: { de: "Hilfsmittel", ar: "أدوات مساعدة" },
-        items: [{ slug: "modules/recruit-tools-heal" }, { slug: "modules/refinery-toolsmith" }, { slug: "modules/auto-feast" }, { slug: "modules/equip-sell" }, { slug: "modules/daily-chores" }],
+        items: [{ slug: "modules/recruit-tools-heal" }, { slug: "modules/refinery-toolsmith" }, { slug: "modules/auto-feast" }, { slug: "modules/equip-sell" }, { slug: "modules/daily-chores" },
+            { slug: "modules/troop-transfer" }, { slug: "modules/alliance-donations" }, { slug: "modules/native-village" }],
     },
     { label: "PvP", translations: { de: "PvP", ar: "PvP" }, items: [{ slug: "modules/alert-autostation" }] },
     { label: "Discord", translations: { de: "Discord", ar: "Discord" }, items: [{ slug: "modules/discord-attacks" }, { slug: "modules/discord-events" }] },

@@ -3171,8 +3171,150 @@ async function driveBladeCoast(page) {
     }
 }
 
+/**
+ * The Blade Coast, Troop transfer, Alliance donations and Native village modules, as `demo` on Ironhold: each reached from
+ * the sidebar, its settings drawn, a change saved and read back through the API and after a reload, and axe and
+ * screenshots at 1440 and 390. Ironhold's settings are put back.
+ */
+async function driveNewModules(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    const form = page.locator(".gge-content")
+    const table = (scope, title) => scope.locator(".ant-form-item").filter({ has: page.locator("label", { hasText: title }) })
+    const shown = async (scope, label) => (await scope.getByLabel(label, { exact: true }).locator("xpath=ancestor::div[contains(@class,'ant-select')][1]").innerText()).replace(/\s+/g, " ").trim()
+    const pick = (scope, label, text, type = false) => selectOption(page, scope.getByLabel(label, { exact: true }), label, text, { type })
+    const save = async () => {
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+    }
+    const reopen = async id => {
+        await page.goto(`${CLIENT_URL}/m/${id}?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.waitForTimeout(300)
+    }
+    const open = async (name, id, description) => {
+        await openModule(page, name)
+        assert(new URL(page.url()).pathname === `/m/${id}`, `the sidebar link ${name} opens /m/${id}`)
+        assert(await page.locator(".gge-module-title", { hasText: name }).isVisible() && await page.locator(".gge-module-intro", { hasText: description }).isVisible(), `${name} shows its name and description`)
+        assert(await page.getByRole("switch", { name: name === "Alliance donations" ? "Alliance donation" : name }).first().isVisible(), `${name} has its plugin switch on the Status card`)
+    }
+    try {
+        await page.setViewportSize(WIDE_VIEW)
+        await page.goto(`${CLIENT_URL}/m/khan`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        const nav = page.getByRole("navigation", { name: "Modules" })
+        const groupOf = id => nav.locator(`a[href^="/m/${id}"]`).evaluate(link => {
+            for (let el = link.parentElement; el; el = el.parentElement) {
+                const heading = el.querySelector(":scope > button[aria-expanded]")
+                if (heading) return heading.textContent.trim()
+            }
+            return ""
+        })
+        for (const [id, group] of [["blade-coast", "Attacks and gear"], ["troop-transfer", "Utilities"], ["alliance-donations", "Utilities"], ["native-village", "Utilities"]]) {
+            assert(await nav.locator(`a[href^="/m/${id}"]`).count() === 1, `the sidebar links /m/${id} once`)
+            assert(await groupOf(id) === group, `/m/${id} sits under ${group}: ${await groupOf(id)}`)
+        }
+
+        await open("Blade Coast", "blade-coast", "Plays the Blade Coast event for you")
+        assert(await form.getByText("Runs only during its event", { exact: true }).isVisible(), "Blade Coast says it runs only during its event")
+        const setup = form.locator(".ant-form-item", { has: page.getByText("Blade Coast setup", { exact: true }) })
+        assert(await setup.getByRole("status").innerText() === "Still to choose: the castle, the troop, the wall tool, the gate tool, and the ranged-defence tool. The plugin waits until all are set.", "the setup editor lists every pick still to choose")
+        for (const box of ["Castle that supplies the camp", "Troop", "Tool against the wall", "Tool against the gate", "Tool against ranged defence"])
+            assert(await setup.getByRole("combobox", { name: box, exact: true }).isVisible(), `the setup editor has ${box}`)
+        assert(await form.getByLabel("Use time skips on camp buildings and trips").isChecked() && !await form.getByLabel("Attack only the islands on the shortest way to the Kraken").isChecked(), "time skips are on and the shortest way is off by default")
+        assert((await form.getByLabel("Keep at least this many coins").inputValue()).replace(/\D/g, "") === "100000", "the coin floor starts at 100,000")
+        assert(!await form.getByLabel("Log only: write the attacks to the log instead of sending them").isChecked(), "Log only is off by default")
+        await pick(setup, "Castle that supplies the camp", "Frostgate")
+        await save()
+        assert((await account()).plugins.bladeCoast?.options?.bladeSetup?.castle?.id === 2001, "the supply castle is read back through the API")
+        await reopen("blade-coast")
+        assert((await shown(setup, "Castle that supplies the camp")).includes("Frostgate"), "after a reload the setup shows Frostgate")
+        await atBothWidths(page, "94-blade-coast", "blade coast")
+
+        await open("Troop transfer", "troop-transfer", "Keeps troops and tools stocked in your kingdoms")
+        const troops = table(form, "Troops to keep stocked"), tools = table(form, "Tools to keep stocked")
+        assert(await troops.getByText("No rows yet.").isVisible() && await tools.getByText("No rows yet.").isVisible(), "both rule tables start empty")
+        assert(!await form.getByLabel("Use time skips", { exact: true }).isChecked() && !await form.getByLabel("Log only: write the transfers to the log instead of sending them").isChecked(), "time skips and Log only are off by default")
+        await troops.getByRole("button", { name: "Add row" }).click()
+        assert(await troops.getByLabel("When fewer than, row 1").inputValue() === "100" && await troops.getByLabel("Fill up to, row 1").inputValue() === "500" && await troops.getByLabel("Sender keeps, row 1").inputValue() === "0", "a new rule starts at 100, 500 and 0")
+        const kingdoms = await selectOptions(page, troops.getByLabel("Kingdom to fill, row 1"), "the kingdom to fill")
+        console.log(`note: the kingdom lists offer ${kingdoms.join(", ")}`)
+        await pick(troops, "Kingdom to fill, row 1", "Burning Sands")
+        await pick(troops, "Sent from, row 1", "Great Empire")
+        await pick(troops, "Troop, row 1", "halberdier", true)
+        await troops.getByLabel("Fill up to, row 1").fill("800")
+        await save()
+        const rule = (await account()).plugins.troopTransfer?.options?.troopRules?.[0]
+        assert(rule?.toKingdom === 1 && rule.fromKingdom === 0 && rule.troop > 0 && rule.below === 100 && rule.upTo === 800 && rule.senderKeep === 0, `the rule is read back through the API: ${JSON.stringify(rule)}`)
+        await reopen("troop-transfer")
+        assert(await shown(troops, "Kingdom to fill, row 1") === "Burning Sands" && await troops.getByLabel("Fill up to, row 1").inputValue() === "800", "after a reload the rule shows what was saved")
+        await atBothWidths(page, "95-troop-transfer", "troop transfer")
+
+        await open("Alliance donations", "alliance-donations", "Gives your alliance the resources and coins")
+        const tab = name => form.getByRole("tab", { name })
+        assert(await tab("Alliance donation").isVisible() && await tab("Colossus donation").isVisible(), "the page has a tab for each plugin")
+        const pane = form.getByRole("tabpanel")
+        assert(await table(pane, "Castles that give").getByText("No rows yet.").isVisible(), "the alliance tab's castle table starts empty")
+        for (const resource of ["Give wood", "Give stone", "Give iron", "Give olive oil", "Give glass", "Give charcoal"])
+            assert(await pane.getByLabel(resource, { exact: true }).isChecked(), `${resource} is on by default`)
+        assert(!await pane.getByLabel("Give alliance coins", { exact: true }).isChecked() && await pane.getByLabel("Alliance coins to keep").inputValue() === "0", "giving alliance coins is off, with 0 to keep")
+        await atBothWidths(page, "96-alliance-donation", "alliance donation")
+        await tab("Colossus donation").click()
+        await table(pane, "Castles that give").getByRole("button", { name: "Add row" }).click()
+        assert(await pane.getByLabel("Give from (% of storage), row 1").inputValue() === "90" && await pane.getByLabel("Keep (% of storage), row 1").inputValue() === "50", "a Colossus row starts at 90 and 50")
+        await pick(pane, "Castle, row 1", "Frostgate")
+        await save()
+        const giver = (await account()).plugins.colossusEventDonate?.options?.colossusCastles?.[0]
+        assert(giver?.castle?.kingdom === 2 && giver.castle.id === 2001 && giver.donateAt === 90 && giver.storageKeep === 50, `the Colossus row is read back through the API: ${JSON.stringify(giver)}`)
+        await atBothWidths(page, "96-colossus-donation", "colossus donation")
+
+        await open("Native village", "native-village", "Spends the olive oil, charcoal and glass")
+        // The dropdown draws only the rows in view, so its options are read at the top and again scrolled to the bottom.
+        const allChoices = async label => {
+            const dropdown = await openSelect(page, form.getByLabel(label, { exact: true }), label)
+            const holder = dropdown.locator(".ant-select-dropdown-list-holder")
+            const seen = new Set(await dropdown.locator(".ant-select-item-option").allInnerTexts())
+            await holder.evaluate(el => { el.scrollTop = el.scrollHeight })
+            await page.waitForTimeout(200)
+            for (const text of await dropdown.locator(".ant-select-item-option").allInnerTexts()) seen.add(text)
+            await page.keyboard.press("Escape")
+            await isHidden(dropdown, 3000)
+            return [...seen]
+        }
+        const packs = { "Burning Sands pack (paid in olive oil)": ["saber", "olive oil storage"], "Everwinter Glacier pack (paid in charcoal)": ["Norseman", "charcoal storage"], "Fire Peaks pack (paid in glass)": ["cultist", "glass storage"] }
+        for (const [label, [troop, last]] of Object.entries(packs)) {
+            assert(await shown(form, label) === "Nothing", `${label} starts on Nothing`)
+            const choices = await allChoices(label)
+            assert(choices.length === 9 && choices[0] === "Nothing" && choices[1] === "Level 1: coins" && choices.some(c => c.includes(troop)) && choices.at(-1).includes(last) && choices.slice(1).every(c => /^Level [1-4]: /.test(c)),
+                `${label} offers Nothing and eight packs by name, never a locale key: ${choices.join(", ")}`)
+        }
+        await pick(form, "Burning Sands pack (paid in olive oil)", "Level 2: renegade saber warriors")
+        await save()
+        assert((await account()).plugins.nativeVillage?.options?.burningSandsPack === 3, "the saber warriors pack is stored as choice 3")
+        await reopen("native-village")
+        assert(await shown(form, "Burning Sands pack (paid in olive oil)") === "Level 2: renegade saber warriors", "after a reload the pick shows")
+        await atBothWidths(page, "97-native-village", "native village")
+    } finally {
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    }
+    assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "new-modules") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveNewModules(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "blade-coast") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)

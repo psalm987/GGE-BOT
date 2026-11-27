@@ -107,7 +107,8 @@ function pluginDocs(): PluginDoc[] {
 }
 
 function optionLabels(plugins: PluginDoc[]): OptionLabels {
-    const keys = new Set(plugins.flatMap(p => p.options.map(o => o.key)))
+    // A Select's choices may be locale keys too, as the native village packs are.
+    const keys = new Set(plugins.flatMap(p => p.options.flatMap(o => [o.key, ...o.choices ?? []])))
     const labels: OptionLabels = {}
     for (const locale of LOCALE_CODES) {
         const file = path.join(root, "packages/bot-core/locales", `${locale}.json`)

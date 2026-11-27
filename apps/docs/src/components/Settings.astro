@@ -20,11 +20,12 @@ const unit = (value: string) => t(`gge.settings.unit.${value}`)
 function defaultOf(option: OptionDoc) {
     if (option.default === undefined || option.default === "") return ""
     if (typeof option.default === "boolean") return t(option.default ? "gge.settings.on" : "gge.settings.off")
+    if (option.choices) return label(String(option.default)) ?? String(option.default)
     return option.unit ? `${option.default} ${unit(option.unit)}` : String(option.default)
 }
 
 function valuesOf(option: OptionDoc) {
-    if (option.choices) return option.choices.join(", ")
+    if (option.choices) return option.choices.map(choice => label(choice) ?? choice).join(", ")
     const parts: string[] = []
     if (option.min !== undefined && option.max !== undefined) parts.push(t("gge.settings.range", { min: option.min, max: option.max }))
     if (option.step) parts.push(t("gge.settings.step", { step: option.step }))

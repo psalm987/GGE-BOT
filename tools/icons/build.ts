@@ -1,13 +1,13 @@
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { MODULES } from "@gge/contracts"
+import { ICON_IDS } from "@gge/contracts"
 
 /**
- * Draws every icon a module uses into the house badge and credits its author. Each glyph comes from game-icons.net (npm
+ * Draws every icon in ICON_IDS into the house badge and credits its author. Each glyph comes from game-icons.net (npm
  * @iconify-json/game-icons, CC BY 3.0). The badge is ours: an ink ground in a gold rim with a light bevel.
  *
- * Usage: `pnpm --filter @gge/icons build`. Output is a pure function of the module list, the set and `authors.json`, so a rerun
+ * Usage: `pnpm --filter @gge/icons build`. Output is a pure function of ICON_IDS, the set and `authors.json`, so a rerun
  * changes no bytes. `node build.ts --authors` rereads the set's GitHub tree to refresh `authors.json`, which the npm package lacks.
  */
 const here = dirname(fileURLToPath(import.meta.url))
@@ -27,7 +27,7 @@ const NAMES: Record<string, string> = {
     cathelineau: "Cathelineau",
 }
 
-const ids: string[] = [...new Set(MODULES.map(module => module.icon))]
+const ids: string[] = [...ICON_IDS]
 
 async function refreshAuthors(): Promise<void> {
     const res = await fetch("https://api.github.com/repos/game-icons/icons/git/trees/master?recursive=1")

@@ -1,0 +1,85 @@
+---
+title: Troop transfer
+description: Keep troops and tools stocked in each kingdom. When a kingdom runs low, another kingdom's castle sends enough to fill it back up.
+appRoute: /m/troop-transfer
+plugin: troopTransfer
+sources:
+  - packages/bot-core/plugins/troopTransfer.js
+  - packages/bot-core/plugins/stock.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="caravan" size=32 /%}Keep every front supplied. The Troop transfer {% term id="module" %}module{% /term %} keeps troops and {% term id="tool" %}tools{% /term %} stocked in your {% term id="kingdom" %}kingdoms{% /term %}. When a kingdom's castle holds fewer than you set, another kingdom's castle sends enough to fill it back up.
+
+{% terms_on_page /%}
+
+It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, it reads the troops and tools of your kingdom castles.
+2. For each rule, it counts what the kingdom to fill holds: units at home, out on marches, in production, and a transfer already on its way there.
+3. When that count is under **When fewer than**, it plans a transfer that brings the kingdom up to **Fill up to**.
+4. It sends only when the sending castle holds the whole top-up above **Sender keeps**. It never sends part of one.
+5. All the units one kingdom needs go in a single transfer.
+6. It checks again about every 30 minutes, or soon after a transfer that was on its way lands.
+
+Only kingdom castles send and take transfers: the {% term id="main-castle" %}main castle{% /term %} in the {% term id="great-empire" %}Great Empire{% /term %}, and the kingdom castle in Burning Sands, Everwinter Glacier, Fire Peaks and the {% term id="storm-islands" %}Storm Islands{% /term %}.
+
+## Write your rules {% #rules %}
+
+**Troops to keep stocked** and **Tools to keep stocked** are tables. Choose **Add row** and fill in every column:
+
+- **Kingdom to fill** is the kingdom that takes the units.
+- **Sent from** is the kingdom whose castle sends them.
+- **Troop** or **Tool** is what to keep stocked.
+- **When fewer than** is the stock that starts a transfer.
+- **Fill up to** is the stock the transfer brings the kingdom to. It must be at least **When fewer than**.
+- **Sender keeps** is how many the sending castle always keeps.
+
+The game takes one transfer into a kingdom at a time. So each kingdom has one sender: the first rule for a kingdom names it, and a later rule that names another sender for that kingdom is not used.
+
+{% aside type="caution" id="troop-transfer-berimond" %}
+The kingdom lists also offer {% term id="berimond" %}Berimond{% /term %}. A rule into or out of Berimond, or from a kingdom to itself, is not used, and the status says a rule can't be used. Berimond gets its troops through its own event.
+{% /aside %}
+
+## Time skips {% #skips %}
+
+With **Use time skips** on, when a transfer is still on its way into a kingdom that needs more, the bot spends {% term id="time-skip" %}time skips{% /term %} to land it so the next transfer can leave. Your account settings decide which skips it may spend. It is off by default.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the transfers to the log instead of sending them**. The bot plans each transfer and writes it to the {% term id="log" %}log{% /term %}, but sends nothing and spends no skips.
+
+## What it never does {% #never %}
+
+- It never spends {% term id="ruby" %}rubies{% /term %}.
+- It never takes a sending castle below **Sender keeps**.
+- It never sends a part of a top-up. If the sender is short, it waits.
+- It never starts a transfer within 5 to 10 seconds of another army leaving, so two armies never start close together.
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card tells you what the plugin did on its last check:
+
+- **Every kingdom is at or above its floor.** Nothing to send.
+- **Sent** a number of transfers with a number of troops and tools.
+- **A transfer is still on its way into that kingdom.** The next one leaves once it lands.
+- **The sending castle doesn't have enough** of a unit for the whole top-up. It resumes when it has.
+- **A kingdom in your rules has no castle on this account**, or it isn't known yet.
+- **A rule can't be used.** Check the rule's kingdoms and amounts.
+- **No rules are set.** Add a row.
+
+## Settings {% #settings %}
+
+{% settings plugin="troopTransfer" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+The transfer request was captured in the game for Berimond only. Transfers between the Great Empire and the other kingdoms come from another bot's code. Check one small transfer on a spare account before you rely on it. The game's answer to a second transfer into a busy kingdom has never been seen either.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_ROW](/errors/#plugin-option-row): a row of a table is not complete.
+- [PLUGIN_OPTION_ITEM](/errors/#plugin-option-item): a row names a troop or tool that isn't in the list.
+- [PLUGIN_OPTION_ROWS](/errors/#plugin-option-rows): a table has too many rows.
