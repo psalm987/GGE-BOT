@@ -1,16 +1,18 @@
 ---
 title: Castle builder
-description: Write a build plan for each castle, and the bot upgrades and builds to it, buys expansions with wood and stone, and never pays with rubies.
+description: Write a build plan for each castle, and the bot builds to it, buys expansions, sends wood and stone to your Storm Islands castle, and never pays with rubies.
 appRoute: /m/castle-builder
 plugin: build
 sources:
   - packages/bot-core/plugins/build.js
   - packages/bot-core/buildPlan.js
   - packages/bot-core/castleBuilder.js
+  - packages/bot-core/plugins/buildSupply.js
+  - packages/bot-core/stormTransfer.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="stone-wall" size=32 /%}Build while you are away. The Castle builder {% term id="module" %}module{% /term %} brings each castle in your plan to the buildings, levels and counts you write. It takes one step at a time and waits for resources and for the build queue.
+{% icon id="stone-wall" size=32 /%}Build while you are away. The Castle builder {% term id="module" %}module{% /term %} brings each castle in your plan to the buildings, levels and counts you write. It takes one step at a time and waits for resources and for the build queue. It has two tabs: **Build** and **Build supply**, which sends wood and stone to your {% term id="storm-islands" %}Storm Islands{% /term %} castle when its plan runs short.
 
 {% terms_on_page /%}
 
@@ -72,9 +74,24 @@ The bot leaves that building alone for an hour and goes on with the rest of the 
 
 Turn on **Log only: write the builds to the log instead of sending them**. The bot reads each castle and writes its next step to the log, but sends nothing and spends no skips. It looks again an hour later.
 
+## Build supply for the Storm Islands {% #build-supply %}
+
+The **Build supply** tab sends wood and stone from your other castles to your Storm Islands castle, so its plan keeps going. It works only with **Build** on and a Storm Islands castle in your plan.
+
+1. After each look at the Storm Islands castle, Build says whether it can pay for any next step of the plan.
+2. When it can pay for none and the plan still needs wood or stone, the bot sends them. About a tenth of a transfer to the Storm Islands is lost on the way, so it sends a ninth more than the free space in the storehouse. It never sends more than the plan still lacks, plus that ninth.
+3. It sends from the first castle in **Castles that send wood and stone** that holds more wood or stone than its **Keep at least**. Wood and stone go in one transfer. Storm Islands and {% term id="berimond" %}Berimond{% /term %} castles never send. With an empty list, nothing is sent.
+4. With **Skip the transfer so the wood and stone land at once** on, the bot spends {% term id="time-skip" %}time skips{% /term %} on the transfer until it lands, a few seconds apart. It uses only the skips you allow in the Skips settings, never {% term id="ruby" %}rubies{% /term %}. Build looks at the castle again a few seconds later.
+5. Without skips, Build looks at the castle again once the transfer lands.
+6. If the game refuses the transfer, the bot tries again in 5 minutes.
+
+The game takes one transfer of goods into the Storm Islands at a time, and {% term id="mead" %}mead{% /term %} and food from the [Storms](/modules/storms/#one-transfer) module share it. Mead and food that are running low go first, because troops eat them. Wood and stone wait until that transfer lands.
+
+Turn on **Log only: write the transfer to the log instead of sending it** to see each transfer in the log first. The bot sends nothing and spends no skips.
+
 ## What it never does {% #never %}
 
-- It never pays with rubies. A building or level with a ruby price is not offered, and every request is checked before it leaves.
+- It never pays with rubies. A building or level with a ruby price is not offered, and every request is checked before it leaves. Build supply spends skip items only.
 - It never takes your coins or a castle's resources under what you keep.
 - It never tears down or moves a building.
 - It never changes your saved plan.
@@ -92,8 +109,14 @@ The {% ui key="client:module.status" /%} card says what the plugin is doing and 
 
 ## Settings {% #settings %}
 
+### Build {% #settings-build %}
+
 {% settings plugin="build" /%}
+
+### Build supply {% #settings-build-supply %}
+
+{% settings plugin="buildSupply" /%}
 
 ## Not yet checked in the game {% #live-check %}
 
-The build requests come from another bot's code, based on its captures of the game client. Run the plan with **Log only** first. Then check one cheap upgrade on a spare account before you rely on it.
+The build requests come from another bot's code, based on its captures of the game client. Run the plan with **Log only** first. Then check one cheap upgrade on a spare account before you rely on it. The same holds for a wood and stone transfer to the Storm Islands: send one small transfer with **Build supply** before you rely on it.
