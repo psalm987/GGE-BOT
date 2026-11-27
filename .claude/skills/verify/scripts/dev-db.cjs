@@ -6,7 +6,8 @@
 // Usage: node dev-db.cjs log <account name> <level 0|1|2> <plugin> <part>...   e.g. log Ironhold 1 feast notEnoughFoodToFeast
 //        node dev-db.cjs notify <account name> [crash_loop|incoming_attack]
 // Or require it for insertLogLine({ accountName, level, plugin, parts }), insertNotification({ accountName, kind }),
-// insertResources({ accountName, resources }), storePluginSettings(...) and storeProblems({ accountName, problems }).
+// insertResources({ accountName, resources }), storePluginSettings(...), storeProblems({ accountName, problems }) and
+// storeSession({ accountName, session }).
 // The Postgres URL comes from DATABASE_URL, else from the `pnpm dev` banner in DEV_LOG (default /tmp/gge-dev.log).
 const fs = require("node:fs")
 const path = require("node:path")
@@ -90,6 +91,22 @@ function insertNotification({ accountName, kind = "crash_loop" }) {
     })
 }
 
+/** A bot_status row as the API's publicStatus shows it, for the status event a write publishes. */
+function statusOf(row) {
+    const stored = row.resources
+    const figure = value => typeof value === "number" ? value : null
+    const session = row.session && (({ last, ...gains }) => gains)(row.session)
+    return {
+        actualState: row.actual_state, heartbeatAt: row.heartbeat_at, lastError: row.last_error, bannedUntil: row.banned_until,
+        pluginStates: row.plugin_states, castles: stored?.castles ?? [], commanders: stored?.commanders ?? null, gamePresets: stored?.gamePresets ?? [],
+        resources: stored && {
+            food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
+            aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,
+        },
+        readBack: stored?.readBack ?? null, bladeCoast: stored?.bladeCoast ?? null, session: session ?? null,
+    }
+}
+
 /** Stores a worker report for the account, as the runner's store does, and publishes the status event with it. `resources: null` clears the report. */
 function insertResources({ accountName, resources }) {
     return withAccount(accountName, async (db, account) => {
@@ -98,16 +115,20 @@ function insertResources({ accountName, resources }) {
             `insert into bot_status (account_id, resources, heartbeat_at) values ($1, $2, now())
              on conflict (account_id) do update set resources = $2, heartbeat_at = now() returning *`,
             [account.id, stored && JSON.stringify(stored)])
-        const figure = value => typeof value === "number" ? value : null
-        const status = {
-            actualState: row.actual_state, heartbeatAt: row.heartbeat_at, lastError: row.last_error, bannedUntil: row.banned_until,
-            pluginStates: row.plugin_states, castles: stored?.castles ?? [], commanders: stored?.commanders ?? null, gamePresets: stored?.gamePresets ?? [],
-            resources: stored && {
-                food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
-                aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,
-            },
-            readBack: stored?.readBack ?? null, bladeCoast: stored?.bladeCoast ?? null,
-        }
+        const status = statusOf(row)
+        await publish(db, `personal:user#${account.owner_id}`, { v: 1, kind: "status", accountId: account.id, status })
+        return status
+    })
+}
+
+/** Stores the account's session as the runner's supervisor counts it (contracts `SessionGains` plus its readings), or none for null, and publishes the status. */
+function storeSession({ accountName, session }) {
+    return withAccount(accountName, async (db, account) => {
+        const { rows: [row] } = await db.query(
+            `insert into bot_status (account_id, session) values ($1, $2)
+             on conflict (account_id) do update set session = $2 returning *`,
+            [account.id, session && JSON.stringify(session)])
+        const status = statusOf(row)
         await publish(db, `personal:user#${account.owner_id}`, { v: 1, kind: "status", accountId: account.id, status })
         return status
     })
@@ -137,7 +158,7 @@ function storeProblems({ accountName, problems }) {
     })
 }
 
-module.exports = { withDatabase, insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems }
+module.exports = { withDatabase, insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems, storeSession }
 
 if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)

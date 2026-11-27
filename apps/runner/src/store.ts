@@ -7,6 +7,7 @@ import {
 import {
     botLogs, botProblems, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, pluginSettings, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
+import type { StoredSession } from "./farm-session.ts"
 import { logTag } from "./log-render.ts"
 
 const { TOWER_LOG_TAG, readTowerAttack } = createRequire(import.meta.url)("@gge/bot-core/attackLog.js") as {
@@ -27,6 +28,10 @@ export type StatusPatch = {
     /** Only ever `{}`: a new run starts with no plugin states. */
     pluginStates?: Record<string, never>
     heartbeat?: boolean
+    /** The session as the supervisor counts it. A write never reopens the same session once it has ended. */
+    session?: StoredSession
+    /** The player stopped the bot, or the runner did for good: the open session ends now. */
+    endSession?: true
 }
 
 type Detail<C> = C extends { kind: infer K; data: infer D } ? { kind: K } & Omit<D, "accountName" | "serverLabel"> : never
@@ -132,6 +137,15 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
     const stamped = (resources: unknown) =>
         resources && typeof resources === "object" && !Array.isArray(resources) ? { ...resources, reportedAt: new Date().toISOString() } : resources
 
+    /** The stored session, unless it is this same session already ended: a report still in flight when the bot stopped doesn't reopen it. */
+    const sessionWrite = (session: StoredSession) => sql`case
+        when ${botStatus.session}->>'endedAt' is not null and (${botStatus.session}->>'startedAt')::bigint = ${session.startedAt} then ${botStatus.session}
+        else excluded.session end`
+    /** The open session ended now; an ended one, or none, stays as it is. */
+    const sessionEnd = () => sql`case
+        when ${botStatus.session} is not null and ${botStatus.session}->>'endedAt' is null then jsonb_set(${botStatus.session}, '{endedAt}', to_jsonb(${Date.now()}::bigint))
+        else ${botStatus.session} end`
+
     const upsertStatus = (tx: Tx, accountId: string, patch: StatusPatch) => {
         const set = {
             ...(patch.actualState && { actualState: patch.actualState }),
@@ -141,7 +155,9 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             ...(patch.pluginStates && { pluginStates: patch.pluginStates }),
             ...(patch.heartbeat && { heartbeatAt: new Date() }),
         }
-        return tx.insert(botStatus).values({ accountId, ...set }).onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
+        const session = patch.endSession ? sessionEnd() : patch.session && sessionWrite(patch.session)
+        return tx.insert(botStatus).values({ accountId, ...set, ...(patch.session && !patch.endSession && { session: patch.session }) })
+            .onConflictDoUpdate({ target: botStatus.accountId, set: { ...set, ...(session && { session }) } }).returning()
     }
     const statusEvent = (status: typeof botStatus.$inferSelect): UserEvent => ({
         v: 1, kind: "status", accountId: status.accountId,
@@ -191,6 +207,12 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     (history[attack.plugin] ??= []).push({ at: row.ts.getTime(), tools: attack.tools })
             }
             return history
+        },
+
+        /** The account's stored session with its readings; the supervisor decides whether a starting bot carries on with it. */
+        async session(accountId: string): Promise<unknown> {
+            const [row] = await db.select({ session: botStatus.session }).from(botStatus).where(eq(botStatus.accountId, accountId))
+            return row?.session
         },
 
         /**
@@ -274,6 +296,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 if (!account)
                     return
                 const channel = userChannel(account.ownerId)
+                await tx.update(botStatus).set({ session: sessionEnd() }).where(eq(botStatus.accountId, accountId))
                 if (status.actualState)
                     await publish(tx, channel, statusEvent((await upsertStatus(tx, accountId, status))[0]!))
                 await publish(tx, channel, { v: 1, kind: "account", accountId, desiredState: "stopped" } satisfies UserEvent)

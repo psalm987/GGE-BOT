@@ -172,6 +172,33 @@ describe("game refusals", () => {
     })
 })
 
+describe("session gains", () => {
+    const sessionOf = async (id: string) => (await status(id))?.session as { startedAt: number; endedAt: number | null; coins: number; eventPoints: Record<string, number> } | null | undefined
+
+    test("count rises across a reconnect in one session, end when the player stops the bot, and start again from nothing", async () => {
+        const id = await addAccount("gainscrash-a")
+        await reconcile()
+        const first = (await until(async () => {
+            const session = await sessionOf(id)
+            return spawned.length >= 2 && session?.coins === 1_000 ? session : undefined
+        }))!
+        expect(first).toMatchObject({ endedAt: null, eventPoints: { "72": 300 } })
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        const ended = await until(async () => (await sessionOf(id))?.endedAt ? await sessionOf(id) : undefined)
+        expect(ended).toMatchObject({ startedAt: first.startedAt, coins: 1_000 })
+
+        await db.update(gameAccounts).set({ desiredState: "running" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        const next = await until(async () => {
+            const session = await sessionOf(id)
+            return session && session.startedAt !== first.startedAt && session.coins === 500 ? session : undefined
+        })
+        expect(next).toMatchObject({ endedAt: null })
+    })
+})
+
 describe("plugin memory", () => {
     test("a plugin's memory reaches the next run, and a write for a plugin the bot didn't load or without a key is dropped with a warning", async () => {
         const warnings: unknown[][] = []

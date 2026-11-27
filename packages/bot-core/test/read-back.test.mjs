@@ -177,12 +177,9 @@ describe("the read-back snapshot in the worker's status report", () => {
         expect(snapshot.movements[2].arrivesAt, "the rest by who lands first").toBeLessThan(snapshot.movements[3].arrivesAt)
     })
 
-    test("counts coins and rubies gained since the game first reported them", () => {
+    test("leaves the session's gains to the runner, which counts them across reconnects", () => {
         const { report } = session()
-
-        expect(report(1000, 50).session).toEqual({ startedAt: NOW, coins: 0, rubies: 0 })
-        vi.setSystemTime(NOW + 60_000)
-        expect(report(45_400, 48).session).toEqual({ startedAt: NOW, coins: 44_400, rubies: -2 })
+        expect(report(1000, 50)).not.toHaveProperty("session")
     })
 
     test("is a snapshot the app accepts, and small enough to ride in every status report", () => {

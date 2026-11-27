@@ -3,6 +3,7 @@ import { BotNotice, GameRefusal, PluginFinished, PluginMemoryWrite, PluginState,
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
+import { countReport, sessionToCount, type StoredSession } from "./farm-session.ts"
 
 const require = createRequire(import.meta.url)
 const Action = require("@gge/bot-core/actions.json") as Record<string, number>
@@ -21,8 +22,12 @@ export interface WorkerLike {
 /** `schedule` is a stop because the account's run window closed; the account is still wanted. */
 export type EndReason = "stopped" | "restart" | "crash" | "error" | "stale" | "banned" | "auth_failed" | "shutoff" | "deploy" | "runner_lost" | "schedule"
 
-/** The status a stop on purpose leaves. An error from the window that just closed says nothing about the next one. */
-const stoppedBy = (reason: EndReason): StatusPatch => reason === "schedule" ? { actualState: "stopped", lastError: null } : { actualState: "stopped" }
+/**
+ * The status a stop on purpose leaves. An error from the window that just closed says nothing about the next one. Only
+ * the player's stop ends the session: a closed run window, a restart or a deploy carries on with it.
+ */
+const stoppedBy = (reason: EndReason): StatusPatch =>
+    reason === "schedule" ? { actualState: "stopped", lastError: null } : reason === "stopped" ? { actualState: "stopped", endSession: true } : { actualState: "stopped" }
 
 type Terminal = { state: "banned" | "auth_failed"; reason: string; bannedUntil?: number }
 
@@ -147,6 +152,8 @@ type Bot = {
     runId?: Promise<number | undefined>
     /** Settles once the current worker's exit has been recorded. */
     exited?: Promise<void>
+    /** What the bot gained since the player started it, counted from each worker's status reports. */
+    session?: StoredSession
 }
 
 export type SupervisorDeps = {
@@ -163,6 +170,8 @@ export type SupervisorDeps = {
         proxyOk(proxyId: string): Promise<void>
         proxyFailed(proxyId: string, error: string, options: { counts: boolean }): Promise<void>
         log(accountId: string, level: number, parts: unknown, message: string): void
+        /** The account's stored session, which a starting bot carries on with while it is open. */
+        session?(accountId: string): Promise<unknown>
         noteRefusal(accountId: string, refusal: GameRefusal): void
         /** Each tower plugin's attacks of the last 24 hours, which a starting bot counts against its daily limits. */
         recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
@@ -489,8 +498,15 @@ export class Supervisor {
         }
         if (this.bots.get(id) !== bot || bot.worker)
             return
+        const stored = bot.session ?? await this.deps.store.session?.(id).catch(error => {
+            this.log.warn("reading the session failed; a new one starts", error)
+            return undefined
+        })
+        if (this.bots.get(id) !== bot || bot.worker)
+            return
+        bot.session = sessionToCount(stored, this.now())
         // Written before the worker exists, so nothing it reports can be overwritten by it.
-        await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
+        await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {}, session: bot.session })
         if (this.bots.get(id) !== bot || bot.worker)
             return
         const [attackHistory, wheelSpins, pluginMemory] = await Promise.all([
@@ -550,7 +566,8 @@ export class Supervisor {
                 this.deps.discord?.request(worker, payload)
                 break
             case Action.StatusUser:
-                this.track(store.setStatus(id, { resources: payload, heartbeat: true }))
+                bot.session &&= countReport(bot.session, payload)
+                this.track(store.setStatus(id, { resources: payload, heartbeat: true, session: bot.session }))
                 break
             case Action.PluginStatus: {
                 const { plugin, ...report } = (payload ?? {}) as { plugin?: unknown }

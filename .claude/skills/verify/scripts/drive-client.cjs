@@ -4,7 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
-const { insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems, withDatabase } = require("./dev-db.cjs")
+const { insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems, storeSession, withDatabase } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -2301,7 +2301,7 @@ async function driveLiveView(page) {
     const units = { defenders: [{ wodID: 222, amount: 7416 }, { wodID: 220, amount: 959 }], attackers: [{ wodID: 271, amount: 120 }], defenceTools: [{ wodID: 110, amount: 5000 }], attackTools: [{ wodID: 950, amount: 30 }] }
     const tool = (wodID, amount) => ({ wodID, amount })
     const readBack = {
-        at: now, movementCount: 5, session: { startedAt: now - 2 * 3_600_000, coins: 44_400, rubies: 2 },
+        at: now, movementCount: 5,
         movements: [
             march(1, "incoming", "attack", camp, keep, 300_000, { sender: null, troops: null }),
             march(2, "own", "market", keep, watch, 400_000),
@@ -2372,6 +2372,50 @@ async function driveLiveView(page) {
     await page.screenshot({ path: `${out}/live-view-390.png`, fullPage: true })
     await page.setViewportSize(WIDE_VIEW)
     await insertResources({ accountName: "Ironhold", resources: { castles } })
+}
+
+/**
+ * The Live view's session card, from a session written the way the runner keeps it: gains that only count rises, with
+ * hourly rates, aquamarine, each event's points total named by its event, and the length; once the player stopped the
+ * bot it reads as the last session, with when it ended.
+ */
+async function driveSessionGains(page) {
+    const before = await withDatabase(async db => (await db.query(
+        "select s.resources, s.session from bot_status s join game_accounts a on a.id = s.account_id where a.name = 'Ironhold' order by a.created_at limit 1")).rows[0])
+    const now = Date.now()
+    const readBack = { at: now, castles: [], movements: [], movementCount: 0 }
+    await insertResources({ accountName: "Ironhold", resources: { ...before?.resources, readBack } })
+    const gains = { startedAt: now - 2 * 3_600_000, endedAt: null, coins: 44_400, rubies: 12, aqua: 9_000, eventPoints: { "72": 3_500, "999": 10 } }
+    await storeSession({ accountName: "Ironhold", session: { ...gains, last: { coins: 48_294_710 } } })
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    assert(JSON.stringify(ironhold.status.session) === JSON.stringify(gains), "the API returns the session's gains without the readings the runner counts from")
+
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/live-view?account=${ironhold.id}`)
+    const card = page.locator(".ant-card", { has: page.getByRole("list", { name: "Session gains" }) })
+    await card.waitFor()
+    assert(await card.locator(".ant-card-head-title").innerText() === "This session", "an open session is This session")
+    const tile = label => card.locator(".gge-kpi", { has: page.locator(".gge-kpi-label", { hasText: new RegExp(`^${label}$`) }) })
+    const tileText = async label => (await tile(label).innerText()).replace(/\s+/g, " ")
+    assert(/\+44,400 \+22,\d{3} an hour/.test(await tileText("Coins gained")), `coins gained count up with an hourly rate: ${await tileText("Coins gained")}`)
+    assert(/\+12 \+6 an hour/.test(await tileText("Rubies gained")), "rubies gained count up with an hourly rate")
+    assert(/\+9,000 \+4,\d{3} an hour/.test(await tileText("Aquamarine gained")), "aquamarine gained has its own tile")
+    assert(/3,500 Points so far in the event/.test(await tileText("Nomad invasion points")), "an event's points show as a total, named by the event")
+    assert(/^Event 999 points 10/.test(await tileText("Event 999 points")), "an event the app has no name for is named by its number")
+    assert(/^Session length 2:00:\d\d/.test(await tileText("Session length")), "the session's length counts from when the player started the bot")
+    assert(/Counted from when you started the bot, through reconnects and restarts\. Only rises count/.test(await card.innerText()), "the card says how the gains are counted")
+    await atBothWidths(page, "session", "the Live view's session card")
+
+    await storeSession({ accountName: "Ironhold", session: { ...gains, endedAt: now - 30 * 60_000, last: {} } })
+    await page.reload()
+    await card.waitFor()
+    assert(await card.locator(".ant-card-head-title").innerText() === "Last session", "an ended session is the Last session")
+    assert(/^Session length 1:30:00 Ended 30 minutes ago\./.test(await tileText("Session length")), "the last session lasts until the player stopped it, and says when that was")
+    await axe(page, "the Live view's last session 1440")
+    await page.screenshot({ path: `${out}/session-ended-1440.png`, fullPage: true })
+
+    await storeSession({ accountName: "Ironhold", session: before?.session ?? null })
+    await insertResources({ accountName: "Ironhold", resources: before?.resources ?? null })
 }
 
 /**
@@ -3385,6 +3429,17 @@ async function driveNewModules(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveRecruitTools(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "session") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveSessionGains(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

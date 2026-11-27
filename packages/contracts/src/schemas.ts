@@ -5,7 +5,7 @@ import { GamePreset } from "./army.ts"
 import { BladeCoastStatus } from "./blade-coast.ts"
 import { AccountCastle, PluginStates } from "./plugin-checks.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
-import { ReadBack } from "./read-back.ts"
+import { ReadBack, SessionGains } from "./read-back.ts"
 import { Schedule } from "./schedule.ts"
 
 export const Role = z.enum(["user", "admin"])
@@ -71,6 +71,8 @@ export const BotStatus = z.object({
     resources: AccountResources.nullable().default(null),
     /** Castle stores, marches and session gains from the worker's last report; null until it has made one that carries them. */
     readBack: ReadBack.nullable().default(null),
+    /** The current session's gains, or the last one's once the player stopped the bot; null until the bot has run since sessions were kept. */
+    session: SessionGains.nullable().default(null),
     /** The Blade Coast camp from the worker's last report; null while the Blade Coast plugin isn't running in the event. */
     bladeCoast: BladeCoastStatus.nullable().default(null),
 })

@@ -1,4 +1,4 @@
-import { AccountCastle, BladeCoastStatus, GamePreset, PluginStates, ReadBack, type PublicAccount } from "@gge/contracts"
+import { AccountCastle, BladeCoastStatus, GamePreset, PluginStates, ReadBack, SessionGains, type PublicAccount } from "@gge/contracts"
 import type { botStatus } from "./schema.ts"
 
 const figure = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
@@ -16,14 +16,18 @@ function figuresOf(resources: unknown): NonNullable<PublicAccount["status"]>["re
     }
 }
 
-/** A bot_status row as the API and the realtime events show it. Castles, in-game presets and the read-back snapshot live in the worker's last resources report. */
-export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualState" | "heartbeatAt" | "lastError" | "bannedUntil" | "pluginStates" | "resources">): NonNullable<PublicAccount["status"]> {
+/**
+ * A bot_status row as the API and the realtime events show it. Castles, in-game presets and the read-back snapshot live
+ * in the worker's last resources report; the session is the runner's own.
+ */
+export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualState" | "heartbeatAt" | "lastError" | "bannedUntil" | "pluginStates" | "resources" | "session">): NonNullable<PublicAccount["status"]> {
     const castles = AccountCastle.array().safeParse((row.resources as { castles?: unknown } | null)?.castles)
     const pluginStates = PluginStates.safeParse(row.pluginStates)
     const commanders = (row.resources as { commanders?: unknown } | null)?.commanders
     const gamePresets = GamePreset.array().safeParse((row.resources as { gamePresets?: unknown } | null)?.gamePresets)
     const readBack = ReadBack.safeParse((row.resources as { readBack?: unknown } | null)?.readBack)
     const bladeCoast = BladeCoastStatus.safeParse((row.resources as { bladeCoast?: unknown } | null)?.bladeCoast)
+    const session = SessionGains.safeParse(row.session)
     return {
         actualState: row.actualState, heartbeatAt: row.heartbeatAt, lastError: row.lastError, bannedUntil: row.bannedUntil,
         pluginStates: pluginStates.success ? pluginStates.data : {},
@@ -33,5 +37,6 @@ export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualSta
         resources: figuresOf(row.resources),
         readBack: readBack.success ? readBack.data : null,
         bladeCoast: bladeCoast.success ? bladeCoast.data : null,
+        session: session.success ? session.data : null,
     }
 }

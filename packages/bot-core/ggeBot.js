@@ -474,6 +474,14 @@ xtHandler.on("gcu", obj => {
     })
     parentPort.postMessage([ActionType.StatusUser, status])
 })
+/** Each event's points total as the game last reported it (`pep`), by event id, which the runner keeps in the session. */
+xtHandler.on("pep", (obj, result) => {
+    const points = Number(obj?.OP?.[0])
+    if (result != 0 || !Number.isInteger(Number(obj?.EID)) || !Number.isInteger(points) || points < 0)
+        return
+    status.eventPoints = { ...status.eventPoints, [obj.EID]: points }
+    parentPort.postMessage([ActionType.StatusUser, status])
+})
 xtHandler.on("gai", obj => {
     Object.assign(status, {
         attackDailyCount: obj.AC != 0 ? Math.floor(playerInfo.attackDailyCount = obj.AC) : undefined,

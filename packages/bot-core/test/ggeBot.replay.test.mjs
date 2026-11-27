@@ -100,6 +100,20 @@ describe("the day's wheel spins", () => {
     }, 15000)
 })
 
+describe("event points", () => {
+    test("each event's points total from the game goes into the status report, whichever plugin asked", async () => {
+        bot = startBot()
+        await bot.login()
+        bot.xt("pep", 0, { EID: 72, OP: [3_500, 12] })
+        bot.xt("pep", 0, { EID: 80, OP: [90] })
+        bot.xt("pep", 0, { EID: 72, OP: [3_900] })
+        bot.xt("pep", 0, { EID: 71 })
+        await bot.until(() => bot.toParent.filter(m => m[0] === ActionType.StatusUser).length >= 3)
+
+        expect(bot.toParent.filter(m => m[0] === ActionType.StatusUser).at(-1)[1].eventPoints).toEqual({ 72: 3_900, 80: 90 })
+    }, 15000)
+})
+
 describe("important error counter", () => {
     const reply = async result => {
         const { done } = await bot.startWaitForResult("tst", 1000)

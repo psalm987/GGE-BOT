@@ -3,6 +3,7 @@ import { asc, desc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
 import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, PROBLEMS_KEPT, UserEvent, botChannel, userChannel } from "@gge/contracts"
 import { botLogs, botProblems, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
+import { countReport, startSession } from "../src/farm-session.ts"
 import { createStore, type Store } from "../src/store.ts"
 
 let db: Db
@@ -46,7 +47,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null, session: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +105,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null, session: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -208,7 +209,6 @@ test("a status carries the read-back snapshot of the worker's last report, and n
             sender: "Raider", troops: 1500, totalSeconds: 600, arrivesAt: 1_800_000_500_000,
         }],
         movementCount: 1,
-        session: { startedAt: 1_799_999_000_000, coins: 44_400, rubies: null },
         defence: {
             kingdom: 0, id: 1001, readAt: 1_799_999_990_000,
             wall: { level: 8, defence: 315.7, troops: 5031, room: 5031, sides: { left: { share: 30, slots: [{ wodID: 110, amount: 686 }, null] }, front: { share: 40, slots: [] }, right: { share: 30, slots: [] } } },
@@ -355,4 +355,39 @@ test("a refusal for an account deleted meanwhile is dropped, and the others are 
     await db.delete(gameAccounts).where(eq(gameAccounts.id, gone!.id))
     await store.flush()
     expect(await problemsOf(accountId)).toHaveLength(1)
+})
+
+const T0 = Date.now() - 3_600_000
+const sessionOf = async (id: string) => (await db.select({ session: botStatus.session }).from(botStatus).where(eq(botStatus.accountId, id)))[0]?.session
+
+test("a status write keeps the session with its readings, and the owner sees the gains without them", async () => {
+    const session = countReport(countReport(startSession(T0), { cash: 1_000 }), { cash: 1_500 })
+    await store.setStatus(accountId, { resources: { cash: 1_500 }, session })
+
+    expect(await store.session(accountId)).toEqual(session)
+    const [event] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(event).toMatchObject({ status: { session: { startedAt: T0, endedAt: null, coins: 500, rubies: 0, aqua: 0, eventPoints: {} } } })
+    expect(event!.kind === "status" && event!.status.session).not.toHaveProperty("last")
+})
+
+test("ending the session stamps when once, a late write of the same session can't reopen it, and a new session replaces it", async () => {
+    const session = countReport(startSession(T0), { cash: 1_000 })
+    await store.setStatus(accountId, { session })
+    await store.setStatus(accountId, { actualState: "stopped", endSession: true })
+    const ended = (await sessionOf(accountId)) as { endedAt: number }
+    expect(ended.endedAt).toBeGreaterThan(T0)
+
+    await store.setStatus(accountId, { endSession: true })
+    await store.setStatus(accountId, { session: countReport(session, { cash: 9_000 }) })
+    expect(await sessionOf(accountId)).toEqual({ ...session, endedAt: ended.endedAt })
+
+    const next = startSession(T0 + 3_600_000)
+    await store.setStatus(accountId, { session: next })
+    expect(await sessionOf(accountId)).toEqual(next)
+})
+
+test("the runner stopping an account for good ends its session", async () => {
+    await store.setStatus(accountId, { session: startSession(T0) })
+    await store.endAccount(accountId, { actualState: "banned", lastError: "IS_BANNED", notification: { kind: "banned", bannedUntil: null, runId: 1 } })
+    expect(((await sessionOf(accountId)) as { endedAt: number | null }).endedAt).not.toBeNull()
 })

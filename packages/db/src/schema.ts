@@ -256,6 +256,8 @@ export const botStatus = pgTable("bot_status", {
     /** What each plugin last reported during the current run, by plugin key. */
     pluginStates: jsonb("plugin_states").notNull().default({}),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
+    /** The account's current or last session (contracts `SessionGains`), with the last readings its rises count from. The runner's own. */
+    session: jsonb("session"),
 })
 
 /**
