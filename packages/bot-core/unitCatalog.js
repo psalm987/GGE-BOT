@@ -85,6 +85,22 @@ function bladeCoastCatalog(units) {
     return { troops, tools }
 }
 
+/**
+ * A unit type's name as the game's English language file `lang` has it: the key it is under, tried the ways the game
+ * spells them (the runner's game items do the same), and its text. A type the file lacks keeps its own name.
+ */
+function unitName(type, lang) {
+    const nameKey = [`${type}_name`, `${type[0].toLowerCase()}${type.slice(1)}_name`, `${type.toLowerCase()}_name`].find(key => key in lang) ?? `${type}_name`
+    return { nameKey, name: lang[nameKey] ?? type }
+}
+
+/** The BladeCoastSetup option (@gge/contracts) under `key`, offering what bladeCoastCatalog finds among `units`. */
+function bladeCoastSetupOption(key, units, lang = {}) {
+    const { troops, tools } = bladeCoastCatalog(units)
+    const named = ({ type, recruitGroup, levels }) => ({ type, ...unitName(type, lang), recruitGroup, levels })
+    return { type: "BladeCoastSetup", key, troops: troops.map(named), tools: tools.map(tool => ({ ...named(tool), roles: tool.roles })) }
+}
+
 /** The wodIDs a "<type>" or "<type>#<level>" choice stands for that may go to the Blade Coast. */
 function bladeCoastWods(units, choice) {
     const [type, level] = String(choice ?? "").split("#")
@@ -106,5 +122,6 @@ module.exports = {
     fitsBladeCoast,
     recruitCatalog,
     bladeCoastCatalog,
+    bladeCoastSetupOption,
     bladeCoastWods,
 }

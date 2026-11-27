@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
 import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, type AccountCastle, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
+import { BLADE_COAST_EXCLUDED_KINGDOMS, KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, TOOL_ROLES, type AccountCastle, type BladeCoastSetup, type BladeCoastTool, type BladeCoastUnit, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
+import { EMPTY_SETUP, missingPicks, unitOptions } from "../blade-coast-setup.ts"
 import { castleKey, castleOptions, toCastle } from "../castle-options.ts"
 import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
@@ -239,6 +240,56 @@ function SkipTypesField({ value = null, onChange, id, label }: { value?: SkipTyp
     )
 }
 
+/**
+ * The Blade Coast plugin's setup: the castle that supplies the camp (never Berimond), the troop, and a tool for each
+ * defence the islands have. A tool picked for one defence isn't offered for another. What is still missing is said
+ * under the fields; a part-filled setup still saves.
+ */
+function BladeCoastSetupField({ troops, tools, castles, value, onChange, id }: {
+    troops: BladeCoastUnit[]; tools: BladeCoastTool[]; castles: AccountCastle[]; value?: BladeCoastSetup | null; onChange?: (v: BladeCoastSetup) => void; id?: string
+}) {
+    const { t, i18n } = useTranslation("client")
+    const { t: tg } = useTranslation("game")
+    const setup = value ?? EMPTY_SETUP
+    const set = (patch: Partial<BladeCoastSetup>) => onChange?.({ ...setup, ...patch })
+    const words = {
+        name: (unit: BladeCoastUnit) => tg(unit.nameKey, { defaultValue: unit.name }),
+        level: (name: string, level: number) => t("plugins.bladeSetup.level", { name, level }),
+        group: (group: string) => t(`plugins.bladeSetup.group.${group}`),
+    }
+    const typeOf = (choice: string | null) => choice?.split("#")[0]
+    const missing = missingPicks(setup)
+    const field = (key: string, label: string, control: ReactNode) => (
+        <div key={key} style={{ display: "grid", gap: 4, minWidth: 0 }}>
+            <label htmlFor={`${id}-${key}`} style={{ color: palette.muted, fontSize: 13 }}>{label}</label>
+            {control}
+        </div>
+    )
+    const unitSelect = (key: string, label: string, options: ReturnType<typeof unitOptions>, choice: string | null, pick: (v: string | null) => void) =>
+        field(key, label, <Select id={`${id}-${key}`} allowClear showSearch={{ optionFilterProp: "label" }} options={options} value={choice ?? undefined}
+            placeholder={t("plugins.bladeSetup.choose")} status={choice ? undefined : "warning"} onChange={(v?: string) => pick(v ?? null)} style={{ width: "100%" }} />)
+    return (
+        <div id={id} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: 12 }}>
+            {field("castle", t("plugins.bladeSetup.castle"), (
+                <CastleSelect id={`${id}-castle`} castles={castles.filter(c => !BLADE_COAST_EXCLUDED_KINGDOMS.includes(c.kingdom))} value={setup.castle}
+                    placeholder={t("plugins.bladeSetup.choose")} onChange={castle => set({ castle })} />
+            ))}
+            {unitSelect("troop", t("plugins.bladeSetup.troop"), unitOptions(troops, words), setup.troop, troop => set({ troop }))}
+            {TOOL_ROLES.map(role => {
+                const elsewhere = new Set(TOOL_ROLES.filter(other => other !== role).flatMap(other => typeOf(setup.tools[other]) ?? []))
+                return unitSelect(role, t(`plugins.bladeSetup.tool.${role}`), unitOptions(tools.filter(tool => tool.roles.includes(role)), words, elsewhere),
+                    setup.tools[role], choice => set({ tools: { ...setup.tools, [role]: choice } }))
+            })}
+            {castles.length === 0 && <Typography.Text type="secondary" style={{ gridColumn: "1 / -1" }}>{t("plugins.castle.none")}</Typography.Text>}
+            {missing.length > 0 && (
+                <Typography.Text type="warning" role="status" style={{ gridColumn: "1 / -1" }}>
+                    {t("plugins.bladeSetup.missing", { list: new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(missing.map(part => t(`plugins.bladeSetup.part.${part}`))) })}
+                </Typography.Text>
+            )}
+        </div>
+    )
+}
+
 /** The lines under a field: what the field itself says (a range, a hint) and the plugin's own help for it. */
 const extraOf = (...lines: (ReactNode | undefined)[]) => {
     const shown = lines.filter(Boolean)
@@ -322,6 +373,8 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><CommanderMapField buckets={def.buckets} keepsOwnList={def.keepsOwnList ?? []} accountId={accountId} /></Form.Item></Col>
         case "Waves":
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} targets={entry.targets} /></Form.Item></Col>
+        case "BladeCoastSetup":
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><BladeCoastSetupField troops={def.troops} tools={def.tools} castles={castles} /></Form.Item></Col>
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)

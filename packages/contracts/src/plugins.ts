@@ -74,6 +74,45 @@ export type CommanderBucket = z.infer<typeof CommanderBucket>
 export const CommanderMap = z.array(z.string().max(64)).max(MAX_COMMANDERS)
 export type CommanderMap = z.infer<typeof CommanderMap>
 
+/** A troop or tool of a Blade Coast setup, as its unit type and level: "<type>#<level>". */
+export const UnitChoice = z.string().max(80).regex(/^[A-Za-z][A-Za-z0-9_]*#\d+$/)
+export type UnitChoice = z.infer<typeof UnitChoice>
+
+/** What an attack tool lowers on the defender: its wall, its gate or its ranged defence. */
+export const ToolRole = z.enum(["wall", "gate", "ranged"])
+export type ToolRole = z.infer<typeof ToolRole>
+export const TOOL_ROLES = ToolRole.options
+
+/** Where a player recruits a unit, as bot-core's unitCatalog.js sorts them. */
+export const RecruitGroup = z.enum(["attackTroops", "defenceTroops", "eventTroops", "attackTools", "defenceTools"])
+export type RecruitGroup = z.infer<typeof RecruitGroup>
+
+/**
+ * A troop the Blade Coast camp takes, with each of its levels. `nameKey` is the game's language-file key, rendered
+ * through the `game` namespace, and `name` its English text.
+ */
+export const BladeCoastUnit = z.object({
+    type: z.string().min(1).max(64), nameKey: z.string(), name: z.string(), recruitGroup: RecruitGroup, levels: z.array(z.number().int().min(0)).min(1),
+})
+export type BladeCoastUnit = z.infer<typeof BladeCoastUnit>
+/** A tool the Blade Coast islands accept, with the defences it lowers. */
+export const BladeCoastTool = BladeCoastUnit.extend({ roles: z.array(ToolRole).min(1) })
+export type BladeCoastTool = z.infer<typeof BladeCoastTool>
+
+/** Kingdoms a Blade Coast camp is never supplied from: Berimond. */
+export const BLADE_COAST_EXCLUDED_KINGDOMS: readonly number[] = [10]
+
+/**
+ * What the Blade Coast plugin sends to its camp: troops of one type and level, and one tool for each defence, all from
+ * one castle. Each part is null until the player picks it.
+ */
+export const BladeCoastSetup = z.object({
+    castle: CastleRef.nullable(),
+    troop: UnitChoice.nullable(),
+    tools: z.object({ wall: UnitChoice.nullable(), gate: UnitChoice.nullable(), ranged: UnitChoice.nullable() }),
+})
+export type BladeCoastSetup = z.infer<typeof BladeCoastSetup>
+
 /** The option types plugins declare (bot-core plugins' pluginOptions). Any option with a key may set `showWhen`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
@@ -106,6 +145,8 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     z.looseObject({ type: z.literal("CommanderMap"), key, default: CommanderMap, buckets: z.array(CommanderBucket), keepsOwnList: z.array(key).optional(), showWhen }),
     /** A wave plan; unset until the player writes one. */
     z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, army }),
+    /** A BladeCoastSetup picked from `troops` and `tools`, the units the Blade Coast camp takes; null until the player sets it up. */
+    z.looseObject({ type: z.literal("BladeCoastSetup"), key, troops: z.array(BladeCoastUnit), tools: z.array(BladeCoastTool), default: z.null().optional(), showWhen }),
 ])
 export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 /** An option that holds a value: every type but the layout gap and the label. */
@@ -153,7 +194,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap, BladeCoastSetup])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -338,7 +379,36 @@ function normalizeValue(catalog: PluginCatalogEntry[], def: PluginOptionDef, val
             return parsedArmy(WavePlan, value, where)
         case "CommanderMap":
             return checkCommanderMap(catalog, def.buckets, value, where)
+        case "BladeCoastSetup":
+            return value === null ? null : checkBladeCoastSetup(def, value, where)
     }
+}
+
+/** A setup whose castle is outside Berimond and whose every pick is a type and level the option offers, one tool for each defence it lowers. */
+function checkBladeCoastSetup({ troops, tools }: Extract<PluginOptionDef, { type: "BladeCoastSetup" }>, value: OptionValue, where: string): BladeCoastSetup {
+    const parsed = BladeCoastSetup.safeParse(value)
+    if (!parsed.success)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ITEM", params: { where } })
+    const setup = parsed.data
+    if (setup.castle && BLADE_COAST_EXCLUDED_KINGDOMS.includes(setup.castle.kingdom))
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_CASTLE", params: { where: `${where}.castle` } })
+    const offered = <U extends BladeCoastUnit>(units: U[], choice: string) => {
+        const [type, level] = choice.split("#")
+        return units.find(unit => unit.type === type && unit.levels.includes(Number(level)))
+    }
+    if (setup.troop !== null && !offered(troops, setup.troop))
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ITEM", params: { where: `${where}.troop` } })
+    const picked = new Set<string>()
+    for (const role of TOOL_ROLES) {
+        const choice = setup.tools[role]
+        if (choice === null)
+            continue
+        const tool = offered(tools, choice)
+        if (!tool?.roles.includes(role) || picked.has(tool.type))
+            throw new PluginSettingsError({ code: "PLUGIN_OPTION_ITEM", params: { where: `${where}.tools.${role}` } })
+        picked.add(tool.type)
+    }
+    return setup
 }
 
 /** A plugin that sends commanders: its catalog entry marks its commander list. */

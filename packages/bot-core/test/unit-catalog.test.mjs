@@ -1,9 +1,10 @@
 import { createRequire } from "node:module"
 import { describe, expect, test } from "vitest"
+import { PluginOptionDef } from "@gge/contracts"
 
 const require = createRequire(import.meta.url)
 const {
-    recruitCatalog, bladeCoastCatalog, bladeCoastWods, fitsBladeCoast, canTravelTo, canAttackAt, slotsOf, toolRolesOf, usableAgainstNpc,
+    recruitCatalog, bladeCoastCatalog, bladeCoastSetupOption, bladeCoastWods, fitsBladeCoast, canTravelTo, canAttackAt, slotsOf, toolRolesOf, usableAgainstNpc,
 } = require("../unitCatalog.js")
 
 // Hand-made rows in the shape of the game's units.json, not copied from it.
@@ -87,5 +88,22 @@ describe("catalogs", () => {
         expect(bladeCoastWods(units, "Ladder#2")).toEqual([21])
         expect(bladeCoastWods(units, "Homeguard")).toEqual([])
         expect(bladeCoastWods(units, undefined)).toEqual([])
+    })
+})
+
+describe("the Blade Coast setup option", () => {
+    const lang = { swordsman_name: "Swordsman", Bowman_name: "Bowman", ladder_name: "Siege ladder" }
+
+    test("offers the Blade Coast troops and tools by type, named from the game's language keys, as an option the API accepts", () => {
+        const option = bladeCoastSetupOption("bladeSetup", units, lang)
+
+        expect(PluginOptionDef.parse(option)).toEqual(option)
+        expect(option.troops.find(t => t.type == "Swordsman")).toEqual({ type: "Swordsman", nameKey: "swordsman_name", name: "Swordsman", recruitGroup: "attackTroops", levels: [0] })
+        expect(option.troops.find(t => t.type == "Bowman")).toMatchObject({ nameKey: "Bowman_name", levels: [1, 2] })
+        expect(option.tools.find(t => t.type == "Ladder")).toEqual({ type: "Ladder", nameKey: "ladder_name", name: "Siege ladder", recruitGroup: "attackTools", levels: [1, 2], roles: ["wall"] })
+    })
+
+    test("names a type the language file lacks by its type, under the key the game would use", () => {
+        expect(bladeCoastSetupOption("bladeSetup", units, {}).tools.find(t => t.type == "Ram")).toMatchObject({ nameKey: "Ram_name", name: "Ram" })
     })
 })
