@@ -36,14 +36,19 @@ function ask(cmd, params, timeoutMs = 15_000, accept = () => true) {
  * resolves to, until it resolves to nothing, the worker unloads or the bot
  * starts stopping. `task` gets `active()`, to check before each send that
  * follows a wait. Only the first delay is scaled like the login's pauses:
- * the later ones follow the game's clock.
+ * the later ones follow the game's clock. Returns `wake(delayMs)`, which brings
+ * the next run forward to `delayMs` from now when it was due later; a run
+ * under way is left alone, as the delay it resolves to counts.
  */
 function chore(name, task, firstDelayMs) {
     let timer
+    let dueAt
     let unloaded = false
     const active = () => !unloaded && !stopping()
     const runAfter = delayMs => {
+        dueAt = Date.now() + delayMs
         timer = setTimeout(async () => {
+            dueAt = undefined
             if (!active())
                 return
             let next
@@ -63,6 +68,12 @@ function chore(name, task, firstDelayMs) {
         clearTimeout(timer)
     })
     runAfter(firstDelayMs * timeoutMultiplier)
+    return delayMs => {
+        if (dueAt === undefined || Date.now() + delayMs >= dueAt || !active())
+            return
+        clearTimeout(timer)
+        runAfter(delayMs)
+    }
 }
 
 module.exports = { ask, chore }

@@ -454,6 +454,45 @@ describe("a commander's bonuses", () => {
     })
 })
 
+describe("market carts", () => {
+    /** A crm frame: the client reads its A as one more map movement (CRMCommand, parseMapMovementArray). Type 4 is a market movement. */
+    const crm = m => ({ A: march({ T: 4, ...m }, { MM: { C: 3, G: [["W", 300]] } }), O: [] })
+
+    test("a crm reply is a market movement the bot lists and announces", async () => {
+        const { mod, bot } = movementsBot()
+        const outgoing = []
+        mod.movementEvents.on("outgoing", movement => outgoing.push([movement.id, movement.type]))
+
+        bot.xtHandler.emit("crm", crm({ id: 50, D: 0, TA: [1, 30, 40, 300], SA: [1, 0, 0, 200] }), 0)
+        await new Promise(resolve => setImmediate(resolve))
+
+        expect(mod.movements.map(m => m.id)).toEqual([50])
+        expect(outgoing).toEqual([[50, 4]])
+    })
+
+    test("the carts' way back ends the trip out with the same id and is announced as a new movement", async () => {
+        const { mod, bot, seen } = movementsBot()
+        const outgoing = []
+        mod.movementEvents.on("outgoing", movement => outgoing.push([movement.id, movement.sourceAttack.x]))
+
+        bot.xtHandler.emit("crm", crm({ id: 50, D: 0, TA: [1, 30, 40, 300], SA: [1, 0, 0, 200] }), 0)
+        await new Promise(resolve => setImmediate(resolve))
+        bot.xtHandler.emit("crm", crm({ id: 50, D: 1, TA: [1, 0, 0, 200], SA: [1, 30, 40, 300] }), 0)
+        await new Promise(resolve => setImmediate(resolve))
+
+        expect(outgoing).toEqual([[50, 0], [50, 30]])
+        expect(seen.ended).toEqual([50])
+        expect(mod.movements.map(m => [m.id, m.sourceAttack.x])).toEqual([[50, 30]])
+    })
+
+    test("a refused crm makes no movement", async () => {
+        const { mod, bot } = movementsBot()
+        bot.xtHandler.emit("crm", {}, 2)
+        await new Promise(resolve => setImmediate(resolve))
+        expect(mod.movements).toEqual([])
+    })
+})
+
 describe("syncMovements", () => {
     test("asks for the movement list and ends the player's own marches the game no longer lists", async () => {
         const { mod, bot, seen, gam } = movementsBot()

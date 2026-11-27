@@ -35,7 +35,7 @@ The reply carries `kpi`. Its `UT` lists one entry for each transfer on its way: 
 - **The timer does not count down.** `RS` is the seconds left when the game sent it. Nothing updates it until the next `kpi`. The plugin stamps each timer when a `kpi`, `fjf`, `kgt`, `msk` or `kut` reply brings it, and works out the time left from that stamp.
 - **One transfer into a kingdom at a time.** A kingdom with a transfer on its way gets no new one until it lands, or until the plugin skips it when time skips are on. A kingdom can send to several kingdoms at once. So each kingdom has one sender: the first rule for a kingdom names it.
 - **Only kingdom castles.** The main castle (area type 1) in the Great Empire and the kingdom castle (area type 12) elsewhere send and take transfers. Berimond (kingdom 10) is left to its own event.
-- **Army starts are spaced.** A transfer starts an army on the server like an attack. Two army starts close together can get the connection closed. The plugin waits 5 to 10 seconds after the last `cra`, `cat`, `cds` or `kut` reply that succeeded.
+- **Army starts are spaced.** A transfer starts an army on the server like an attack. Two army starts close together can get the connection closed. The plugin waits 5 to 10 seconds after the last `cra`, `cat`, `cds`, `kut` or `crm` reply that succeeded (`armyGap.js`). A `crm` for carts on their way home does not count.
 
 ## Facts and confidence
 

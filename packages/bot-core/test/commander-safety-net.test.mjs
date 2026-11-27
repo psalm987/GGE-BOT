@@ -107,3 +107,11 @@ test("a commander marked busy with no army, no holder and no refusal is free aga
     await vi.advanceTimersByTimeAsync(1.5 * MINUTE)
     expect(isFree(commanders, 2)).toBe(true)
 })
+
+test("a movement with no commander, such as market carts, marks no commander busy and is never reclaimed", async () => {
+    const commanders = pool()
+    commanders.send(NaN, { arrivesIn: MINUTE })
+    await vi.advanceTimersByTimeAsync(15 * MINUTE)
+    expect(console.debug).not.toHaveBeenCalledWith("commanderReclaimed", NaN)
+    expect(isFree(commanders, 1) && isFree(commanders, 2)).toBe(true)
+})
