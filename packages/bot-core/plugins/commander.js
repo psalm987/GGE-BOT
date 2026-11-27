@@ -129,10 +129,11 @@ function commanderRefused(lordID) {
 }
 
 movementEvents.on("outgoing", (/** @type {import("../protocols.js").ClassTypes.Movement} */ movement) => {
-    if(movement.owner.ownerID != playerInfo.playerID)
+    const lordID = movement.lord.lordID
+    // Market carts and other movements without a commander have no lord id. Marked used, it was never freed.
+    if (movement.owner.ownerID != playerInfo.playerID || !Number.isFinite(lordID))
         return
 
-    const lordID = movement.lord.lordID
     useCommander(lordID)
     held.delete(lordID)
     refusedUntil.delete(lordID)

@@ -190,6 +190,8 @@ const lookTurn = oneAtATime()
 const shopTurn = oneAtATime()
 /** Goods transfers between kingdoms (`kgt`). */
 const goodsTransferTurn = oneAtATime()
+/** Market carts (`crm`). The way back of other carts comes in as `crm` too, and a refusal names no castle. */
+const cartTurn = oneAtATime()
 /** Troop transfers between kingdoms (`kut`). Lazy Lord saw a refill take another transfer's TOO_MUCH_UNITS. */
 const troopTransferTurn = oneAtATime()
 /** Skips on a transfer between kingdoms (`msk`). */
@@ -468,6 +470,19 @@ const clientKingdomUnitTransfer = (sourceAreaID, sourceKingdomID, targetKingdomI
     const [, result] = await waitForResult("kgt", 1000 * 10)
     return result
 })
+
+/**
+ * Sends `goods` (`[[code, amount]]`, such as `[["W", 500]]`) from `castle` by market cart to the castle at `x`:`y`,
+ * riding horse `horse` or -1 for none. Joins the castle first, as the client sends from the castle's market. Resolves
+ * to `{ result }`, and on 0 also the carts it took and the seconds to get there. The reply's `A` is the trip out; the
+ * way back of earlier carts also comes as `crm`, so ours is the one leaving this castle (Lazy Lord's sendResources.js).
+ */
+const clientSendCarts = (castle, x, y, horse, goods) => cartTurn(() => setCastle(castle, async () => {
+    await sendXT("crm", JSON.stringify({ KID: castle.kingdomID, SID: castle.id, TX: x, TY: y, HBW: horse, PTT: 0, SD: 0, G: goods }))
+    const [obj, result] = await waitForResult("crm", 1000 * 10, (obj, result) =>
+        result != 0 || (Number(obj?.A?.M?.D) != 1 && Number(obj?.A?.M?.SA?.[3]) == castle.id))
+    return result != 0 ? { result } : { result, carts: Number(obj.A.MM?.C), seconds: Number(obj.A.M.TT) }
+}))
 
 /**
  * Moves troops from a castle to another kingdom: `units` is `[[wodID, amount]]`. Resolves to the result code.
@@ -1397,6 +1412,16 @@ xtHandler.on("mcm", (o, r) => {
     const march = o.A.UM || !outbound ? o.A : { ...o.A, UM: { L: { ID: outbound.lord.lordID, VIS: outbound.lord.lordPosition } } }
     new Movement(march, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))
 })
+// The client reads a crm's A as one more map movement, the trip out and the way back alike (CRMCommand), and a movement
+// with an id it already holds replaces the old one (parseMapMovementArray). Type 4 is a market movement.
+xtHandler.on("crm", (o, r) => {
+    if (r != 0 || !o.A?.M)
+        return
+    const earlier = movements.find(m => m.id == Number(o.A.M.MID))
+    if (earlier)
+        endMovement(earlier)
+    new Movement(o.A, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))
+})
 xtHandler.on("gam", (o, r) => r == 0 ? 
     Array.from(o.M ?? []).map(e => new Movement(e, Array.from(o.O ?? []).map(o => new OwnerInfo(o)))) : undefined)
 
@@ -1652,6 +1677,7 @@ module.exports = {
         getStormIslandInfo: clientGetStormIslandInfo,
         kingdomUnitTransfer: clientKingdomUnitTransfer,
         kingdomTroopTransfer: clientKingdomTroopTransfer,
+        sendCarts: clientSendCarts,
         skipResourceTransfer: clientSkipResourceTransfer,
         activeQuestList: clientActiveQuestList,
         joinArea: clientJoinArea,

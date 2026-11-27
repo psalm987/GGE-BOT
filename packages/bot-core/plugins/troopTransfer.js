@@ -22,7 +22,8 @@ const err = require("../err.json")
 const { events, botConfig, xtHandler } = require("../ggeBot.js")
 const { ClientCommands, KingdomID, KingdomSkipType, AreaType, castles } = require("../protocols.js")
 const { chore } = require("../chores.js")
-const { boxMullerRandom, pause, sleep } = require("../pacing.js")
+const { boxMullerRandom, pause } = require("../pacing.js")
+const { armyGap } = require("../armyGap.js")
 const { spendSkip, skipRefused, MinuteSkipType } = require("./skips.js")
 const stock = require("./stock.js")
 const loadItem = require("../paths.js").loadItem
@@ -57,21 +58,6 @@ function transferLeftMs(castle) {
     if (!seenAt.has(transfer))
         seenAt.set(transfer, Date.now())
     return Math.max(0, transfer.remainingTime * 1000 - (Date.now() - seenAt.get(transfer)))
-}
-
-/**
- * When the account last started an army: an attack, a station or a transfer. Two army starts close together can get
- * the connection closed, so a transfer keeps 5 to 10 seconds after the last one. The attacks are read from their
- * replies, as the attack plugins keep no shared clock.
- */
-let lastArmyAt = 0
-for (const cmd of ["cra", "cat", "cds", "kut"])
-    xtHandler.on(cmd, (_, result) => Number(result) == 0 && (lastArmyAt = Date.now()))
-async function armyGap() {
-    const wait = boxMullerRandom(5000, 10_000) - (Date.now() - lastArmyAt)
-    if (wait > 0)
-        await sleep(wait)
-    lastArmyAt = Date.now()
 }
 
 const asRows = value => Array.isArray(value) ? value : []

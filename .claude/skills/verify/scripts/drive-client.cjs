@@ -3212,7 +3212,7 @@ async function driveNewModules(page) {
             }
             return ""
         })
-        for (const [id, group] of [["blade-coast", "Attacks and gear"], ["troop-transfer", "Utilities"], ["alliance-donations", "Utilities"], ["native-village", "Utilities"]]) {
+        for (const [id, group] of [["blade-coast", "Attacks and gear"], ["troop-transfer", "Utilities"], ["alliance-donations", "Utilities"], ["native-village", "Utilities"], ["send-resources", "Utilities"]]) {
             assert(await nav.locator(`a[href^="/m/${id}"]`).count() === 1, `the sidebar links /m/${id} once`)
             assert(await groupOf(id) === group, `/m/${id} sits under ${group}: ${await groupOf(id)}`)
         }
@@ -3296,6 +3296,29 @@ async function driveNewModules(page) {
         await reopen("native-village")
         assert(await shown(form, "Burning Sands pack (paid in olive oil)") === "Level 2: renegade saber warriors", "after a reload the pick shows")
         await atBothWidths(page, "97-native-village", "native village")
+
+        await open("Send resources by cart", "send-resources", "Sends wood, stone or food by market cart")
+        const sends = table(form, "Sends")
+        assert(await sends.getByText("No rows yet.").isVisible(), "the Sends table starts empty")
+        assert(await form.getByLabel("Ride the fastest horse paid with coins").isChecked() && !await form.getByLabel("Log only: write the sends to the log instead of sending them").isChecked(), "the coin horse is on and Log only is off by default")
+        await sends.getByRole("button", { name: "Add row" }).click()
+        assert(await shown(sends, "Resource, row 1") === "Wood" && (await sends.getByLabel("Send in all, row 1").inputValue()).replace(/\D/g, "") === "100000" && await sends.getByLabel("Castle keeps, row 1").inputValue() === "0",
+            "a new send starts on Wood, 100,000 in all and 0 kept")
+        const resources = await selectOptions(page, sends.getByLabel("Resource, row 1"), "the resource")
+        assert(resources.join(",") === "Wood,Stone,Food", `the resource list offers wood, stone and food by name: ${resources.join(", ")}`)
+        await pick(sends, "Castle, row 1", "Frostgate")
+        await sends.getByLabel("Target X, row 1").fill("300")
+        await sends.getByLabel("Target Y, row 1").fill("312")
+        await pick(sends, "Resource, row 1", "Stone")
+        await sends.getByLabel("Send in all, row 1").fill("5000")
+        await sends.getByLabel("Castle keeps, row 1").fill("1000")
+        await save()
+        const row = (await account()).plugins.sendResources?.options?.cartSends?.[0]
+        assert(row?.castle?.kingdom === 2 && row.castle.id === 2001 && row.targetX === 300 && row.targetY === 312 && row.cartResource === 1 && row.cartTotal === 5000 && row.keep === 1000,
+            `the send is read back through the API with stone as choice 1: ${JSON.stringify(row)}`)
+        await reopen("send-resources")
+        assert(await shown(sends, "Resource, row 1") === "Stone" && await sends.getByLabel("Target Y, row 1").inputValue() === "312", "after a reload the send shows Stone and its target")
+        await atBothWidths(page, "98-send-resources", "send resources")
     } finally {
         await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
     }

@@ -1,0 +1,91 @@
+---
+title: Send resources by cart
+description: Send wood, stone or food by market cart from one of your castles to another castle, load after load, until the total you set has gone.
+appRoute: /m/send-resources
+plugin: sendResources
+sources:
+  - packages/bot-core/plugins/sendResources.js
+  - packages/bot-core/armyGap.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="wheelbarrow" size=32 /%}Feed a castle that needs building material. The Send resources by cart {% term id="module" %}module{% /term %} sends wood, stone or food from one of your castles to the castle at the X and Y you give, by market cart. It sends load after load until the total you set has gone.
+
+{% terms_on_page /%}
+
+It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, it reads the carts and goods of every castle's marketplace.
+2. For each row, it checks that a castle, an {% term id="outpost" %}outpost{% /term %} or a capital stands at the target. It never sends to an empty spot or to anything else.
+3. It fills every free cart of the sending castle, but never sends more than the row still has to send.
+4. When the carts reach the target, the game says how long their way home takes. The next load leaves 10 seconds after they are home.
+5. When a row has sent its total, it is done. The status says so, and no more carts go for that row.
+
+A cart carries about 100 of a resource, more with the castle's cart bonuses. The bot learns the real load from each send. After a load that fills every cart, the next load tries one more per cart, until the game refuses one. Then the bot knows the load and keeps to it.
+
+## Write your sends {% #rows %}
+
+**Sends** is a table. Choose **Add row** and fill in every column:
+
+- **Castle** is the castle that sends.
+- **Target X** and **Target Y** are the map position of the castle that takes the goods. It must be in the same {% term id="kingdom" %}kingdom{% /term %} as the sending castle.
+- **Resource** is wood, stone or food.
+- **Send in all** is the total the row sends.
+- **Castle keeps** is how much of the resource the sending castle always keeps.
+
+The bot sends only a full load: every free cart filled, or the rest of the total. If the castle holds less than that above **Castle keeps**, it waits and looks again 10 minutes later.
+
+Two rows from one castle share its carts. A second row with the same castle, target and resource as another row is not used.
+
+{% aside type="note" id="send-resources-count" %}
+The bot counts what each row has sent, and the count survives a restart. To send more, raise **Send in all**: the row sends the difference. Removing a row forgets its count, so a row added again starts from nothing. The bot never changes the rows you saved.
+{% /aside %}
+
+## Horses {% #horses %}
+
+With **Ride the fastest horse paid with coins** on, the carts ride the fastest market horse the castle's stables have that costs coins. A {% term id="coin-horse" %}coin horse{% /term %} costs coins on every send. Turn the setting off and the carts walk.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the sends to the log instead of sending them**. The bot plans each load and writes it to the {% term id="log" %}log{% /term %}, but sends nothing and counts nothing.
+
+## What it never does {% #never %}
+
+- It never spends {% term id="ruby" %}rubies{% /term %}, and never rides a horse that costs them.
+- It never takes a castle below **Castle keeps**.
+- It never sends more than the row's total.
+- It never sends to a spot where no castle, outpost or capital stands.
+- It never starts carts within 5 to 10 seconds of another army leaving, so two armies never start close together.
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card tells you what the plugin did last:
+
+- **Sent** an amount to a target, and how much of the row's total has gone.
+- **Carts are out** to a target. The next load leaves 10 seconds after they are home.
+- **Sent all** of a row's total. That row is done.
+- **Every row has sent its total.** Raise a total or add a row to send more.
+- **The castle doesn't hold a full load** above what it keeps. It looks again in 10 minutes.
+- **Every cart of the castle is out.** It looks again in a minute.
+- **Nothing at** the target can take resources. Check **Target X** and **Target Y**.
+- **A sending castle has no marketplace**, so it has no carts.
+- **A castle in your rows isn't on this account**, or isn't known yet.
+- **The game refused a send.** It tries again in 10 minutes.
+- **No send is set up.** Add a row.
+
+## Settings {% #settings %}
+
+{% settings plugin="sendResources" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+How a send works comes from another bot's code and from the game's own client. Two things still need a check in the game: the exact load one cart takes on your account, and how the game refuses a load that is too big. Send one small load on a spare account before you rely on it. Food has not been sent by this bot in the game yet.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_ROW](/errors/#plugin-option-row): a row of a table is not complete.
+- [PLUGIN_OPTION_CHOICE](/errors/#plugin-option-choice): a row's resource is not one of the choices.
+- [PLUGIN_OPTION_RANGE](/errors/#plugin-option-range): a number in a row is out of range.
+- [PLUGIN_OPTION_ROWS](/errors/#plugin-option-rows): a table has too many rows.

@@ -58,8 +58,9 @@ Each entry names the cheapest safe action that would capture it. Actions marked 
 ### Resource transfers between castles
 
 - **Commands**: `crm {KID, SID, TX, TY, HBW, G, PTT, SD}` (`C2SCreateMarketMovementVO`: `SID` the source castle, `TX`/`TY` the target, `HBW` the horse or -1 with a feather, `G` the goods, `PTT` 1 with a feather, `SD` slow-down). `cmi {S:1, KID:-1}` reads the market in every kingdom. `gctb {}` lists the transport buildings.
-- **Unknown**: the shape of `G` and the barrow capacity per transfer.
-- **Capture**: send a small amount of food from one castle to another in the same kingdom. This feeds Food manager and Castle manager's material transfers.
+- **Shape of `G`** (from Lazy Lord's source and the client, pending our own capture): `[[code, amount]]` with the goods codes `cmi` uses, such as `[["W", 1000]]`. See [carts.md](carts.md#send-carts-crm).
+- **Cart capacity** (from Lazy Lord's source and the client, pending our own capture): 100 per cart plus the capacity boost, effect 90, in %. Bonuses `cmi` doesn't list can add more, so the Send resources by cart plugin learns the load from the carts each send takes. See [carts.md](carts.md#cart-capacity).
+- **Capture**: send one cart of food from one castle to another in the same kingdom, and keep the `crm` reply and the way-back push. This confirms both answers above and feeds Food manager and Castle manager's material transfers.
 
 ### Overseers (boosters)
 

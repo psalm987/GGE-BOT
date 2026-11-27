@@ -46,6 +46,7 @@ export const ICON_IDS = [
     "caravan",
     "shaking-hands",
     "huts-village",
+    "wheelbarrow",
 ] as const
 export type IconId = (typeof ICON_IDS)[number]
 
@@ -149,6 +150,7 @@ export const MODULES: readonly ModuleDef[] = [
     live("troop-transfer", "utility", "caravan", ["troopTransfer"]),
     live("alliance-donations", "utility", "shaking-hands", ["allianceDonation", "colossusEventDonate"], "per-plugin"),
     live("native-village", "utility", "huts-village", ["nativeVillage"]),
+    live("send-resources", "utility", "wheelbarrow", ["sendResources"]),
     live("alert-autostation", "pvp", "siren", ["autoStation"]),
     soon("asset-monitor", "pvp", "open-treasure-chest"),
     live("discord-attacks", "discord", "sword-clash", ["incomingAttacks", "outgoingAttacks"], "per-plugin"),
