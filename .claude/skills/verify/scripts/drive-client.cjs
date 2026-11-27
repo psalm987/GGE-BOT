@@ -467,6 +467,61 @@ async function drivePhaseC(page) {
 }
 
 /**
+ * The Send food tab of Storms: a mead config saved before the food sender still shows and is never touched, the food
+ * tab opens on its defaults, and a new threshold with Log only saves, reads back through the API and survives a reload.
+ */
+async function driveStormFood(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const before = (await account()).plugins
+    const stored = async plugin => (await account()).plugins[plugin] ?? { enabled: false, options: {} }
+    const MEAD = { refillBelowHours: 3, sourceReserve: 5000 }
+    await storePluginSettings({ accountName: "Ironhold", plugin: "meadReplaceStorm", enabled: true, options: MEAD })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "foodSendStorm", enabled: false, options: {} })
+
+    const number = label => page.locator(".ant-form-item:visible", { has: page.getByText(label, { exact: true }) }).getByRole("spinbutton").first()
+    const skips = () => page.getByRole("checkbox", { name: "Skip a transfer that would land after the food runs out" })
+    const logOnly = () => page.getByRole("checkbox", { name: "Log only: write the transfer to the log instead of sending it" })
+    const foodTab = async () => {
+        await page.getByRole("tab", { name: "Send food" }).click()
+        await page.getByText("Send food when it lasts less than", { exact: true }).waitFor()
+    }
+
+    await openModule(page, "Storms")
+    await page.getByRole("tab", { name: /Mead/ }).click()
+    await page.getByText("Send mead when it lasts less than", { exact: true }).waitFor()
+    const meadShown = [await number("Send mead when it lasts less than").inputValue(), await number("Mead the main castle keeps").inputValue()]
+    assert(Number(meadShown[0]) === 3 && meadShown[1].replace(/\D/g, "") === "5000", `the mead tab shows the mead settings saved before the food sender: ${meadShown}`)
+    await foodTab()
+    assert(await number("Send food when it lasts less than").inputValue() === "2.1", "the food threshold starts at 2.1 hours")
+    assert(await skips().isChecked() && !(await logOnly().isChecked()), "time skips start on and Log only starts off")
+    assert(await page.getByText("Castles that send food", { exact: true }).first().isVisible(), "the food tab lists the castles that send food")
+    assert(await page.getByText("never rubies", { exact: false }).first().isVisible(), "the skip help says the bot never spends rubies")
+    await number("Send food when it lasts less than").fill("4")
+    await logOnly().check()
+    await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+    await page.getByText("Ironhold saved").first().waitFor()
+    const food = (await stored("foodSendStorm")).options
+    assert(food.foodRefillBelowHours === 4 && food.foodDryRun === true, `the food tab saves the threshold and Log only: ${JSON.stringify(food)}`)
+    const mead = (await stored("meadReplaceStorm")).options
+    assert(mead.refillBelowHours === 3 && mead.sourceReserve === 5000, `saving the food tab leaves the mead settings as they were: ${JSON.stringify(mead)}`)
+
+    await openModule(page, "Storms")
+    await foodTab()
+    assert(Number(await number("Send food when it lasts less than").inputValue()) === 4 && await logOnly().isChecked(), "the food choices come back after a reload")
+    await axe(page, "storms send food 1440")
+    await page.screenshot({ path: `${out}/84-storms-food-1440.png`, fullPage: true })
+    await page.setViewportSize(PHONE_VIEW)
+    await page.waitForTimeout(400)
+    assert(await overflowOf(page) <= 0, "no horizontal overflow on the Send food tab at 390")
+    await axe(page, "storms send food 390")
+    await page.screenshot({ path: `${out}/84-storms-food-390.png`, fullPage: true })
+    await page.setViewportSize(WIDE_VIEW)
+
+    for (const plugin of ["meadReplaceStorm", "foodSendStorm"])
+        await storePluginSettings({ accountName: "Ironhold", plugin, enabled: Boolean(before[plugin]?.enabled), options: before[plugin]?.options ?? {} })
+}
+
+/**
  * The Nomads and Samurai tabs of the event camp page: configs stored with the old horse, tool and score options show
  * as the same choices, the mode shows and hides the camp's coordinates and the skip types, the autofill options save
  * and come back, and the All events card.
@@ -3723,6 +3778,17 @@ async function driveRefinery(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveEventCamps(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "storm-food") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveStormFood(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
