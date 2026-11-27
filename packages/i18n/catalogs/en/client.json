@@ -790,7 +790,7 @@
   "modules.recruiter.name": "Recruiter",
   "modules.recruiter.description": "Recruits troops for the event server's twin of your account.",
   "modules.castle-builder.name": "Castle builder",
-  "modules.castle-builder.description": "Builds and upgrades your castles to the plan you write, buys expansions with wood and stone, and never pays with rubies.",
+  "modules.castle-builder.description": "Builds and upgrades your castles to the plan you write, buys expansions with wood and stone, sends wood and stone to your Storm Islands castle when its plan runs short, and never pays with rubies.",
   "modules.equipment-manager.name": "Equipment manager",
   "modules.equipment-manager.description": "Sorts and fits gear for the event server's twin of your account.",
   "modules.or-storms.name": "Outer realms storms",

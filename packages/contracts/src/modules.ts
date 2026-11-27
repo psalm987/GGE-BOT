@@ -150,7 +150,7 @@ export const MODULES: readonly ModuleDef[] = [
     live("alliance-donations", "utility", "shaking-hands", ["allianceDonation", "colossusEventDonate"], "per-plugin"),
     live("native-village", "utility", "huts-village", ["nativeVillage"]),
     live("send-resources", "utility", "wheelbarrow", ["sendResources"]),
-    live("castle-builder", "utility", "stone-wall", ["build"]),
+    live("castle-builder", "utility", "stone-wall", ["build", "buildSupply"], "per-plugin"),
     live("alert-autostation", "pvp", "siren", ["autoStation"]),
     soon("asset-monitor", "pvp", "open-treasure-chest"),
     live("discord-attacks", "discord", "sword-clash", ["incomingAttacks", "outgoingAttacks"], "per-plugin"),
