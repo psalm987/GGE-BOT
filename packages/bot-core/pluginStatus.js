@@ -33,7 +33,8 @@ function notifyOwner(kind, data, key) {
 const finished = new Set()
 /**
  * The plugin in `filename` is done until its event comes round again: "done" with all it can do, or "eventOver". The
- * runner switches it off in the account's settings and tells the owner. Only a plugin its catalog marks `eventOnly` may do this; the runner ignores others.
+ * runner switches it off in the account's settings and tells the owner. Only a plugin its catalog marks `eventOnly` may
+ * do this; the runner ignores others.
  */
 function finishPlugin(filename, reason = "done") {
     const plugin = path.basename(filename, ".js")

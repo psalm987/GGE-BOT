@@ -1,12 +1,12 @@
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
-import { createContext, useContext, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
+import { createContext, useContext, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { BLADE_COAST_EXCLUDED_KINGDOMS, KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, TOOL_ROLES, type AccountCastle, type BladeCoastSetup, type BladeCoastTool, type BladeCoastUnit, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
-import { EMPTY_SETUP, missingPicks, unitOptions } from "../blade-coast-setup.ts"
+import { EMPTY_SETUP, missingPicks, unitOptions } from "../blade-coast.ts"
 import { castleKey, castleOptions, toCastle } from "../castle-options.ts"
 import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
@@ -48,7 +48,7 @@ export function useKingdomName() {
 
 /** One castle of the account, by kingdom and id. A picked castle the account no longer lists shows as nothing picked. */
 function CastleSelect({ castles, value, onChange, placeholder, ...aria }: {
-    castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; placeholder?: string; "aria-label"?: string; id?: string
+    castles: AccountCastle[]; value?: CastleRef | null; onChange?: (v: CastleRef | null) => void; placeholder?: string; "aria-label"?: string; id?: string; style?: CSSProperties
 }) {
     const { t } = useTranslation("client")
     const options = castleOptions(castles, t, useKingdomName())
@@ -57,7 +57,7 @@ function CastleSelect({ castles, value, onChange, placeholder, ...aria }: {
         ? castles.find(c => c.kingdom === value.kingdom && MAIN_CASTLE_AREA_TYPES.includes(c.type))
         : castles.find(c => c.kingdom === value.kingdom && c.id === value.id))
     return <Select {...aria} allowClear showSearch={{ optionFilterProp: "search" }} disabled={!castles.length} options={options} value={found ? castleKey(found) : undefined}
-        labelRender={({ value: key }) => chosen.get(String(key))} placeholder={placeholder}
+        labelRender={({ value: key }) => <span title={chosen.get(String(key))} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{chosen.get(String(key))}</span>} placeholder={placeholder}
         status={value && castles.length && !found ? "warning" : undefined} onChange={(key?: string) => onChange?.(key ? toCastle(key) : null)} />
 }
 
@@ -260,7 +260,7 @@ function BladeCoastSetupField({ troops, tools, castles, value, onChange, id }: {
     const typeOf = (choice: string | null) => choice?.split("#")[0]
     const missing = missingPicks(setup)
     const field = (key: string, label: string, control: ReactNode) => (
-        <div key={key} style={{ display: "grid", gap: 4, minWidth: 0 }}>
+        <div key={key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 4, minWidth: 0 }}>
             <label htmlFor={`${id}-${key}`} style={{ color: palette.muted, fontSize: 13 }}>{label}</label>
             {control}
         </div>
@@ -272,7 +272,7 @@ function BladeCoastSetupField({ troops, tools, castles, value, onChange, id }: {
         <div id={id} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: 12 }}>
             {field("castle", t("plugins.bladeSetup.castle"), (
                 <CastleSelect id={`${id}-castle`} castles={castles.filter(c => !BLADE_COAST_EXCLUDED_KINGDOMS.includes(c.kingdom))} value={setup.castle}
-                    placeholder={t("plugins.bladeSetup.choose")} onChange={castle => set({ castle })} />
+                    placeholder={t("plugins.bladeSetup.choose")} onChange={castle => set({ castle })} style={{ width: "100%" }} />
             ))}
             {unitSelect("troop", t("plugins.bladeSetup.troop"), unitOptions(troops, words), setup.troop, troop => set({ troop }))}
             {TOOL_ROLES.map(role => {

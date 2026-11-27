@@ -10,6 +10,7 @@ import { marchProgress, type MarchPlace, type ModuleDef, type PublicAccount, typ
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
 import { useSetDesiredState } from "../account-state.ts"
 import { orpc } from "../api.ts"
+import { BladeCoastCard } from "../components/BladeCoastCard.tsx"
 import { StartStop } from "../components/StartStop.tsx"
 import {
     SIDE_FILTERS, countdown, forecastTime, marchesUnderWay, sessionGains, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
@@ -82,6 +83,7 @@ function Snapshot({ account, readBack }: { account: PublicAccount; readBack: Rea
                 </Typography.Paragraph>
             </ParchmentCard>
             <Marches readBack={readBack} now={now} />
+            <BladeCoastCard blade={account.status?.bladeCoast ?? null} />
             <Defence readBack={readBack} castles={account.status?.castles ?? []} />
             <Rage readBack={readBack} />
             <ParchmentCard title={t("liveView.castles.title")}>

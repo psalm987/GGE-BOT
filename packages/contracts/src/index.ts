@@ -20,6 +20,7 @@ import {
 export * from "./alerts.ts"
 export * from "./army.ts"
 export * from "./billing.ts"
+export * from "./blade-coast.ts"
 export * from "./codes.ts"
 export * from "./data-export.ts"
 export * from "./entitlement.ts"

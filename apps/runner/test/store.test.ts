@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -223,6 +223,20 @@ test("a status carries the read-back snapshot of the worker's last report, and n
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events[0]).toMatchObject({ status: { readBack, resources: { cash: 1200 } } })
     expect(events[1]).toMatchObject({ status: { readBack: null, resources: { cash: 1200 } } })
+})
+
+test("a status carries the Blade Coast camp of the worker's last report, and none when the report's is malformed or gone", async () => {
+    const bladeCoast = {
+        map: 22, phase: "filling",
+        camp: { space: 300, spaceTarget: 350, soldiers: 120, minSoldiers: 300, storehouses: 4, storehousesTarget: 4, wood: 5000, stone: 4000, food: 9000, storage: 20000 },
+        morale: { value: 120, bonus: 132, target: 350 }, warship: { level: 1, max: 4 }, islands: { won: 0, total: 9, krakenWon: false },
+        nextIsland: { id: 3, level: 1, kraken: false }, trips: [{ kind: "troops", amount: 180, endsAt: 1_800_000_100_000 }],
+    }
+    await store.setStatus(accountId, { resources: { cash: 1200, bladeCoast } })
+    await store.setStatus(accountId, { resources: { cash: 1200, bladeCoast: { ...bladeCoast, map: 99 } } })
+    await store.setStatus(accountId, { resources: { cash: 1200 } })
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events.map(event => event.kind === "status" && event.status.bladeCoast)).toEqual([bladeCoast, null, null])
 })
 
 test("starting a worker clears the plugin states, and so does recovering from a crash", async () => {

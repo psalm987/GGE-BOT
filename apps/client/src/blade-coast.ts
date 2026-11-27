@@ -1,4 +1,4 @@
-import { RecruitGroup, TOOL_ROLES, type BladeCoastSetup, type BladeCoastUnit, type ToolRole } from "@gge/contracts"
+import { RecruitGroup, TOOL_ROLES, type BladeCoastSetup, type BladeCoastTrip, type BladeCoastUnit, type ToolRole } from "@gge/contracts"
 
 /** A setup with nothing picked yet. */
 export const EMPTY_SETUP: BladeCoastSetup = { castle: null, troop: null, tools: { wall: null, gate: null, ranged: null } }
@@ -32,3 +32,14 @@ export const missingPicks = (setup: BladeCoastSetup): ("castle" | "troop" | Tool
     ...setup.troop ? [] : ["troop" as const],
     ...TOOL_ROLES.filter(role => !setup.tools[role]),
 ]
+
+/** The trips still on their way at `now`, soonest first. An attack whose landing time the bot doesn't know stays, last. */
+export const tripsUnderWay = (trips: readonly BladeCoastTrip[], now: number) =>
+    trips.filter(trip => trip.endsAt === null || trip.endsAt > now).sort((a, b) => (a.endsAt ?? Infinity) - (b.endsAt ?? Infinity))
+
+/** How far an attack is on its way, 0 to 1; null when it isn't an attack or its times aren't known. */
+export function tripProgress(trip: BladeCoastTrip, now: number): number | null {
+    if (trip.kind !== "attack" || trip.sentAt === null || trip.endsAt === null || trip.endsAt <= trip.sentAt)
+        return null
+    return Math.min(1, Math.max(0, (now - trip.sentAt) / (trip.endsAt - trip.sentAt)))
+}

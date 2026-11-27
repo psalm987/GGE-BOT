@@ -1,4 +1,4 @@
-import { AccountCastle, GamePreset, PluginStates, ReadBack, type PublicAccount } from "@gge/contracts"
+import { AccountCastle, BladeCoastStatus, GamePreset, PluginStates, ReadBack, type PublicAccount } from "@gge/contracts"
 import type { botStatus } from "./schema.ts"
 
 const figure = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
@@ -23,6 +23,7 @@ export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualSta
     const commanders = (row.resources as { commanders?: unknown } | null)?.commanders
     const gamePresets = GamePreset.array().safeParse((row.resources as { gamePresets?: unknown } | null)?.gamePresets)
     const readBack = ReadBack.safeParse((row.resources as { readBack?: unknown } | null)?.readBack)
+    const bladeCoast = BladeCoastStatus.safeParse((row.resources as { bladeCoast?: unknown } | null)?.bladeCoast)
     return {
         actualState: row.actualState, heartbeatAt: row.heartbeatAt, lastError: row.lastError, bannedUntil: row.bannedUntil,
         pluginStates: pluginStates.success ? pluginStates.data : {},
@@ -31,5 +32,6 @@ export function publicStatus(row: Pick<typeof botStatus.$inferSelect, "actualSta
         gamePresets: gamePresets.success ? gamePresets.data : [],
         resources: figuresOf(row.resources),
         readBack: readBack.success ? readBack.data : null,
+        bladeCoast: bladeCoast.success ? bladeCoast.data : null,
     }
 }
