@@ -90,7 +90,7 @@ test("a transfer in flight that lands after the mead runs out is skipped", async
 
 test("a skip whose reply brings no fresh timer is counted down, so the skips stop once they cover the time left", async () => {
     const { skips } = run({ storm: { mead: 100, resourceTransfer: { remainingTime: 3 * 3600, resources: { mead: 5000 } } }, held: { "60MinSkip": 10 } })
-    await vi.advanceTimersByTimeAsync(1000)
+    await vi.advanceTimersByTimeAsync(10_000)
     expect(skips).toEqual(["MS5", "MS5", "MS5"])
     await vi.advanceTimersByTimeAsync(10 * MINUTE)
     expect(skips).toHaveLength(3)

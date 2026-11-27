@@ -55,6 +55,15 @@ describe("the one transfer slot into Storm", () => {
         expect(decide(0, [build, idleFood])).toMatchObject({ want: idleFood })
     })
 
+    test("Build Supply's wood and stone wait behind mead or food that is running out, and never skip a transfer in flight", () => {
+        const build = order({ wood: 10, stone: 10 }, { name: "buildSupply", landNow: true })
+        const food = order({ food: 10 }, { name: "food", hoursLeft: 1.5, feedsTroops: true })
+        const mead = order({ mead: 10 }, { name: "mead", hoursLeft: 2, feedsTroops: true })
+        expect(decide(0, [build, food])).toMatchObject({ act: "send", want: food })
+        expect(decide(0, [build, mead])).toMatchObject({ act: "send", want: mead })
+        expect(decide(10 * 3600, [build]).act).toBe("wait")
+    })
+
     test("after a send, the loser looks again in five minutes and the sender in about fifteen", () => {
         expect(decide(0, [order({ food: 1 })])).toMatchObject({ ms: SENT_LOOK_MS })
         expect(decide(0, [order({ food: 1 }, { hoursLeft: 1 }), order({ mead: 1 })])).toMatchObject({ ms: BUSY_RETRY_MS })
