@@ -5,6 +5,8 @@ appRoute: /m/recruit-tools-heal
 plugin: recruitTools
 sources:
   - packages/bot-core/plugins/recruitTools.js
+  - packages/bot-core/plugins/healTroops.js
+  - packages/bot-core/allianceHelp.js
   - packages/bot-core/plugins/stock.js
   - packages/contracts/src/modules.ts
 ---
@@ -64,9 +66,17 @@ The {% ui key="client:module.status" /%} card on the module page tells you what 
 - **A castle in your targets isn't on this account, or isn't known yet.** Check the castle in the row. The bot tries again on its next check.
 - An item **can't be ordered with coins or resources, so it is skipped.** Pick a different troop or tool.
 
-## Still to come {% #soon %}
+## Heal the wounded {% #heal %}
 
-{% ui key="client:modules.recruit-tools-heal.soon.heal.name" /%} {% status kind="planned" /%} {% ui key="client:modules.recruit-tools-heal.soon.heal.description" /%} The bot does not heal troops yet.
+The **Heal troops** tab heals wounded troops in the castles you pick, up to the amount you set for each castle.
+
+- It heals only troops the hospital heals with coins. It never heals a troop that costs rubies.
+- It checks every castle in **Castles to heal in**, every 10 minutes unless you change **Check every**. It skips a castle with nobody wounded or a full hospital.
+- It stops before an order would take your coins below **Keep at least this many coins**, or your spending this run above **Spend at most this many coins per run**.
+- With **Ask the alliance for help** on, it asks your alliance to speed up a batch once.
+- A castle without a hospital is never entered. You see a warning, and your list stays as you saved it.
+
+**Recruit and tools** has the same **Ask the alliance for help** choice for the barracks.
 
 ## Related errors {% #errors %}
 

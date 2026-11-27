@@ -53,8 +53,10 @@ test("every setting a module says is still to come, on its global card or its ow
         expect(en[`modules.${module.id}.soon.${item}.${part}`], `${module.id} ${item} ${part}`).toBeTruthy()
 })
 
-test("the recruit and tools module is live with its plugin, and says that healing is still to come", () => {
-    expect(MODULES.find(m => m.id === "recruit-tools-heal")).toMatchObject({ status: "live", plugins: ["recruitTools"], soon: ["heal"] })
+test("the recruit and tools module is live with recruiting and healing, each on its own tab", () => {
+    const module = MODULES.find(m => m.id === "recruit-tools-heal")
+    expect(module).toMatchObject({ status: "live", plugins: ["recruitTools", "healTroops"], tabs: "per-plugin" })
+    expect(module?.soon ?? []).not.toContain("heal")
 })
 
 test("ids and orders are unique, orders ascend and groups follow the sidebar's order", () => {

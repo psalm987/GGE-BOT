@@ -22,3 +22,5 @@ station_result.gates_opened:
   fix: "Check your rubies. Join an alliance castle that can take troops to avoid the cost next time."
 station_result.unprotected:
   fix: "Open the Logs page to see why. Free space in an alliance castle, or move your troops by hand next time."
+plugin_finished:
+  fix: "Nothing is wrong. The plugin finished its job for this event, or the event ended, so it switched itself off. Turn it on again when the next event starts."
