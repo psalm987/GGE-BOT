@@ -34,7 +34,14 @@ reportStatus("waiting", "statusRecruitToolsStarting")
 
 /** The client's default for `bup`'s SK field. */
 const CLIENT_SK = 73
-const NOT_ENOUGH_COINS = 10, NOT_ENOUGH_CURRENCY = 11
+
+/**
+ * What a `bup` refusal says about the row, by the game's code: 10 coins and 55 resources short, 63 no free slot,
+ * 87 a building or unit level the account lacks, 88 and 240 more than the game takes in one order. Any other code,
+ * 11 (rubies) among them, is a plain refusal.
+ */
+const REFUSALS = { 10: "noResources", 55: "noResources", 63: "queueFull", 87: "levelLocked", 88: "tooMany", 240: "tooMany" }
+const BACKOFF_ROUND = 15 * 60_000, BACKOFF_MAX = 60 * 60_000
 
 const units = new Map(loadItem("units").map(unit => [Number(unit.wodID), unit]))
 
@@ -61,6 +68,31 @@ const castleOf = ref => castles.find(castle => castle.kingdomID == ref.kingdom &
 const PRODUCERS = { Barracks: "barracks", Workshop: "siege workshop", Dworkshop: "defence workshop" }
 const buildingItems = new Map(loadItem("buildings").filter(building => building.name in PRODUCERS).map(building => [Number(building.wodID), building]))
 
+/** The most soldiers `castle` can order at once: what one slot of its best barracks takes (`stackSize`), or Infinity while that isn't known. */
+const soldiersPerOrder = castle => Math.max(0, ...(castle.buildings ?? []).map(building => buildingItems.get(building.wodID))
+    .filter(item => item?.name == "Barracks").map(item => Number(item.stackSize) || 0)) || Infinity
+
+/**
+ * What the game's refusals taught about each row, by `rowKey`. `cap` halves the order after "too many", `locked` stops
+ * a row the account can't make, and `retryAt` holds a refused row back 1, 2, 4… rounds, an hour at most. `outcome` is
+ * the refusal the status shows meanwhile.
+ */
+const learned = new Map()
+const rowKey = row => `${row.list}:${row.ref.kingdom}:${row.ref.id}:${row.wodID}`
+const heldBack = state => Boolean(state?.locked || state?.retryAt > Date.now())
+
+function noteRefusal(state, outcome, amount) {
+    state.outcome = outcome
+    if (outcome == "levelLocked")
+        state.locked = true
+    else if (outcome == "tooMany" && amount > 1)
+        state.cap = Math.floor(amount / 2)
+    else {
+        state.refusals = (state.refusals ?? 0) + 1
+        state.retryAt = Date.now() + Math.min(BACKOFF_MAX, BACKOFF_ROUND * 2 ** (state.refusals - 1))
+    }
+}
+
 /**
  * Why `castle` can't make `unit`, or undefined when it can or when that can't be told. It can be told only when the
  * castle's buildings are known and the items name the producing building's levels: `noBuilding` when the castle has
@@ -83,13 +115,14 @@ function cantMake(castle, unit) {
 const reportedCantMake = new Map()
 
 /** Outcomes of one row, best first. */
-const OUTCOMES = ["ordered", "met", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused", "notOrderable", "noBuilding", "buildingLevel", "noCastle", "noAnswer"]
+const OUTCOMES = ["ordered", "met", "queueUnknown", "queueFull", "coinFloor", "noResources", "tooMany", "refused", "levelLocked", "notOrderable", "noBuilding", "buildingLevel", "noCastle", "noAnswer"]
 /** The blockers in the order the status names them when nothing was ordered. */
-const BLOCKERS = ["notOrderable", "noCastle", "noBuilding", "buildingLevel", "noAnswer", "queueUnknown", "queueFull", "coinFloor", "noResources", "refused"]
+const BLOCKERS = ["notOrderable", "noCastle", "noBuilding", "buildingLevel", "levelLocked", "noAnswer", "queueUnknown", "queueFull", "coinFloor", "noResources", "tooMany", "refused"]
 const STATUS_KEY = {
     notOrderable: "statusRecruitToolsNotOrderable", noCastle: "statusRecruitToolsNoCastle", noAnswer: "statusRecruitToolsNoAnswer", queueUnknown: "statusRecruitToolsQueueUnknown",
     queueFull: "statusRecruitToolsQueueFull", coinFloor: "statusRecruitToolsCoinFloor", noResources: "statusRecruitToolsNoResources", refused: "statusRecruitToolsRefused",
     noBuilding: "statusRecruitToolsNoBuilding", buildingLevel: "statusRecruitToolsBuildingLevel",
+    tooMany: "statusRecruitToolsTooMany", levelLocked: "statusRecruitToolsLevelLocked",
 }
 
 const fewMinutes = () => boxMullerRandom(60_000, 3 * 60_000)
@@ -163,6 +196,11 @@ async function cycle(active) {
                 const mine = indexes.filter(i => {
                     if (rows[i].list != list)
                         return false
+                    const state = learned.get(rowKey(rows[i]))
+                    if (heldBack(state)) {
+                        outcomes[i].add(state.outcome)
+                        return false
+                    }
                     const verdict = cantMake(castle, rows[i].unit)
                     if (!verdict)
                         return true
@@ -196,6 +234,8 @@ async function cycle(active) {
                 for (const i of mine) {
                     const row = rows[i]
                     const dryKey = `${castle.id}:${row.wodID}`
+                    const state = learned.get(rowKey(row)) ?? {}
+                    const perOrder = Math.min(state.cap ?? Infinity, list == TOOLS_LIST ? MAX_TOOLS_PER_ORDER : row.unit.name == "Barracks" ? soldiersPerOrder(castle) : Infinity)
                     for (;;) {
                         const deficit = row.stock - stock.toolStock(row.wodID, { castle: { kingdom: castle.kingdomID, id: castle.id } }).total - (dryOrdered.get(dryKey) ?? 0)
                         if (deficit <= 0) {
@@ -207,7 +247,7 @@ async function cycle(active) {
                             break
                         }
                         const { count, blocker } = affordable(row.unit, castle)
-                        const amount = Math.min(row.batch, deficit, list == TOOLS_LIST ? MAX_TOOLS_PER_ORDER : Infinity, count)
+                        const amount = Math.min(row.batch, deficit, perOrder, count)
                         if (!(amount > 0)) {
                             outcomes[i].add(blocker)
                             break
@@ -226,9 +266,20 @@ async function cycle(active) {
                             const { reply, result } = await ask("bup", order)
                             if (result !== 0) {
                                 console.warn("recruitToolsRefused", JSON.stringify(order), " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
-                                outcomes[i].add(result == NOT_ENOUGH_COINS || result == NOT_ENOUGH_CURRENCY ? "noResources" : "refused")
+                                const outcome = REFUSALS[result] ?? "refused"
+                                noteRefusal(state, outcome, amount)
+                                learned.set(rowKey(row), state)
+                                outcomes[i].add(outcome)
+                                if (outcome == "levelLocked")
+                                    console.warn("recruitToolsLevelLocked", String(row.unit.type))
+                                if (outcome == "queueFull") {
+                                    room.idle = false
+                                    room.empty = 0
+                                }
                                 break
                             }
+                            state.refusals = 0
+                            state.retryAt = 0
                             if (!took(room, reply, order)) {
                                 console.warn("recruitToolsQueueUnknown", castle.kingdomID, castle.id, list, JSON.stringify(reply.spl))
                                 outcomes[i].add("queueUnknown")

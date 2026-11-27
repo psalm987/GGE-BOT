@@ -987,7 +987,7 @@
     "statusRecruitToolsQueueFull": "The production queue is full. This resumes when a slot frees up.",
     "statusRecruitToolsCoinFloor": "Ordering {{item}} would take you under your coin floor. This resumes when coins are back above it.",
     "statusRecruitToolsNoResources": "Not enough resources to order {{item}}. This resumes when they are back above your floor.",
-    "statusRecruitToolsRefused": "The game refused to produce {{item}}. This tries again on the next check.",
+    "statusRecruitToolsRefused": "The game refused to produce {{item}}. This tries again later, waiting longer each time, up to an hour.",
     "statusRecruitToolsNoBuilding": "{{item}} can't be made because a castle in your plan has no {{building}}. Build one or take the row out of the plan. The plan is left as you set it.",
     "statusRecruitToolsBuildingLevel": "{{item}} needs a {{building}} of level {{level}} or higher, and a castle in your plan has a lower one. Upgrade it or take the row out of the plan. The plan is left as you set it.",
     "recruitCantMake": "A castle in your plan can't make ",
@@ -1007,5 +1007,11 @@
     "meadLevelsNotRefreshed": "Couldn't read the latest mead levels, so the last known ones are used",
     "meadTransferInFlight": "A transfer to the Storm Islands is on its way, so no mead is sent yet. It lands in ",
     "minutesMeadReplace": " minutes",
-    "keep": "Keep"
+    "keep": "Keep",
+    "statusRecruitToolsTooMany": "The game takes fewer {{item}} in one order, so the next order is halved.",
+    "statusRecruitToolsLevelLocked": "{{item}} needs a building or a unit level this account doesn't have yet, so it is no longer ordered.",
+    "recruitToolsLevelLocked": "This account can't make this yet, so it is no longer ordered: ",
+    "statusToolsmithTooMany": "The game takes fewer {{tool}} in one order, so the next order is halved.",
+    "statusToolsmithRefused": "The game refused to build {{tool}}. This tries again later, waiting longer each time, up to an hour.",
+    "toolsmithLevelLocked": "This account can't build this tool level yet, so it is no longer ordered: "
 }
