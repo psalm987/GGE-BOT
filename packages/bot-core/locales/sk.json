@@ -1016,7 +1016,6 @@
     "meadReplaceStorm.meadSources.help": "Bot posiela z prvého hradu v tomto zozname, ktorý má viac medoviny, než si ponecháva. Ak zoznam necháš prázdny, posiela sa z tvojho hlavného hradu a ponechá sa množstvo uvedené vyššie.",
     "meadReplaceStorm.meadSources.keep.column": "Ponechať aspoň",
     "meadSourcesKeepReached": "Žiadny hrad v tvojom zozname nemá medovinu nad tým, čo si ponecháva, preto sa nič neposlalo",
-    "meadLevelsNotRefreshed": "Najnovšie stavy medoviny sa nepodarilo načítať, preto sa použijú posledné známe",
     "meadTransferInFlight": "Prenos na Storm Islands je na ceste, preto sa medovina zatiaľ neposiela. Dorazí o ",
     "minutesMeadReplace": " minút",
     "keep": "Ponechať",

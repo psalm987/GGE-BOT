@@ -126,7 +126,7 @@ export const MODULES: readonly ModuleDef[] = [
         ...live("nom-sam-daimyo", "attacks", "cloaked-figure-on-horseback", ["attackNomads", "attackSamurai", "attackDaimyo"], "per-plugin"),
         global: { accountCap: true as const, each: "events" as const, soon: ["stopAfterDefeat", "nomadAdvisor"] },
     },
-    live("storms", "attacks", "sinking-ship", ["attackStormForts", "meadReplaceStorm"], "per-plugin"),
+    live("storms", "attacks", "sinking-ship", ["attackStormForts", "meadReplaceStorm", "foodSendStorm"], "per-plugin"),
     live("fortress", "attacks", "locked-fortress",
         ["attackFortressesBurningSands", "attackFortressesEverWinterGlacier", "attackFortressesFirePeaks"], "per-plugin"),
     live("khan", "attacks", "wolf-head", ["attackKhan"]),

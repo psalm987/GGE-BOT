@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "Le bot envoie depuis le premier château de cette liste qui a plus d'hydromel que ce qu'il garde. Laissez-la vide pour envoyer depuis votre château principal, en gardant la quantité ci-dessus.",
     "meadReplaceStorm.meadSources.keep.column": "Garder au moins",
     "meadSourcesKeepReached": "Aucun château de votre liste n'a plus d'hydromel que ce qu'il garde, rien n'a donc été envoyé",
-    "meadLevelsNotRefreshed": "Impossible de lire les derniers niveaux d'hydromel, les derniers connus sont donc utilisés",
     "meadTransferInFlight": "Un transfert vers les Îles orageuses est en route, aucun hydromel n'est donc encore envoyé. Il arrive dans ",
     "minutesMeadReplace": " minutes",
     "keep": "Garder",

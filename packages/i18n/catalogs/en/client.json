@@ -745,7 +745,7 @@
   "modules.nom-sam-daimyo.name": "Nomads, Samurai and Daimyo",
   "modules.nom-sam-daimyo.description": "Attacks the Nomad and Samurai camps and the Daimyo castles with the commanders you allow.",
   "modules.storms.name": "Storms",
-  "modules.storms.description": "Attacks the Storm Islands fortresses and sends mead to your Storm Islands castle so it doesn't run out.",
+  "modules.storms.description": "Attacks the Storm Islands fortresses and sends mead and food to your Storm Islands castle so they don't run out.",
   "modules.fortress.name": "Fortress",
   "modules.fortress.description": "Attacks the fortresses in Burning Sands, Everwinter Glacier and Fire Peaks with the commanders you allow. Each has its own tab.",
   "modules.khan.name": "Khan",

@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Bot saadab selle loendi esimesest lossist, kus on rohkem mõdu, kui see alles jätab. Jäta loend tühjaks, et saata sinu põhilossist ja jätta sinna ülal määratud kogus.",
     "meadReplaceStorm.meadSources.keep.column": "Jäta alles vähemalt",
     "meadSourcesKeepReached": "Ühelgi sinu loendi lossil pole mõdu üle selle, mida see alles jätab, nii et midagi ei saadetud",
-    "meadLevelsNotRefreshed": "Viimaseid mõdu tasemeid ei õnnestunud lugeda, seega kasutatakse viimati teadaolevaid",
     "meadTransferInFlight": "Ülekanne Tormisaartele on teel, seega mõdu veel ei saadeta. See saabub ",
     "minutesMeadReplace": " minuti pärast",
     "keep": "Jäta alles",

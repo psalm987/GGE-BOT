@@ -1,17 +1,19 @@
 ---
 title: Storms
-description: Attack the Storm Islands fortresses, spend aquamarine in the shop, keep tools in stock and send mead to your Storm Islands castle.
+description: Attack the Storm Islands fortresses, spend aquamarine in the shop, keep tools in stock and send mead and food to your Storm Islands castle.
 appRoute: /m/storms
 plugin: attackStormForts
 sources:
   - packages/bot-core/plugins/attack/attackStormForts.js
   - packages/bot-core/plugins/meadReplaceStorm.js
+  - packages/bot-core/plugins/foodSendStorm.js
+  - packages/bot-core/stormTransfer.js
   - packages/bot-core/plugins/resourceSendStorm.js
   - packages/bot-core/armourer.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="sinking-ship" size=32 /%}Sailing for {% term id="aquamarine" %}aquamarine{% /term %}? The Storms {% term id="module" %}module{% /term %} attacks the {% term id="fortress" %}fortresses{% /term %} of the {% term id="storm-islands" %}Storm Islands{% /term %}, and it keeps your Storm Islands castle supplied with {% term id="mead" %}mead{% /term %}. It has two tabs: **Attack Storm Fortresses** and **Mead replace**.
+{% icon id="sinking-ship" size=32 /%}Sailing for {% term id="aquamarine" %}aquamarine{% /term %}? The Storms {% term id="module" %}module{% /term %} attacks the {% term id="fortress" %}fortresses{% /term %} of the {% term id="storm-islands" %}Storm Islands{% /term %}, and it keeps your Storm Islands castle supplied with {% term id="mead" %}mead{% /term %} and food. It has three tabs: **Attack Storm Fortresses**, **Mead replace** and **Send food**.
 
 {% terms_on_page /%}
 
@@ -29,7 +31,7 @@ This tab attacks the fortresses around your Storm Islands castle.
 
 The fortress levels are two groups of switches. Under **Easy fortresses**, levels 60, 70 and 80 are on by default. Under **Hard fortresses**, levels 40 to 80 are off by default. If you turn every level off, the bot uses easy 60, 70 and 80 and hard 70 and 80.
 
-This tab is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}. **Mead replace** does not.
+This tab is an attack {% term id="plugin" %}plugin{% /term %}, so it counts toward your {% term id="attack-cap" %}attack cap{% /term %}. **Mead replace** and **Send food** do not.
 
 ## Army: Autofill or Waves {% #army %}
 
@@ -71,6 +73,26 @@ The **Mead replace** tab sends mead from your main castle in the {% term id="gre
 
 If the Storm Islands castle can't store mead for more than about 3 hours, the {% term id="log" %}log{% /term %} warns you that your mead may run out and you could lose troops.
 
+## Send food {% #send-food %}
+
+The **Send food** tab sends food from your castles to your Storm Islands castle, so the food there does not run out.
+
+1. The bot works out how many hours of food the Storm Islands castle has left: the food it holds, divided by what its troops eat each hour less what it grows.
+2. When that drops below **Send food when it lasts less than**, it sends food to fill the castle. About a tenth of a transfer to the Storm Islands is lost on the way, so it sends a ninth more than the free space.
+3. It sends from the first castle in **Castles that send food** that holds more food than its **Keep at least**. If the list is empty, it sends from your main castle.
+4. If nothing in the Storm Islands castle eats food, the bot tops it up only when the storehouse is less than half full, and checks once an hour.
+5. If a transfer on its way would land after the food runs out and **Skip a transfer that would land after the food runs out** is on, the bot spends a {% term id="time-skip" %}time skip{% /term %} on it. It uses only the skips you allow in the Skips settings, never {% term id="ruby" %}rubies{% /term %}.
+
+Turn on **Log only: write the transfer to the log instead of sending it** to see each transfer in the log first. The bot sends nothing and spends no skips.
+
+{% aside type="caution" id="storms-food-main-castle" %}
+With an empty list, the bot can send all the food in your main castle. Add your main castle to **Castles that send food** with a **Keep at least** if its own troops need food.
+{% /aside %}
+
+## One transfer at a time {% #one-transfer %}
+
+The game takes one transfer of goods into the Storm Islands at a time. Mead and food share it. When both are due, the one that runs out sooner goes first, and the other waits until the first lands. A transfer that would land too late is skipped only when a tab that allows skips needs it.
+
 ## Test with Log only {% #log-only %}
 
 Turn on **Log only: write the attacks to the log instead of sending them** on the attack tab. The bot builds each attack and each shop order and writes it to the log, but sends nothing to the game.
@@ -85,13 +107,17 @@ Turn on **Log only: write the attacks to the log instead of sending them** on th
 
 {% settings plugin="meadReplaceStorm" /%}
 
+### Send food {% #settings-food %}
+
+{% settings plugin="foodSendStorm" /%}
+
 ## Tips {% #tips %}
 
 {% aside type="caution" id="storms-aqua-keep" %}
 The shop spends aquamarine as soon as the store is nearly full. Set **Aquamarine to keep** first if you save aquamarine for something else.
 {% /aside %}
 
-- Turn on **Mead replace** whenever troops stay in the Storm Islands castle.
+- Turn on **Mead replace** and **Send food** whenever troops stay in the Storm Islands castle.
 - Hard fortresses are off by default. Turn them on one level at a time and watch the log.
 
 ## Related errors {% #errors %}

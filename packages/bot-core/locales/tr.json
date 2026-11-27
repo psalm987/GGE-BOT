@@ -1012,7 +1012,6 @@
     "meadReplaceStorm.meadSources.help": "Bot, bu listede tuttuğundan fazla bal şarabı olan ilk kaleden gönderir. Ana kalenden göndermek için boş bırak; o zaman yukarıdaki miktar korunur.",
     "meadReplaceStorm.meadSources.keep.column": "En az bu kadar tut",
     "meadSourcesKeepReached": "Listendeki hiçbir kalede tuttuğu miktarın üstünde bal şarabı yok, bu yüzden hiç gönderilmedi",
-    "meadLevelsNotRefreshed": "En son bal şarabı miktarları okunamadı, bu yüzden bilinen son değerler kullanılıyor",
     "meadTransferInFlight": "Fırtına Adaları'na bir transfer yolda, bu yüzden henüz bal şarabı gönderilmiyor. Varmasına kalan: ",
     "minutesMeadReplace": " dakika",
     "keep": "Tut",

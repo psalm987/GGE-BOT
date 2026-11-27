@@ -1016,7 +1016,6 @@
     "meadReplaceStorm.meadSources.help": "Bot pošlje iz prvega gradu na tem seznamu, ki ima več medice, kot je obdrži. Pusti seznam prazen, da se pošilja iz glavnega gradu, ki obdrži zgoraj navedeno količino.",
     "meadReplaceStorm.meadSources.keep.column": "Obdrži vsaj",
     "meadSourcesKeepReached": "Noben grad na tvojem seznamu nima medice nad količino, ki jo obdrži, zato ni bilo nič poslano",
-    "meadLevelsNotRefreshed": "Najnovejših zalog medice ni bilo mogoče prebrati, zato se uporabijo zadnje znane",
     "meadTransferInFlight": "Prenos na Viharne otoke je na poti, zato se medica še ne pošilja. Prispe čez ",
     "minutesMeadReplace": " min",
     "keep": "Obdrži",

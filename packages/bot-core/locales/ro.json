@@ -1014,7 +1014,6 @@
     "meadReplaceStorm.meadSources.help": "Botul trimite din primul castel din această listă care are mai mult mied decât păstrează. Las-o goală ca să trimită din castelul tău principal, păstrând cantitatea de mai sus.",
     "meadReplaceStorm.meadSources.keep.column": "Păstrează cel puțin",
     "meadSourcesKeepReached": "Niciun castel din lista ta nu are mai mult mied decât păstrează, așa că nu s-a trimis nimic",
-    "meadLevelsNotRefreshed": "Nu s-au putut citi cele mai noi niveluri de mied, așa că se folosesc ultimele cunoscute",
     "meadTransferInFlight": "Un transfer spre Insulele Furtunii este pe drum, așa că încă nu se trimite mied. Ajunge peste ",
     "minutesMeadReplace": " minute",
     "keep": "Păstrează",

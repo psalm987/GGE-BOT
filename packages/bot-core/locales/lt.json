@@ -1016,7 +1016,6 @@
     "meadReplaceStorm.meadSources.help": "Botas siunčia iš pirmos šio sąrašo pilies, kurioje midaus yra daugiau, nei ji pasilieka. Palikite sąrašą tuščią, kad būtų siunčiama iš jūsų pagrindinės pilies, pasiliekant aukščiau nurodytą kiekį.",
     "meadReplaceStorm.meadSources.keep.column": "Pasilikti bent",
     "meadSourcesKeepReached": "Nė vienoje jūsų sąrašo pilyje nėra midaus daugiau, nei ji pasilieka, todėl nieko neišsiųsta",
-    "meadLevelsNotRefreshed": "Nepavyko nuskaityti naujausių midaus kiekių, todėl naudojami paskutiniai žinomi",
     "meadTransferInFlight": "Pervežimas į Audrų salas pakeliui, todėl midus dar nesiunčiamas. Jis atvyks po ",
     "minutesMeadReplace": " minučių",
     "keep": "Pasilikti",
