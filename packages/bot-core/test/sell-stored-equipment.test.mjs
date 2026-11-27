@@ -7,7 +7,7 @@ const { loadModule, fakeBot } = require("./harness/load.cjs")
 
 afterEach(() => vi.useRealTimers())
 
-const gems = [{ gemID: 9 }]
+const gems = [{ gemID: 9, gemColorID: 1 }]
 const equipment = Array.from({ length: 30 }, (_, i) => [100 + i, 0, 0, 2, "", 0, 0, -1])
 
 function start(options = {}) {
@@ -84,17 +84,17 @@ const gemRows = [[9, 2], [8, 3]]
 const setGem = { gemID: 8, setID: 4 }
 
 /** The commands one run sends for this storage, with a run size big enough not to cap it. */
-async function run(options, rows, { logs = [] } = {}) {
+async function run(options, rows, { logs = [], storedGems = gemRows, gemItems = [...gems, setGem] } = {}) {
     vi.useFakeTimers()
     const log = vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args.join(" ")))
     const bot = fakeBot()
     bot.sendXT = async (cmd, params) => {
         bot.sent.push([cmd, JSON.parse(params)])
         if (cmd == "gei") queueMicrotask(() => bot.xtHandler.emit("gei", { I: rows }, 0))
-        if (cmd == "ggm") queueMicrotask(() => bot.xtHandler.emit("ggm", { GEM: gemRows }, 0))
+        if (cmd == "ggm") queueMicrotask(() => bot.xtHandler.emit("ggm", { GEM: storedGems }, 0))
     }
     bot.botConfig.plugins.sellStoredEquipment = { sellStartDelayMinutes: "1", sellMaxPerRun: "50", ...options }
-    loadModule("plugins/sellStoredEquipment.js", { bot, items: { gems: [...gems, setGem] } })
+    loadModule("plugins/sellStoredEquipment.js", { bot, items: { gems: gemItems } })
     bot.events.emit("load")
     await vi.advanceTimersByTimeAsync(4 * 60_000 + 60_000)
     log.mockRestore()
@@ -159,4 +159,21 @@ test("ticking only gems does not read the equipment", async () => {
 test("a new install defaults to grey, green and gems", () => {
     const defaults = effectivePluginConfig(catalog, saved({})).sellStoredEquipment
     expect(defaults).toMatchObject({ sellGrey: true, sellGreen: true, sellPurple: false, sellOrange: false, sellRed: false, sellRelic: false, sellLooseGems: true })
+})
+
+test("sells ordinary coloured gems only: never a set gem, a retired gem, or a gem with no colour", async () => {
+    const gemItems = [
+        { gemID: 1, gemColorID: 3 },
+        { gemID: 2, gemColorID: 3, setID: 5 },
+        { gemID: 3, gemColorID: 3, deprecated: 1 },
+        { gemID: 4 },
+    ]
+    const { gems: soldGems } = await run({ ...nothing, sellLooseGems: true }, [], { storedGems: [[1, 1], [2, 1], [3, 1], [4, 1]], gemItems })
+    expect(soldGems).toEqual([1])
+})
+
+test("never sells a temporary item, one with time left on it", async () => {
+    const item = (id, secondsLeft) => [id, 1, 0, 1, "", 0, 0, -1, 0, secondsLeft]
+    const { equipment } = await run({ ...nothing, sellGrey: true }, [item(1, 0), item(2, 3600), item(3, -1)])
+    expect(equipment).toEqual([1, 3])
 })

@@ -39,7 +39,8 @@ async function run({ options = {}, level = 80, castles = [castle(1, 400_000)], r
     }
     loadModule("plugins/feast.js", { bot, items: { feasts }, extra: { "protocols.js": protocols } })
     bot.events.emit("load")
-    await vi.advanceTimersByTimeAsync(60_000)
+    // Up to 15 feasts, each up to 6 s after the last, all inside the first 8-minute round.
+    await vi.advanceTimersByTimeAsync(2 * 60_000)
     vi.restoreAllMocks()
     return { started, logs }
 }
@@ -90,4 +91,76 @@ test("the type picker has no ruby feast and the old option reads as automatic", 
     const entry = PluginCatalogEntry.parse({ key: "feast", force: false, hidden: false, options: defs })
     const saved = { feast: { enabled: true, options: { feastFoodReduction: "150000", minimumFood: "100" } } }
     expect(normalizePluginSettings([entry], saved).feast.options).toEqual({ feastType: 0, minimumFood: "100" })
+})
+
+const MINUTE = 60_000
+const ALREADY_PURCHASED = 174
+
+/** The plugin with `answer(request)` giving the game's code for each feast it asks for, automatic picking type 8. */
+function play({ world = [castle(1, 1_000_000), castle(2, 1_000_000)], answer = () => 0, beforeLoad } = {}) {
+    vi.useFakeTimers()
+    const bot = fakeBot()
+    bot.playerInfo.level = 80
+    bot.botConfig.plugins.feast = { minimumFood: "0" }
+    const requests = [], logs = [], warns = []
+    const protocols = {
+        KingdomID: { stormIslands: 4, berimond: 10, greatEmpire: 0 },
+        AreaType: { mainCastle: 1, externalKingdom: 12, beriCastle: 11 },
+        castles: world,
+        ClientCommands: {
+            startFeast: async (type, areaID) => {
+                requests.push({ type, areaID })
+                const result = answer({ type, areaID })
+                return { type, deltaTime: 3600, result }
+            },
+        },
+    }
+    vi.spyOn(console, "log").mockImplementation((...args) => logs.push(args[0]))
+    vi.spyOn(console, "warn").mockImplementation((...args) => warns.push(args[0]))
+    loadModule("plugins/feast.js", { bot, items: { feasts }, extra: { "protocols.js": protocols } })
+    beforeLoad?.(bot)
+    bot.events.emit("load")
+    return { requests, logs, warns }
+}
+
+test("one 'already purchased' ends the round: the other castles are not asked", async () => {
+    const { requests } = play({ answer: () => ALREADY_PURCHASED })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(requests).toHaveLength(1)
+})
+
+test("'already purchased' is expected, said once and not as a warning", async () => {
+    const { logs, warns } = play({ answer: () => ALREADY_PURCHASED })
+    await vi.advanceTimersByTimeAsync(20 * MINUTE)
+    expect(logs.filter(key => key == "feastCantExtend")).toHaveLength(1)
+    expect(logs).not.toContain("notEnoughFoodToFeast")
+    expect(warns).toEqual([])
+})
+
+test("a feast of another type running at login is waited out", async () => {
+    const { requests, logs } = play({ beforeLoad: bot => bot.xtHandler.emit("boi", { bfs: { T: 5, RT: 30 * 60 } }, 0) })
+    await vi.advanceTimersByTimeAsync(25 * MINUTE)
+    expect(requests).toEqual([])
+    expect(logs.filter(key => key == "feastOtherRunning")).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(10 * MINUTE)
+    expect(requests.length).toBeGreaterThan(0)
+    expect(requests.every(r => r.type == 8)).toBe(true)
+})
+
+test("a running feast of the same type is extended", async () => {
+    const { requests } = play({ world: [castle(1, 1_000_000)], beforeLoad: bot => bot.xtHandler.emit("boi", { bfs: { T: 8, RT: 30 * 60 } }, 0) })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(requests.length).toBeGreaterThan(0)
+})
+
+test("no feast running at login (T -1) doesn't hold anything up", async () => {
+    const { requests } = play({ world: [castle(1, 1_000_000)], beforeLoad: bot => bot.xtHandler.emit("boi", { bfs: { T: -1, RT: 0 } }, 0) })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(requests.length).toBeGreaterThan(0)
+})
+
+test("another refusal still moves on to the next castle", async () => {
+    const { requests } = play({ answer: ({ areaID }) => areaID == 1 ? 1 : 0 })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(requests.map(r => r.areaID)).toContain(2)
 })

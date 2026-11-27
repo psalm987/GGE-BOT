@@ -48,7 +48,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
     bot.playerInfo.playerID = 7
     bot.botConfig.plugins.recruitTools = { state: true, coinFloor: 0, ...options }
     const logs = [], warns = [], reports = []
-    const state = { coins }
+    const state = { coins, bupAt: [] }
     const reply = (cmd, body, result = 0) => setTimeout(() => bot.xtHandler.emit(cmd, body, result), 100)
     const find = params => world.find(c => c.id == (params.CID ?? params.AID))
     const inventory = c => Object.entries(c.have).map(([wodID, amount]) => [Number(wodID), amount])
@@ -68,6 +68,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
         }
         if (cmd == "bup") {
             const c = find(p)
+            state.bupAt.push(Date.now())
             if (refuse(p))
                 return reply("bup", {}, refuse(p))
             const unit = units.find(u => u.wodID == p.WID)
@@ -83,7 +84,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
     bot.events.emit("load")
     bot.xtHandler.emit("gcu", { C1: coins, C2: 5 }, 0)
     const bups = () => bot.sent.filter(([cmd]) => cmd == "bup").map(([, p]) => p)
-    return { bot, bups, status: () => reports.at(-1), logs, warns, world, state }
+    return { bot, bups, bupAt: () => state.bupAt, status: () => reports.at(-1), logs, warns, world, state }
 }
 
 const unitRow = (troop, stock, batch = 100, id = 10, kingdom = 0) => ({ castle: { kingdom, id }, troop, stock, batch })
@@ -113,7 +114,7 @@ describe("the catalog entry", () => {
     })
 
     test("every status key it reports is in en.json", () => {
-        for (const key of ["Starting", "NoTargets", "NotOrderable", "NoCastle", "NoAnswer", "QueueUnknown", "QueueFull", "CoinFloor", "NoResources", "Refused", "TargetsMet", "Ordered"])
+        for (const key of ["Starting", "NoTargets", "NotOrderable", "NoCastle", "NoAnswer", "QueueUnknown", "QueueFull", "CoinFloor", "NoResources", "Refused", "TooMany", "LevelLocked", "TargetsMet", "Ordered"])
             expect(en[`statusRecruitTools${key}`]).toEqual(expect.any(String))
     })
 })
@@ -435,4 +436,63 @@ test("with no rows it says so and asks nothing of the game", async () => {
     await settle()
     expect(status()).toMatchObject({ state: "waiting", reasonKey: "statusRecruitToolsNoTargets" })
     expect(bot.sent).toEqual([])
+})
+
+describe("what the game's refusals mean", () => {
+    test.each([
+        [10, "statusRecruitToolsNoResources"],
+        [55, "statusRecruitToolsNoResources"],
+        [11, "statusRecruitToolsRefused"],
+        [63, "statusRecruitToolsQueueFull"],
+    ])("code %i reads as %s", async (code, reasonKey) => {
+        const { status } = run({ options: { troopTargets: [unitRow(HALBERD, 100)] }, refuse: () => code })
+        await settle()
+        expect(status()).toMatchObject({ reasonKey })
+    })
+
+    test("too many at once halves the order at the next round, until the game takes it", async () => {
+        const { bups } = run({ options: { troopTargets: [unitRow(HALBERD, 10_000, 100)] }, refuse: p => p.AMT > 30 ? 88 : 0 })
+        await vi.advanceTimersByTimeAsync(60 * MINUTE)
+        expect(bups().slice(0, 4).map(p => p.AMT)).toEqual([100, 50, 25, 25])
+    })
+
+    test("too many tools at once halves the tool order the same way", async () => {
+        const { bups } = run({ options: { toolStockTargets: [toolRow(LADDER, 10_000, 80)] }, refuse: p => p.AMT > 30 ? 240 : 0 })
+        await vi.advanceTimersByTimeAsync(60 * MINUTE)
+        expect(bups().slice(0, 3).map(p => p.AMT)).toEqual([80, 40, 20])
+    })
+
+    test("soldiers are never ordered past what one barracks slot takes at its level", async () => {
+        const buildingItems = [{ wodID: 900, name: "Barracks", group: "Building", level: "10", stackSize: "110" }]
+        const { bups } = run({ options: { troopTargets: [unitRow(HALBERD, 10_000, 500)] }, world: [castle(10, { buildings: [900] })], buildingItems })
+        await settle()
+        expect(bups().map(p => p.AMT)).toEqual([110, 110, 110])
+    })
+
+    test("a unit the account can't make yet is asked for once, then left out with the reason shown", async () => {
+        const { bups, status, warns } = run({ options: { troopTargets: [unitRow(HALBERD, 100)] }, refuse: () => 87 })
+        await vi.advanceTimersByTimeAsync(3 * 60 * MINUTE)
+        expect(bups()).toHaveLength(1)
+        expect(status()).toMatchObject({ reasonKey: "statusRecruitToolsLevelLocked", params: { item: "Elitehalberd" } })
+        expect(warns.filter(key => key == "recruitToolsLevelLocked")).toHaveLength(1)
+    })
+
+    test("a row the game keeps refusing is asked 1, 2, then 4 rounds apart, and at least once an hour", async () => {
+        const { bupAt } = run({ options: { troopTargets: [unitRow(HALBERD, 100)] }, refuse: () => 1 })
+        await vi.advanceTimersByTimeAsync(6 * 60 * MINUTE)
+        const gaps = bupAt().slice(1).map((at, i) => at - bupAt()[i])
+        expect(gaps[0]).toBeGreaterThanOrEqual(15 * MINUTE)
+        expect(gaps[1]).toBeGreaterThanOrEqual(30 * MINUTE)
+        expect(gaps[2]).toBeGreaterThanOrEqual(60 * MINUTE)
+        expect(Math.max(...gaps)).toBeLessThanOrEqual(80 * MINUTE)
+    })
+
+    test("a refused row doesn't hold up another row of the same castle", async () => {
+        const { bups } = run({
+            options: { troopTargets: [unitRow(HALBERD, 100, 100), unitRow(2000, 10_000, 1)] },
+            refuse: p => p.WID == HALBERD ? 1 : 0,
+        })
+        await vi.advanceTimersByTimeAsync(2 * 60 * MINUTE)
+        expect(bups().filter(p => p.WID == 2000).length).toBeGreaterThan(bups().filter(p => p.WID == HALBERD).length)
+    })
 })

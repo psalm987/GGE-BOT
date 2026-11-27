@@ -104,7 +104,7 @@ describe("the catalog entry", () => {
     })
 
     test("every status key it reports is in en.json", () => {
-        for (const key of ["Starting", "NoTargets", "NoWorkshop", "LevelLocked", "NoResources", "QueueFull", "TargetsMet", "Queued", "NoAnswer", "QueueUnknown"])
+        for (const key of ["Starting", "NoTargets", "NoWorkshop", "LevelLocked", "NoResources", "QueueFull", "TooMany", "Refused", "TargetsMet", "Queued", "NoAnswer", "QueueUnknown"])
             expect(en[`statusToolsmith${key}`]).toEqual(expect.any(String))
     })
 })
@@ -338,6 +338,44 @@ describe("dry run", () => {
             ["dryRunBup", { LID: 1, WID: 614, AMT: 80, PO: -1, PWR: 0, SK: 73, SID: 0, AID: 10 }],
         ])
         expect(status()).toMatchObject({ state: "running", reasonKey: "statusToolsmithQueued" })
+    })
+})
+
+describe("what the game's refusals mean", () => {
+    test.each([
+        [10, "statusToolsmithNoResources"],
+        [55, "statusToolsmithNoResources"],
+        [63, "statusToolsmithQueueFull"],
+        [11, "statusToolsmithRefused"],
+        [1, "statusToolsmithRefused"],
+    ])("code %i reads as %s", async (code, reasonKey) => {
+        const { status } = run({ options: ladders(1000), refuse: () => code })
+        await vi.advanceTimersByTimeAsync(10 * MINUTE)
+        expect(status()).toMatchObject({ reasonKey })
+    })
+
+    test("too many tools at once halves the order at the next round, until the game takes it", async () => {
+        const { bups } = run({ options: ladders(10_000), refuse: p => p.AMT > 30 ? 240 : 0 })
+        await vi.advanceTimersByTimeAsync(60 * MINUTE)
+        expect(bups().slice(0, 3).map(p => p.AMT)).toEqual([80, 40, 20])
+    })
+
+    test("a tool level the account can't build is asked for once, then left out with the reason shown", async () => {
+        const { bups, status } = run({ options: ladders(1000), refuse: () => 87 })
+        await vi.advanceTimersByTimeAsync(3 * 60 * MINUTE)
+        expect(bups()).toHaveLength(1)
+        expect(status()).toMatchObject({ reasonKey: "statusToolsmithLevelLocked", params: { tool: "Ladder" } })
+    })
+
+    test("a tool the game keeps refusing is asked 1, 2, then 4 rounds apart, and at least once an hour", async () => {
+        const { bot, sentAt } = run({ options: ladders(1000), refuse: () => 1 })
+        await vi.advanceTimersByTimeAsync(6 * 60 * MINUTE)
+        const at = sentAt.filter((_, i) => bot.sent[i][0] == "bup")
+        const gaps = at.slice(1).map((t, i) => t - at[i])
+        expect(gaps[0]).toBeGreaterThanOrEqual(15 * MINUTE)
+        expect(gaps[1]).toBeGreaterThanOrEqual(30 * MINUTE)
+        expect(gaps[2]).toBeGreaterThanOrEqual(60 * MINUTE)
+        expect(Math.max(...gaps)).toBeLessThanOrEqual(80 * MINUTE)
     })
 })
 

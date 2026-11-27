@@ -52,16 +52,20 @@ const sellGems = Boolean(option("sellLooseGems"))
 const soldSlots = SLOTS.filter(({ key }) => option(key)).map(({ id }) => id)
 const gemMaxLevel = Number.isFinite(Number(option("sellGemMaxLevel"))) && option("sellGemMaxLevel") !== "" ? Number(option("sellGemMaxLevel")) : MAX_GEM_LEVEL
 
+/** An ordinary coloured gem: not part of a set, not retired. Old troop gems and other special ones have no colour. */
+const isOrdinaryGem = gem => gem && gem.setID == undefined && gem.gemColorID != undefined && gem.deprecated == undefined
+
 const gemSales = e => Array.from(e.GEM ?? []).flatMap(([id, amount]) => {
     const gem = gems.find(g => g.gemID == id)
-    if (!gem || gem.setID != undefined || Number(gem.gemLevelID) > gemMaxLevel)
+    if (!isOrdinaryGem(gem) || Number(gem.gemLevelID) > gemMaxLevel)
         return []
     return Array.from({ length: amount }, () => ["sge", { GID: gem.gemID, RGEM: 0, LFID: -1 }])
 })
 
-// Equipment rows: [id, slotType, lordType, rarity, name, ?, objectID, setID, ...]
+// Equipment rows: [id, slotType, lordType, rarity, name, ?, objectID, setID, enchantmentLevel, secondsLeft, ...].
+// An item with seconds left is temporary.
 const equipmentSales = e => Array.from(e.I ?? [])
-    .filter(item => soldRarities.includes(item[3]) && item[7] == -1)
+    .filter(item => soldRarities.includes(item[3]) && item[7] == -1 && !(item[9] > 0))
     .filter(item => !SLOTS.some(({ id }) => id == item[1]) || soldSlots.includes(item[1]))
     .map(item => ["seq", { EID: item[0], LID: -1, EX: 0, LFID: -1 }])
 

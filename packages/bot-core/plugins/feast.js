@@ -39,7 +39,7 @@ if (require('node:worker_threads').isMainThread) {
 }
 
 const { ClientCommands, KingdomID, AreaType, castles } = require("../protocols.js")
-const { events, botConfig, playerInfo } = require("../ggeBot.js")
+const { events, botConfig, playerInfo, xtHandler } = require("../ggeBot.js")
 const { pause } = require("../pacing.js")
 const { readLegacy, MAIN_CASTLE } = require("../legacyOptions.js")
 const err = require("../err.json")
@@ -48,6 +48,8 @@ const pluginOptions = readLegacy(optionDefs, botConfig.plugins[require("path").b
 const minimumFood = pluginOptions.minimumFood ? Number(pluginOptions.minimumFood): 150000
 const minimumFoodRate = pluginOptions.minimumFoodRate ? Number(pluginOptions.minimumFoodRate) : 0
 const LEVEL_TOO_HIGH_OR_LOW = 12
+/** The account's one feast can't be extended any further: every castle would get the same answer. */
+const ALREADY_PURCHASED = 174
 
 const MAIN_TYPES = [AreaType.mainCastle, AreaType.externalKingdom, AreaType.beriCastle]
 
@@ -82,7 +84,19 @@ function listed(castle) {
         (ref.id == MAIN_CASTLE ? MAIN_TYPES.includes(castle.areaInfo?.type) : ref.id == castle.id))
 }
 
+/** The account's running feast, from the login's `boi.bfs` and each accepted feast: its type (-1 for none) and when it ends. */
+const running = { type: -1, endsAt: 0 }
+function noteFeast(type, secondsLeft) {
+    if (!Number.isFinite(Number(type)))
+        return
+    running.type = Number(type)
+    running.endsAt = Date.now() + (Number(secondsLeft) || 0) * 1000
+}
+xtHandler.on("boi", obj => noteFeast(obj?.bfs?.T, obj?.bfs?.RT))
+
 let feasting = false
+let saidOtherRunning = false
+let saidCantExtend = false
 
 const tryToFeast = async () => {
     if (feasting)
@@ -99,7 +113,17 @@ const tryToFeast = async () => {
                 console.warn("feastTypeUnknown")
             return
         }
+        // A feast of another type can't be extended by this one, so every request would be refused until it ends.
+        if (running.type >= 0 && running.type != feast.id && running.endsAt > Date.now()) {
+            if (!saidOtherRunning)
+                console.log("feastOtherRunning", Math.ceil((running.endsAt - Date.now()) / 60_000), "feastOtherRunningMinutes")
+            saidOtherRunning = true
+            return
+        }
+        saidOtherRunning = false
         for (const castle of castles) {
+            if (reasons.has("cantExtend"))
+                break
             if(castle.kingdomID == KingdomID.stormIslands)
                 continue
             if (castle.kingdomID == KingdomID.berimond)
@@ -120,6 +144,10 @@ const tryToFeast = async () => {
                 if (feasts > 0)
                     await pause(2000, 6000)
                 const reply = await ClientCommands.startFeast(feast.id, castle.id, castle.kingdomID)
+                if (reply.result == ALREADY_PURCHASED) {
+                    reasons.add("cantExtend")
+                    break
+                }
                 if (reply.result != 0) {
                     if (reply.result == LEVEL_TOO_HIGH_OR_LOW)
                         console.warn("feastTypeWrongLevel", `${feast.minLevel}-${feast.maxLevel}`)
@@ -128,19 +156,27 @@ const tryToFeast = async () => {
                     reasons.add("refused")
                     break
                 }
+                noteFeast(reply.type, reply.deltaTime)
                 feasts++
                 spent += feast.cost
                 castle.food -= feast.cost
             }
-            if (!(minimumFood < castle.food - feast.cost && feast.cost <= castle.food) && !reasons.has("refused"))
+            if (!(minimumFood < castle.food - feast.cost && feast.cost <= castle.food) && !reasons.has("refused") && !reasons.has("cantExtend"))
                 reasons.add("food")
         }
     } finally {
         feasting = false
     }
 
-    if (feasts > 0)
+    if (feasts > 0) {
+        saidCantExtend = false
         console.log("consumed", spent)
+    }
+    else if (reasons.has("cantExtend")) {
+        if (!saidCantExtend)
+            console.log("feastCantExtend")
+        saidCantExtend = true
+    }
     else if (reasons.has("food"))
         console.log("notEnoughFoodToFeast")
     else if (reasons.has("lowIncome"))
