@@ -3302,8 +3302,67 @@ async function driveNewModules(page) {
     assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
 }
 
+/**
+ * The Refinery and Toolsmith module as `demo` on Ironhold: its tab for each plugin, the components tab's defaults, a
+ * crafting row saved and read back through the API and after a reload, and axe and screenshots at 1440 and 390.
+ * Ironhold's settings are put back.
+ */
+async function driveRefinery(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    const form = page.locator(".gge-content")
+    try {
+        await page.setViewportSize(WIDE_VIEW)
+        await page.goto(`${CLIENT_URL}/m/khan`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await openModule(page, "Refinery and Toolsmith")
+        assert(new URL(page.url()).pathname === "/m/refinery-toolsmith", "the sidebar link Refinery and Toolsmith opens /m/refinery-toolsmith")
+        assert(await page.locator(".gge-module-intro", { hasText: "keeps your Refinery and Toolsmith crafting the components you pick" }).isVisible(), "the module shows its new description")
+        const tab = name => form.getByRole("tab", { name, exact: true })
+        assert(await tab("Toolsmith").isVisible() && await tab("Refinery and Toolsmith components").isVisible(), "the page has a tab for each plugin")
+        await tab("Refinery and Toolsmith components").click()
+        const pane = form.getByRole("tabpanel")
+        const rows = pane.locator(".ant-form-item").filter({ has: page.locator("label", { hasText: "What each Refinery and Toolsmith crafts" }) })
+        assert(await rows.getByText("No rows yet.").isVisible(), "the crafting table starts empty")
+        assert(await rows.getByText("Toolsmith: 5 screws").isVisible(), "the table's help lists the product numbers")
+        assert((await pane.getByLabel("Most coins to spend on renting slots each round").inputValue()).replace(/\D/g, "") === "10000000", "the rent cap starts at 10,000,000")
+        assert((await pane.getByLabel("Keep at least this many coins").inputValue()).replace(/\D/g, "") === "1000000", "the coin floor starts at 1,000,000")
+        assert(!await pane.getByLabel("Log only: write the orders to the log instead of sending them").isChecked(), "Log only is off by default")
+        await rows.getByRole("button", { name: "Add row" }).click()
+        assert(await rows.getByLabel("Length (0 short, 1 long), row 1").inputValue() === "0" && await rows.getByLabel("Queue slots to rent (0 to 3), row 1").inputValue() === "0", "a new row starts short with nothing to rent")
+        await selectOption(page, rows.getByLabel("Castle, row 1", { exact: true }), "Castle, row 1", "Frostgate")
+        await rows.getByLabel("Product number, row 1").fill("5")
+        await rows.getByLabel("Queue slots to rent (0 to 3), row 1").fill("1")
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const row = (await account()).plugins.refineryToolsmith?.options?.craftRows?.[0]
+        assert(row?.castle?.id === 2001 && row.craftProduct === 5 && row.craftLength === 0 && row.rentQueueSlots === 1, `the row is read back through the API: ${JSON.stringify(row)}`)
+        await page.goto(`${CLIENT_URL}/m/refinery-toolsmith?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await tab("Refinery and Toolsmith components").click()
+        assert(await rows.getByLabel("Product number, row 1").inputValue() === "5", "after a reload the row shows product 5")
+        await atBothWidths(page, "98-refinery-toolsmith", "refinery and toolsmith components")
+    } finally {
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    }
+    assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "refinery") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveRefinery(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "new-modules") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)
