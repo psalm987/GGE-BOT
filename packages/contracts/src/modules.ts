@@ -159,11 +159,11 @@ export const MODULES: readonly ModuleDef[] = [
 ].map((module, index) => ({ ...module, order: (index + 1) * 10 }))
 
 /**
- * The plugins that hold an account's own settings: the pause between attacks, the daily cap, the time skips, the shutoff timer
- * and the commander map.
+ * The plugins that hold an account's own settings: the pause between attacks, the daily cap, the time skips, the shutoff timer,
+ * the commander map and the gge-tracker.com consent.
  * They belong to no module. The account's side panel edits them on its Account settings tab.
  */
-export const ACCOUNT_SETTINGS_PLUGINS: readonly PluginKey[] = ["attack", "skips", "shutoffTimer", "commander"]
+export const ACCOUNT_SETTINGS_PLUGINS: readonly PluginKey[] = ["attack", "skips", "shutoffTimer", "commander", "ggeTracker"]
 
 /** The module whose page edits a plugin, if any. */
 export const moduleOfPlugin = (key: PluginKey): ModuleDef | undefined => MODULES.find(module => module.plugins.includes(key))

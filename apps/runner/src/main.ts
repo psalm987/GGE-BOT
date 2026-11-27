@@ -9,6 +9,7 @@ import { createDiscordClient, DiscordHub } from "./discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "./env.ts"
 import { fetchClientBuild, readServers, refreshGameData } from "./game-data.ts"
 import { gameMaintenance } from "./gameMaintenance.ts"
+import { GgeTracker, type ServerNames } from "./gge-tracker.ts"
 import { publishGameItems, readGameItems } from "./game-items.ts"
 import { acquireRunnerLock } from "./lock.ts"
 import { createLogRenderer } from "./log-render.ts"
@@ -35,10 +36,13 @@ discord.start()
 let applyMetrics: (batch: MetricBatch) => void = () => {}
 /** Each server's zoneId, which names it in the game's maintenance file. Filled from 1.xml below, before any bot starts. */
 const zoneIds = new Map<number, string | undefined>()
+/** Each server's 1.xml names, from which gge-tracker.com's name for it is found. Filled with zoneIds. */
+const serverNames = new Map<number, ServerNames>()
 const maintenanceEndsAt = gameMaintenance()
 const supervisor = new Supervisor({
     maintenanceEndsAt: spec => maintenanceEndsAt(zoneIds.get(spec.serverId)),
     discord,
+    ggeTracker: new GgeTracker({ serverNames: id => serverNames.get(id) }),
     spawn: workerData => new Worker(ggeBotPath, { workerData, resourceLimits: { maxOldGenerationSizeMb: env.WORKER_MAX_OLD_MB } }),
     onMetrics: (batch: MetricBatch) => applyMetrics(batch),
     store,
@@ -82,8 +86,10 @@ async function followClientBuild() {
     }
 }
 await followClientBuild()
-for (const { zoneId, ...server } of await readServers(paths.data)) {
+for (const { zoneId, names, ...server } of await readServers(paths.data)) {
     zoneIds.set(server.id, zoneId)
+    if (names)
+        serverNames.set(server.id, names)
     await db.insert(servers).values(server).onConflictDoUpdate({ target: servers.id, set: { ...server, updatedAt: sql`now()` } })
 }
 await publishGameItems(db, await readGameItems(paths.data))

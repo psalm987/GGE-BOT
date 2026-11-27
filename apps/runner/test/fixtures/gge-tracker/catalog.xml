@@ -1,0 +1,60 @@
+<root>
+	<servers>
+		<server>
+			<enabled>true</enabled>
+			<storm>false</storm>
+			<fortress>false</fortress>
+			<advanced-castle>false</advanced-castle>
+			<gge-server-name>United Arab Emirates</gge-server-name>
+			<name>AE1</name>
+		</server>
+		<server>
+			<enabled>true</enabled>
+			<storm>true</storm>
+			<fortress>true</fortress>
+			<advanced-castle>true</advanced-castle>
+			<gge-server-name>Asia</gge-server-name>
+			<name>ASIA</name>
+		</server>
+		<server>
+			<enabled>true</enabled>
+			<storm>false</storm>
+			<fortress>false</fortress>
+			<advanced-castle>false</advanced-castle>
+			<gge-server-name>China</gge-server-name>
+			<name>CN1</name>
+		</server>
+		<server>
+			<enabled>true</enabled>
+			<storm>true</storm>
+			<fortress>true</fortress>
+			<advanced-castle>true</advanced-castle>
+			<gge-server-name>India</gge-server-name>
+			<name>IN1</name>
+		</server>
+		<server>
+			<enabled>true</enabled>
+			<storm>true</storm>
+			<fortress>true</fortress>
+			<advanced-castle>true</advanced-castle>
+			<gge-server-name>International: 3</gge-server-name>
+			<name>INT3</name>
+		</server>
+		<server>
+			<enabled>false</enabled>
+			<storm>false</storm>
+			<fortress>false</fortress>
+			<advanced-castle>false</advanced-castle>
+			<gge-server-name>South Korea</gge-server-name>
+			<name>KR1</name>
+		</server>
+		<server>
+			<enabled>true</enabled>
+			<storm>true</storm>
+			<fortress>true</fortress>
+			<advanced-castle>true</advanced-castle>
+			<gge-server-name>World: 1</gge-server-name>
+			<name>WORLD1</name>
+		</server>
+	</servers>
+</root>

@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events"
+import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { Worker } from "node:worker_threads"
 import { asc, eq, sql } from "drizzle-orm"
@@ -8,6 +9,7 @@ import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
 import { appSettings, botLogs, botProblems, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, planPeriods, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { DiscordHub } from "../src/discord-hub.ts"
+import { GgeTracker } from "../src/gge-tracker.ts"
 import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
 import { edgeDelayMs, loadSpecs } from "../src/specs.ts"
 import { createStore } from "../src/store.ts"
@@ -379,6 +381,74 @@ describe("starting and stopping", () => {
         await reconcile()
         await new Promise(r => setTimeout(r, 200))
         expect(spawned).toHaveLength(0)
+    })
+})
+
+describe("gge-tracker timetables", () => {
+    const consentEntry: PluginCatalogEntry = { key: "ggeTracker", force: true, hidden: false, options: [
+        { type: "Checkbox", key: "useTimetables", default: false },
+        { type: "Checkbox", key: "includePlayerName", default: false, showWhen: { key: "useTimetables", in: [1] } },
+    ] }
+    const withConsent: PluginRegistry = { catalog: [...catalog, consentEntry], filenames: new Map([...registry.filenames, ["ggeTracker", "plugins/ggeTracker"]]) }
+    const fixture = (name: string) => readFileSync(new URL(`./fixtures/gge-tracker/${name}`, import.meta.url), "utf8")
+
+    /** A runner whose tracker reads the recorded site, with each URL it asked for in `urls`. */
+    function trackerRunner() {
+        const urls: string[] = []
+        const fetch = (async (input: string | URL | Request) => {
+            const url = String(input)
+            urls.push(url)
+            const file = url.includes("servers/catalog") ? "catalog.xml" : url.includes("dungeons") ? "dungeons-in1-k1.json" : "storm-forts-in1.json"
+            return new Response(fixture(file))
+        }) as typeof globalThis.fetch
+        const ggeTracker = new GgeTracker({ fetch, serverNames: id => id === 26 ? { locaId: "generic_country_IN", instanceName: "1" } : undefined, logger: { warn() {} }, pageGapMs: 0 })
+        supervisor = makeSupervisor({ ggeTracker })
+        return urls
+    }
+    async function consent(id: string, options: Record<string, boolean> | null) {
+        if (options)
+            await db.insert(pluginSettings).values({ accountId: id, pluginKey: "ggeTracker", enabled: true, options })
+    }
+    const replies = async (id: string) => (await logs(id)).filter(line => line.startsWith("tracker reply")).sort()
+
+    test("a worker's request is answered by the runner, from one fetch shared by the accounts on the server", async () => {
+        const urls = trackerRunner()
+        const a = await addAccount("tracker-a")
+        const b = await addAccount("tracker-b")
+        await consent(a, { useTimetables: true })
+        await consent(b, { useTimetables: true })
+        supervisor.reconcile(await loadSpecs(db, withConsent))
+        for (const id of [a, b])
+            expect(await until(async () => (await replies(id)).length === 2 && replies(id))).toEqual(["tracker reply 1 fortresses IN1", "tracker reply 2 stormForts IN1"])
+        expect(urls.filter(url => url.includes("dungeons"))).toHaveLength(1)
+        expect(urls.filter(url => url.includes("storms/forts"))).toHaveLength(1)
+    })
+
+    test("with the box off the worker is told so and no request leaves the runner", async () => {
+        const urls = trackerRunner()
+        const never = await addAccount("tracker-never")
+        const unticked = await addAccount("tracker-unticked")
+        await consent(unticked, { useTimetables: false, includePlayerName: true })
+        supervisor.reconcile(await loadSpecs(db, withConsent))
+        for (const id of [never, unticked])
+            expect(await until(async () => (await replies(id)).length === 2 && replies(id))).toEqual(["tracker reply 1 off", "tracker reply 2 off"])
+        expect(urls).toEqual([])
+    })
+
+    test("the player's name goes to the site only when the second box is ticked", async () => {
+        const urls = trackerRunner()
+        const quiet = await addAccount("tracker-quiet")
+        await consent(quiet, { useTimetables: true })
+        supervisor.reconcile(await loadSpecs(db, withConsent))
+        await until(async () => (await replies(quiet)).length === 2)
+        expect(urls.length).toBeGreaterThan(0)
+        expect(urls.filter(url => url.includes("filterByPlayerName") || url.includes("tracker-quiet"))).toEqual([])
+
+        const named = await addAccount("tracker-named")
+        await consent(named, { useTimetables: true, includePlayerName: true })
+        supervisor.reconcile(await loadSpecs(db, withConsent))
+        await until(async () => (await replies(named)).length === 2)
+        expect(urls.filter(url => url.includes("filterByPlayerName"))).toEqual([expect.stringContaining("filterByPlayerName=tracker-named")])
     })
 })
 

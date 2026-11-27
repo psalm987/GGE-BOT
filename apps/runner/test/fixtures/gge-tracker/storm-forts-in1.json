@@ -1,0 +1,80 @@
+{
+  "forts": [
+    {
+      "kid": 4,
+      "position_x": 629,
+      "position_y": 620,
+      "isle_id": 10,
+      "victory_count": 9,
+      "attacks_left": 1,
+      "is_visible": true,
+      "available_at": "2026-11-27T11:28:02.856Z",
+      "available_since_observed": true,
+      "last_available_seconds": 16624,
+      "updated_at": "2026-11-27T15:32:49.448Z",
+      "distance": null
+    },
+    {
+      "kid": 4,
+      "position_x": 599,
+      "position_y": 687,
+      "isle_id": 11,
+      "victory_count": 9,
+      "attacks_left": 1,
+      "is_visible": true,
+      "available_at": "2026-11-27T11:46:32.257Z",
+      "available_since_observed": true,
+      "last_available_seconds": 1591,
+      "updated_at": "2026-11-27T15:32:49.448Z",
+      "distance": null
+    },
+    {
+      "kid": 4,
+      "position_x": 664,
+      "position_y": 635,
+      "isle_id": 11,
+      "victory_count": 7,
+      "attacks_left": 3,
+      "is_visible": true,
+      "available_at": "2026-11-27T12:02:54.551Z",
+      "available_since_observed": true,
+      "last_available_seconds": 895,
+      "updated_at": "2026-11-27T15:32:49.448Z",
+      "distance": null
+    },
+    {
+      "kid": 4,
+      "position_x": 687,
+      "position_y": 664,
+      "isle_id": 10,
+      "victory_count": 6,
+      "attacks_left": 4,
+      "is_visible": true,
+      "available_at": "2026-11-27T12:09:21.953Z",
+      "available_since_observed": true,
+      "last_available_seconds": 16936,
+      "updated_at": "2026-11-27T15:32:49.448Z",
+      "distance": null
+    },
+    {
+      "kid": 4,
+      "position_x": 609,
+      "position_y": 648,
+      "isle_id": 10,
+      "victory_count": 9,
+      "attacks_left": 1,
+      "is_visible": true,
+      "available_at": "2026-11-27T12:11:48.147Z",
+      "available_since_observed": true,
+      "last_available_seconds": 15273,
+      "updated_at": "2026-11-27T15:32:49.448Z",
+      "distance": null
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 1,
+    "current_items_count": 5,
+    "total_items_count": 5
+  }
+}

@@ -51,7 +51,7 @@ test("servers are read from 1.xml with the game's labels, skipping unlabelled in
         <instance value="9"><server>hidden.test</server><zone>EmpireEx_9</zone><instanceName>1</instanceName></instance>
     </instances></network>`)
     expect(await readServers(dir)).toEqual([
-        { id: 2, label: "Germany 1", wsHost: "de1.test", zone: "EmpireEx_2", zoneId: "163" },
+        { id: 2, label: "Germany 1", wsHost: "de1.test", zone: "EmpireEx_2", zoneId: "163", names: { locaId: "generic_country_DE", instanceName: "1" } },
         { id: 103, label: "SP 3", wsHost: "ep-live-mz-nw2-game.goodgamestudios.com", zone: "EmpireExSP_3" },
     ])
 })

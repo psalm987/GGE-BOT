@@ -82,6 +82,16 @@ switch (mode) {
             post([25, { kind: "banned", key: "k", data: { bannedUntil: null } }])
         }
     // falls through
+    case "tracker":
+        if (mode === "tracker") {
+            parentPort.on("message", ([type, reply]) => {
+                if (type === 29)
+                    post([5, 0, [`tracker reply ${reply.id} `, reply.ok ? `${reply.kind} ${reply.server}` : reply.error]])
+            })
+            post([29, { id: 1, kind: "fortresses", kingdom: 1 }])
+            post([29, { id: 2, kind: "stormForts" }])
+        }
+    // falls through
     case "refusal":
         if (mode === "refusal") {
             post([28, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: Date.now() }])

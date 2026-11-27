@@ -1,0 +1,74 @@
+{
+  "dungeons": [
+    {
+      "kid": 1,
+      "position_x": 750,
+      "position_y": 594,
+      "player_id": "65622085",
+      "player_name": "bdm",
+      "player_might": "49681456",
+      "player_level": 70,
+      "player_legendary_level": 950,
+      "total_attack_count": "202",
+      "available_duration_seconds": 523,
+      "global_available_at": "2026-11-27T16:19:31.234Z",
+      "effective_cooldown_until": "2026-11-27T16:19:31.234Z",
+      "last_attack": "2026-11-26T16:21:14.840Z",
+      "distance": null
+    },
+    {
+      "kid": 1,
+      "position_x": 555,
+      "position_y": 711,
+      "player_id": "408040085",
+      "player_name": "arun254",
+      "player_might": "9763144",
+      "player_level": 70,
+      "player_legendary_level": 950,
+      "total_attack_count": "202",
+      "available_duration_seconds": 284,
+      "global_available_at": "2026-11-27T16:24:20.435Z",
+      "effective_cooldown_until": "2026-11-27T16:24:20.435Z",
+      "last_attack": "2026-11-26T16:25:16.140Z",
+      "distance": null
+    },
+    {
+      "kid": 1,
+      "position_x": 594,
+      "position_y": 750,
+      "player_id": "408040085",
+      "player_name": "arun254",
+      "player_might": "9763144",
+      "player_level": 70,
+      "player_legendary_level": 950,
+      "total_attack_count": "202",
+      "available_duration_seconds": 284,
+      "global_available_at": "2026-11-27T16:26:05.134Z",
+      "effective_cooldown_until": "2026-11-27T16:26:05.134Z",
+      "last_attack": "2026-11-26T16:27:15.545Z",
+      "distance": null
+    },
+    {
+      "kid": 1,
+      "position_x": 536,
+      "position_y": 653,
+      "player_id": "408040085",
+      "player_name": "arun254",
+      "player_might": "9763144",
+      "player_level": 70,
+      "player_legendary_level": 950,
+      "total_attack_count": "202",
+      "available_duration_seconds": 523,
+      "global_available_at": "2026-11-27T16:53:36.338Z",
+      "effective_cooldown_until": "2026-11-27T16:53:36.338Z",
+      "last_attack": "2026-11-26T16:55:16.543Z",
+      "distance": null
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 1,
+    "current_items_count": 4,
+    "total_items_count": 4
+  }
+}
