@@ -854,7 +854,7 @@ describe("account safety", () => {
             await until(() => spawned.length === 1)
             end = Date.now() + 3_600_000
 
-            await until(async () => /^Game maintenance until/.test((await status(id))?.lastError ?? ""))
+            await until(async () => ((await status(id))?.lastError ?? "").startsWith("Game maintenance until"))
             await settle()
             expect((await status(id))?.actualState).toBe("starting")
             expect(await desired(id)).toBe("running")
@@ -866,7 +866,7 @@ describe("account safety", () => {
             supervisor = makeSupervisor({ waits: soon, maintenanceEndsAt: async () => end })
             const id = await addAccount("ok-maint-early")
             await reconcile()
-            await until(async () => /^Game maintenance until/.test((await status(id))?.lastError ?? ""))
+            await until(async () => ((await status(id))?.lastError ?? "").startsWith("Game maintenance until"))
             const over = Date.now()
             end = undefined
 
