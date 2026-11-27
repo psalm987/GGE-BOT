@@ -33,14 +33,14 @@ const horses = [
  * `openAttackScreen` stands in for the attack screen, which by default hands back the commander unchanged. A skip is refused
  * with `skipRefusal(area)` when that returns an error code, and an attack with `sendRefusal(cra)` when that returns an
  * error name; the names land in `refused`. `found` holds each area `fnm` handed out, and `classTypes` stands in for
- * protocols.js' ClassTypes.
+ * protocols.js' ClassTypes. `lookAt(x, y, kingdomID)` answers a look at a map spot (`ssi`); by default nothing does.
  */
 async function runEvent(plugin, options, {
     areas, inventory, start = {}, items = {}, effects = {}, playerLevel = 70, sends = 1, movements = [], resources = {},
     castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50, waitToAttack = async job => job(),
     movementEvents = new EventEmitter(), skipLands = async () => {}, answer = () => undefined,
     openAttackScreen = async (castle, areaInfo, kingdomID, commander) => commander, skipRefusal = () => 0, sendRefusal = () => undefined,
-    classTypes = {},
+    classTypes = {}, lookAt = () => undefined,
 }) {
     const { path, eventID, kingdomID } = PLUGINS[plugin]
     const bot = fakeBot()
@@ -67,7 +67,7 @@ async function runEvent(plugin, options, {
         unlockInfoList: [{ kingdomID: 4, isUnlocked: true }],
         shopTurn: task => task(),
         ClientCommands: {
-            preSpyInfo: async () => {},
+            preSpyInfo: async (...spot) => lookAt(...spot),
             getNextMapObject: async () => (found.push(areas[0]), { areaInfo: areas[0] }),
             getAreaInfo: async (kid, x1, y1, x2, y2) => {
                 requests.push([x1, y1, x2, y2])

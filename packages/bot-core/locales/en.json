@@ -1345,5 +1345,7 @@
     "ggeTracker.useTimetables.help": "The bot asks the site for the timetables of your game server. The only thing sent is your game server's name, for example IN1. Your stats are never sent. The bot still checks each target in the game before it attacks, and scans the map as before when the site can't be read.",
     "ggeTracker.includePlayerName.help": "Also sends your player name, so the fortress times include your own cooldown on each fortress. Without it the site gives the times for every player.",
     "fortressTimetableUsed": "Fortresses come from the gge-tracker.com timetable, and each is checked in the game before its attack. Kingdom and fortresses listed: ",
-    "fortressTimetableUnavailable": "The gge-tracker.com timetable can't be used, so the bot scans the map around the castle. Kingdom and reason: "
+    "fortressTimetableUnavailable": "The gge-tracker.com timetable can't be used, so the bot scans the map around the castle. Kingdom and reason: ",
+    "stormTimetableUsed": "Storm forts come from the gge-tracker.com timetable, and each is checked in the game before its attack. Forts listed: ",
+    "stormTimetableUnavailable": "The gge-tracker.com timetable can't be used, so the bot scans the Storm map. Reason: "
 }
