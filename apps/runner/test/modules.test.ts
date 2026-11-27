@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { beforeAll, expect, test, vi } from "vitest"
-import { ACCOUNT_SETTINGS_PLUGINS, MODULE_GROUPS, MODULES } from "@gge/contracts"
+import { ACCOUNT_SETTINGS_PLUGINS, ICON_IDS, MODULE_GROUPS, MODULES } from "@gge/contracts"
 import { readPluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 
 const en = JSON.parse(readFileSync(new URL("../../../packages/i18n/catalogs/en/client.json", import.meta.url), "utf8")) as Record<string, string>
@@ -68,17 +68,17 @@ test("ids and orders are unique, orders ascend and groups follow the sidebar's o
     })
 })
 
-test("every module icon is in the game-icons set and has its badge and credit committed", () => {
+test("every listed icon is in the game-icons set and has its badge and credit committed", () => {
     const set = JSON.parse(readFileSync(new URL("../../../tools/icons/node_modules/@iconify-json/game-icons/icons.json", import.meta.url), "utf8")) as { icons: Record<string, unknown> }
     const dir = new URL("../../../packages/ui/src/icons/", import.meta.url)
     const credits = JSON.parse(readFileSync(new URL("credits.json", dir), "utf8")) as { icons: { id: string; author: string; source: string; licence: string }[] }
-    for (const module of MODULES) {
-        expect(module.icon in set.icons, `${module.id}: ${module.icon} is in the set`).toBe(true)
-        expect(existsSync(new URL(`${module.icon}.svg`, dir)), `${module.icon}.svg`).toBe(true)
-        const credit = credits.icons.find(icon => icon.id === module.icon)
-        expect(credit, `${module.icon} in credits.json`).toBeDefined()
-        expect(credit!.author, `${module.icon} author`).toBeTruthy()
-        expect(credit!.source, `${module.icon} source`).toMatch(/^https:\/\/game-icons\.net\//)
+    for (const id of ICON_IDS) {
+        expect(id in set.icons, `${id} is in the set`).toBe(true)
+        expect(existsSync(new URL(`${id}.svg`, dir)), `${id}.svg`).toBe(true)
+        const credit = credits.icons.find(icon => icon.id === id)
+        expect(credit, `${id} in credits.json`).toBeDefined()
+        expect(credit!.author, `${id} author`).toBeTruthy()
+        expect(credit!.source, `${id} source`).toMatch(/^https:\/\/game-icons\.net\//)
         expect(credit!.licence).toBe("CC BY 3.0")
     }
 })
