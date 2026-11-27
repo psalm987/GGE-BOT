@@ -4,25 +4,33 @@ if (require('node:worker_threads').isMainThread)
     }
 
 const pretty = require('pretty-time')
-const { movements, movementEvents, castles, ClientCommands, AreaType, KingdomID } = require('../../protocols')
-const { mapGrid, scanGrid, wholeMapRects } = require('../../mapScan.js')
-const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
-    getMaxUnitsInReinforcementWave, sendAttack } = require("./attack")
+const { movements, castles, ClientCommands, AreaType, KingdomID } = require('../../protocols')
+const { areasAround } = require('../../mapScan.js')
+const { waitToAttack, waitForTroops, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront,
+    courtyardRoom, sendAttack, openAttackScreen } = require("./attack")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander")
-const { sendXT, waitForResult, playerInfo } = require("../../ggeBot.js")
 const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { pickSourceCastle, castleName } = require("../../towers.js")
 
-const err = require('../../err.json')
+const bossDungeons = require("../../paths.js").loadItem("bossdungeons")
 
 const minTroopCount = 100
 const minTroopCountCY = 500
 const type = AreaType.fortress
+/** Fortresses are looked for within this many tiles of the castle, as Lazy Lord does, not over the whole map. */
+const SCAN_RADIUS = 50
+/** A fortress whose attack screen or attack was refused as not ready is left alone this long. */
+const NOT_READY_HOLD_MS = 5 * 60_000
+/** With every fortress under attack the plugin looks again after the first; it never sleeps longer than the second. */
+const IDLE_RECHECK_MS = [60_000, 10 * 60_000]
 
-/** `filename` is the plugin's file, which its status goes by. */
-async function fortressHit(kingdomID, level, options, filename) {
+/**
+ * `fallbackLevel` is the level used when a fortress's map data has none. `filename` is the plugin's file, which its
+ * status goes by.
+ */
+async function fortressHit(kingdomID, fallbackLevel, options, filename) {
     const horse = choice(HORSES, options.horse, HORSES[2])
     const autofill = parseAutofill(options, { unitOrder: "fastest" })
     const report = statusReporter(filename)
@@ -30,7 +38,20 @@ async function fortressHit(kingdomID, level, options, filename) {
     if (!army || !await presetsListed(army, report))
         return
 
+    // After this player's own hit a fortress stays closed to them this long (about 5 days), while the map shows
+    // everyone only the global cooldown (1 day), so a hit sent on the map's word is refused again and again
+    // (Lazy Lord's sharedFortressAttackLogic.js; medium confidence).
+    const playerCooldownMs = (Number(bossDungeons.find(b => Number(b.kID) == kingdomID)?.playerCooldownDelay) || 0) * 1000
+    // The game client reads a fortress's level from its map data (Lazy Lord; medium confidence).
+    const levelOf = areaInfo => Number(areaInfo.extraData[1]) > 0 ? Number(areaInfo.extraData[1]) : fallbackLevel
+
     const areas = []
+    const keyOf = areaInfo => `${areaInfo.x}:${areaInfo.y}`
+    /** Fortress -> when this player may hit it again: after their own cooldown, or a refusal's hold. */
+    const heldUntil = new Map()
+    const readyAt = areaInfo => Math.max(areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0)
+    const underAttack = areaInfo => movements.some(movement =>
+        movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
 
     const source = pickSourceCastle(castles, kingdomID, options.sourceCastle, [AreaType.externalKingdom])
     const castle = source.castle
@@ -39,77 +60,59 @@ async function fortressHit(kingdomID, level, options, filename) {
         console.warn("towersSourceCastleGone", from)
         report("running", "statusTowersCastleFallback", { castle: from })
     }
+
+    /** The first fortress that is ready by the bot's data and still ready at a fresh look, or undefined. */
+    async function nextTarget() {
+        for (const areaInfo of areas) {
+            if (underAttack(areaInfo) || readyAt(areaInfo) - Date.now() > -5000)
+                continue
+            const look = await ClientCommands.preSpyInfo(areaInfo.x, areaInfo.y, kingdomID, false)
+            if (look?.areaInfo?.extraData)
+                Object.assign(areaInfo, { extraData: look.areaInfo.extraData, timeSinceRequest: look.areaInfo.timeSinceRequest })
+            if (areaInfo.extraData[2] > 0)
+                continue
+            return areaInfo
+        }
+    }
+
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList,
             undefined,
-            (a, b) => b.getEffects().speedBonus - a.getEffects().speedBonus, filename)
-        
-        const hasShieldMadiens = commander.getEffects().AttackSupportUnits
+            (a, b) => b.getEffects(type).speedBonus - a.getEffects(type).speedBonus, filename)
+
+        let target
         try {
             const attackInfo = await waitToAttack(async () => {
-                let index = -1
-                const timeSinceEpoch = Date.now()
-                for (let i = 0; i < areas.length; i++) {
-                    const areaInfo = areas[i]
-
-                    if (movements.find(movement =>
-                        movement.kingdomID == kingdomID &&
-                        movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y))
-                        continue
-
-                    if (((areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000) - timeSinceEpoch) > -5000)
-                        continue
-
-                    await ClientCommands.preSpyInfo(areaInfo.x, areaInfo.y, kingdomID, false)
-
-                    if (areaInfo.extraData[2] > 0)
-                        continue
-
-                    index = i
-                    break
-                }
-                if (index == -1)
+                target = await nextTarget()
+                if (!target)
                     return
-
-                let AI = areas[index]
-
-                const attackInfo = getAttackInfo(kingdomID, castle, AI, commander, level, undefined, horse)
+                const lord = await openAttackScreen(castle, target, kingdomID, commander)
+                const effects = lord.getEffects(type)
+                const hasShieldMadiens = effects.AttackSupportUnits
+                const level = levelOf(target)
+                const attackInfo = getAttackInfo(kingdomID, castle, target, lord, level, undefined, horse, effects.additionalWaves)
+                const flankUnits = getAmountSoldiersFlank(level, effects.attackUnitAmountFlank)
+                const courtyard = hasShieldMadiens ? 0 : courtyardRoom(level, effects)
 
                 if (army.mode == "waves") {
                     fillFromPlan(attackInfo, army.waves, castle.unitInventory, {
-                        flankUnits: getAmountSoldiersFlank(level), frontUnits: getAmountSoldiersFront(level),
+                        flankUnits, frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
-                        courtyard: hasShieldMadiens ? 0 : getMaxUnitsInReinforcementWave(playerInfo.level, level),
+                        courtyard,
                     }, { kingdom: kingdomID, areaType: type })
-                    return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
+                    return await sendAttack(attackInfo, kingdomID, target.x, target.y, { deleteReports: options.deleteReports })
                 }
 
-                const attackerTroops = []
-
-                for (let i = 0; i < castle.unitInventory.length; i++) {
-                    const unit = castle.unitInventory[i]
-                    if (unit.amount <= 0)
-                        continue
-
-                    if (unit.unitInfo.fightType == 0 &&
-                        unit.unitInfo.beefSupply == undefined &&
-                        unit.unitInfo.role &&
-                        eats(autofill.supply, unit.unitInfo)
-                    ) {
-                        if (kingdomID == KingdomID.firePeaks &&
-                            unit.unitInfo.wodID == 277 && !hasShieldMadiens)
-                            continue
-
-                        attackerTroops.push(unit)
-                    }
-                }
+                const attackerTroops = castle.unitInventory.filter(unit => unit.amount > 0 &&
+                    unit.unitInfo.fightType == 0 &&
+                    unit.unitInfo.beefSupply == undefined &&
+                    unit.unitInfo.role &&
+                    eats(autofill.supply, unit.unitInfo) &&
+                    !(kingdomID == KingdomID.firePeaks && unit.unitInfo.wodID == 277 && !hasShieldMadiens))
 
                 orderUnits(attackerTroops, autofill.unitOrder)
 
-                let allTroopCount = 0
-
-                attackerTroops.forEach(e => allTroopCount += e.amount)
-
+                const allTroopCount = attackerTroops.reduce((total, unit) => total + unit.amount, 0)
                 if (allTroopCount < minTroopCount + (hasShieldMadiens ? 0 : minTroopCountCY))
                     throw "NO_MORE_TROOPS"
 
@@ -119,45 +122,42 @@ async function fortressHit(kingdomID, level, options, filename) {
                     if (i > 4 && kingdomID == KingdomID.firePeaks)
                         return
 
-                    const maxTroopFlank = getAmountSoldiersFlank(level)
-
-                    let maxTroops = maxTroopFlank
-
+                    let maxTroops = flankUnits
                     wave.L.U.forEach(unitSlot =>
                         maxTroops -= assignUnit(unitSlot, attackerTroops, maxTroops))
                 })
 
                 if (!hasShieldMadiens) {
-                    let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level)
+                    let maxTroops = courtyard
                     attackInfo.RW.forEach(unitSlot =>
                         maxTroops -= assignUnit(unitSlot, attackerTroops, maxTroops))
                 }
 
-                return await sendAttack(attackInfo, kingdomID, AI.x, AI.y, { deleteReports: options.deleteReports })
-            })
+                return await sendAttack(attackInfo, kingdomID, target.x, target.y, { deleteReports: options.deleteReports })
+            }, filename)
 
             if (!attackInfo) {
                 freeCommander(commander.lordID)
                 return false
             }
 
+            const march = attackInfo.AAM.M
+            if (playerCooldownMs > 0)
+                heldUntil.set(keyOf(target), Date.now() + Math.max(0, Number(march.TT) - Number(march.PT) || 0) * 1000 + playerCooldownMs)
             report("running")
-            console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', attackInfo.AAM.M.TA[1], ':', attackInfo.AAM.M.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, attackInfo.AAM.M.TT - attackInfo.AAM.M.PT))), 's'), "tillImpactAttack")
+            console.info("hittingTargetAttack", KingdomID[kingdomID], ' ', 'C', attackInfo.AAM.UM.L.VIS + 1, ' ', march.TA[1], ':', march.TA[2], " ", pretty(Math.round(1000000000 * Math.abs(Math.max(0, march.TT - march.PT))), 's'), "tillImpactAttack")
             return true
         } catch (e) {
             freeCommander(commander.lordID)
+            if (target && (e == "COOLING_DOWN" || e == "ATTACK_SCREEN_REFUSED"))
+                heldUntil.set(keyOf(target), Date.now() + NOT_READY_HOLD_MS)
             switch (e) {
                 case "NO_MORE_TROOPS":
-                    await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").Types.Movement} */ movement) {
-                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                            return
-
-                        movementEvents.off("return", self)
-                        resolve()
-                    }))
+                    await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     return true
                 case "LORD_IS_USED":
                     useCommander(commander.lordID)
+                case "ATTACK_SCREEN_REFUSED":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":
                 case "MISSING_UNITS":
@@ -177,30 +177,16 @@ async function fortressHit(kingdomID, level, options, filename) {
         (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
         (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))
 
-    if (mapGrid) {
-        areas.push(...await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, e => e.type == type))
-        areas.sort(byDistance)
-        while (await sendHit());
-    }
-    if (areas.length == 0) {
-        for (const rect of wholeMapRects(castle.areaInfo.x, castle.areaInfo.y)) {
-            areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h)).areaInfo.filter(e => e.type == type))
-
-            areas.sort(byDistance)
-            while (await sendHit());
-        }
-    }
+    areas.push(...await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, e => e.type == type, { radius: SCAN_RADIUS }))
+    areas.sort(byDistance)
+    while (await sendHit());
 
     while (true) {
         let minimumTimeTillHit = Infinity
-        areas.forEach(areaInfo => {
-            if (movements.find(movement =>
-                movement.kingdomID == kingdomID &&
-                movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y))
-                return
-            minimumTimeTillHit = Math.min(minimumTimeTillHit, (areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000))
-        })
-        const time = (Math.max(0, minimumTimeTillHit - Date.now())) + 5000
+        for (const areaInfo of areas)
+            if (!underAttack(areaInfo))
+                minimumTimeTillHit = Math.min(minimumTimeTillHit, readyAt(areaInfo))
+        const time = minimumTimeTillHit == Infinity ? IDLE_RECHECK_MS[0] : Math.min(Math.max(0, minimumTimeTillHit - Date.now()) + 5000, IDLE_RECHECK_MS[1])
         console.info("waitingForNextPossibleHit", Math.round(time / 1000), "waitingForNextPossibleHit2")
         await new Promise(r => setTimeout(r, time).unref())
 

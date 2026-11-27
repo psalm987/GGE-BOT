@@ -73,9 +73,11 @@ function loadAttackWithBot(options, bot = fakeBot()) {
     return { ...loadModule("plugins/attack/attack.js", { bot, extra: { "protocols": { resources: {} } } }).mod, bot }
 }
 
+const err = require("../err.json")
+/** A job whose cra the game refuses with `code`, which throws the error's name as sendAttack does. */
 const rejectWith = (bot, code) => async () => {
     bot.xtHandler.emit("cra", {}, code)
-    throw "REJECTED"
+    throw err[code]
 }
 
 test("a rejected attack still delays the next one", async () => {
@@ -112,57 +114,28 @@ async function runsAfter(waitToAttack, log, label) {
     return ranAt
 }
 
-test("ATTACK_TOO_MANY_UNITS pauses every attack for 5 minutes, then attacks go on after a fresh castle list", async () => {
+test("CANT_START_NEW_ARMIES pauses every attack for 30 minutes, then attacks go on after a fresh castle list", async () => {
     vi.useFakeTimers()
+    vi.spyOn(console, "warn").mockImplementation(() => {})
     const log = []
     const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList(log))
-    waitToAttack(rejectWith(bot, 313)).catch(() => {})
+    waitToAttack(rejectWith(bot, 90), "barons").catch(() => {})
     const ranAt = await runsAfter(waitToAttack, log, "later attack")
-    expect(ranAt).toBeGreaterThanOrEqual(5 * 60_000)
-    expect(ranAt).toBeLessThan(6 * 60_000)
+    expect(ranAt).toBeGreaterThanOrEqual(30 * 60_000)
+    expect(ranAt).toBeLessThan(31 * 60_000)
     expect(log).toEqual(["send dcl", "later attack"])
 })
 
-test("three rejections in a row pause attacks; a success resets the count", async () => {
+test("ATTACK_TOO_MANY_UNITS and refusals in a row from one plugin no longer pause every attack", async () => {
     vi.useFakeTimers()
+    vi.spyOn(console, "log").mockImplementation(() => {})
     const log = []
     const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList(log))
-    const ok = () => { bot.xtHandler.emit("cra", {}, 0); return true }
-    for (const job of [rejectWith(bot, 101), rejectWith(bot, 101), ok, rejectWith(bot, 101), rejectWith(bot, 101)])
-        waitToAttack(job).catch(() => {})
-    expect(await runsAfter(waitToAttack, log, "after two")).toBeLessThan(60_000)
-    waitToAttack(rejectWith(bot, 101)).catch(() => {})
-    expect(await runsAfter(waitToAttack, log, "after three")).toBeGreaterThanOrEqual(5 * 60_000)
-    expect(log).toEqual(["after two", "send dcl", "after three"])
+    for (const code of [101, 101, 101, 313])
+        waitToAttack(rejectWith(bot, code), "khan").catch(() => {})
+    expect(await runsAfter(waitToAttack, log, "another plugin")).toBeLessThan(60_000)
+    expect(log).toEqual(["another plugin"])
 })
-
-test("each pause in a row lasts longer, and a successful attack starts them over", async () => {
-    vi.useFakeTimers()
-    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList())
-    const ok = () => { bot.xtHandler.emit("cra", {}, 0); return true }
-    const pauseAfterRefusal = async () => {
-        waitToAttack(rejectWith(bot, 313)).catch(() => {})
-        return Math.round(await runsAfter(waitToAttack, [], "probe") / 60_000)
-    }
-    expect(await pauseAfterRefusal()).toBe(5)
-    expect(await pauseAfterRefusal()).toBe(10)
-    expect(await pauseAfterRefusal()).toBe(20)
-    waitToAttack(ok)
-    await vi.advanceTimersByTimeAsync(60_000)
-    expect(await pauseAfterRefusal()).toBe(5)
-})
-
-test("a pause never lasts more than an hour", async () => {
-    vi.useFakeTimers()
-    const { waitToAttack, bot } = loadAttackWithBot({}, answeringCastleList())
-    let longest = 0
-    for (let i = 0; i < 6; i++) {
-        waitToAttack(rejectWith(bot, 313)).catch(() => {})
-        longest = Math.max(longest, await runsAfter(waitToAttack, [], "probe"))
-    }
-    expect(longest).toBeGreaterThanOrEqual(60 * 60_000)
-    expect(longest).toBeLessThan(61 * 60_000)
-}, 60_000)
 
 test("with the default settings attacks go about every 6 seconds, also past the 120th of the hour", async () => {
     const declared = loadModule("plugins/attack/attack.js", { mainThread: true }).mod.pluginOptions

@@ -35,7 +35,7 @@ function commanderPool(bot, movementEvents, count, effects) {
 async function firstCra(relPath, start, {
     kingdomID = 0, inventory, area, effects = {}, playerLevel = 70, skips = {}, resources = {},
     movements = [], movementEvents = new EventEmitter(), waitToAttack = job => job(), skipLands = async () => {}, commanders,
-    presets = { S: [] }, castles = [], extra = {},
+    presets = { S: [] }, castles = [], extra = {}, openAttackScreen = async (castle, areaInfo, kingdomID, commander) => commander,
 }) {
     const bot = fakeBot()
     // The game lists the player's in-game presets (`gas`) as `presets`.
@@ -67,6 +67,7 @@ async function firstCra(relPath, start, {
     const attack = {
         ...engine,
         waitToAttack,
+        openAttackScreen,
         sendAttack: async attackInfo => {
             sent.push(structuredClone(attackInfo))
             return { AAM: { UM: { L: { VIS: 0 } }, M: { KID: kingdomID, TA: [0, area.x, area.y], TT: 60, PT: 0 } } }
@@ -82,7 +83,7 @@ async function firstCra(relPath, start, {
                 waitForCommanderAvailable: () => handedOut++ ? new Promise(() => {}) : Promise.resolve({ lordID: 9, getEffects: () => effects }),
                 freeCommander() {}, useCommander() {},
             },
-            "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]), wholeMapRects: () => [], areasAround: async () => [area] },
+            "mapScan.js": { mapGrid: true, MAX_RADIUS: 100, scanGrid: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]), wholeMapRects: () => [], areasAround: async (get, kid, origin) => (scans.push([origin.x, origin.y]), [area]) },
             ...extra,
         },
     })

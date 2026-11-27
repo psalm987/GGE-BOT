@@ -30,11 +30,15 @@ const horses = [
  *
  * Returns what the plugin did: `sent` (every `cra`, in order), `statuses`, `skipped`, `frames` (every other frame it
  * sent, as [command, params]), `requests` (the map rectangles it asked for) and the stand-ins a test may drive.
+ * `openAttackScreen` stands in for the attack screen, which by default hands back the commander unchanged. A skip is refused
+ * with `skipRefusal(area)` when that returns an error code, and an attack with `sendRefusal(cra)` when that returns an
+ * error name; the names land in `refused`.
  */
 async function runEvent(plugin, options, {
     areas, inventory, start = {}, items = {}, effects = {}, playerLevel = 70, sends = 1, movements = [], resources = {},
     castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50, waitToAttack = async job => job(),
     movementEvents = new EventEmitter(), skipLands = async () => {}, answer = () => undefined,
+    openAttackScreen = async (castle, areaInfo, kingdomID, commander) => commander, skipRefusal = () => 0, sendRefusal = () => undefined,
 }) {
     const { path, eventID, kingdomID } = PLUGINS[plugin]
     const bot = fakeBot()
@@ -69,6 +73,8 @@ async function runEvent(plugin, options, {
                 skipped.push(skip)
                 await skipLands()
                 const area = areas.find(area => area.x == x && area.y == y)
+                if (skipRefusal(area))
+                    return { result: skipRefusal(area) }
                 area.extraData[area.type == AreaType.stormTower ? 3 : 2] = 0
                 return { result: 0, areaInfo: area }
             },
@@ -77,14 +83,21 @@ async function runEvent(plugin, options, {
     // A test that stands in for the pacing also gets the engine's waits, such as the one at the daily cap.
     const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses }, extra: { protocols, ...extra["pacing.js"] && { "pacing.js": extra["pacing.js"] } } }).mod
     const sent = []
+    const refused = []
     const statuses = []
     let handedOut = 0
     const attack = {
         ...engine,
         waitToAttack,
+        openAttackScreen,
         sendAttack: async (attackInfo, kid, x, y, context = {}) => {
             if (context.dryRun)
                 return { dryRun: true }
+            const refusal = sendRefusal(attackInfo)
+            if (refusal) {
+                refused.push(refusal)
+                throw refusal
+            }
             sent.push(structuredClone(attackInfo))
             if (sent.length >= sends && eventID)
                 bot.events.emit("eventStop", { EID: eventID })
@@ -112,7 +125,7 @@ async function runEvent(plugin, options, {
     bot.events.emit(eventID ? "eventStart" : "load", { EID: eventID, ...start })
     for (let i = 0; i < wait && sent.length < sends; i++)
         await new Promise(resolve => setTimeout(resolve, 1))
-    return { cra: sent[0], sent, statuses, skipped, requests, frames: bot.sent, bot, castle, protocols, movementEvents }
+    return { cra: sent[0], sent, refused, statuses, skipped, requests, frames: bot.sent, bot, castle, protocols, movementEvents }
 }
 
 module.exports = { runEvent, AreaType, KingdomID }

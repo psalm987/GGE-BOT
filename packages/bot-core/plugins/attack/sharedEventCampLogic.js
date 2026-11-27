@@ -5,7 +5,7 @@ const pretty = require('pretty-time')
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, AreaType, castles, ClientCommands, resources } = require("../../protocols.js")
-const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack, waitOutDailyLimit } = require("./attack.js")
+const { waitToAttack, getAttackInfo, assignUnit, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops, waitOutDailyLimit } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { areasAround, gridBoxes } = require("../../mapScan.js")
 const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice, HORSES } = require("../../army.js")
@@ -24,6 +24,11 @@ const eventAutoScalingCamps = require("../../paths.js").loadItem("eventAutoScali
 const minTroopCount = 100
 /** A count of attacks in a status is rounded down to this step once it passes it, so the status isn't rewritten after every attack. */
 const STATUS_STEP = 10
+
+/** A camp the game refused as not ready (a refused skip or screen, COOLING_DOWN, WONT_REACH_IN_TIME) is left alone this long. */
+const NOT_READY_HOLD_MS = 5 * 60_000
+/** Short of coins, the plugin waits this long before it tries again. */
+const COINS_WAIT_MS = 10 * 60_000
 
 /** With no camp to attack now, the plugin looks again after this long at least and at most, in milliseconds. */
 const IDLE_MS = [5_000, 60_000]
@@ -59,19 +64,31 @@ function eventCampAttacks(profile, stored, filename) {
     const autofill = parseAutofill(options)
     const queue = campQueue(target)
 
-    /** Skips a camp's wait while the budget allows, and returns the skips it spent. */
+    let saidOutOfSkips = false
+    /**
+     * Skips a camp's wait while the budget allows, and returns the skips it spent. With no skip left the queue falls
+     * back to camps that are ready on their own, and a refused skip holds the camp; before, both stopped the plugin or
+     * sent the attack to a camp still cooling down.
+     */
     const skipTarget = oneSkipPerCamp(async areaInfo => {
         const spent = []
         while (areaInfo.extraData[2] > 0 && queue.maySkip()) {
-            let skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
-
-            if (skip == undefined)
-                throw new Error("couldntFindSkip")
+            const skip = spendSkip(areaInfo.extraData[2], options.skipTypes)
+            if (skip == undefined) {
+                queue.outOfSkips()
+                if (!saidOutOfSkips)
+                    console.warn("campOutOfSkips")
+                saidOutOfSkips = true
+                break
+            }
 
             const { result } = await ClientCommands.skipTarget(type, areaInfo.x, areaInfo.y, kingdomID, skip)
 
-            if (result != 0)
+            if (result != 0) {
+                queue.hold(areaInfo, NOT_READY_HOLD_MS)
                 break
+            }
+            saidOutOfSkips = false
             queue.skipped()
             spent.push(skip)
         }
@@ -230,40 +247,55 @@ function eventCampAttacks(profile, stored, filename) {
         else
             reportAttacking()
 
+        /**
+         * The next camp to attack and what its map entry reads, with its wait skipped where the plugin skips, or
+         * undefined. When the skips run out on the first camp it tries once more, now among camps ready on their own.
+         */
+        async function readyCamp(sending) {
+            for (let tries = 0; tries < 2; tries++) {
+                const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
+                if (!areaInfo)
+                    return
+                const read = readCamp(profile, areaInfo.extraData, classic, rows)
+                if (read.problem || (target.mode != "single" && profile.wants && !profile.wants(read, options))) {
+                    if (read.problem)
+                        console.warn("campsUnreadable", `${areaInfo.x}:${areaInfo.y} ${read.problem} ${JSON.stringify(areaInfo.extraData)}`)
+                    queue.areas.splice(queue.areas.indexOf(areaInfo), 1)
+                    return
+                }
+                sending.camp = areaInfo
+                if (!options.dryRun)
+                    sending.skips = await skipTarget(areaInfo)
+                if (areaInfo.extraData[2] <= 0 || (options.dryRun && queue.maySkip()))
+                    return { areaInfo, read }
+            }
+        }
+
         while (!quit) {
             const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, undefined, filename)
             /** What the log line says of the attack being built: the skips spent on the camp and the horse. */
-            const sending = { skips: [], horse: "none" }
+            const sending = { skips: [], horse: "none", camp: undefined }
             try {
                 const attackInfo = await waitToAttack(async () => {
-                    const areaInfo = queue.pick(movements.filter(march => march.kingdomID == kingdomID))
+                    const { areaInfo, read } = await readyCamp(sending) ?? {}
                     if (!areaInfo)
-                        return
-                    const read = readCamp(profile, areaInfo.extraData, classic, rows)
-                    if (read.problem || (target.mode != "single" && profile.wants && !profile.wants(read, options))) {
-                        if (read.problem)
-                            console.warn("campsUnreadable", `${areaInfo.x}:${areaInfo.y} ${read.problem} ${JSON.stringify(areaInfo.extraData)}`)
-                        queue.areas.splice(queue.areas.indexOf(areaInfo), 1)
-                        return
-                    }
-
-                    if (!options.dryRun)
-                        sending.skips = await skipTarget(areaInfo)
-                    if (areaInfo.extraData[2] > 0 && !queue.maySkip())
                         return
                     const horse = horseFor(areaInfo)
                     sending.horse = horse.name
 
                     const { level } = read
                     const context = { level, extraData: areaInfo.extraData, campID: read.campID, dryRun: options.dryRun, deleteReports: options.deleteReports }
+                    const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: options.dryRun })
+                    if (areaInfo.extraData[2] > 0 && !options.dryRun)
+                        return
 
                     if (army.mode == "waves") {
-                        const effects = commander.getEffects()
-                        const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, horse.ride, effects.additionalWaves)
+                        const effects = lord.getEffects(areaInfo.type)
+                        const planned = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, horse.ride, effects.additionalWaves)
                         fillFromPlan(planned, army.waves, castle.unitInventory, {
                             flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                             flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
-                            courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                            courtyard: courtyardRoom(level, effects),
                         }, { kingdom: kingdomID, areaType: areaInfo.type })
                         return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                     }
@@ -359,8 +391,8 @@ function eventCampAttacks(profile, stored, filename) {
 
                     const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                     const maxToolsFront = getTotalAmountToolsFront(level)
-                    const commanderStats = commander.getEffects()
-                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, Number(options.attackWaves), horse.ride, commanderStats.additionalWaves)
+                    const commanderStats = lord.getEffects(areaInfo.type)
+                    const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, lord, level, Number(options.attackWaves), horse.ride, commanderStats.additionalWaves)
                     const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
                     const maxTroopFlank = getAmountSoldiersFlank(level, commanderStats.attackUnitAmountFlank)
                     const desiredToolCount = attackerEventTools.length == 0 ? profile.plainToolCount : 10
@@ -469,7 +501,7 @@ function eventCampAttacks(profile, stored, filename) {
                                 maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                                     attackerMeleeTroops : attackerRangeTroops, maxTroops))
                     })
-                    let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | commanderStats.attackUnitAmountReinforcementBonus)
+                    let maxTroops = courtyardRoom(level, commanderStats)
                     if (sides.courtyard) attackInfo.RW.forEach((unitSlot, i) => {
                         let attacker = i & 1 ?
                             (attackerMeleeTroops.length > 0 ? attackerMeleeTroops : attackerRangeTroops) :
@@ -480,7 +512,7 @@ function eventCampAttacks(profile, stored, filename) {
                     })
 
                     return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
-                })
+                }, filename)
                 if (!attackInfo) {
                     freeCommander(commander.lordID)
                     const wait = Math.min(Math.max(queue.nextReadyAt() - Date.now(), IDLE_MS[0]), IDLE_MS[1])
@@ -505,23 +537,24 @@ function eventCampAttacks(profile, stored, filename) {
             } catch (e) {
                 freeCommander(commander.lordID)
                 console.warn(e)
+                if (sending.camp && ["ATTACK_SCREEN_REFUSED", "COOLING_DOWN", "WONT_REACH_IN_TIME"].includes(e))
+                    queue.hold(sending.camp, NOT_READY_HOLD_MS)
                 switch (e) {
+                    case "NOT_ENOUGH_CURRENCY1":
+                        await sleep(COINS_WAIT_MS)
+                        break
                     case "ATTACK_LIMIT_REACHED":
                         await waitOutDailyLimit(reportStatus)
                         break
                     case "NO_MORE_TROOPS":
                         reportStatus("waiting", army.mode == "waves" ? "statusCampPlanShort" : "statusCampNoTroops", { castle: from, floor: troopFloor })
-                        await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
-                            if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                                return
-
-                            movementEvents.off("return", self)
-                            resolve()
-                        }))
+                        await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                         break
                     case "LORD_IS_USED":
                         useCommander(commander.lordID)
+                    case "ATTACK_SCREEN_REFUSED":
                     case "COOLING_DOWN":
+                    case "WONT_REACH_IN_TIME":
                     case "TIMED_OUT":
                     case "MISSING_UNITS":
                     case "CASTLE_LOCKED":

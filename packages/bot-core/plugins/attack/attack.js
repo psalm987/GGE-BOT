@@ -28,7 +28,7 @@ if (require('node:worker_threads').isMainThread) {
 }
 
 const { RateLimiter } = require('limiter')
-const { resources } = require('../../protocols')
+const { resources, ClassTypes, movementEvents } = require('../../protocols')
 const { botConfig, playerInfo, xtHandler, sendXT, waitForResult } = require('../../ggeBot')
 const { isCastleLocked } = require("../../castleLock.js")
 const stables = require("../../paths.js").loadItem("horses")
@@ -54,6 +54,13 @@ const getAmountSoldiersFront = (level, multiplier) =>
 const getMaxUnitsInReinforcementWave = (playerLevel, targetLevel, additionalUnits, additionalUnitsMultiplyer) =>
     Math.round((20 * Math.sqrt(Math.min(playerLevel, 70)) + 50 + 20 * targetLevel + (0 | additionalUnits)) * 
         (1 + (0 | additionalUnitsMultiplyer) / 100))
+
+/**
+ * The courtyard's room for a commander with `effects`: the flat bonus is added to the base and the % boost applies to
+ * both, as Lazy Lord's attack.js does. Before, plugins added the flat bonus after the formula and left out the boost.
+ */
+const courtyardRoom = (targetLevel, effects = {}) => getMaxUnitsInReinforcementWave(playerInfo.level, targetLevel,
+    effects.attackUnitAmountReinforcementBonus, effects.attackUnitAmountReinforcementBoost)
 
 function getMaxWaveCount(e) {
     const waveUnlockLevelList = [0, 13, 26, 51]
@@ -127,6 +134,47 @@ function fillEventTools(waves, owned, { maxTools, maxPerAttack = Infinity, order
     return placed
 }
 
+/** The castle's fastest horse paid in coins alone, or -1 when its stables have none. */
+function coinHorse(castle) {
+    let bestHorse = -1
+    let maxSpeed = -Infinity
+    for (const id of castle.unlockedHorses ?? []) {
+        const horse = stables.find(a => id == a.wodID)
+        if (horse && Number(horse.costFactorC1) > 0 && Number(horse.costFactorC2) == 0 && Number(horse.unitBoost) > maxSpeed) {
+            maxSpeed = Number(horse.unitBoost)
+            bestHorse = id
+        }
+    }
+    return bestHorse
+}
+
+/** Out of feathers is warned at most this often, not on every attack (as Lazy Lord's attack.js chooseHorse). */
+const OUT_OF_FEATHERS_WARN_MS = 10 * 60_000
+let outOfFeathersWarnedAt = -Infinity
+
+/** HBW and PTT for the cra. A feather with none left rides the coin horse instead of walking. */
+function chooseHorse(castle, options) {
+    if (options.useFeather) {
+        if (resources.pegasusTicket > 0) {
+            outOfFeathersWarnedAt = -Infinity
+            return { HBW: -1, PTT: 1 }
+        }
+        const HBW = coinHorse(castle)
+        if (Date.now() - outOfFeathersWarnedAt >= OUT_OF_FEATHERS_WARN_MS) {
+            outOfFeathersWarnedAt = Date.now()
+            console.warn(HBW == -1 ? "outOfFeathers" : "outOfFeathersCoinHorse")
+        }
+        return { HBW, PTT: 0 }
+    }
+    if (options.useCoin) {
+        const HBW = coinHorse(castle)
+        if (HBW == -1)
+            console.debug("noStablesCoinHorse")
+        return { HBW, PTT: 0 }
+    }
+    return { HBW: -1, PTT: 0 }
+}
+
 const SUPPORT_TOOL_SLOTS = 3
 const COURTYARD_SLOTS = 8
 
@@ -193,41 +241,7 @@ function getAttackInfo(kid, castle, AI, commander, level, waves, options, additi
         setupWave([0, 13], wave.R.U)
         attackTarget.A.push(wave)
     }
-    const unlockedHorses = castle.unlockedHorses
-
-    if (options.useCoin && !options.useFeather) {
-        let bestHorse = -1
-        let maxSpeed = -Infinity
-
-        unlockedHorses?.forEach(e => {
-            let horse = stables.find(a => e == a.wodID)
-            if (horse && Number(horse.costFactorC1) > 0 && Number(horse.costFactorC2) == 0) {
-                 if (Number(horse.unitBoost) > maxSpeed) {
-                    maxSpeed = Number(horse.unitBoost)
-                    bestHorse = e
-                }
-            }
-        })
-        
-        if (bestHorse != -1) {
-            attackTarget.HBW = bestHorse
-            attackTarget.PTT = 0
-        } else {
-            console.debug("noStablesCoinHorse")
-            attackTarget.HBW = -1
-            attackTarget.PTT = 0
-        }
-    }
-    else {
-        attackTarget.HBW = -1
-        if(resources.pegasusTicket > 0) {
-            attackTarget.PTT = options.useFeather ? 1 : 0
-        } else {
-            console.warn("outOfFeathers")
-            attackTarget.PTT = 0
-        }
-    }
-    
+    Object.assign(attackTarget, chooseHorse(castle, options))
     return attackTarget
 }
 
@@ -253,6 +267,21 @@ const GAME_DAILY_ATTACKS = 4000
  */
 const dailyLimit = () => Math.min(Number(pluginOptions.attackLimit || attackThreshold) || GAME_DAILY_ATTACKS, GAME_DAILY_ATTACKS)
 
+/**
+ * Today's count is the game's own (`gai`, sent at login) plus every attack the game accepted since, and starts again at
+ * zero on a new UTC day. Where the game's own day ends is unconfirmed; the next `gai` corrects the count either way.
+ */
+const utcDay = time => new Date(time).toISOString().slice(0, 10)
+let countDay = utcDay(Date.now())
+function startNewDayIfDue() {
+    const today = utcDay(Date.now())
+    if (today == countDay)
+        return
+    countDay = today
+    if (attackCount !== undefined)
+        attackCount = 0
+}
+
 const reportStatus = require("../../pluginStatus.js").statusReporter(__filename)
 /** Attacks used today are reported in steps of this many, so the status isn't rewritten after every attack. */
 const USAGE_STEP = 50
@@ -264,9 +293,21 @@ function reportUsage() {
 }
 
 xtHandler.on("gai", obj => {
-    attackCount = obj.AC
+    startNewDayIfDue()
+    if (!Number.isFinite(Number(obj.AC)))
+        return
+    attackCount = Number(obj.AC)
     attackThreshold = obj.ACTH
     if (!botConfig.externalEvent)
+        reportUsage()
+})
+// Without this the count moved only at login, so the daily limit was overshot or never released (Lazy Lord's attack.js).
+xtHandler.on("cra", (_, result) => {
+    if (Number(result) != 0)
+        return
+    startNewDayIfDue()
+    attackCount = (attackCount ?? 0) + 1
+    if (!botConfig.externalEvent && attackCount % USAGE_STEP == 0)
         reportUsage()
 })
 let announced = false
@@ -280,12 +321,15 @@ const limiter = new RateLimiter({ tokensPerInterval: SHARED_HOURLY_ATTACKS, inte
  * What the account's own limits leave: the attacks counted today against the daily limit (`used` is undefined until
  * the game has said), and whether the hourly limit every attack plugin shares has an attack left.
  */
-const accountLimits = () => ({
-    used: botConfig.externalEvent ? undefined : attackCount,
-    limit: dailyLimit(),
-    hourly: SHARED_HOURLY_ATTACKS,
-    hourlyLeft: limiter.getTokensRemaining() >= 1,
-})
+function accountLimits() {
+    startNewDayIfDue()
+    return {
+        used: botConfig.externalEvent ? undefined : attackCount,
+        limit: dailyLimit(),
+        hourly: SHARED_HOURLY_ATTACKS,
+        hourlyLeft: limiter.getTokensRemaining() >= 1,
+    }
+}
 
 /** How often a plugin stopped by the account's daily limit asks again. The limit rolls over 24 hours, so room returns gradually. */
 const DAILY_LIMIT_RECHECK_MS = 5 * 60_000
@@ -297,42 +341,46 @@ async function waitOutDailyLimit(reportStatus) {
 }
 
 const err = require("../../err.json")
-const MAX_REJECTIONS_IN_A_ROW = 3
-const FIRST_PAUSE_MS = 5 * 60_000
-const LONGEST_PAUSE_MS = 60 * 60_000
-let rejectionsInARow = 0
-let turnRejected = false
-let pausesInARow = 0
-let pausedUntil = 0
 
-// A rejected attack means the bot's view of the game is wrong. Sending more
-// on the same view repeats the request the server just refused, so the queue
-// stops for a while and reads the castles again before it goes on.
-function pauseAttacks(reason) {
-    if (Date.now() < pausedUntil)
-        return
-    pausesInARow++
-    const ms = Math.min(FIRST_PAUSE_MS * 2 ** (pausesInARow - 1), LONGEST_PAUSE_MS)
-    pausedUntil = Date.now() + ms
-    metrics.count("bot_attack_pauses_total", { reason })
-    console.warn("attacksPaused", ms / 60_000, "attacksPausedMinutes", reason)
+/**
+ * The same error again from one plugin makes that plugin wait this much longer before its next attack, the longest
+ * from then on, and a success clears it. The other plugins go on meanwhile. Before, any 3 refusals from any plugin
+ * paused every plugin (Lazy Lord's attack.js REPEATED_ERROR_WAITS_MS).
+ */
+const REPEATED_ERROR_WAITS_MS = [30, 60, 120, 300].map(seconds => seconds * 1000)
+/** Thrown before anything is sent to the game, so they need neither a gap nor a wait. */
+const LOCAL_ERRORS = new Set(["NO_MORE_TROOPS", "NOT_ENOUGH_TOOLS", "CASTLE_LOCKED"])
+/** Plugin -> its last error, how often it came in a row, and when the plugin may attack again. */
+const pluginErrors = new Map()
+
+function noteError(plugin, error) {
+    const last = pluginErrors.get(plugin)
+    const count = last?.error === error ? last.count + 1 : 0
+    const wait = count > 0 ? REPEATED_ERROR_WAITS_MS[Math.min(count, REPEATED_ERROR_WAITS_MS.length) - 1] : 0
+    pluginErrors.set(plugin, { error, count, until: Date.now() + wait })
+    if (wait > 0)
+        console.log("attackErrorRepeated", String(error), wait / 1000)
 }
 
+/**
+ * CANT_START_NEW_ARMIES is the game refusing the account any new army, so every plugin waits this long. Lazy Lord saw
+ * it after attacks 1.5 s apart, and the game held the account about 30 minutes.
+ */
+const NEW_ARMIES_PAUSE_MS = 30 * 60_000
+let pausedUntil = 0
+
+let turnRejected = false
 xtHandler.on("cra", (_, result) => {
-    if (Number(result) == 0) {
-        rejectionsInARow = 0
-        pausesInARow = 0
-        return
-    }
-    turnRejected = true
-    rejectionsInARow++
-    if (err[result] == "ATTACK_TOO_MANY_UNITS")
-        pauseAttacks("ATTACK_TOO_MANY_UNITS")
-    else if (rejectionsInARow >= MAX_REJECTIONS_IN_A_ROW)
-        pauseAttacks("REJECTIONS_IN_A_ROW")
+    if (Number(result) != 0)
+        turnRejected = true
 })
 
-const waitToAttack = callback => new Promise(async (resolve, reject) => {
+/**
+ * Runs `callback` in the account's shared attack queue, one attack at a time with a gap between them. `plugin` names
+ * the caller, whose repeated errors make it alone wait longer (see REPEATED_ERROR_WAITS_MS).
+ */
+const waitToAttack = (callback, plugin = "attack") => new Promise(async (resolve, reject) => {
+    startNewDayIfDue()
     if(!botConfig.externalEvent && attackCount >= dailyLimit()) {
         if(!announced) {
             announced = true
@@ -341,22 +389,24 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         metrics.count("bot_attacks_total", { result: "limit_reached", kingdom: "all" })
         return reject("ATTACK_LIMIT_REACHED")
     }
+    announced = false
+
+    const until = pluginErrors.get(plugin)?.until ?? 0
+    if (until > Date.now()) {
+        const waitMs = until - Date.now()
+        await sleep(waitMs)
+        metrics.count("bot_attack_idle_seconds_total", { cause: "repeated_error" }, waitMs / 1000)
+    }
 
     const queuedAt = Date.now()
     attacks.push({
+        plugin,
         run: () => {
             metrics.observe("bot_attack_queue_wait_seconds", {}, (Date.now() - queuedAt) / 1000)
-            try {
-                const ret = callback()
-                resolve(ret)
-                return ret
-            }
-            catch (e) {
-                reject(e)
-                return true
-            }
+            const ret = Promise.resolve().then(callback)
+            resolve(ret)
+            return ret
         },
-        reject,
     })
 
     if (alreadyRunning)
@@ -368,7 +418,6 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
             await sleep(pausedMs)
             metrics.count("bot_attack_idle_seconds_total", { cause: "refusal_pause" }, pausedMs / 1000)
             await resyncUnits()
-            rejectionsInARow = 0
             continue
         }
         const job = attacks.shift()
@@ -377,23 +426,55 @@ const waitToAttack = callback => new Promise(async (resolve, reject) => {
         const naturalDelay = (humanize.lognormal_delays ? lognormalDelay : boxMullerRandom)(baseDelay * 1000, (baseDelay + variance) * 1000)
 
         turnRejected = false
-        let ret, threw = false
+        let ret, error
         try {
             ret = await job.run()
-        } catch {
-            threw = true
+        } catch (e) {
+            error = e ?? "UNKNOWN"
         }
-        if (!ret && !threw && !turnRejected)
+        if (error === undefined && ret)
+            pluginErrors.delete(job.plugin)
+        if (LOCAL_ERRORS.has(error) || (error === undefined && !ret && !turnRejected))
             continue
+        if (error !== undefined)
+            noteError(job.plugin, error)
+        if (error == "CANT_START_NEW_ARMIES") {
+            pausedUntil = Date.now() + NEW_ARMIES_PAUSE_MS
+            metrics.count("bot_attack_pauses_total", { reason: error })
+            console.warn("attacksPaused", NEW_ARMIES_PAUSE_MS / 60_000, "attacksPausedMinutes", error)
+        }
 
         if (ret || turnRejected)
             await limiter.removeTokens(1)
-        const delay = turnRejected || threw ? naturalDelay * 2 : naturalDelay
+        const delay = turnRejected || error !== undefined ? naturalDelay * 2 : naturalDelay
         console.debug("attackDelayAttack", delay)
         await sleep(delay)
     }
     alreadyRunning = false
 })
+
+/** Out of troops: waits until `isOurReturn` picks a march coming home, or this long at most, so troops recruited meanwhile are used too. */
+const TROOPS_RECHECK_MS = 5 * 60_000
+/**
+ * Resolves when a march `isOurReturn` accepts comes home, or after `timeout`. Before, a plugin out of troops waited for
+ * a return with no timeout, and with no army out it waited for ever (Lazy Lord's attack.js waitForTroops).
+ */
+function waitForTroops(isOurReturn, timeout = TROOPS_RECHECK_MS) {
+    return new Promise(resolve => {
+        const onReturn = movement => {
+            if (isOurReturn(movement))
+                done()
+        }
+        const done = () => {
+            clearTimeout(timer)
+            movementEvents.off("return", onReturn)
+            resolve()
+        }
+        const timer = setTimeout(done, timeout)
+        timer.unref?.()
+        movementEvents.on("return", onReturn)
+    })
+}
 
 
 /** Fetches the castle list so local unit counts match the server's again. */
@@ -411,17 +492,62 @@ const attackShape = attackInfo => ({
 })
 
 /**
- * What the client sends while a player sets an attack up: `adi` when the army
- * screen opens, `gas` as it loads, and `gdi` when the travel dialog opens.
- * Nothing here waits for a reply; gamePresets.js keeps the presets `gas` lists.
+ * What the client sends while a player sets an attack up, after the attack screen (openAttackScreen): `gas` as the
+ * army screen loads, and `gdi` when the travel dialog opens. Nothing here waits for a reply; gamePresets.js keeps the
+ * presets `gas` lists.
  */
-async function openAttackDialog({ SX, SY, TX, TY, KID }) {
-    await sendXT("adi", JSON.stringify({ SX, SY, TX, TY, KID }))
+async function openAttackDialog() {
     await pause(800, 2500)
     await sendXT("gas", JSON.stringify({}))
     await pause(3000, 9000)
     await sendXT("gdi", JSON.stringify({ PID: playerInfo.playerID }))
     await pause(1500, 5000)
+}
+
+/**
+ * The request the client sends when the player opens the attack screen on a target of `areaType`. Fortresses have
+ * their own, and a storm resource island's names no source castle, so it has none (Lazy Lord's attack.js
+ * attackScreenCommand; medium confidence, their code only).
+ */
+const screenCommand = areaType => areaType == 11 ? "abi" : areaType == 17 ? "aci" : areaType == 24 ? undefined : "adi"
+
+/**
+ * Opens the attack screen from `castle` on `areaInfo`, as the client does before every attack, and reads what the
+ * server says there: the castle's troops and tools (`gui.I`), the target as it is now (`gaa.AI`), and each commander's
+ * bonuses for this castle and target (`gli.C` plus `AE`). The castle's unit count and the target's extraData are
+ * replaced in place. Our own count lags after an attack leaves, and an army built on it is refused with MISSING_UNITS.
+ *
+ * Returns the commander as the server sees it, or `commander` when the reply has no data for it. Throws
+ * "ATTACK_SCREEN_REFUSED" when the game refuses the screen, which means the target is not ready, and "TIMED_OUT" when
+ * it does not answer. A dry run opens no screen.
+ */
+async function openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun } = {}) {
+    const command = screenCommand(Number(areaInfo?.type))
+    if (dryRun || !command || !castle?.areaInfo)
+        return commander
+    await sendXT(command, JSON.stringify({ SX: castle.areaInfo.x, SY: castle.areaInfo.y, TX: areaInfo.x, TY: areaInfo.y, KID: kingdomID }))
+    const [screen, result] = await waitForResult(command, 1000 * 10, (obj, result) =>
+        result != 0 || (obj.gaa?.AI?.[1] == areaInfo.x && obj.gaa?.AI?.[2] == areaInfo.y), Object.values(err))
+    if (result != 0) {
+        const reason = err[result] ?? String(result)
+        metrics.count("bot_attack_screen_refusals_total", { reason })
+        // COOLING_DOWN is another player's hit landing between the look and the screen, which a person can lose too.
+        ;(reason == "COOLING_DOWN" ? console.debug : console.warn)("attackScreenRefused", reason, `${areaInfo.x}:${areaInfo.y}`)
+        throw "ATTACK_SCREEN_REFUSED"
+    }
+    if (Array.isArray(screen.gui?.I) && Number(screen.SCID) == Number(castle.id))
+        Object.assign(castle, new ClassTypes.UnitInventory(screen.gui))
+    if (Array.isArray(screen.gaa?.AI) && screen.gaa.AI.length > 3)
+        Object.assign(areaInfo, { extraData: screen.gaa.AI.slice(3), timeSinceRequest: Date.now() })
+    const raw = screen.gli?.C?.find?.(lord => Number(lord.ID) == Number(commander.lordID))
+    if (!raw)
+        return commander
+    try {
+        return new ClassTypes.Lord(Array.isArray(screen.AE) ? { ...raw, AE: screen.AE } : raw)
+    } catch (e) {
+        console.debug("attackScreenCommanderUnread", e)
+        return commander
+    }
 }
 
 /** Watches `sne` for the plugin's reports, started by the plugin's first attack that asks for deletion. */
@@ -452,7 +578,7 @@ async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, 
         return { dryRun: true }
     }
     if (humanize.attack_dialog)
-        await openAttackDialog(attackInfo)
+        await openAttackDialog()
     await sendXT("cra", JSON.stringify(attackInfo))
     let obj, result
     try {
@@ -487,15 +613,18 @@ async function sendAttack(attackInfo, kingdomID, x, y, { dryRun, deleteReports, 
 module.exports = {
     getAttackInfo,
     sendAttack,
+    openAttackScreen,
     assignUnit,
     fillEventTools,
     waitToAttack,
+    waitForTroops,
     waitOutDailyLimit,
     getTotalAmountToolsFlank,
     getTotalAmountToolsFront,
     getAmountSoldiersFlank,
     getAmountSoldiersFront,
     getMaxUnitsInReinforcementWave,
+    courtyardRoom,
     accountLimits,
     boxMullerRandom
 }
