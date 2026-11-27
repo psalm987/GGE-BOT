@@ -26,3 +26,11 @@ export type PluginFinishReason = z.infer<typeof PluginFinishReason>
  */
 export const PluginFinished = z.object({ plugin: name, reason: PluginFinishReason.default("done") })
 export type PluginFinished = z.infer<typeof PluginFinished>
+
+/**
+ * A worker's GameRefusal message: the game refused a request the bot sent in the last two minutes. `plugin` is the
+ * script that sent it, `error` the game's error name from err.json (or its number when err.json lacks it), and `at` when
+ * the refusal came, epoch milliseconds.
+ */
+export const GameRefusal = z.object({ plugin: name, command: z.string().min(1).max(32), error: z.string().min(1).max(64), at: z.number().int() })
+export type GameRefusal = z.infer<typeof GameRefusal>

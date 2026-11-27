@@ -14,7 +14,7 @@ import { AdminProxy, CreateProxy, UpdateProxy } from "./proxies.ts"
 import { NotificationsRead, RealtimeToken } from "./realtime.ts"
 import {
     ActualState, AdminAccount, FeedFacets, FeedInput, FeedLine, LogActivity, AdminLoginStep, AdminUser, AdminUserDetail, AuditEntry, CreateAccount, Credentials, DesiredState, Email, Id, Ids, LocaleCode, LoginPassword, NewPassword,
-    Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
+    AccountProblem, Overview, Page, PublicAccount, PublicUser, Role, Run, RunsInput, SecondFactor, Search, Server, Signup, TotpCode, UpdateAccount, UserStatus,
 } from "./schemas.ts"
 
 export * from "./alerts.ts"
@@ -111,6 +111,8 @@ export const clientContract = {
         remove: oc.input(Ids).output(z.void()),
         setDesiredState: oc.input(Ids.extend({ state: DesiredState })).output(z.void()),
         runs: oc.input(RunsInput).output(z.array(Run)),
+        /** The game's refusals of the account's requests, the latest first, at most PROBLEMS_KEPT of them. */
+        problems: oc.input(Id).output(z.array(AccountProblem)),
     },
     /**
      * Named wave plans an account's attack plugins can pick. Every call is scoped to the caller's accounts: another player's

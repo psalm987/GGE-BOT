@@ -259,6 +259,21 @@ export const botStatus = pgTable("bot_status", {
 })
 
 /**
+ * The game's refusals of one account's requests, one row per plugin, command and error with how often it came. The
+ * runner keeps the PROBLEMS_KEPT seen most lately.
+ */
+export const botProblems = pgTable("bot_problems", {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),
+    plugin: text("plugin").notNull(),
+    command: text("command").notNull(),
+    error: text("error").notNull(),
+    count: integer("count").notNull(),
+    firstAt: timestamp("first_at", { withTimezone: true }).notNull(),
+    lastAt: timestamp("last_at", { withTimezone: true }).notNull(),
+}, t => [uniqueIndex("bot_problems_refusal").on(t.accountId, t.plugin, t.command, t.error), index("bot_problems_account_last").on(t.accountId, t.lastAt)])
+
+/**
  * What one plugin keeps on one account across runs, such as the event levels it has finished: a `PluginMemory` entry,
  * key by key. The runner hands it to a starting bot and caps it at PLUGIN_MEMORY_MAX_BYTES.
  */

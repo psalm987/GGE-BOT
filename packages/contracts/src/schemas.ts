@@ -234,6 +234,23 @@ export const Run = z.object({
 
 export const RunsInput = Id.extend({ limit: z.number().int().min(1).max(100).default(10) })
 
+/** The most problems the runner keeps per account; the ones seen longest ago go first. */
+export const PROBLEMS_KEPT = 100
+
+/**
+ * The game refusing one plugin's request with one error, however often it did. `command` is the game command the
+ * plugin sent and `error` the game's error name, which the app puts in plain words.
+ */
+export const AccountProblem = z.object({
+    plugin: z.string(),
+    command: z.string(),
+    error: z.string(),
+    count: z.number().int().min(1),
+    firstAt: z.date(),
+    lastAt: z.date(),
+})
+export type AccountProblem = z.infer<typeof AccountProblem>
+
 export const Overview = z.object({
     users: z.number().int(),
     accounts: z.number().int(),

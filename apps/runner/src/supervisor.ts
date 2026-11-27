@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { BotNotice, PluginFinished, PluginMemoryWrite, PluginState, type PluginFinishReason, type PluginMemory } from "@gge/contracts"
+import { BotNotice, GameRefusal, PluginFinished, PluginMemoryWrite, PluginState, type PluginFinishReason, type PluginMemory } from "@gge/contracts"
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
@@ -163,6 +163,7 @@ export type SupervisorDeps = {
         proxyOk(proxyId: string): Promise<void>
         proxyFailed(proxyId: string, error: string, options: { counts: boolean }): Promise<void>
         log(accountId: string, level: number, parts: unknown, message: string): void
+        noteRefusal(accountId: string, refusal: GameRefusal): void
         /** Each tower plugin's attacks of the last 24 hours, which a starting bot counts against its daily limits. */
         recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
         /** The day's wheel spins in the last status report, which a starting bot counts against its daily spin limit. */
@@ -577,6 +578,14 @@ export class Supervisor {
                     this.track(store.finishPlugin(id, finished.data.plugin, finished.data.reason))
                 } else
                     this.log.warn("dropped a PluginFinished from a plugin that isn't event-only", id)
+                break
+            }
+            case Action.GameRefusal: {
+                const refusal = GameRefusal.safeParse(payload)
+                if (refusal.success)
+                    store.noteRefusal(id, refusal.data)
+                else
+                    this.log.warn("dropped an invalid game refusal", id)
                 break
             }
             case Action.Notify: {

@@ -130,7 +130,7 @@ describe.skipIf(!process.env.CENTRIFUGO_BIN)("through a real Centrifugo", () => 
         const store = createStore(db, { flushMs: 5 })
         await store.setStatus(accountId, { actualState: "running", heartbeat: true })
         store.log(accountId, 0, ["attackNomads", " started"], "Attack Nomads started")
-        await store.flushLogs()
+        await store.flush()
 
         await expect.poll(() => browser.received.length, { timeout: 5000 }).toBe(2)
         browser.close()

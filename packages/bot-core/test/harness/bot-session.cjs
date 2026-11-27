@@ -73,6 +73,8 @@ function startBot({ timeoutMultiplier = 0.01, exitOnFatal = false, metricsFlushM
             session.waits.get(id).done = done
             port1.postMessage({ type: "wait", key, timeout, id, quietErrors })
         }),
+        /** Has the bot send a game command, as a plugin in harness/bot-worker.cjs would. */
+        sendXT: (cmd, params = {}) => port1.postMessage({ type: "send", cmd, params }),
         /** Sends the bot a message from its host, as the runner does. */
         post: message => worker.postMessage(message),
         /** The bot's plugin options now, the options object the first plugin read at load, and whether Object.prototype was polluted. */

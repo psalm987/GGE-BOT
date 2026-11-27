@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import {
-    appSettings, botRuns, botStatus, gameAccounts, gameItems, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publicStatus, publishMany, servers, users, virtualPresets,
+    appSettings, botProblems, botRuns, botStatus, gameAccounts, gameItems, loadPlanOwners, planOwnerColumns, pluginCatalog, pluginSettings, publicStatus, publishMany, servers, users, virtualPresets,
     type Db, type OwnerPlan,
 } from "@gge/db"
 import { sealFor } from "@gge/crypto"
@@ -306,3 +306,8 @@ export { ownedBy, ownerAccounts }
 export const accountRuns = (db: Pick<Db, "select">, accountId: string, limit: number) =>
     db.select({ id: botRuns.id, startedAt: botRuns.startedAt, endedAt: botRuns.endedAt, endReason: botRuns.endReason, error: botRuns.error })
         .from(botRuns).where(eq(botRuns.accountId, accountId)).orderBy(desc(botRuns.id)).limit(limit)
+
+/** The game's refusals of the account's requests, the latest first. The runner keeps at most PROBLEMS_KEPT. */
+export const accountProblems = (db: Pick<Db, "select">, accountId: string) =>
+    db.select({ plugin: botProblems.plugin, command: botProblems.command, error: botProblems.error, count: botProblems.count, firstAt: botProblems.firstAt, lastAt: botProblems.lastAt })
+        .from(botProblems).where(eq(botProblems.accountId, accountId)).orderBy(desc(botProblems.lastAt), desc(botProblems.id))

@@ -52,6 +52,8 @@ control.on("message", m => {
         FakeWebSocket.instance.onclose?.({ code: m.code })
     if (m.type === "socketError")
         FakeWebSocket.instance.onerror?.({ message: m.message, error: Object.assign(new Error(m.message), { code: m.code }) })
+    if (m.type === "send")
+        bot.sendXT(m.cmd, JSON.stringify(m.params))
     if (m.type === "wait") {
         bot.waitForResult(m.key, m.timeout, undefined, m.quietErrors).then(
             ([, result]) => control.postMessage({ type: "waited", id: m.id, result }),

@@ -82,6 +82,13 @@ switch (mode) {
             post([25, { kind: "banned", key: "k", data: { bannedUntil: null } }])
         }
     // falls through
+    case "refusal":
+        if (mode === "refusal") {
+            post([28, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: Date.now() }])
+            post([28, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: Date.now() }])
+            post([28, { plugin: "attackKhan", command: "", error: 5 }])
+        }
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))

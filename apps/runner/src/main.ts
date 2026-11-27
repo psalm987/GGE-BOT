@@ -55,7 +55,7 @@ const lock = await acquireRunnerLock(db.$pool, {
         // Postgres has already freed the lock and another runner may log these accounts in, so stop ours first.
         console.error("Lost the runner lock's connection; stopping every bot and exiting.", error)
         await Promise.race([
-            supervisor.stopAll("runner_lost").then(() => store.flushLogs()).catch(e => console.error("stopping the bots failed", e)),
+            supervisor.stopAll("runner_lost").then(() => store.flush()).catch(e => console.error("stopping the bots failed", e)),
             new Promise(resolve => setTimeout(resolve, 20_000)),
         ])
         process.exit(1)
@@ -143,7 +143,7 @@ for (const signal of ["SIGTERM", "SIGINT"] as const)
         metricsServer.close()
         await supervisor.stopAll("deploy")
         await discord.stop().catch(error => console.error("stopping Discord failed", error))
-        await store.flushLogs()
+        await store.flush()
         await lock.release()
         await db.$pool.end()
         process.exit(0)

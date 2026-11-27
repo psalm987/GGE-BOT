@@ -76,8 +76,35 @@ if (!botConfig.internalWorker) {
     console.debug = ggeConfig.debug ? _console.debug : _ => { }
     console.trace = _console.trace
 }
+/** The script that called into ggeBot.js, such as a plugin's file name; "ggeBot" for the bot's own requests. */
+function callerScript() {
+    const site = getCallSites(8).find(site => site.scriptName && path.basename(site.scriptName) != "ggeBot.js")
+    return site ? path.basename(site.scriptName).replace(/\.[cm]?js$/, "") : "ggeBot"
+}
+
+/** Each command's last send: when, and by which script, which a refusal of it is put down to. */
+const lastSent = new Map()
+/** The game answers within seconds, so an error coming later than this answers something else, such as its own push. */
+const REFUSAL_WINDOW_MS = 2 * 60_000
+/** Logging in and staying connected report their own failures. */
+const UNREPORTED_COMMANDS = new Set(["pin", "vck", "lli", "vln", "tlep", "rlu", "core_pol", "nch"])
+/** Refusals the bot answers on its own: the game forgot the castle, and the bot joins it again and retries. */
+const SELF_HANDLED_ERRORS = new Set(["NOT_IN_OWNED_CASTLE"])
+/** The inbound frame a waiting plugin said it expects and handles, which leaves its refusal off the player's Problems list. */
+let expectedFrame
+
+/** Tells the runner the game refused a request this bot sent, for the account's Problems list. */
+function reportRefusal(cmd, result) {
+    const sent = lastSent.get(cmd)
+    const error = err[result] ?? String(result)
+    if (!sent || Date.now() - sent.at > REFUSAL_WINDOW_MS || UNREPORTED_COMMANDS.has(cmd) || SELF_HANDLED_ERRORS.has(error) || expectedFrame === inboundFrame)
+        return
+    parentPort.postMessage([ActionType.GameRefusal, { plugin: sent.plugin, command: cmd, error, at: Date.now() }])
+}
+
 let requestCount = 0
 async function sendXT(cmdName, paramObj) {
+    lastSent.set(cmdName, { at: Date.now(), plugin: callerScript() })
     try {
     console.debug(cmdName, JSON.parse(paramObj))
     } catch {}
@@ -217,6 +244,8 @@ const waitForReply = (key, timeout, func, quietErrors = []) => new Promise((reso
             checkForIssues(result)
         if (!func(Object(data), Number(_result)))
             return
+        if (_result != 0 && quietErrors.includes(msg))
+            expectedFrame = inboundFrame
         if (_result != 0 && !quietErrors.includes(msg))
             logRefusal(key, msg)
 
@@ -333,6 +362,8 @@ webSocket.onmessage = ({data : message}) => {
             case "lli":
                 xtHandler.emit(cmd, obj, result)
         }
+        if (result != 0)
+            reportRefusal(cmd, result)
     }
 
     else if (message[0] == "<") {

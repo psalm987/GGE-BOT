@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto"
-import { asc, eq, sql } from "drizzle-orm"
+import { asc, desc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
-import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, UserEvent, botChannel, userChannel } from "@gge/contracts"
-import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
+import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, PROBLEMS_KEPT, UserEvent, botChannel, userChannel } from "@gge/contracts"
+import { botLogs, botProblems, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
 import { createStore, type Store } from "../src/store.ts"
 
 let db: Db
@@ -62,7 +62,7 @@ test("a later partial change still publishes every status field", async () => {
 test("flushed log lines are published to the account's channel with their parts", async () => {
     store.log(accountId, 0, ["[12:00] ", "[", "attackNomads", "] ", "started ", 3], "[12:00] [attackNomads] started 3")
     store.log(accountId, 2, "not a list", "plain")
-    await store.flushLogs()
+    await store.flush()
 
     const saved = await db.select().from(botLogs).where(eq(botLogs.accountId, accountId)).orderBy(asc(botLogs.id))
     const events = (await published(botChannel(accountId))).map(data => BotChannelEvent.parse(data))
@@ -80,7 +80,7 @@ test("nothing is published for a deleted account, and its lines don't cost other
     await store.endAccount(gone, { actualState: "banned", notification: { kind: "shutoff", runId: 1 } })
     store.log(gone, 0, ["x"], "from a deleted account")
     store.log(accountId, 0, ["y"], "from a live account")
-    await store.flushLogs()
+    await store.flush()
 
     expect(await mentions(gone)).toBe(0)
     expect(await published(botChannel(accountId))).toHaveLength(1)
@@ -318,4 +318,41 @@ test("writes to one plugin's memory at the same moment all land", async () => {
 test("plugin memory for an account that was deleted is dropped", async () => {
     await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
     expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "a", value: 1 })).toBe(false)
+})
+
+const problemsOf = (id: string) => db.select().from(botProblems).where(eq(botProblems.accountId, id)).orderBy(desc(botProblems.lastAt), desc(botProblems.id))
+
+test("the game refusing one plugin's request with one error is kept as one problem with how often, the latest first", async () => {
+    const at = 1_800_000_000_000
+    for (let i = 0; i < 50; i++)
+        store.noteRefusal(accountId, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: at + i })
+    store.noteRefusal(accountId, { plugin: "feast", command: "bfs", error: "ALREADY_PURCHASED", at: at + 10 })
+    await store.flush()
+    store.noteRefusal(accountId, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: at + 100 })
+    await store.flush()
+
+    expect((await problemsOf(accountId)).map(({ plugin, command, error, count, firstAt, lastAt }) => ({ plugin, command, error, count, firstAt: firstAt.getTime(), lastAt: lastAt.getTime() }))).toEqual([
+        { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", count: 51, firstAt: at, lastAt: at + 100 },
+        { plugin: "feast", command: "bfs", error: "ALREADY_PURCHASED", count: 1, firstAt: at + 10, lastAt: at + 10 },
+    ])
+})
+
+test(`only the ${PROBLEMS_KEPT} problems seen most lately are kept for an account`, async () => {
+    const at = 1_800_000_000_000
+    for (let i = 0; i < PROBLEMS_KEPT + 5; i++)
+        store.noteRefusal(accountId, { plugin: "attack", command: `c${i}`, error: "COOLING_DOWN", at: at + i })
+    await store.flush()
+
+    const kept = await problemsOf(accountId)
+    expect(kept).toHaveLength(PROBLEMS_KEPT)
+    expect(kept.at(-1)!.command).toBe("c5")
+})
+
+test("a refusal for an account deleted meanwhile is dropped, and the others are kept", async () => {
+    const [gone] = await db.insert(gameAccounts).values({ ownerId, name: `gone-${randomUUID()}`, serverId: 26, passwordSealed: Buffer.from("x") }).returning()
+    store.noteRefusal(gone!.id, { plugin: "attack", command: "cra", error: "COOLING_DOWN", at: 1 })
+    store.noteRefusal(accountId, { plugin: "attack", command: "cra", error: "COOLING_DOWN", at: 1 })
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, gone!.id))
+    await store.flush()
+    expect(await problemsOf(accountId)).toHaveLength(1)
 })
