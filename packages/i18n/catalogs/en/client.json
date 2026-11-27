@@ -777,6 +777,8 @@
   "modules.alliance-donations.description": "Gives your alliance the resources and coins your castles hold above what you keep, and gives wood and stone to the Colossus during its event.",
   "modules.native-village.name": "Native village",
   "modules.native-village.description": "Spends the olive oil, charcoal and glass in your kingdom castles on the native village pack you pick for each kingdom.",
+  "modules.send-resources.name": "Send resources by cart",
+  "modules.send-resources.description": "Sends wood, stone or food by market cart from one of your castles to the castle at the X and Y you give, load after load, until the total you set has gone.",
   "modules.alert-autostation.name": "Alert and autostation",
   "modules.alert-autostation.description": "When a player attacks one of your castles, moves its troops to a protected alliance castle before the attack lands.",
   "modules.asset-monitor.name": "Asset monitor",
