@@ -449,6 +449,9 @@ xtHandler.on("gal", obj => {
 })
 xtHandler.on("gxp", obj => {
     playerInfo.level = obj.LVL + obj.LL
+    // Apart, as the game's building rows ask for each on its own (requiredLevel, requiredLegendLevel).
+    playerInfo.playerLevel = Number(obj.LVL)
+    playerInfo.legendLevel = Number(obj.LL)
 
     if (!botConfig.externalEvent)
         return
