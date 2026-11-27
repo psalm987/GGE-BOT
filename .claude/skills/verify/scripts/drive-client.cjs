@@ -2945,8 +2945,123 @@ async function driveUxCommanders(page) {
     assert(JSON.stringify((await find()).plugins[TOWERS[0]] ?? null) === JSON.stringify(ironhold.plugins[TOWERS[0]] ?? { enabled: false, options: {} }), "Ironhold's tower settings are back as they were")
 }
 
+
+/** A Blade Coast camp for the live view card: level 2, an attack out, troops and goods sailing. */
+const bladeCoastFixture = now => ({
+    map: 27, phase: "attackOut",
+    camp: { space: 380, spaceTarget: 400, soldiers: 352, minSoldiers: 350, storehouses: 4, storehousesTarget: 4, wood: 12_400, stone: 9_800, food: 31_000, storage: 40_000 },
+    morale: { value: 260, bonus: 151, target: 400 }, warship: { level: 3, max: 5 }, islands: { won: 7, total: 12, krakenWon: false },
+    nextIsland: { id: 41, level: 9, kraken: false },
+    trips: [
+        { kind: "attack", island: 40, level: 8, kraken: false, sentAt: now - 10 * 60_000, endsAt: now + 30 * 60_000 },
+        { kind: "troops", amount: 120, endsAt: now + 20 * 60_000 },
+        { kind: "goods", endsAt: now + 10 * 60_000 },
+    ],
+})
+
+/**
+ * The Blade Coast setup editor on the Settings preview module, and the Blade Coast card on Live view, as `demo` on
+ * Ironhold. Ironhold's report gets a Berimond castle, a read-back snapshot and a Blade Coast camp for the run.
+ */
+async function driveBladeCoast(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    const resourcesBefore = await withDatabase(async db => (await db.query("select resources from bot_status where account_id = $1", [ironhold.id])).rows[0]?.resources ?? null)
+    await rpc(page, "account/setLocale", { locale: null })
+    const report = (now = Date.now()) => insertResources({ accountName: "Ironhold", resources: {
+        ...resourcesBefore,
+        castles: [...(resourcesBefore?.castles ?? []), { kingdom: 10, id: 9001, name: "Berimond Keep", x: 50, y: 50, type: 15 }],
+        readBack: { at: now, castles: [], movements: [], movementCount: 0, session: { startedAt: now - 3_600_000, coins: 44_400, rubies: null } },
+        bladeCoast: bladeCoastFixture(now),
+    } })
+    await report()
+    try {
+        await page.setViewportSize(WIDE_VIEW)
+        const openPreview = async () => {
+            await page.goto(`${CLIENT_URL}/m/dev-preview?account=${ironhold.id}`)
+            await page.locator(".gge-module-plugin-row").first().waitFor()
+            await page.waitForTimeout(300)
+        }
+        await openPreview()
+        const setup = page.locator(".ant-form-item", { has: page.getByText("Blade Coast setup", { exact: true }) })
+        await setup.scrollIntoViewIfNeeded()
+        const box = name => setup.getByRole("combobox", { name, exact: true })
+        assert(await setup.getByRole("status").innerText() === "Still to choose: the castle, the troop, the wall tool, the gate tool, and the ranged-defence tool. The plugin waits until all are set.", "an empty setup lists everything still to choose")
+        const castles = await selectOptions(page, box("Castle that supplies the camp"), "the supply castle")
+        assert(castles.some(c => c.includes("Frostgate")) && !castles.some(c => c.includes("Berimond Keep")), `the supply castle picker leaves Berimond out: ${castles.join(" | ")}`)
+        await selectOption(page, box("Castle that supplies the camp"), "the supply castle", "Frostgate")
+        const troops = await selectOptions(page, box("Troop"), "the troop")
+        assert(troops.length > 3 && troops.every(o => !/_name\b/.test(o)), `the troop list is named from the game's strings: ${troops.slice(0, 4).join(" | ")}`)
+        assert(await page.locator(".ant-select-dropdown img").count() === 0, "no game art in the unit lists")
+        const troop = await selectOption(page, box("Troop"), "the troop", "")
+        const wall = await selectOption(page, box("Tool against the wall"), "the wall tool", "")
+        await selectOption(page, box("Tool against the gate"), "the gate tool", "")
+        const ranged = await selectOptions(page, box("Tool against ranged defence"), "the ranged-defence tool")
+        assert(!ranged.includes(wall), `a tool picked for the wall isn't offered against ranged defence (${wall})`)
+        assert(await setup.getByRole("status").innerText() === "Still to choose: the ranged-defence tool. The plugin waits until all are set.", "the setup says only the ranged-defence tool is missing")
+        await axe(page, "blade coast setup 1440")
+        await setup.screenshot({ path: `${out}/90-blade-setup-1440.png` })
+        await selectOption(page, box("Tool against ranged defence"), "the ranged-defence tool", "")
+        assert(await setup.getByRole("status").count() === 0, "a complete setup lists nothing missing")
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const saved = (await account()).plugins.devSettingsPreview.options.bladeSetup
+        assert(saved && saved.castle.kingdom === 2 && saved.castle.id === 2001 && /#\d+$/.test(saved.troop) && ["wall", "gate", "ranged"].every(role => /#\d+$/.test(saved.tools[role] ?? "")),
+            `the API holds the castle, the troop and three tools as type#level: ${JSON.stringify(saved)}`)
+        assert(new Set(Object.values(saved.tools).map(choice => choice.split("#")[0])).size === 3, "the three tools are three different types")
+        const refused = await page.evaluate(async ([id, plugins]) => (await (await fetch("/rpc/accounts/update", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: { id, plugins } }) })).json()),
+            [ironhold.id, { ...(await account()).plugins, devSettingsPreview: { enabled: true, options: { ...(await account()).plugins.devSettingsPreview.options, bladeSetup: { ...saved, castle: { kingdom: 10, id: 9001 } } } } }])
+        assert(JSON.stringify(refused).includes("PLUGIN_OPTION_CASTLE") || JSON.stringify(refused).includes("BAD_REQUEST"), `the API refuses a Berimond supply castle: ${JSON.stringify(refused).slice(0, 200)}`)
+        await openPreview()
+        await setup.scrollIntoViewIfNeeded()
+        assert((await selectShown(box("Troop"))).includes(troop.replace(/\s+/g, " ")), "after a reload the troop shows")
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on the setup at 390")
+        await axe(page, "blade coast setup 390")
+        await setup.screenshot({ path: `${out}/90-blade-setup-390.png` })
+
+        await page.setViewportSize(WIDE_VIEW)
+        await report()
+        await page.goto(`${CLIENT_URL}/m/live-view?account=${ironhold.id}`)
+        const card = page.locator(".ant-card", { hasText: "Blade Coast · level 2 of 3 (Hard)" })
+        await card.waitFor()
+        assert(await card.getByText("Attack on its way", { exact: true }).isVisible(), "the card says what the plugin is doing")
+        assert(await card.getByText("7 of 12 islands won", { exact: true }).isVisible() && await card.getByText("5 more before the Kraken").isVisible(), "the card counts the islands to the Kraken")
+        assert(await card.getByText("Island, level 9", { exact: true }).isVisible() && await card.getByText("3 of 5", { exact: true }).isVisible(), "the card names the next island and the warship's level")
+        assert(await card.getByText("+51% in battle · aiming for 400").isVisible(), "morale shows its battle bonus and target")
+        const trips = await card.locator(".gge-live-march").allInnerTexts()
+        assert(trips.length === 3 && /Goods/.test(trips[0]) && /On Island, level 8/.test(trips[2]) && /Lands in \d+:\d\d/.test(trips[2]), `the trips are listed apart from the marches, soonest first: ${trips.map(t => t.replace(/\s+/g, " ")).join(" | ")}`)
+        assert(await card.locator("img").count() === 0, "no game art on the card")
+        await axe(page, "blade coast card 1440")
+        await card.screenshot({ path: `${out}/91-blade-card-1440.png` })
+        await page.screenshot({ path: `${out}/91-live-view-1440.png`, fullPage: true })
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on Live view with the card at 390")
+        await axe(page, "blade coast card 390")
+        await card.screenshot({ path: `${out}/91-blade-card-390.png` })
+        await page.setViewportSize(WIDE_VIEW)
+    } finally {
+        await insertResources({ accountName: "Ironhold", resources: resourcesBefore })
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    }
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "blade-coast") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveBladeCoast(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "ux-narrow") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)
