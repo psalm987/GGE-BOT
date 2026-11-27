@@ -41,8 +41,8 @@ const splOf = (c, list) => {
     }
 }
 
-/** The plugin against a game that answers dcl, jca, spl and bup from `world`. */
-function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup, unitItems = units, buildingItems = [], onAhr = () => "confirm" } = {}) {
+/** The plugin against a game that answers dcl, jca, spl and bup from `world`. With `joinLists` a join also carries the barracks list (`spl0`), as the game sends it. */
+function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refuse = () => 0, onBup, unitItems = units, buildingItems = [], onAhr = () => "confirm", joinLists = false } = {}) {
     vi.useFakeTimers()
     const bot = fakeBot()
     bot.playerInfo.playerID = 7
@@ -60,7 +60,7 @@ function run({ options = {}, world = [castle(10)], coins = 10_000_000, spl, refu
         if (cmd == "jca") {
             const c = find(p)
             world.forEach(w => { w.current = w === c })
-            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: c.buildings.map(wodID => [wodID, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), scl: { OIDL: [] } }, gpa: {}, spl0: splOf(c, 0) })
+            reply("jaa", { KID: c.kingdom, grc: { KID: c.kingdom, AID: c.id, W: c.wood, S: c.stone, AC: inventory(c) }, gca: { BD: c.buildings.map(wodID => [wodID, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), scl: { OIDL: [] } }, gpa: {}, ...(joinLists && { spl0: splOf(c, 0) }) })
         }
         if (cmd == "spl") {
             const c = world.find(w => w.current)
@@ -553,7 +553,7 @@ describe("alliance help", () => {
     })
 
     test("after a refusal, the castle waits an hour before asking again", async () => {
-        const { bot, warns } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true }, onAhr: () => 114 })
+        const { bot, warns } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true }, onAhr: () => 114, joinLists: true })
         inAlliance(bot)
         await vi.advanceTimersByTimeAsync(50 * MINUTE)
         expect(ahrs(bot)).toHaveLength(1)
@@ -564,7 +564,7 @@ describe("alliance help", () => {
 
     test("a batch the castle's join shows is asked for too, and a dry run only logs the ask", async () => {
         const world = [castle(10, { queues: { 0: [[HALBERD, 50]] } })]
-        const { bot, logs } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true, dryRunOrders: true }, world })
+        const { bot, logs } = run({ options: { troopTargets: [unitRow(HALBERD, 100)], askAllianceHelp: true, dryRunOrders: true }, world, joinLists: true })
         inAlliance(bot)
         await settle()
         expect(ahrs(bot)).toEqual([])
