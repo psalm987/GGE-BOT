@@ -10,10 +10,12 @@ const FORTRESS = 11, KINGDOM = 1, LORD = 5
  * is a command whose first send fails. `items` are game items such as bossdungeons. The commander has `effects` against a
  * fortress, and the castle `troops` melee. Use fake timers.
  *
+ * `timetable(request)` stands in for the runner's gge-tracker answer; without it the player has not opted in.
+ *
  * Returns the bot, a `log` of sends and replies, the commander `pool`, the `movements` and `marchHome(i)`, which brings
  * the i-th march home.
  */
-function fortressBot({ attackDialog = false, failing, options = {}, items = {}, fortresses = [{ x: 620, y: 590 }], screenRefusal = () => undefined, onCra, effects = {}, troops = 5000 } = {}) {
+function fortressBot({ attackDialog = false, failing, options = {}, items = {}, fortresses = [{ x: 620, y: 590 }], screenRefusal = () => undefined, onCra, effects = {}, troops = 5000, timetable } = {}) {
     const bot = fakeBot()
     bot.playerInfo.level = 70
     bot.botConfig.ggeConfig = { humanize: { attack_dialog: attackDialog } }
@@ -62,6 +64,7 @@ function fortressBot({ attackDialog = false, failing, options = {}, items = {}, 
         movements, movementEvents,
         ClientCommands: {
             preSpyInfo: async (x, y) => {
+                log.push(`look ${x}:${y}`)
                 const area = map.find(a => a.x == x && a.y == y)
                 if (area)
                     area.timeSinceRequest = Date.now()
@@ -80,6 +83,7 @@ function fortressBot({ attackDialog = false, failing, options = {}, items = {}, 
                 log.push(`scan ${radius}`)
                 return (await get(kid, origin.x - radius, origin.y - radius, origin.x + radius, origin.y + radius)).areaInfo.filter(wanted)
             } },
+            ...timetable && { "../ggeTracker.js": { askTracker: async request => (log.push(`ask ${JSON.stringify(request)}`), timetable(request)) } },
             "../commander": {
                 waitForCommanderAvailable: async () => {
                     while (pool.held)
