@@ -1121,5 +1121,19 @@
     "statusNativeVillageLevelLow": "The village needs level {{level}} for the pack you picked.",
     "statusNativeVillageRefused": "The native village refused a purchase. This tries again on the next check.",
     "statusNativeVillageShort": "The castle's goods above what it keeps don't pay for one pack yet. This tries again on the next check.",
-    "statusNativeVillageBought": "Bought {{packs}} packs from the native villages."
+    "statusNativeVillageBought": "Bought {{packs}} packs from the native villages.",
+    "colossusEventDonate": "Colossus donation",
+    "colossusEventDonate.description": "During a Colossus event, gives wood and stone from the castles you list once their storage fills past the share you set, keeping the share you choose. Outside the event it waits and asks the game again a few hours later.",
+    "colossusCastles": "Castles that give",
+    "donateAt": "Give from (% of storage)",
+    "colossusEventDonate.colossusCastles.help": "When a castle's wood or stone reaches the first share of its storage, it gives that resource down to the second share. With 90 and 50, a castle whose wood storage holds 10,000 gives once it has 9,000 wood and keeps 5,000. Only Great Empire, Burning Sands, Everwinter Glacier and Fire Peaks castles give.",
+    "dryRunCde": "Log only, not sent: ",
+    "colossusDonated": "Given to the Colossus: ",
+    "colossusDonationRefused": "The game refused a Colossus donation, so that castle waits an hour: ",
+    "statusColossusStarting": "Starting up.",
+    "statusColossusNoCastles": "No castle is listed. Add a castle, the share of storage it gives from and the share it keeps.",
+    "statusColossusNoEvent": "No Colossus event is running. This asks again in a few hours, or as soon as the event starts.",
+    "statusColossusBelowThreshold": "No castle's wood or stone has reached the share it gives from.",
+    "statusColossusRefused": "The game refused a donation. That castle waits an hour.",
+    "statusColossusDonated": "Gave the Colossus {{wood}} wood and {{stone}} stone."
 }

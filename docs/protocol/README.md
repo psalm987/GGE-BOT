@@ -25,6 +25,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [troop-transfer.md](troop-transfer.md) | Sending troops and tools between kingdoms with `kut`, skipping the transfer with `msk`, and the one-transfer-per-kingdom rule |
 | [alliance-donation.md](alliance-donation.md) | Giving resources and coins to the alliance's funds with `gdr` and `ado`, and the refusals that end a round |
 | [native-village.md](native-village.md) | The native villages of the three kingdoms: their packs and prices, opening one with `gbc`, buying with `sbp` `BT` 3, and full building item storage |
+| [colossus.md](colossus.md) | Giving wood and stone to the Colossus with `cde`, the kept share, and waiting out refusal 209 when no event runs |
 | [capture-backlog.md](capture-backlog.md) | What the 2026-11-21 trace captured, the features that still need a capture, and a checklist for the next trace |
 
 ## How the findings were obtained
