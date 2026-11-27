@@ -148,7 +148,7 @@ After each look that leaves a castle's plan unfinished, the plugin emits `buildL
 | `waiting` | True when a step waits for resources |
 | `lookAgainIn(ms)` | Brings the castle's next look forward. It also takes a promise of a number. |
 
-Nothing listens to it yet. The plugin works the two numbers out only when something does.
+Build Supply (`packages/bot-core/plugins/buildSupply.js`) listens to it for the Storm castle, and passes `lookAgainIn` a promise that resolves when the wood and stone it sent arrive. See [storm-transfer.md](storm-transfer.md#build-supply). The plugin works the two numbers out only when something listens.
 
 ## Confidence
 

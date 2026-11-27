@@ -1,6 +1,6 @@
 # Goods transfers into the Storm Islands
 
-Mead replace (`packages/bot-core/plugins/meadReplaceStorm.js`) and Send food (`packages/bot-core/plugins/foodSendStorm.js`) send goods to the Storm Islands castle by kingdom transfer. The game takes one goods transfer into Storm at a time, so both go through one arbiter, `packages/bot-core/stormTransfer.js`. Build Supply will use it too. This page lists the commands, the facts the arbiter relies on, and its API.
+Mead replace (`packages/bot-core/plugins/meadReplaceStorm.js`), Send food (`packages/bot-core/plugins/foodSendStorm.js`) and Build Supply (`packages/bot-core/plugins/buildSupply.js`) send goods to the Storm Islands castle by kingdom transfer. The game takes one goods transfer into Storm at a time, so all three go through one arbiter, `packages/bot-core/stormTransfer.js`. This page lists the commands, the facts the arbiter relies on, and its API.
 
 The request shapes come from the mead sender, which has run live, and from Lazy Lord's source (`be/plugins/foodSendStorm.js`, `be/plugins/buildSupply.js`).
 
@@ -33,7 +33,7 @@ The castles' mead and food do not drop locally as troops eat. Each look sends `d
 {"MST": "MS5", "KID": "4", "TT": "2"}
 ```
 
-`TT` `"2"` is a goods transfer (`KingdomSkipType.sendResource`). `protocols.js` sends it through `ClientCommands.skipResourceTransfer`, in the `kingdomSkipTurn` line. The skip comes from the skip items the player holds and allows in the Skips settings (`plugins/skips.js`). The arbiter never spends rubies.
+`TT` `"2"` is a goods transfer (`KingdomSkipType.sendResource`). `protocols.js` sends it through `ClientCommands.skipResourceTransfer`, in the `kingdomSkipTurn` line. The skip comes from the skip items the player holds and allows in the Skips settings (`plugins/skips.js`). The arbiter never spends rubies. After each skip that goes through, it waits 1 to 3 seconds before the next.
 
 ## What the arbiter relies on
 
@@ -51,6 +51,7 @@ At each look, every sender reports a Want: the hours its goods lasts in Storm (s
 2. If a transfer is still on its way, send nothing. A sender that wants to send looks again in 5 minutes. The others keep their own wait.
 3. Otherwise a dry run's order is written to the log and never holds the slot, so food on Log only never holds up the mead. Among the real orders, the one whose goods runs out soonest goes. A goods nothing eats has Infinity hours and goes after one that is eaten. Among equal hours, goods troops eat go before goods they don't.
 4. After a send, the sender looks again in about 15 minutes. A refused send is tried again in 5 minutes.
+5. If the order that went through has `landNow`, the arbiter skips that transfer until it lands and counts its goods in the Storm castle before it tells the sender.
 
 ## Arbiter API
 
@@ -71,7 +72,34 @@ stormTransfer.firstSource(rows, "wood")   // first castle-and-keep row with good
 stormTransfer.slotSecondsLeft()  // seconds until the transfer on its way lands, 0 for none
 ```
 
-A Want is `{ hoursLeft, maySkip, dryRun, order: { from: castle, goods: { wood: 5000, stone: 5000 } } }` when it wants the slot, or `{ hoursLeft, maySkip, waitMs, note }` when it does not: `waitMs` is when to look again and `note` is the log line, as `[key, ...args]`. Register at load. The arbiter starts its looks when the bot has loaded, if the Storm Islands are unlocked.
+A Want is `{ hoursLeft, maySkip, dryRun, landNow, order: { from: castle, goods: { wood: 5000, stone: 5000 } } }` when it wants the slot, or `{ hoursLeft, maySkip, waitMs, note }` when it does not: `waitMs` is when to look again and `note` is the log line, as `[key, ...args]`. Register at load. The arbiter starts its looks when the bot has loaded, if the Storm Islands are unlocked.
+
+## Build Supply
+
+Build Supply sends wood and stone for Build's plan in the Storm castle. It is ported from Lazy Lord's `be/plugins/buildSupply.js`.
+
+- **Trigger.** Build emits `buildLooked` after each look that leaves a castle unfinished (see [build.md](build.md#the-hook-for-build-supply)). Build Supply acts only on a castle in kingdom 4, and only when `nothingPayable` is true and `need` has wood or stone. It then calls `wake()`.
+- **Want.** `hoursLeft` is Infinity, because no troops eat wood or stone, and `feedsTroops` is false. Mead and food that have an order therefore go first. A Build Supply order never makes the arbiter skip another transfer.
+- **Amount.** For each of wood and stone: `fillAmount` (the free space ÷ 0.9), but no more than what the plan lacks (`need` less the stock) ÷ 0.9. A goods the plan does not lack is not sent.
+- **Source.** The first row of `buildSupplySources` whose castle has wood or stone above its keep, through `firstSource`. That castle sends what it can spare of both in one `kgt`. Storm and Berimond rows never send.
+- **Skips.** With `buildSupplyUseSkips` on (the default), the order has `landNow`.
+- **Build's next look.** Build Supply passes `lookAgainIn` a promise. It resolves when the arbiter has answered, or after 90 seconds at most:
+
+| Arbiter's answer | Build looks again |
+|---|---|
+| Sent and landed through skips | In 5 to 10 seconds |
+| Sent, on its way | When it lands, plus 30 to 60 seconds |
+| The slot is taken | When that transfer lands, plus 30 to 60 seconds |
+| Refused | In 5 minutes plus 30 to 60 seconds, after the arbiter's retry |
+| Nothing to send, or Log only | At Build's own time |
+
+When Build looks while a transfer is already on its way, Build Supply sends nothing and asks for a look once it lands. One report from Build sends at most once. The arbiter keeps the report through a busy slot or a refusal, so it can send once the slot is free.
+
+What Lazy Lord did differently:
+
+- Lazy Lord sent the full storehouse fill whatever the plan lacked. About a tenth of each transfer is lost, so Build Supply sends no more than the plan lacks.
+- Lazy Lord also skipped another sender's transfer on its way to free the slot. Build Supply waits for it, because the arbiter skips only for goods that run out.
+- Lazy Lord stopped skipping when a skip reply brought no fresh timer. The arbiter counts the skip down on the old timer instead, as for mead and food.
 
 ## Facts and confidence
 
@@ -79,6 +107,7 @@ A Want is `{ hoursLeft, maySkip, dryRun, order: { from: castle, goods: { wood: 5
 |---|---|---|
 | `kgt {SCID, SKID, TKID, G}` into Storm with `MEAD` | high | The mead sender, live |
 | The same shape with `F` | medium | Lazy Lord's source. Confirm with one small transfer on the test account. |
+| The same shape with `W` and `S` in one `G` | medium | Lazy Lord's source. Confirm with one small transfer on the test account. |
 | `msk {MST, KID: "4", TT: "2"}` skips a goods transfer | high | The mead sender, live |
 | One goods transfer into Storm at a time | medium | Lazy Lord's source. The refusal code of a second `kgt` was never captured. |
 | About 10% lost on the way | medium | Lazy Lord saw it live for wood and stone. Not measured for food or mead. |

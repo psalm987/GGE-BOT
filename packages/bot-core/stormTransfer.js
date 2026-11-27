@@ -2,7 +2,8 @@
  * The one goods transfer into the Storm Islands castle. The game takes one kingdom transfer of goods into Storm at a
  * time, so mead, food and Build Supply's wood and stone share it. Each sender registers here and reports, at each
  * look, a Want: how long its goods lasts and what it would send. This module refreshes the castles, decides who gets
- * the slot (`decide`, pure), skips a transfer in flight when one must land sooner, sends, and looks again.
+ * the slot (`decide`, pure), skips a transfer in flight when one must land sooner, sends, skips the new transfer until
+ * it lands for a sender that asks (Build Supply), and looks again.
  *
  * Priority: the goods that runs out soonest (stock ÷ what is eaten each hour) goes first. A goods nothing eats has
  * Infinity hours and waits behind one that is being eaten; among equals, goods troops eat go before goods they don't.
@@ -12,6 +13,7 @@ const { ClientCommands, KingdomID, KingdomSkipType, AreaType, castles, unlockInf
 const { events, xtHandler } = require("./ggeBot.js")
 const { ask, chore } = require("./chores.js")
 const { spendSkip, skipRefused, MinuteSkipType } = require("./plugins/skips.js")
+const { pause } = require("./pacing.js")
 
 /**
  * The goods a kingdom transfer brings to Storm: the game's code, the storehouse size field, and the share lost on the
@@ -43,12 +45,13 @@ const STORM = KingdomID.stormIslands
  *   maySkip?: boolean,
  *   feedsTroops?: boolean,
  *   dryRun?: boolean,
+ *   landNow?: boolean,
  *   order?: Order,
  *   waitMs?: number,
  *   note?: unknown[],
  * }} Want
  *   One sender's view at one look. With `order` it wants the slot now; without, it looks again after `waitMs` and
- *   `note` is what it writes to the log.
+ *   `note` is what it writes to the log. With `landNow`, the transfer it sends is skipped until it lands.
  * @typedef {{
  *   name: string,
  *   feedsTroops?: boolean,
@@ -127,15 +130,19 @@ for (const cmd of ["kpi", "fjf", "kgt", "msk", "kut"])
 const slotSecondsLeft = () => secondsLeft(stormCastle()?.resourceTransfer)
 
 /**
- * Skips the transfer in flight. An msk reply with the kingdom info replaces the timer; one without it leaves the old
- * timer, so the skip is counted down on it here, or the next look would skip the same time again.
+ * Skips the transfer in flight, waiting a few seconds after each skip that went through, as a player clicks them. An
+ * msk reply with the kingdom info replaces the timer; one without it leaves the old timer, so the skip is counted down
+ * on it here, or the next look would skip the same time again.
  */
 async function skipTransfer(storm) {
+    let used = false
     while (secondsLeft(storm.resourceTransfer) > 0) {
         const before = storm.resourceTransfer
         const skip = spendSkip(secondsLeft(before))
         if (skip == undefined)
             return
+        if (used)
+            await pause(1000, 3000)
 
         const result = await ClientCommands.skipResourceTransfer(skip, STORM, KingdomSkipType.sendResource)
         if (result != 0) {
@@ -143,9 +150,18 @@ async function skipTransfer(storm) {
                 continue
             return
         }
+        used = true
         if (storm.resourceTransfer === before)
             before.remainingTime -= MinuteSkipType[skip] * 60
     }
+}
+
+/** Skips the transfer in flight and, if it lands, counts its goods in the Storm castle. */
+async function skipToLanding(storm) {
+    const inFlight = storm.resourceTransfer
+    await skipTransfer(storm)
+    if (!(secondsLeft(storm.resourceTransfer) > 0))
+        land(storm, inFlight?.resources)
 }
 
 /** Goods that landed through the skips: the castle counts them only from the game's next update. */
@@ -199,10 +215,7 @@ async function look() {
     let looks = lookAll(storm)
     let plan = decide(secondsLeft(storm.resourceTransfer), looks.map(l => l.want))
     if (plan.act == "skip") {
-        const inFlight = storm.resourceTransfer
-        await skipTransfer(storm)
-        if (!(secondsLeft(storm.resourceTransfer) > 0))
-            land(storm, inFlight.resources)
+        await skipToLanding(storm)
         looks = lookAll(storm)
         plan = decide(secondsLeft(storm.resourceTransfer), looks.map(l => l.want), { skipped: true })
     }
@@ -230,6 +243,8 @@ async function look() {
         requester.refused?.(code)
         return BUSY_RETRY_MS
     }
+    if (plan.want.landNow)
+        await skipToLanding(storm)
     requester.sent?.(plan.want.order)
     busy()
     return plan.ms

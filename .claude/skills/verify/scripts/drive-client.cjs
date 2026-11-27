@@ -3678,6 +3678,64 @@ async function driveBuild(page) {
     assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
 }
 
+/**
+ * The Build supply tab of Castle builder: it opens on skips on, Log only off and no castles. A castle row with a keep
+ * and Log only save, read back through the API, leave Build's saved settings alone and come back after a reload.
+ */
+async function driveBuildSupply(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    const BUILD = { coinFloor: 250_000 }
+    await storePluginSettings({ accountName: "Ironhold", plugin: "build", enabled: true, options: BUILD })
+    await storePluginSettings({ accountName: "Ironhold", plugin: "buildSupply", enabled: false, options: {} })
+    const form = page.locator(".gge-content")
+    const skips = () => page.getByRole("checkbox", { name: "Skip the transfer so the wood and stone land at once" })
+    const logOnly = () => page.getByRole("checkbox", { name: "Log only: write the transfer to the log instead of sending it" })
+    const supplyTab = async () => {
+        await page.goto(`${CLIENT_URL}/m/castle-builder?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        await page.getByRole("tab", { name: "Build supply" }).click()
+        await page.getByText("Castles that send wood and stone", { exact: true }).first().waitFor()
+    }
+    try {
+        await page.setViewportSize(WIDE_VIEW)
+        await openModule(page, "Castle builder")
+        assert(await page.getByRole("tab", { name: "Build", exact: true }).isVisible() && await page.getByRole("tab", { name: "Build supply" }).isVisible(), "Castle builder has a Build tab and a Build supply tab")
+        assert(await page.locator(".gge-module-intro", { hasText: "sends wood and stone to your Storm Islands castle" }).isVisible(), "the module description names the wood and stone sent to Storm")
+        await supplyTab()
+        assert(await skips().isChecked() && !(await logOnly().isChecked()), "skips start on and Log only starts off")
+        assert(await page.getByText("never rubies", { exact: false }).first().isVisible(), "the skip help says the bot never spends rubies")
+        assert(await page.getByText("Storm Islands and Berimond castles never send", { exact: false }).first().isVisible(), "the list help says Storm and Berimond never send")
+
+        await form.getByRole("button", { name: "Add row" }).first().click()
+        await selectOption(page, form.getByLabel("Castle, row 1"), "Castle, row 1", "Frostgate", { type: false })
+        await form.getByLabel("Keep at least, row 1").fill("50000")
+        await logOnly().check()
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const saved = (await account()).plugins
+        const supply = saved.buildSupply?.options ?? {}
+        assert(require("node:util").isDeepStrictEqual(supply.buildSupplySources, [{ castle: { kingdom: 2, id: 2001 }, keep: 50000 }]) && supply.buildSupplyDryRun === true,
+            `the tab saves the castle row and Log only: ${JSON.stringify(supply)}`)
+        assert(saved.build?.options?.coinFloor === 250_000, `saving Build supply leaves Build's settings as they were: ${JSON.stringify(saved.build?.options)}`)
+
+        await supplyTab()
+        assert(await logOnly().isChecked() && (await form.getByLabel("Keep at least, row 1").inputValue()).replace(/\D/g, "") === "50000", "the row and Log only come back after a reload")
+        await axe(page, "castle builder build supply 1440")
+        await page.screenshot({ path: `${out}/99-build-supply-1440.png`, fullPage: true })
+        await page.setViewportSize(PHONE_VIEW)
+        await page.waitForTimeout(400)
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on the Build supply tab at 390")
+        await axe(page, "castle builder build supply 390")
+        await page.screenshot({ path: `${out}/99-build-supply-390.png`, fullPage: true })
+        await page.setViewportSize(WIDE_VIEW)
+    } finally {
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    }
+    assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
     if (process.env.DRIVE_ONLY === "build") {
@@ -3688,6 +3746,7 @@ async function driveBuild(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveBuild(demo)
+        await driveBuildSupply(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

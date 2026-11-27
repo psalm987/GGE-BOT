@@ -32,7 +32,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [native-village.md](native-village.md) | The native villages of the three kingdoms: their packs and prices, opening one with `gbc`, buying with `sbp` `BT` 3, and full building item storage |
 | [crafting.md](crafting.md) | The Refinery and the Toolsmith: reading the buildings with `crin`, crafting with `crst`, renting slots with `crun`, research with `rei`, effect 616 unlocks and the slot model, from Lazy Lord's source |
 | [colossus.md](colossus.md) | Giving wood and stone to the Colossus with `cde`, the kept share, and waiting out refusal 209 when no event runs |
-| [storm-transfer.md](storm-transfer.md) | Goods transfers into the Storm Islands with `kgt` and `msk`, the one-transfer slot that mead, food and Build Supply share, the 10% lost on the way, and the arbiter's priority rule and API |
+| [storm-transfer.md](storm-transfer.md) | Goods transfers into the Storm Islands with `kgt` and `msk`, the one-transfer slot that mead, food and Build Supply share, the 10% lost on the way, the arbiter's priority rule and API, and how Build Supply sends wood and stone for Build |
 | [carts.md](carts.md) | Sending resources by market cart with `crm`, reading the markets with `cmi`, the carts' way back, checking the target with `gaa`, and how a cart's load is worked out and learned |
 | [gge-tracker.md](gge-tracker.md) | gge-tracker.com's fortress and Storm fort timetables: the opt-in, the three endpoints the runner reads, what each request sends, the cache windows and how the plugins still check each target in the game |
 | [capture-backlog.md](capture-backlog.md) | What the 2026-11-21 trace captured, the features that still need a capture, and a checklist for the next trace |
