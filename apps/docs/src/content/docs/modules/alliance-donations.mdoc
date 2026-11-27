@@ -1,0 +1,88 @@
+---
+title: Alliance donations
+description: Give your alliance the resources and coins your castles hold above what you keep, and give wood and stone to the Colossus during its event.
+appRoute: /m/alliance-donations
+plugin: allianceDonation
+sources:
+  - packages/bot-core/plugins/allianceDonation.js
+  - packages/bot-core/plugins/colossusEventDonate.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="shaking-hands" size=32 /%}Pull your weight in the alliance. The Alliance donations {% term id="module" %}module{% /term %} gives what your castles can spare. The page has two tabs: **Alliance donation** fills your alliance's funds, and **Colossus donation** gives wood and stone to the Colossus during its event.
+
+{% terms_on_page /%}
+
+Each tab is its own {% term id="plugin" %}plugin{% /term %} with its own switch. Neither counts toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## Alliance donation {% #alliance %}
+
+### How it works {% #alliance-how %}
+
+1. A minute or two after your bot signs in, and then every 10 minutes, the bot checks that you are in an alliance. If you aren't, it waits.
+2. For each castle in **Castles that give**, it asks the game what the castle holds.
+3. For each resource ticked below, it gives what the castle holds above **Keep (% of storage)** of that resource's storage.
+4. If you ticked any coins, it gives them from your {% term id="main-castle" %}main castle{% /term %}, keeping the amount you set for each.
+
+Food can't be given. Only castles in the four {% term id="kingdom" %}kingdoms{% /term %} give: the {% term id="great-empire" %}Great Empire{% /term %}, Burning Sands, Everwinter Glacier and Fire Peaks.
+
+### Pick what to give {% #alliance-settings %}
+
+**Castles that give** is a table. Choose **Add row**, pick a castle, and set **Keep (% of storage)**. The default is 80. With 80, a castle whose wood storage holds 10,000 keeps 8,000 wood and gives the rest. With 100 it gives nothing.
+
+**Give wood**, **Give stone**, **Give iron**, **Give olive oil**, **Give glass** and **Give charcoal** are on by default. Turn off a resource you want to keep.
+
+**Give alliance coins**, **Give rift coins** and **Give legendary rift coins** are off by default. Each has an amount to keep beside it. The bot gives only what you hold above that amount.
+
+### When it stops for the round {% #alliance-stops %}
+
+The bot stops the round and tries again in 10 minutes when the game says you aren't in an alliance, you joined it too recently, or the alliance's funds are full. When one castle is short, it says so once and goes on with the next castle.
+
+## Colossus donation {% #colossus %}
+
+### How it works {% #colossus-how %}
+
+1. A minute or two after your bot signs in, and then every 10 minutes, the bot looks at each castle in **Castles that give**.
+2. When a castle's wood or stone reaches **Give from (% of storage)**, it gives that resource down to **Keep (% of storage)**. The defaults are 90 and 50. With those, a castle whose wood storage holds 10,000 gives once it has 9,000 wood and keeps 5,000.
+3. If the game refuses a castle for another reason, that castle waits an hour.
+
+### When no Colossus is running {% #colossus-event %}
+
+When the game says no Colossus event is running, the bot asks again 6 hours later, or as soon as the event starts. It never switches itself off and never changes your settings, so it is ready for the next Colossus.
+
+Only castles in the four kingdoms give.
+
+## Test with Log only {% #log-only %}
+
+Each tab has **Log only: write the donations to the log instead of sending them**. The bot works out each donation and writes it to the {% term id="log" %}log{% /term %}, but gives nothing.
+
+## What it never does {% #never %}
+
+- It never spends {% term id="ruby" %}rubies{% /term %}.
+- It never gives a castle's resources below the share of storage you keep, and never gives coins below the amount you keep.
+- It never gives food.
+- It never gives from a {% term id="storm-islands" %}Storm Islands{% /term %} or {% term id="berimond" %}Berimond{% /term %} castle.
+
+## Settings {% #settings %}
+
+### Alliance donation {% #settings-alliance %}
+
+{% settings plugin="allianceDonation" /%}
+
+### Colossus donation {% #settings-colossus %}
+
+{% settings plugin="colossusEventDonate" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+Both tabs send requests taken from another bot's code, not from our own capture:
+
+- The resource read before a donation and the alliance donation itself. Check one donation on a spare account.
+- The Colossus donation. Check one small donation during a Colossus event.
+- Which event id is the Colossus. The bot trusts the game's refusal instead. If the id is wrong, the bot can start giving up to 6 hours after the event starts.
+
+## Related errors {% #errors %}
+
+- [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle): a row names a castle that isn't on this account.
+- [PLUGIN_OPTION_ROW](/errors/#plugin-option-row): a row is not complete.
+- [PLUGIN_OPTION_RANGE](/errors/#plugin-option-range): a share of storage is outside 0 to 100.

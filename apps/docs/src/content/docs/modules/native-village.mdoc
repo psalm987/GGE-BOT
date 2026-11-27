@@ -1,0 +1,69 @@
+---
+title: Native village
+description: Spend the olive oil, charcoal and glass in your kingdom castles on the native village pack you pick for each kingdom, every 30 minutes.
+appRoute: /m/native-village
+plugin: nativeVillage
+sources:
+  - packages/bot-core/plugins/nativeVillage.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="huts-village" size=32 /%}Trade with the locals. The Native village {% term id="module" %}module{% /term %} spends the goods in your Burning Sands, Everwinter Glacier and Fire Peaks castles on the native village pack you pick for each {% term id="kingdom" %}kingdom{% /term %}.
+
+{% terms_on_page /%}
+
+It never upgrades a village. It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## How it works {% #how-it-works %}
+
+1. A few minutes after your bot signs in, and then about every 30 minutes, the bot looks at each village with a pack picked.
+2. It checks that the kingdom is unlocked and that the village's level unlocks the pack.
+3. It works out how many packs the kingdom castle's goods pay for, after **Goods each kingdom castle keeps**. It buys at most 100 at a time.
+4. It opens the village from that kingdom's castle and buys, as you would in the game.
+
+Each village takes its own goods:
+
+| Kingdom | Setting | Paid in |
+|---|---|---|
+| Burning Sands | **Burning Sands pack (paid in olive oil)** | Olive oil |
+| Everwinter Glacier | **Everwinter Glacier pack (paid in charcoal)** | Charcoal |
+| Fire Peaks | **Fire Peaks pack (paid in glass)** | Glass |
+
+## Pick a pack {% #packs %}
+
+Each list starts with **Nothing**, which is the default. Then come the village's eight packs, two for each village level. The name of each pack starts with the level it needs, such as **Level 2: renegade saber warriors**. A pack your village's level doesn't unlock yet is not bought, and the status names the level it needs.
+
+**Goods each kingdom castle keeps** is how much olive oil, charcoal or glass each kingdom castle always keeps. The default is 0, which lets the bot spend all of it.
+
+## When the storage is full {% #storage-full %}
+
+Building item packs go to your building item storage. When the game says it is full, the bot closes that village until the bot restarts. Your pick stays as you saved it. Make room in the storage, then restart the bot.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the orders to the log instead of sending them**. The bot works out each purchase and writes it to the {% term id="log" %}log{% /term %}, but buys nothing.
+
+## What it never does {% #never %}
+
+- It never spends {% term id="ruby" %}rubies{% /term %}. Every pack is paid in the village's goods.
+- It never takes a kingdom castle's goods below the amount you keep.
+- It never upgrades a village or buys a pack the village's level doesn't unlock.
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card tells you what the plugin did on its last check:
+
+- **Bought** a number of packs from the native villages.
+- **The castle's goods above what it keeps don't pay for one pack yet.**
+- **The village needs** a higher **level** for the pack you picked.
+- **A kingdom with a picked pack isn't unlocked on this account**, or its castle isn't known yet.
+- **Your building item storage is full**, so that village is closed until the bot restarts.
+- **No pack is picked.** Pick one for a village to start buying.
+
+## Settings {% #settings %}
+
+{% settings plugin="nativeVillage" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+The purchase request comes from another bot's code, based on its captures of the game client. Check one pack on a spare account before you rely on it. The cap of 100 packs at a time is that bot's choice, not a known game limit.

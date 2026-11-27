@@ -1,0 +1,84 @@
+---
+title: Blade Coast
+description: Play the Blade Coast event. The bot builds the camp, supplies it from one castle, upgrades the warship and attacks the islands, never with rubies.
+appRoute: /m/blade-coast
+plugin: bladeCoast
+sources:
+  - packages/bot-core/plugins/bladeCoast.js
+  - packages/bot-core/bladeCoastPlan.js
+  - packages/bot-core/eventPlugins.js
+  - packages/bot-core/unitCatalog.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="kraken-tentacle" size=32 /%}Set sail for the Kraken. The Blade Coast {% term id="module" %}module{% /term %} plays the Blade Coast event for you. It joins the camp, builds it up, fills it with the troop and {% term id="tool" %}tools{% /term %} you pick, upgrades the warship and attacks the islands one at a time, level after level.
+
+{% terms_on_page /%}
+
+It never pays with {% term id="ruby" %}rubies{% /term %}. It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## It runs only during the event {% #event-only %}
+
+The page shows {% ui key="client:plugins.eventOnly" /%}. The plugin switches itself off when the event isn't running, and when it has played every level. Switch it on again for the next event.
+
+While the switch is on and the event hasn't started, the status says the bot is waiting for the Blade Coast event.
+
+## How it works {% #how-it-works %}
+
+The event has three levels: Normal, Hard and Hard plus. The bot plays them in that order. On each level it repeats these steps until the Kraken is beaten:
+
+1. **Join.** It chooses the camp and pays with resources from your {% term id="main-castle" %}main castle{% /term %} and coins. It joins only when your player level is high enough and the main castle holds the wood, stone and food the camp costs.
+2. **Build the camp.** It builds storehouses, tents and decorations, buys expansions with resources for more room, and collects the expansion chests.
+3. **Send goods.** It sends wood, stone and food to the camp, first from your supply castle, then from the castle that can spare the most. A quarter of the goods is lost on the way, as in the game.
+4. **Upgrade the warship.** It pays each port in full with the camp's wood and stone.
+5. **Send troops and tools.** It sends your troop and tools from the supply castle, when the camp is short of soldiers or of tools for the next island.
+6. **Attack.** It attacks the first open island with the camp's own {% term id="commander-game" %}commander{% /term %}, one attack at a time. It fills only the {% term id="wave" %}wave{% /term %} slots the island's level opens.
+7. **Close the level.** When the Kraken is beaten, it closes the level and joins the next one.
+
+The bot stops attacking for the rest of the event when it loses the same island twice, or when the event ends before an attack could land.
+
+## Pick the setup {% #setup %}
+
+**Blade Coast setup** is an editor with five fields:
+
+- {% ui key="client:plugins.bladeSetup.castle" /%}. Troops and tools come only from this castle. Goods come from it first. A {% term id="berimond" %}Berimond{% /term %} castle is not in the list.
+- {% ui key="client:plugins.bladeSetup.troop" /%}, with its level. The bot sends this troop to the camp.
+- {% ui key="client:plugins.bladeSetup.tool.wall" /%}, {% ui key="client:plugins.bladeSetup.tool.gate" /%} and {% ui key="client:plugins.bladeSetup.tool.ranged" /%}. Each list shows only the tools that lower that defence, and a tool picked for one defence is not offered for another.
+
+The castle list is empty until your bot has signed in once. Until every field is set, the editor says what is still to choose, the bot does nothing, and the status names the missing part.
+
+## Coins it keeps {% #coin-floor %}
+
+**Keep at least this many coins** is your {% term id="resource-floor" %}coin floor{% /term %}. Joining the camp and the coin fee for sending troops and tools never take your coins below it. The default is 100,000.
+
+## Time skips {% #skips %}
+
+**Use time skips on camp buildings and trips** is on by default. The bot spends the {% term id="time-skip" %}time skips{% /term %} your account settings allow on camp buildings and on the trips to the camp. It never skips an island's cooldown, and it never buys time with rubies.
+
+## The shortest way {% #shortest %}
+
+**Attack only the islands on the shortest way to the Kraken** leaves out the side islands that are not on a shortest way to the Kraken.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the attacks to the log instead of sending them**. The bot still reads the camp, and it writes every camp choice, build, transfer, port payment and attack to the {% term id="log" %}log{% /term %}. It sends none of them and spends no skips. After a pass that logged something, it waits 10 minutes before it looks again.
+
+## What it never does {% #never %}
+
+- It never pays with rubies: not for the camp, a building, a port, a faster march or an island cooldown. The bot checks every request before it leaves, and a request that would spend rubies is never sent.
+- It never takes your coins below your coin floor.
+- It never supplies the camp from Berimond.
+
+## Settings {% #settings %}
+
+The table lists every setting except **Blade Coast setup**, which is described above.
+
+{% settings plugin="bladeCoast" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+Every request the plugin sends comes from another bot's capture of the event, not from our own. Before you trust it on your main account, check these on a spare account with **Log only** off:
+
+- The camp is joined and each kind of building, expansion and port goes through.
+- The coin fee for sending troops and tools matches what the game takes.
+- The game opens the next level by itself after a level is closed.
