@@ -44,6 +44,7 @@ const { boxMullerRandom, pause } = require("../pacing.js")
 const stock = require("./stock.js")
 const loadItem = require("../paths.js").loadItem
 const { CASTLE_COSTS } = require("../orderable.js")
+const { BUP_REFUSALS, refusalMemory } = require("../refusals.js")
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
 const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
@@ -150,33 +151,8 @@ const STATUS_KEY = {
     queueUnknown: "statusToolsmithQueueUnknown", tooMany: "statusToolsmithTooMany", refused: "statusToolsmithRefused",
 }
 
-/**
- * What a `bup` refusal says, by the game's code: 10 coins and 55 resources short, 63 no free slot, 87 a tool level
- * the account lacks, 88 and 240 more than the game takes in one order. Any other code, 11 (rubies) among them, is a
- * plain refusal.
- */
-const REFUSALS = { 10: "noResources", 55: "noResources", 63: "queueFull", 87: "levelLocked", 88: "tooMany", 240: "tooMany" }
-const BACKOFF_ROUND = 15 * 60_000, BACKOFF_MAX = 60 * 60_000
-
-/**
- * What the game's refusals taught about each tool in each castle, by `<castle>:<wodID>`. `cap` halves the order
- * after "too many", `locked` stops a tool the account can't build, and `retryAt` holds a refused tool back 1, 2, 4…
- * rounds, an hour at most. `outcome` is the refusal the status shows meanwhile.
- */
-const learned = new Map()
-const heldBack = state => Boolean(state?.locked || state?.retryAt > Date.now())
-
-function noteRefusal(state, outcome, amount) {
-    state.outcome = outcome
-    if (outcome == "levelLocked")
-        state.locked = true
-    else if (outcome == "tooMany" && amount > 1)
-        state.cap = Math.floor(amount / 2)
-    else {
-        state.refusals = (state.refusals ?? 0) + 1
-        state.retryAt = Date.now() + Math.min(BACKOFF_MAX, BACKOFF_ROUND * 2 ** (state.refusals - 1))
-    }
-}
+/** What the game's refusals taught about each tool in each castle, by `<castle>:<wodID>`. */
+const learned = refusalMemory()
 
 const asRows = value => Array.isArray(value) ? value : []
 const asNumber = (value, fallback) => Number.isFinite(Number(value)) && value !== "" && value !== null ? Number(value) : fallback
@@ -253,9 +229,9 @@ async function cycle(active) {
                 }
                 const built = units.get(level.wodID)
                 const learnedKey = `${castle.id}:${level.wodID}`
-                const state = learned.get(learnedKey) ?? {}
-                if (heldBack(state)) {
-                    outcomes[i].add(state.outcome)
+                const holding = learned.holding(learnedKey)
+                if (holding) {
+                    outcomes[i].add(holding)
                     continue
                 }
                 for (;;) {
@@ -268,7 +244,7 @@ async function cycle(active) {
                         outcomes[i].add("queueFull")
                         break
                     }
-                    const amount = Math.min(MAX_PER_ORDER, state.cap ?? Infinity, deficit, affordable(built, castle, floor))
+                    const amount = Math.min(MAX_PER_ORDER, learned.cap(learnedKey), deficit, affordable(built, castle, floor))
                     if (!(amount > 0)) {
                         outcomes[i].add("noResources")
                         break
@@ -282,9 +258,8 @@ async function cycle(active) {
                         const { result } = await ask("bup", order)
                         if (result !== 0) {
                             console.warn("toolsmithRefused", JSON.stringify(order), " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
-                            const outcome = REFUSALS[result] ?? "refused"
-                            noteRefusal(state, outcome, amount)
-                            learned.set(learnedKey, state)
+                            const outcome = BUP_REFUSALS[result] ?? "refused"
+                            learned.refused(learnedKey, outcome, amount)
                             outcomes[i].add(outcome)
                             if (outcome == "levelLocked")
                                 console.warn("toolsmithLevelLocked", String(built.type))
@@ -292,8 +267,7 @@ async function cycle(active) {
                                 free = 0
                             break
                         }
-                        state.refusals = 0
-                        state.retryAt = 0
+                        learned.accepted(learnedKey)
                         stock.noteQueued(castle, level.wodID, amount)
                     }
                     const key = `${level.wodID}:${row.castle?.id ?? ""}`

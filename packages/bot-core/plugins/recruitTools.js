@@ -26,6 +26,7 @@ const { ask, chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
 const { UNITS_LIST, TOOLS_LIST, orderListOf, priceOf } = require("../orderable.js")
 const stock = require("./stock.js")
+const { BUP_REFUSALS, refusalMemory } = require("../refusals.js")
 const loadItem = require("../paths.js").loadItem
 
 const pluginOptions = botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {}
@@ -34,14 +35,6 @@ reportStatus("waiting", "statusRecruitToolsStarting")
 
 /** The client's default for `bup`'s SK field. */
 const CLIENT_SK = 73
-
-/**
- * What a `bup` refusal says about the row, by the game's code: 10 coins and 55 resources short, 63 no free slot,
- * 87 a building or unit level the account lacks, 88 and 240 more than the game takes in one order. Any other code,
- * 11 (rubies) among them, is a plain refusal.
- */
-const REFUSALS = { 10: "noResources", 55: "noResources", 63: "queueFull", 87: "levelLocked", 88: "tooMany", 240: "tooMany" }
-const BACKOFF_ROUND = 15 * 60_000, BACKOFF_MAX = 60 * 60_000
 
 const units = new Map(loadItem("units").map(unit => [Number(unit.wodID), unit]))
 
@@ -72,26 +65,9 @@ const buildingItems = new Map(loadItem("buildings").filter(building => building.
 const soldiersPerOrder = castle => Math.max(0, ...(castle.buildings ?? []).map(building => buildingItems.get(building.wodID))
     .filter(item => item?.name == "Barracks").map(item => Number(item.stackSize) || 0)) || Infinity
 
-/**
- * What the game's refusals taught about each row, by `rowKey`. `cap` halves the order after "too many", `locked` stops
- * a row the account can't make, and `retryAt` holds a refused row back 1, 2, 4… rounds, an hour at most. `outcome` is
- * the refusal the status shows meanwhile.
- */
-const learned = new Map()
+/** What the game's refusals taught about each row, by `rowKey`. */
+const learned = refusalMemory()
 const rowKey = row => `${row.list}:${row.ref.kingdom}:${row.ref.id}:${row.wodID}`
-const heldBack = state => Boolean(state?.locked || state?.retryAt > Date.now())
-
-function noteRefusal(state, outcome, amount) {
-    state.outcome = outcome
-    if (outcome == "levelLocked")
-        state.locked = true
-    else if (outcome == "tooMany" && amount > 1)
-        state.cap = Math.floor(amount / 2)
-    else {
-        state.refusals = (state.refusals ?? 0) + 1
-        state.retryAt = Date.now() + Math.min(BACKOFF_MAX, BACKOFF_ROUND * 2 ** (state.refusals - 1))
-    }
-}
 
 /**
  * Why `castle` can't make `unit`, or undefined when it can or when that can't be told. It can be told only when the
@@ -196,9 +172,9 @@ async function cycle(active) {
                 const mine = indexes.filter(i => {
                     if (rows[i].list != list)
                         return false
-                    const state = learned.get(rowKey(rows[i]))
-                    if (heldBack(state)) {
-                        outcomes[i].add(state.outcome)
+                    const holding = learned.holding(rowKey(rows[i]))
+                    if (holding) {
+                        outcomes[i].add(holding)
                         return false
                     }
                     const verdict = cantMake(castle, rows[i].unit)
@@ -234,8 +210,7 @@ async function cycle(active) {
                 for (const i of mine) {
                     const row = rows[i]
                     const dryKey = `${castle.id}:${row.wodID}`
-                    const state = learned.get(rowKey(row)) ?? {}
-                    const perOrder = Math.min(state.cap ?? Infinity, list == TOOLS_LIST ? MAX_TOOLS_PER_ORDER : row.unit.name == "Barracks" ? soldiersPerOrder(castle) : Infinity)
+                    const perOrder = Math.min(learned.cap(rowKey(row)), list == TOOLS_LIST ? MAX_TOOLS_PER_ORDER : row.unit.name == "Barracks" ? soldiersPerOrder(castle) : Infinity)
                     for (;;) {
                         const deficit = row.stock - stock.toolStock(row.wodID, { castle: { kingdom: castle.kingdomID, id: castle.id } }).total - (dryOrdered.get(dryKey) ?? 0)
                         if (deficit <= 0) {
@@ -266,9 +241,8 @@ async function cycle(active) {
                             const { reply, result } = await ask("bup", order)
                             if (result !== 0) {
                                 console.warn("recruitToolsRefused", JSON.stringify(order), " ", result === undefined ? "TIMED_OUT" : err[result] ?? result)
-                                const outcome = REFUSALS[result] ?? "refused"
-                                noteRefusal(state, outcome, amount)
-                                learned.set(rowKey(row), state)
+                                const outcome = BUP_REFUSALS[result] ?? "refused"
+                                learned.refused(rowKey(row), outcome, amount)
                                 outcomes[i].add(outcome)
                                 if (outcome == "levelLocked")
                                     console.warn("recruitToolsLevelLocked", String(row.unit.type))
@@ -278,8 +252,7 @@ async function cycle(active) {
                                 }
                                 break
                             }
-                            state.refusals = 0
-                            state.retryAt = 0
+                            learned.accepted(rowKey(row))
                             if (!took(room, reply, order)) {
                                 console.warn("recruitToolsQueueUnknown", castle.kingdomID, castle.id, list, JSON.stringify(reply.spl))
                                 outcomes[i].add("queueUnknown")
