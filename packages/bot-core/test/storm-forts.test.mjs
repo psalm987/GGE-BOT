@@ -119,7 +119,8 @@ describe("mead for the Storm Islands", () => {
             },
         })
         bot.events.emit("load")
-        await vi.advanceTimersByTimeAsync(1000)
+        // The sender waits up to 15 s for the dcl refresh, which nothing answers here.
+        await vi.advanceTimersByTimeAsync(20_000)
         return sent
     }
     test("as stored today it fills the Storm castle", async () => {
