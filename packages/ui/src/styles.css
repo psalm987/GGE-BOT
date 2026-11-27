@@ -433,32 +433,37 @@ body {
     .gge-alert-action { justify-content: flex-start; padding-bottom: 6px; }
 }
 
-/* An account's top errors: the class in words and an icon, the game's code, how often and when. */
-.gge-top-errors { display: grid; gap: 8px; }
-.gge-top-error-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.gge-top-error {
+/* An account's problems: the class in words and an icon, the refusal in plain words, then the plugin, the game's code, how often and when. */
+.gge-problems { display: grid; gap: 8px; }
+.gge-problem-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gge-problem {
     display: grid;
-    grid-template-columns: minmax(max-content, 9.5rem) minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 4px 12px;
+    grid-template-columns: minmax(max-content, 9.5rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 2px 12px;
     min-height: 44px;
     padding: 6px 12px;
     border: 1px solid var(--gge-rule);
     border-inline-start-width: 3px;
     border-radius: 6px;
 }
-.gge-top-error[data-class="severe"] { border-inline-start-color: var(--gge-level-error); }
-.gge-top-error[data-class="notNow"] { border-inline-start-color: var(--gge-level-not-now); }
-.gge-top-error[data-class="other"] { border-inline-start-color: var(--gge-level-warn); }
-.gge-top-error-class { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
-.gge-top-error[data-class="severe"] .gge-top-error-class { color: var(--gge-level-error); }
-.gge-top-error[data-class="notNow"] .gge-top-error-class { color: var(--gge-level-not-now); }
-.gge-top-error[data-class="other"] .gge-top-error-class { color: var(--gge-level-warn); }
-.gge-top-error code { font-family: var(--gge-mono); font-size: 13px; overflow-wrap: anywhere; }
-.gge-top-error-count, .gge-top-error-when { color: var(--gge-muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gge-problem[data-class="severe"] { border-inline-start-color: var(--gge-level-error); }
+.gge-problem[data-class="notNow"] { border-inline-start-color: var(--gge-level-not-now); }
+.gge-problem[data-class="other"] { border-inline-start-color: var(--gge-level-warn); }
+.gge-problem-class { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.gge-problem[data-class="severe"] .gge-problem-class { color: var(--gge-level-error); }
+.gge-problem[data-class="notNow"] .gge-problem-class { color: var(--gge-level-not-now); }
+.gge-problem[data-class="other"] .gge-problem-class { color: var(--gge-level-warn); }
+.gge-problem-meta {
+    grid-column: 2;
+    display: flex; flex-wrap: wrap; gap: 2px 12px;
+    color: var(--gge-muted); font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.gge-problem-plugin { font-weight: 500; }
+.gge-problem-meta code { font-family: var(--gge-mono); overflow-wrap: anywhere; }
 @media (max-width: 575.98px) {
-    .gge-top-error { grid-template-columns: 1fr auto; }
-    .gge-top-error-class, .gge-top-error code { grid-column: 1 / -1; }
+    .gge-problem { grid-template-columns: minmax(0, 1fr); }
+    .gge-problem-meta { grid-column: 1; }
 }
 
 /* The dashboard's figures above the roster. */

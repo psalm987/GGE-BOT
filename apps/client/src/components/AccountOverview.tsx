@@ -1,4 +1,5 @@
 import { CaretRightFilled, ClockCircleFilled, CloseCircleFilled, CoffeeOutlined, DollarOutlined, ExperimentOutlined, GoldOutlined, SketchOutlined, ThunderboltOutlined, WarningFilled } from "@ant-design/icons"
+import { useQuery } from "@tanstack/react-query"
 import { Button, Skeleton, Typography } from "antd"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
@@ -6,11 +7,11 @@ import type { ReactNode } from "react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import type { AccountResources, PublicAccount } from "@gge/contracts"
+import { PROBLEMS_KEPT, type AccountResources, type PublicAccount } from "@gge/contracts"
 import { CrestEmpty } from "@gge/ui"
 import { useSetDesiredState } from "../account-state.ts"
-import { topErrors, type ErrorClass } from "../game-errors.ts"
-import { useLogFeed } from "../log-feed.ts"
+import { orpc } from "../api.ts"
+import { problemRows, type ErrorClass } from "../game-errors.ts"
 
 dayjs.extend(relativeTime)
 
@@ -42,43 +43,49 @@ const ERROR_CLASSES: Record<ErrorClass | "other", { icon: ReactNode; word: strin
     notNow: { icon: <ClockCircleFilled aria-hidden />, word: "overview.errors.notNow" },
     other: { icon: <WarningFilled aria-hidden />, word: "overview.errors.other" },
 }
-const TOP_ERRORS = 5
+/** How often a running bot's problems are read again. */
+const PROBLEMS_REFRESH_MS = 30_000
 
-/** The codes the game refused this account with most, from the warnings and errors the runner kept. Each says in words how serious it is. */
-function TopErrors({ accountId }: { accountId: string }) {
+/** The game's refusals of the account's requests in plain words, each with the plugin that asked, how serious it is, how often and when last. */
+function Problems({ account }: { account: PublicAccount }) {
     const { t, i18n } = useTranslation("client")
-    const ids = useMemo(() => [accountId], [accountId])
-    // No live subscription: Centrifugo refuses a second subscription to a channel, and the Logs tab holds this account's.
-    const { lines, feed } = useLogFeed({ accountIds: ids, levels: [1, 2, 3], plugins: [] }, [])
-    const top = useMemo(() => topErrors(lines, TOP_ERRORS), [lines])
+    const { t: tb } = useTranslation("bot")
+    const running = account.status?.actualState === "running"
+    const problems = useQuery({ ...orpc.accounts.problems.queryOptions({ input: { id: account.id } }), refetchInterval: running ? PROBLEMS_REFRESH_MS : false })
+    const rows = useMemo(() => problemRows(problems.data ?? [], key => i18n.exists(key, { ns: "client" })), [problems.data, i18n])
     const number = new Intl.NumberFormat(i18n.language)
-    const heading = <Typography.Title level={5} className="gge-display" style={{ margin: 0 }}>{t("overview.errors.title")}</Typography.Title>
-    if (feed.isPending)
-        return <section className="gge-top-errors" aria-busy>{heading}<Skeleton active title={false} paragraph={{ rows: 2 }} /></section>
-    if (feed.isError)
-        return <section className="gge-top-errors">{heading}<Typography.Text type="secondary" role="alert">{t("overview.errors.failed")}</Typography.Text></section>
+    const heading = <Typography.Title level={5} className="gge-display" style={{ margin: 0 }}>{t("overview.problems.title")}</Typography.Title>
+    if (problems.isPending)
+        return <section className="gge-problems" aria-busy>{heading}<Skeleton active title={false} paragraph={{ rows: 2 }} /></section>
+    if (problems.isError)
+        return <section className="gge-problems">{heading}<Typography.Text type="secondary" role="alert">{t("overview.errors.failed")}</Typography.Text></section>
     return (
-        <section className="gge-top-errors">
+        <section className="gge-problems">
             {heading}
-            {top.length === 0 ? (
+            <Typography.Paragraph type="secondary" className="gge-overview-note">{t("overview.problems.intro")}</Typography.Paragraph>
+            {rows.length === 0 ? (
                 <Typography.Text type="secondary">{t("overview.errors.none")}</Typography.Text>
             ) : (
-                <ol className="gge-top-error-list">
-                    {top.map(({ code, errorClass, count, lastAt }) => {
-                        const { icon, word } = ERROR_CLASSES[errorClass ?? "other"]
+                <ol className="gge-problem-list" aria-label={t("overview.problems.list")}>
+                    {rows.map(row => {
+                        const { icon, word } = ERROR_CLASSES[row.errorClass ?? "other"]
                         return (
-                            <li key={code} className="gge-top-error" data-class={errorClass ?? "other"}>
-                                <span className="gge-top-error-class">{icon} {t(word)}</span>
-                                <code>{code}</code>
-                                <span className="gge-top-error-count">{t("overview.errors.times", { count, formatted: number.format(count) })}</span>
-                                <time dateTime={lastAt.toISOString()} className="gge-top-error-when">{dayjs(lastAt).fromNow()}</time>
+                            <li key={`${row.plugin} ${row.command} ${row.error}`} className="gge-problem" data-class={row.errorClass ?? "other"}>
+                                <span className="gge-problem-class">{icon} {t(word)}</span>
+                                <span className="gge-problem-text">{t("overview.problems.refused", { action: t(row.action), reason: t(row.reason, { error: row.error }) })}</span>
+                                <span className="gge-problem-meta">
+                                    <span className="gge-problem-plugin">{tb(row.plugin, { defaultValue: row.plugin })}</span>
+                                    <code>{row.command} {row.error}</code>
+                                    <span>{t("overview.errors.times", { count: row.count, formatted: number.format(row.count) })}</span>
+                                    <time dateTime={row.lastAt.toISOString()} title={dayjs(row.lastAt).format("D MMM YYYY HH:mm:ss")}>{dayjs(row.lastAt).fromNow()}</time>
+                                </span>
                             </li>
                         )
                     })}
                 </ol>
             )}
             <Typography.Paragraph type="secondary" className="gge-overview-note">
-                {t("overview.errors.basis", { count: lines.length })} <Link to={`/logs?account=${accountId}`}>{t("overview.errors.seeLogs")}</Link>
+                {t("overview.problems.kept", { count: PROBLEMS_KEPT })} <Link to={`/logs?account=${account.id}`}>{t("overview.errors.seeLogs")}</Link>
             </Typography.Paragraph>
         </section>
     )
@@ -120,7 +127,7 @@ export function AccountOverview({ account }: { account: PublicAccount }) {
                     : t("overview.updatedUnknown")}
                 {" "}{t("overview.stormNote")}
             </Typography.Paragraph>
-            <TopErrors accountId={account.id} />
+            <Problems account={account} />
         </div>
     )
 }

@@ -5,7 +5,8 @@
 //   insertNotification in packages/db does, marked as already emailed so the dev mailer leaves it alone.
 // Usage: node dev-db.cjs log <account name> <level 0|1|2> <plugin> <part>...   e.g. log Ironhold 1 feast notEnoughFoodToFeast
 //        node dev-db.cjs notify <account name> [crash_loop|incoming_attack]
-// Or require it for insertLogLine({ accountName, level, plugin, parts }) and insertNotification({ accountName, kind }).
+// Or require it for insertLogLine({ accountName, level, plugin, parts }), insertNotification({ accountName, kind }),
+// insertResources({ accountName, resources }), storePluginSettings(...) and storeProblems({ accountName, problems }).
 // The Postgres URL comes from DATABASE_URL, else from the `pnpm dev` banner in DEV_LOG (default /tmp/gge-dev.log).
 const fs = require("node:fs")
 const path = require("node:path")
@@ -120,7 +121,23 @@ function storePluginSettings({ accountName, plugin, enabled, options }) {
         [accountName, plugin, enabled, JSON.stringify(options)]))
 }
 
-module.exports = { withDatabase, insertLogLine, insertNotification, insertResources, storePluginSettings }
+/**
+ * Replaces the account's problems with `problems`, each `{ plugin, command, error, count, minutesAgo }`, the way the
+ * runner's store keeps the game's refusals: one row per plugin, command and error with how often it came.
+ */
+function storeProblems({ accountName, problems }) {
+    return withAccount(accountName, async (db, account) => {
+        await db.query("delete from bot_problems where account_id = $1", [account.id])
+        for (const { plugin, command, error, count, minutesAgo } of problems) {
+            const at = new Date(Date.now() - minutesAgo * 60_000)
+            await db.query(
+                "insert into bot_problems (account_id, plugin, command, error, count, first_at, last_at) values ($1, $2, $3, $4, $5, $6, $6)",
+                [account.id, plugin, command, error, count, at])
+        }
+    })
+}
+
+module.exports = { withDatabase, insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems }
 
 if (require.main === module) {
     const [command, accountName, level, plugin, ...parts] = process.argv.slice(2)
