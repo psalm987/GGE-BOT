@@ -97,3 +97,44 @@ test("a queue read answered by another list's push is dropped, not counted", asy
     bot.xtHandler.emit("spl", { PS: {}, QS: [], RM: 0, TCT: 0, LID: 0 }, 0)
     expect(await read).toBeUndefined()
 })
+
+const workshop = { LID: 1, PS: { WID: 614, TUA: 5 }, QS: [{ SI: { RUT: -1, VIP: 0 } }, { SI: { RUT: 0, VIP: 0 } }], TCT: 40 }
+const joinCastle10 = bot => bot.xtHandler.emit("jaa", { KID: 0, grc: { KID: 0, AID: 10 }, gca: {}, spl1: workshop }, 0)
+const spls = bot => bot.sent.filter(([cmd]) => cmd == "spl")
+
+test("a queue the castle's join carried is read from the join, with no spl sent", async () => {
+    const { bot, mod, dcl } = account()
+    dcl([{ KID: 0, AI: [{ AID: 10, AC: [] }] }])
+    joinCastle10(bot)
+    expect(await mod.readQueue({ kingdomID: 0, id: 10 }, 1)).toEqual({ freeSlots: 1, emptySlots: 1, psIdle: false, seconds: 40, unknown: false })
+    expect(spls(bot)).toEqual([])
+    expect(mod.toolStock(614).queued).toBe(5)
+})
+
+test("once the bot queues an order there, or the game pushes a change to the list, the queue is asked for with spl", async () => {
+    const answer = bot => setTimeout(() => bot.xtHandler.emit("spl", { ...workshop, PS: {} }, 0), 1)
+    for (const change of [
+        (mod) => mod.noteQueued({ kingdomID: 0, id: 10 }, 614, 80, 1),
+        (mod, bot) => bot.xtHandler.emit("spl", { LID: 1, PS: {}, QS: [] }, 0),
+    ]) {
+        const { bot, mod } = account()
+        joinCastle10(bot)
+        vi.setSystemTime(Date.now() + 1000)
+        change(mod, bot)
+        const read = mod.readQueue({ kingdomID: 0, id: 10 }, 1)
+        answer(bot)
+        await vi.advanceTimersByTimeAsync(5)
+        expect(await read).toMatchObject({ psIdle: true })
+        expect(spls(bot)).toEqual([["spl", { LID: 1 }]])
+    }
+})
+
+test("a list the join didn't carry is asked for with spl", async () => {
+    const { bot, mod } = account()
+    joinCastle10(bot)
+    const read = mod.readQueue({ kingdomID: 0, id: 10 }, 0)
+    setTimeout(() => bot.xtHandler.emit("spl", { LID: 0, PS: {}, QS: [] }, 0), 1)
+    await vi.advanceTimersByTimeAsync(5)
+    expect(await read).toMatchObject({ psIdle: true })
+    expect(spls(bot)).toEqual([["spl", { LID: 0 }]])
+})

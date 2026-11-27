@@ -21,7 +21,7 @@ These events change the castle the bot thinks it is in:
 
 ## Production lists in a join
 
-The `jaa` reply carries `spl0` to `spl3` at its top level. The client passes each one to `CastleModel.militaryData.parse_SPL`. `castleQueue(kingdomID, castleID, lid)` returns the list with that `LID` from the castle's last join, as `{ spl, at }`.
+The `jaa` reply carries `spl0` to `spl3` at its top level. The client passes each one to `CastleModel.militaryData.parse_SPL`. `castleQueue(kingdomID, castleID, lid)` returns the list with that `LID` from the castle's last join, as `{ spl, at }`. `plugins/stock.js` reads a castle's production queue from there, as Lazy Lord does. It sends `spl` only when the join carried no list with that `LID`, or when the list changed after the join: the bot queued an order on it, or the game sent an `spl` for it.
 
 ## Castle updates
 
