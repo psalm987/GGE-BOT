@@ -116,6 +116,47 @@ export const BladeCoastSetup = z.object({
 })
 export type BladeCoastSetup = z.infer<typeof BladeCoastSetup>
 
+/**
+ * A kind of building a Build plan may name, as bot-core's buildPlan.js offers it. `nameKey` is the game's language-file
+ * key, rendered through the `game` namespace, and `label` its English text. `maxCount` is 0 for no limit. An
+ * `upgradeOnly` kind is one the castle is given, such as the keep, and `all` means every one the castle has, as with
+ * towers. `kingdoms` and `areaTypes` are empty for anywhere. `requires` holds each level's required player level and
+ * legend level, level 1 first.
+ */
+export const BuildingChoice = z.object({
+    name: z.string().min(1).max(64), nameKey: z.string(), label: z.string(),
+    category: z.enum(["CASTLE", "CIVIL", "MILITARY", "DECO"]),
+    maxLevel: z.number().int().min(1), maxCount: z.number().int().min(0),
+    upgradeOnly: z.boolean(), all: z.boolean(),
+    kingdoms: z.array(z.number().int()), notKingdoms: z.array(z.number().int()), areaTypes: z.array(z.number().int()),
+    requires: z.array(z.tuple([z.number().int(), z.number().int()])),
+})
+export type BuildingChoice = z.infer<typeof BuildingChoice>
+
+/** One row of a Build plan: the castle should have `count` of `building` at `level` or higher. */
+export const BuildPlanRow = z.strictObject({ building: z.string().min(1).max(64), level: z.number().int().min(1), count: z.number().int().min(1) })
+export type BuildPlanRow = z.infer<typeof BuildPlanRow>
+/** A castle's part of a Build plan: its rows, whether builds are finished with time skips, and whether expansions are bought with wood and stone. */
+export const BuildPlanCastle = z.strictObject({ castle: CastleRef, useSkips: z.boolean(), buyExpansions: z.boolean(), rows: z.array(BuildPlanRow) })
+export type BuildPlanCastle = z.infer<typeof BuildPlanCastle>
+/** What the Build plugin builds: a part for each castle, each castle once. */
+export const BuildPlan = z.array(BuildPlanCastle)
+export type BuildPlan = z.infer<typeof BuildPlan>
+
+export const BUILD_PLAN_MAX_CASTLES = 50
+export const BUILD_PLAN_MAX_ROWS = 80
+/** The most a row may ask for of a building the game sets no limit on. */
+export const BUILD_PLAN_MAX_COUNT = 100
+/** Berimond, whose camp takes only buildings that name it. */
+const BERIMOND_KINGDOM = 10
+
+/** Whether a castle of `kingdom` may have the building: bot-core's buildPlan.js applies the same rule before it builds. */
+export const buildingFitsKingdom = (choice: BuildingChoice, kingdom: number) =>
+    !choice.notKingdoms.includes(kingdom) && (choice.kingdoms.length ? choice.kingdoms.includes(kingdom) : kingdom !== BERIMOND_KINGDOM)
+
+/** The most a row may ask for of the building: 1 of an upgrade-only kind, else the game's limit, else BUILD_PLAN_MAX_COUNT. */
+export const buildingCountLimit = (choice: BuildingChoice) => choice.upgradeOnly ? 1 : choice.maxCount || BUILD_PLAN_MAX_COUNT
+
 /** The option types plugins declare (bot-core plugins' pluginOptions). Any option with a key may set `showWhen`. */
 export const PluginOptionDef = z.discriminatedUnion("type", [
     /** Layout gap in the settings grid; holds no value. */
@@ -150,6 +191,8 @@ export const PluginOptionDef = z.discriminatedUnion("type", [
     z.looseObject({ type: z.literal("Waves"), key, default: z.undefined().optional(), showWhen, army }),
     /** A BladeCoastSetup picked from `troops` and `tools`, the units the Blade Coast camp takes; null until the player sets it up. */
     z.looseObject({ type: z.literal("BladeCoastSetup"), key, troops: z.array(BladeCoastUnit), tools: z.array(BladeCoastTool), default: z.null().optional(), showWhen }),
+    /** A BuildPlan written from `buildings`, the kinds the Build plugin can build or upgrade; empty until the player writes one. */
+    z.looseObject({ type: z.literal("BuildPlan"), key, buildings: z.array(BuildingChoice), default: z.array(BuildPlanCastle).max(0), showWhen }),
 ])
 export type PluginOptionDef = z.infer<typeof PluginOptionDef>
 /** An option that holds a value: every type but the layout gap and the label. */
@@ -197,7 +240,7 @@ export const enabledAttackPlugins = (catalog: PluginCatalogEntry[], settings: Pl
     catalog.filter(e => e.category === "attack" && !e.force && settings[e.key]?.enabled).length
 export type PluginCatalogEntry = z.infer<typeof PluginCatalogEntry>
 
-export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap, BladeCoastSetup])
+export const OptionValue = z.union([z.string(), z.number(), z.boolean(), z.null(), CastleRef, WavePlan, z.array(z.number().int()), z.array(RowValue), CommanderMap, BladeCoastSetup, BuildPlan])
 export type OptionValue = z.infer<typeof OptionValue>
 
 export const PluginSetting = z.object({
@@ -389,7 +432,42 @@ function normalizeValue(catalog: PluginCatalogEntry[], def: PluginOptionDef, val
             return checkCommanderMap(catalog, def.buckets, value, where)
         case "BladeCoastSetup":
             return value === null ? null : checkBladeCoastSetup(def, value, where)
+        case "BuildPlan":
+            return checkBuildPlan(def, value, where)
     }
+}
+
+/** A plan with each castle once, and every row a building the option offers for that castle's kingdom, once, within its levels and its count. */
+function checkBuildPlan({ buildings }: Extract<PluginOptionDef, { type: "BuildPlan" }>, value: OptionValue, where: string): BuildPlan {
+    const parsed = BuildPlan.safeParse(value)
+    if (!parsed.success)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ITEM", params: { where } })
+    if (parsed.data.length > BUILD_PLAN_MAX_CASTLES)
+        throw new PluginSettingsError({ code: "PLUGIN_OPTION_ROWS", params: { where, max: BUILD_PLAN_MAX_CASTLES } })
+    const byName = new Map(buildings.map(choice => [choice.name, choice]))
+    const castles = new Set<string>()
+    parsed.data.forEach((part, i) => {
+        const at = `${where}[${i}]`
+        const castle = `${part.castle.kingdom}:${part.castle.id}`
+        if (castles.has(castle))
+            throw new PluginSettingsError({ code: "PLUGIN_OPTION_CASTLE", params: { where: `${at}.castle` } })
+        castles.add(castle)
+        if (part.rows.length > BUILD_PLAN_MAX_ROWS)
+            throw new PluginSettingsError({ code: "PLUGIN_OPTION_ROWS", params: { where: `${at}.rows`, max: BUILD_PLAN_MAX_ROWS } })
+        const named = new Set<string>()
+        part.rows.forEach((row, j) => {
+            const rowAt = `${at}.rows[${j}]`
+            const choice = byName.get(row.building)
+            if (!choice || named.has(row.building) || !buildingFitsKingdom(choice, part.castle.kingdom))
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_ITEM", params: { where: `${rowAt}.building` } })
+            named.add(row.building)
+            if (row.level > choice.maxLevel)
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where: `${rowAt}.level`, min: 1, max: choice.maxLevel } })
+            if (row.count > buildingCountLimit(choice))
+                throw new PluginSettingsError({ code: "PLUGIN_OPTION_RANGE", params: { where: `${rowAt}.count`, min: 1, max: buildingCountLimit(choice) } })
+        })
+    })
+    return parsed.data
 }
 
 /** A setup whose castle is outside Berimond and whose every pick is a type and level the option offers, one tool for each defence it lowers. */

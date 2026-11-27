@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { Button, Checkbox, Col, Form, Input, InputNumber, Select, Slider, Typography } from "antd"
 import { createContext, useContext, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { BLADE_COAST_EXCLUDED_KINGDOMS, KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, TOOL_ROLES, type AccountCastle, type BladeCoastSetup, type BladeCoastTool, type BladeCoastUnit, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
+import { BLADE_COAST_EXCLUDED_KINGDOMS, KINGDOM_IDS, MAIN_CASTLE, MAIN_CASTLE_AREA_TYPES, SKIP_MINUTES, TOOL_ROLES, type AccountCastle, type BladeCoastSetup, type BladeCoastTool, type BladeCoastUnit, type BuildPlan, type BuildPlanCastle, type BuildPlanRow, type BuildingChoice, type CastleRef, type GameItem, type GameItemKind, type ItemCatalog, type PluginCatalogEntry, type PluginOptionDef, type RowColumn, type RowValue, type SkipTypes } from "@gge/contracts"
 import { palette } from "@gge/ui"
 import { orpc } from "../api.ts"
 import { EMPTY_SETUP, missingPicks, unitOptions } from "../blade-coast.ts"
+import { addCastle, addRow, buildingOptions, castleOfPart, countOf, offeredTo, requirementOf, unplannedCastles } from "../build-plan.ts"
 import { castleKey, castleOptions, toCastle } from "../castle-options.ts"
 import { itemCode, itemLabel, itemOptionFilter, itemOptionLabel } from "../item-names.ts"
 import { ArmyModeField, WavesField } from "./ArmyFields.tsx"
@@ -293,6 +294,91 @@ function BladeCoastSetupField({ troops, tools, castles, value, onChange, id }: {
     )
 }
 
+/**
+ * The Build plugin's plan: a card for each castle with its two switches and a row for each building, its level and how
+ * many. A castle and a building are added by picking them, so the plan never holds a half-filled row. A castle is
+ * offered only the buildings of its kingdom and castle type, each once. Buildings are named by the game's own names.
+ */
+function BuildPlanField({ buildings, castles, value = [], onChange, id }: {
+    buildings: BuildingChoice[]; castles: AccountCastle[]; value?: BuildPlan; onChange?: (v: BuildPlan) => void; id?: string
+}) {
+    const { t } = useTranslation("client")
+    const { t: tg } = useTranslation("game")
+    const kingdomName = useKingdomName()
+    const byName = new Map(buildings.map(choice => [choice.name, choice]))
+    const words = { name: (choice: BuildingChoice) => tg(choice.nameKey, { defaultValue: choice.label }), group: (category: string) => t(`plugins.buildPlan.category.${category}`) }
+    const setPart = (index: number, patch: Partial<BuildPlanCastle>) => onChange?.(value.map((part, i) => i === index ? { ...part, ...patch } : part))
+    const setRow = (index: number, at: number, patch: Partial<BuildPlanRow>) =>
+        setPart(index, { rows: value[index]!.rows.map((row, j) => j === at ? { ...row, ...patch } : row) })
+    const titleOf = (part: BuildPlanCastle) => {
+        const castle = castleOfPart(castles, part.castle)
+        const option = castle && castleOptions([castle], t, kingdomName)[0]
+        return option && !("options" in option)
+            ? t("plugins.castle.chosen", { castle: option.label, kingdom: kingdomName(part.castle.kingdom) })
+            : t("plugins.buildPlan.castleGone", { kingdom: kingdomName(part.castle.kingdom), id: part.castle.id })
+    }
+    const muted = { color: palette.muted, fontSize: 13 }
+    return (
+        <div id={id} style={{ display: "grid", gap: 12 }}>
+            {value.length === 0 && <Typography.Text type="secondary">{t("plugins.buildPlan.empty")}</Typography.Text>}
+            {value.map((part, index) => {
+                const title = titleOf(part)
+                const offered = offeredTo(buildings, part.castle.kingdom, castleOfPart(castles, part.castle))
+                const planned = new Set(part.rows.map(row => row.building))
+                return (
+                    <section key={castleKey(part.castle)} aria-label={title} data-build-castle={castleKey(part.castle)}
+                        style={{ display: "grid", gap: 8, border: `1px solid ${palette.rule}`, borderRadius: 8, padding: 12, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <Typography.Text strong style={{ flex: 1, minWidth: 0 }}>{title}</Typography.Text>
+                            <Button type="text" icon={<DeleteOutlined />} aria-label={t("plugins.buildPlan.removeCastle", { castle: title })}
+                                style={{ minWidth: 44, height: 44 }} onClick={() => onChange?.(value.filter((_, i) => i !== index))} />
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
+                            <Checkbox checked={part.useSkips} onChange={event => setPart(index, { useSkips: event.target.checked })}>{t("plugins.buildPlan.useSkips")}</Checkbox>
+                            <Checkbox checked={part.buyExpansions} onChange={event => setPart(index, { buyExpansions: event.target.checked })}>{t("plugins.buildPlan.buyExpansions")}</Checkbox>
+                        </div>
+                        {part.rows.length === 0 && <Typography.Text type="secondary" style={muted}>{t("plugins.buildPlan.noRows")}</Typography.Text>}
+                        {part.rows.map((row, at) => {
+                            const choice = byName.get(row.building)
+                            const name = choice ? words.name(choice) : row.building
+                            const count = choice && countOf(choice)
+                            const needs = choice && requirementOf(choice, row.level)
+                            return (
+                                <div key={row.building} data-build-row={row.building} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, borderTop: `1px solid ${palette.rule}`, paddingTop: 8 }}>
+                                    <span style={{ flex: "1 1 160px", minWidth: 0 }}>{name}</span>
+                                    {choice && count ? (
+                                        <>
+                                            <InputNumber aria-label={t("plugins.buildPlan.levelOf", { building: name })} prefix={t("plugins.buildPlan.level")} min={1} max={choice.maxLevel} precision={0}
+                                                value={row.level} onChange={level => level !== null && setRow(index, at, { level })} style={{ flex: "0 0 128px" }} />
+                                            {count.fixed
+                                                ? <span style={{ ...muted, flex: "0 0 128px" }}>{t(count.all ? "plugins.buildPlan.all" : "plugins.buildPlan.one")}</span>
+                                                : <InputNumber aria-label={t("plugins.buildPlan.countOf", { building: name })} prefix={t("plugins.buildPlan.count")} min={1} max={count.max} precision={0}
+                                                    value={row.count} onChange={n => n !== null && setRow(index, at, { count: n })} style={{ flex: "0 0 128px" }} />}
+                                        </>
+                                    ) : <Typography.Text type="warning" style={{ flex: "1 1 200px" }}>{t("plugins.buildPlan.unknownBuilding")}</Typography.Text>}
+                                    <Button type="text" icon={<DeleteOutlined />} aria-label={t("plugins.buildPlan.removeRow", { building: name })}
+                                        style={{ minWidth: 44, height: 44 }} onClick={() => setPart(index, { rows: part.rows.filter((_, j) => j !== at) })} />
+                                    {needs && (
+                                        <span style={{ ...muted, flexBasis: "100%" }}>
+                                            {t(needs.legendLevel > 0 ? "plugins.buildPlan.needsLegendLevel" : "plugins.buildPlan.needsLevel", { level: row.level, playerLevel: needs.level, legendLevel: needs.legendLevel })}
+                                        </span>
+                                    )}
+                                </div>
+                            )
+                        })}
+                        <Select value={null} showSearch={{ optionFilterProp: "label" }} aria-label={t("plugins.buildPlan.addBuildingTo", { castle: title })} placeholder={t("plugins.buildPlan.addBuilding")}
+                            suffixIcon={<PlusOutlined />} options={buildingOptions(offered, words, planned)} disabled={offered.every(choice => planned.has(choice.name))}
+                            onChange={(name: string) => onChange?.(addRow(value, index, byName.get(name)!))} />
+                    </section>
+                )
+            })}
+            <CastleSelect castles={unplannedCastles(castles, value)} aria-label={t("plugins.buildPlan.addCastle")} placeholder={t("plugins.buildPlan.addCastle")}
+                onChange={castle => castle && onChange?.(addCastle(value, castle))} />
+            {castles.length === 0 && <Typography.Text type="secondary">{t("plugins.castle.none")}</Typography.Text>}
+        </div>
+    )
+}
+
 /** The lines under a field: what the field itself says (a range, a hint) and the plugin's own help for it. */
 const extraOf = (...lines: (ReactNode | undefined)[]) => {
     const shown = lines.filter(Boolean)
@@ -378,6 +464,8 @@ export function PluginOptionField({ entry, def, castles, hidden, accountId }: {
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><WavesField collapsed={hidden} accountId={accountId} targets={entry.targets} /></Form.Item></Col>
         case "BladeCoastSetup":
             return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><BladeCoastSetupField troops={def.troops} tools={def.tools} castles={castles} /></Form.Item></Col>
+        case "BuildPlan":
+            return <Col {...full}><Form.Item name={name} label={label} extra={extraOf(help)}><BuildPlanField buildings={def.buildings} castles={castles} /></Form.Item></Col>
         case "Text":
         case "Channel": {
             const bounds = def.type === "Text" && (def.min !== undefined || def.max !== undefined)
