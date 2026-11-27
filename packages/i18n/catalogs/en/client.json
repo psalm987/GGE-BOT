@@ -720,7 +720,7 @@
   "modules.rift-raid.name": "Rift raid",
   "modules.rift-raid.description": "Runs the rift raid event for you, with the army you choose for each attack.",
   "modules.berimond.name": "Berimond",
-  "modules.berimond.description": "Takes part in Berimond battles on the side you pick, refilling troops and tools as it goes.",
+  "modules.berimond.description": "Attacks the watchtowers of the Berimond kingdom from your camp during the Berimond Kingdom event, one tower of your list after another, and keeps the camp stocked with troops. It never pays with rubies.",
   "modules.towers.name": "Towers",
   "modules.towers.description": "Attacks Robber Baron castles in every kingdom, with the commanders you allow. Each kingdom has its own switch and settings.",
   "modules.leveller.name": "Leveller",

@@ -322,5 +322,5 @@ module.exports = {
     ARMY_MODES, UNIT_ORDERS, TROOP_SUPPLIES, HORSES, ArmyProblem,
     orderUnits, eats, choice, parseAutofill, parseArmy, readArmy, isManualPlan, fillFromPlan,
     presetsNamed, presetsOf, rememberPresets, knownPresets,
-    unitOrderOption, supplyOption, SUPPLY_SWITCHES, armyOptions, fortressOptions,
+    unitOrderOption, supplyOption, horseOption, SUPPLY_SWITCHES, armyOptions, fortressOptions,
 }

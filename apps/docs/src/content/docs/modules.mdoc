@@ -34,6 +34,7 @@ A module with several plugins shows them as tabs, as a panel for each {% term id
 - [Storms](/modules/storms/) attacks the {% term id="storm-islands" %}Storm Islands{% /term %} fortresses and sends {% term id="mead" %}mead{% /term %} to your Storm Islands castle.
 - [Khan](/modules/khan/) attacks {% term id="khan-camp" %}Khan camps{% /term %} during the Khan event, {% term id="taunt" %}taunts{% /term %} the Khan and can refill your defence.
 - [Green Berimond](/modules/green-berimond/) attacks the camps of the {% term id="berimond-invasion" %}Berimond Invasion{% /term %} event with event {% term id="tool" %}tools{% /term %}.
+- [{% ui key="client:modules.berimond.name" /%}](/modules/berimond/) attacks the watchtowers of the {% term id="berimond" %}Berimond{% /term %} kingdom from your camp during the Berimond Kingdom event, and keeps the camp stocked with troops.
 - [Invasion events](/modules/invasion-events/) attacks {% term id="foreign-lord" %}Foreign Lords{% /term %} and {% term id="bloodcrow" %}Bloodcrow{% /term %} camps for {% term id="glory" %}glory{% /term %}.
 - [Blade Coast](/modules/blade-coast/) plays the Blade Coast event, from building the camp to attacking the Kraken, and never pays with {% term id="ruby" %}rubies{% /term %}.
 - [Virtual presets](/modules/virtual-presets/) saves attack {% term id="wave" %}waves{% /term %} under a name, so any attack module can send them.
@@ -73,7 +74,7 @@ The cap counts plugins, not modules. Several modules share it because many modul
 - Fortress has one for each kingdom, so up to 3.
 - Nomads, Samurai and {% term id="daimyo" %}Daimyo{% /term %} has 2, and Invasion events has 2.
 - Storms, Khan and {% ui key="client:modules.green-berimond.name" /%} have 1 each. The **Mead replace** tab of Storms does not count.
-- Armourer, Blade Coast, {% term id="virtual-preset" %}Virtual presets{% /term %} and the modules outside Attacks and gear do not count.
+- Armourer, Blade Coast, {% ui key="client:modules.berimond.name" /%}, {% term id="virtual-preset" %}Virtual presets{% /term %} and the modules outside Attacks and gear do not count.
 
 So with a cap of 4, all four Towers kingdoms leave room for nothing else. The {% ui key="client:module.status" /%} card of each attack module shows how many attack plugins are on and your cap. When you reach the cap, the other switches lock and show {% ui key="client:plugins.attackLimitReached" /%}.
 
@@ -114,7 +115,7 @@ Most attack modules put siege tools in the first wave, and event tools in later 
 
 ### Log only {% #log-only %}
 
-Khan, Storms, {% ui key="client:modules.green-berimond.name" /%}, Invasion events and Nomads, Samurai and Daimyo have a {% term id="log-only" %}**Log only**{% /term %} setting. With it on, the bot builds each attack and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. Towers and Fortress don't have it. See [Test with Log only first](/playing-it-safe/#log-only).
+Khan, Storms, {% ui key="client:modules.green-berimond.name" /%}, {% ui key="client:modules.berimond.name" /%}, Invasion events and Nomads, Samurai and Daimyo have a {% term id="log-only" %}**Log only**{% /term %} setting. With it on, the bot builds each attack and writes it to the {% term id="log" %}log{% /term %}, but sends nothing to the game. Towers and Fortress don't have it. See [Test with Log only first](/playing-it-safe/#log-only).
 
 ### Distances in clicks {% #clicks %}
 
@@ -130,7 +131,7 @@ GGE Command measures map distances in {% term id="click" %}clicks{% /term %}, on
 
 ## Modules still to come {% #soon %}
 
-Modules marked Soon in the app have no page here yet. They are: {% ui key="client:modules.castle-manager.name" /%}, {% ui key="client:modules.offer-buyer.name" /%}, {% ui key="client:modules.overseers.name" /%}, {% ui key="client:modules.food-manager.name" /%}, {% ui key="client:modules.rift-raid.name" /%}, {% ui key="client:modules.berimond.name" /%}, {% ui key="client:modules.leveller.name" /%}, {% ui key="client:modules.blacksmith-event-shops.name" /%}, {% ui key="client:modules.coin-farmer.name" /%}, {% ui key="client:modules.bth-blacksmith.name" /%}, {% ui key="client:modules.influence-farming.name" /%}, {% ui key="client:modules.recruiter.name" /%}, {% ui key="client:modules.castle-builder.name" /%}, {% ui key="client:modules.equipment-manager.name" /%}, {% ui key="client:modules.or-storms.name" /%}, {% ui key="client:modules.mp-builder.name" /%} and {% ui key="client:modules.asset-monitor.name" /%}.
+Modules marked Soon in the app have no page here yet. They are: {% ui key="client:modules.castle-manager.name" /%}, {% ui key="client:modules.offer-buyer.name" /%}, {% ui key="client:modules.overseers.name" /%}, {% ui key="client:modules.food-manager.name" /%}, {% ui key="client:modules.rift-raid.name" /%}, {% ui key="client:modules.leveller.name" /%}, {% ui key="client:modules.blacksmith-event-shops.name" /%}, {% ui key="client:modules.coin-farmer.name" /%}, {% ui key="client:modules.bth-blacksmith.name" /%}, {% ui key="client:modules.influence-farming.name" /%}, {% ui key="client:modules.recruiter.name" /%}, {% ui key="client:modules.castle-builder.name" /%}, {% ui key="client:modules.equipment-manager.name" /%}, {% ui key="client:modules.or-storms.name" /%}, {% ui key="client:modules.mp-builder.name" /%} and {% ui key="client:modules.asset-monitor.name" /%}.
 
 Each one has a page in the app that says what it will do. Choose {% ui key="client:module.soon.contact" /%} on that page to open the [Contact](/contact/) page and tell us you want it.
 

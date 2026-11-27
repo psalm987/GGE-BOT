@@ -106,7 +106,7 @@ describe("after an attack", () => {
 
 describe("what a refusal means", () => {
     test.each([
-        ["ATTACK_SCREEN_REFUSED", "refused"], ["NO_FREE_TOWER_SLOTS", "refused"],
+        ["ATTACK_SCREEN_REFUSED", "refused"], ["FACTION_NPC_OBJECT_IS_PROTECTED", "refused"],
         ["MISSING_UNITS", "retry"], ["LORD_IS_USED", "retry"], ["TIMED_OUT", "retry"], ["CASTLE_LOCKED", "retry"],
         ["ATTACK_TOO_MANY_UNITS", "tooMany"], ["WONT_REACH_IN_TIME", "eventOver"], ["NOT_ENOUGH_CURRENCY1", "coins"],
         ["ATTACK_LIMIT_REACHED", "dailyLimit"], ["NO_MORE_TROOPS", "troops"],
