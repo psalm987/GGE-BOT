@@ -37,6 +37,7 @@ const { pause, boxMullerRandom } = require("../pacing.js")
 const eventGate = require("../eventGate.js")
 const { spendSkip, skipRefused, MinuteSkipType } = require("./skips.js")
 const layoutKit = require("../castleLayout.js")
+const { requests: builder } = require("../castleBuilder.js")
 const { bladeCoastWods, slotsOf, isTroop } = require("../unitCatalog.js")
 const bladeMovements = require("../bladeMovements.js")
 const { finishPlugin, statusReporter } = require("../pluginStatus.js")
@@ -323,7 +324,7 @@ async function skipBuilding(building) {
             skipsOutUntil = Date.now() + 30 * MINUTE
             return false
         }
-        const { result } = await send("msb", { OID: building.objectID, MST: skip })
+        const { result } = await send(...builder.skip(building, skip))
         if (result === 0)
             return true
         if (!skipRefused(skip, result))
@@ -344,7 +345,7 @@ async function buildInCamp(mid, need) {
     const step = plan.campStep(need, entered.layout, mid, layoutKit, leftChests)
     if (step.kind == "chest") {
         await pause(2500, 6000)
-        const { result } = await send("etc", { OID: step.building.objectID })
+        const { result } = await send(...builder.chest(step.building))
         if (result === 0) {
             logDone("bladeChestCollected")
             return { built: true }
@@ -376,9 +377,8 @@ async function buildInCamp(mid, need) {
     if (entered.wood < cost.wood || entered.stone < cost.stone)
         return { needGoods: cost }
     await pause(2500, 6000)
-    const sent = step.kind == "expansion" ? await send("ebe", { X: step.spot.x, Y: step.spot.y, R: step.spot.r, CT: 1 }) :
-        step.kind == "build" ? await send("ebu", { WID: Number(row.wodID), X: step.spot.x, Y: step.spot.y, R: step.spot.r, PWR: 0, PO: -1, DOID: -1 }) :
-            await send("eup", { OID: step.building.objectID, PWR: 0, PO: -1 })
+    const sent = await send(...(step.kind == "expansion" ? builder.expansion(step.spot) :
+        step.kind == "build" ? builder.build(row, step.spot) : builder.upgrade(step.building)))
     if (sent.result !== 0) {
         console.debug("[blade] build refused", problemOf(sent.result))
         return { blocked: "bladeBuildRefused" }

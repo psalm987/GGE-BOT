@@ -115,6 +115,55 @@ describe("castle updates", () => {
     })
 })
 
+describe("a castle join keeps the castle's ground plan", () => {
+    const items = { buildings: [{ wodID: 200, width: "20", height: "20" }, { wodID: 263, level: "1", width: "5", height: "5" }] }
+    const building = [263, 41, 3, 7, 0, 0, 0, 100, 100, 100, 0]
+    const gca = { BD: [building], BG: [[200, 1, 0, 0, 0]], T: [[402, 9, 0, 0, 0, 0, 0, 100, 100, 100, 0]], scl: { OIDL: [41, -1] } }
+    async function joined(reply) {
+        const { mod, bot } = loadModule("protocols.js", { items })
+        bot.xtHandler.emit("dcl", castleList({ AID: 100 }), 0)
+        const done = mod.ClientCommands.joinCastle(100, 0)
+        await new Promise(resolve => setImmediate(resolve))
+        bot.xtHandler.emit("jaa", reply, 0)
+        return { mod, bot, result: await done }
+    }
+
+    test("the layout, the build queue and the old building list all come from one join", async () => {
+        const { mod, result } = await joined({ KID: 0, grc: { KID: 0, AID: 100, W: 500 }, gca })
+        const castle = mod.castles[0]
+
+        expect(result).toBe(0)
+        expect(castle.layout.buildings).toMatchObject([{ wodID: 263, objectID: 41, x: 3, y: 7, state: 0 }])
+        expect(castle.layout.grounds).toEqual([{ wodID: 200, objectID: 1, x: 0, y: 0, rotation: 0 }])
+        expect(castle.layout.towers.map(t => t.objectID)).toEqual([9])
+        expect(castle.buildingSlots).toEqual([41, -1])
+        expect(castle.buildings.map(b => [b.wodID, b.ownerID])).toEqual([[263, 41]])
+        expect(castle.wood).toBe(500)
+        expect(castle.layoutAt).toBeGreaterThan(0)
+    })
+
+    test("a stock update without a ground plan keeps the layout", async () => {
+        const { mod, bot } = await joined({ KID: 0, grc: { KID: 0, AID: 100 }, gca })
+
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, W: 9 }), 0)
+
+        expect(mod.castles[0].wood).toBe(9)
+        expect(mod.castles[0].layout.buildings).toHaveLength(1)
+    })
+
+    test("a refused join resolves to the game's code and keeps the castle as it was", async () => {
+        const { mod, bot } = loadModule("protocols.js", { items })
+        bot.xtHandler.emit("dcl", castleList({ AID: 100, W: 5 }), 0)
+        const done = mod.ClientCommands.joinCastle(100, 0)
+        await new Promise(resolve => setImmediate(resolve))
+        bot.xtHandler.emit("jaa", {}, 53)
+
+        expect(await done).toBe(53)
+        expect(mod.castles[0].wood).toBe(5)
+        expect(mod.castles[0].layout).toBeUndefined()
+    })
+})
+
 describe("which castle the bot is in", () => {
     function twoCastles() {
         const { mod, bot } = loadModule("protocols.js")

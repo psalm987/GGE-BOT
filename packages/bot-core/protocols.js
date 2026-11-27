@@ -587,6 +587,7 @@ const queueEventList = (obj, result) => {
 xtHandler.on("fjf", (obj, result) => queueEventList(obj.sei, result))
 xtHandler.on("sei", queueEventList)
 
+const { parseCastleLayout } = require("./castleLayout.js")
 const BuildingInfo = o => ({
     wodID: Number(o[0]),
     ownerID: Number(o[1]),
@@ -648,6 +649,8 @@ class CastleResourceInfo extends EventEmitter {
         e.OGT ? this.openGateTime = Number(e.OGT) : undefined
         e.OGC !== undefined ? this.openGateCount = Number(e.OGC) : undefined
         e.gca?.BD ? this.buildings = Array.from(e.gca.BD).map(BuildingInfo) : undefined
+        // The ground plan the Build plugin places on (castleLayout.js). `buildings` above stays for the plugins that read wodIDs.
+        if (Array.isArray(e.gca?.BD) || Array.isArray(e.gca?.BG)) this.layout = parseCastleLayout(e.gca)
         e.scl?.OIDL ? this.buildingSlots = Array.from(e.scl.OIDL).map(Number) : undefined
         // this.ownerInfo: new OwnerInfo(o.O)
         //??? : Number(e.RAF)
@@ -1090,9 +1093,11 @@ async function clientJoinCastle(areaID, kingdomID) {
     const [obj, r] = await waitForResult("jaa", 1000 * 10, (o, r) => {
         return r != 0 || o.grc.KID == kingdomID && o.grc.AID == areaID
     })
+    if (r != 0 || !obj.grc)
+        return r
     obj.grc.gca ??= obj.gca
     obj.grc.gpa ??= obj.gpa
-    obj.grc.scl ??= obj.gca.scl
+    obj.grc.scl ??= obj.gca?.scl ?? obj.scl
     
     const castleChanges = new CastleResourceInfo(obj.grc, obj.KID)
 
@@ -1102,6 +1107,9 @@ async function clientJoinCastle(areaID, kingdomID) {
         debugger
 
     Object.assign(castle, castleChanges)
+    /** When the castle's layout, build queue and stock were last read from the game. */
+    if (castle)
+        castle.layoutAt = Date.now()
     return r
 }
 

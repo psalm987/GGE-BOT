@@ -3570,8 +3570,127 @@ async function driveRefinery(page) {
     assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
 }
 
+/**
+ * The Castle builder page: the plan editor adds a castle and its buildings by picking them, names buildings from the
+ * game's strings with no art, offers a castle only its kingdom's buildings, and saves a plan that reads back through
+ * the API and after a reload. The API refuses a building the catalog doesn't offer.
+ */
+async function driveBuild(page) {
+    const account = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await account()
+    const before = ironhold.plugins
+    await rpc(page, "account/setLocale", { locale: null })
+    const form = page.locator(".gge-content")
+    /** Picks from a select that adds what is picked and then shows its placeholder again. */
+    const add = async (box, name, text) => {
+        const dropdown = await openSelect(page, box, name)
+        await page.keyboard.type(text)
+        await dropdown.locator(".ant-select-item-option").filter({ hasText: text }).first().click()
+        assert(await isHidden(dropdown, 3000), `picked "${text}" in ${name}`)
+    }
+    /** The options a select lists once `text` is typed into it. The list draws only the rows in view, so a search finds the rest. */
+    const found = async (box, name, text) => {
+        const dropdown = await openSelect(page, box, name)
+        await page.keyboard.type(text)
+        await page.waitForTimeout(200)
+        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
+        await page.keyboard.press("Escape")
+        assert(await isHidden(dropdown, 3000), `the dropdown of ${name} closed`)
+        return texts
+    }
+    try {
+        await page.setViewportSize(WIDE_VIEW)
+        await openModule(page, "Castle builder")
+        assert(new URL(page.url()).pathname === "/m/castle-builder", "the sidebar link Castle builder opens /m/castle-builder")
+        assert(await page.locator(".gge-module-intro", { hasText: "Builds and upgrades your castles to the plan you write" }).isVisible(), "the module shows its description")
+        const plan = form.locator(".ant-form-item").filter({ has: page.locator("label", { hasText: "Build plan" }) }).first()
+        assert(await plan.getByText("No castles in the plan yet.").isVisible(), "the plan starts empty")
+        assert((await form.getByLabel("Keep at least this many coins").inputValue()).replace(/\D/g, "") === "100000", "the coin floor starts at 100,000")
+        assert((await form.getByLabel("Keep at least this much of each resource").inputValue()).replace(/\D/g, "") === "0", "the resource floor starts at 0")
+        assert(!await form.getByLabel("Log only: write the builds to the log instead of sending them").isChecked(), "Log only is off by default")
+
+        await add(plan.getByLabel("Add a castle", { exact: true }), "Add a castle", "Ironhold (")
+        const home = plan.locator("[data-build-castle='0:1001']")
+        assert(await home.getByText("No buildings yet.").isVisible(), "a castle picked from the list gets a card with no buildings yet")
+        const addBuilding = card => card.getByRole("combobox", { name: /^Add a building to / })
+        const offered = await selectOptions(page, addBuilding(home), "Add a building")
+        console.log("note: the first buildings offered to the main castle:", offered.join(", "))
+        assert(offered.includes("The Keep") && offered.includes("Tower") && (await found(addBuilding(home), "Add a building", "Farmhouse")).includes("Farmhouse"), "the main castle is offered buildings by the game's names")
+        assert(offered.length > 0 && offered.every(name => name.trim() !== "") && (await found(addBuilding(home), "Add a building", "_name")).length === 0, "no building shows a locale key")
+        assert((await found(addBuilding(home), "Add a building", "hunting lodge")).join() === "Imperial hunting lodge", "the main castle is offered the Imperial hunting lodge, not a kingdom castle's")
+        assert(await plan.locator("img").count() === 0, "the editor shows no art")
+
+        await add(addBuilding(home), "Add a building", "Farmhouse")
+        const farm = home.locator("[data-build-row='Farm']")
+        assert(await farm.getByLabel("Level of Farmhouse").inputValue() === "1" && await farm.getByLabel("Number of Farmhouse").inputValue() === "1", "a new building starts at level 1, one of it")
+        await farm.getByLabel("Level of Farmhouse").fill("3")
+        await farm.getByLabel("Number of Farmhouse").fill("4")
+        await farm.getByLabel("Number of Farmhouse").blur()
+        assert(await farm.getByText(/^Level 3 needs player level \d+\.$/).isVisible(), "the row says which player level its level needs")
+        assert((await found(addBuilding(home), "Add a building", "Farmhouse")).length === 0, "a building in the plan isn't offered to that castle again")
+        await add(addBuilding(home), "Add a building", "The Keep")
+        const keep = home.locator("[data-build-row='Keep']")
+        assert(await keep.getByLabel("Level of The Keep").inputValue() === "2" && await keep.getByText("One per castle").isVisible(), "the keep starts a level up and is one per castle")
+        await add(addBuilding(home), "Add a building", "Tower")
+        assert(await home.locator("[data-build-row='Towers']").getByText("All of them").isVisible(), "towers stand for all of them")
+        await home.getByLabel("Finish builds with time skips").check()
+        await home.getByLabel("Buy expansions with wood and stone").check()
+
+        await add(plan.getByLabel("Add a castle", { exact: true }), "Add a castle", "Frostgate")
+        const frost = plan.locator("[data-build-castle='2:2001']")
+        assert((await found(addBuilding(frost), "Add a building to Frostgate", "hunting lodge")).join() === "Campaign hunting lodge", "a kingdom castle is offered its own hunting lodge, not the empire's")
+        await add(addBuilding(frost), "Add a building to Frostgate", "Campaign hunting lodge")
+        await plan.screenshot({ path: `${out}/99-build-plan-1440.png` })
+
+        await page.locator(".gge-savebar").getByRole("button", { name: "Save" }).click()
+        await page.getByText("Ironhold saved").first().waitFor()
+        const saved = (await account()).plugins.build?.options?.plan
+        const expected = [
+            { castle: { kingdom: 0, id: 1001 }, useSkips: true, buyExpansions: true, rows: [{ building: "Farm", level: 3, count: 4 }, { building: "Keep", level: 2, count: 1 }, { building: "Towers", level: 2, count: 1 }] },
+            { castle: { kingdom: 2, id: 2001 }, useSkips: false, buyExpansions: false, rows: [{ building: "Kingdomhunter", level: 1, count: 1 }] },
+        ]
+        assert(require("node:util").isDeepStrictEqual(saved, expected), `the plan is read back through the API: ${JSON.stringify(saved)}`)
+
+        const refuse = async (why, rows) => {
+            const plugins = { ...(await account()).plugins, build: { enabled: false, options: { plan: [{ ...expected[0], rows }] } } }
+            const refused = await page.evaluate(async ([id, plugins]) => (await (await fetch("/rpc/accounts/update", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json: { id, plugins } }) })).json()), [ironhold.id, plugins])
+            assert(/PLUGIN_OPTION_(ITEM|RANGE)|BAD_REQUEST/.test(JSON.stringify(refused)), `the API refuses ${why}: ${JSON.stringify(refused).slice(0, 160)}`)
+        }
+        await refuse("a building the catalog doesn't offer", [{ building: "Bakery", level: 1, count: 1 }])
+        await refuse("a level past the building's last", [{ building: "Farm", level: 99, count: 1 }])
+        await refuse("a kingdom castle's building in the main castle", [{ building: "Kingdomhunter", level: 1, count: 1 }])
+        assert(require("node:util").isDeepStrictEqual((await account()).plugins.build.options.plan, expected), "a refused plan leaves the saved one as it was")
+
+        await page.goto(`${CLIENT_URL}/m/castle-builder?account=${ironhold.id}`)
+        await page.locator(".gge-module-plugin-row").first().waitFor()
+        assert(await farm.getByLabel("Level of Farmhouse").inputValue() === "3" && await farm.getByLabel("Number of Farmhouse").inputValue() === "4", "after a reload the farm row shows level 3, four of it")
+        assert(await home.getByLabel("Finish builds with time skips").isChecked() && await home.getByLabel("Buy expansions with wood and stone").isChecked(), "after a reload both switches of the main castle are on")
+        assert(await frost.locator("[data-build-row='Kingdomhunter']").isVisible(), "after a reload Frostgate's row shows")
+        await atBothWidths(page, "99-castle-builder", "castle builder")
+
+        await home.getByRole("button", { name: "Remove Farmhouse" }).click()
+        assert(await farm.count() === 0, "a row is removed with its button")
+        await frost.getByRole("button", { name: /^Remove .*Frostgate.* from the plan$/ }).click()
+        assert(await frost.count() === 0, "a castle is removed from the plan with its button")
+    } finally {
+        await rpc(page, "accounts/update", { id: ironhold.id, plugins: before })
+    }
+    assert(require("node:util").isDeepStrictEqual((await account()).plugins, before), "Ironhold's settings are back as they were")
+}
+
 ;(async () => {
     const browser = await chromium.launch()
+    if (process.env.DRIVE_ONLY === "build") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveBuild(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "refinery") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)

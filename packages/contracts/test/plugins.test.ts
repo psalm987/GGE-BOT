@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, readLegacy, type BladeCoastSetup, type PluginOptionDef } from "../src/index.ts"
+import { BUILD_PLAN_MAX_CASTLES, PluginCatalogEntry, PluginSettingsError, attackPluginLimit, buildingFitsKingdom, effectivePluginConfig, normalizePluginSettings, readLegacy, type BladeCoastSetup, type BuildPlan, type BuildingChoice, type PluginOptionDef } from "../src/index.ts"
 
 const catalog: PluginCatalogEntry[] = [
     {
@@ -354,5 +354,80 @@ describe("a Blade Coast setup", () => {
     test("reaches the bot as it was saved, and as null until the player sets it up", () => {
         expect(effectivePluginConfig(catalog, { bladeCoast: { enabled: true, options: { bladeSetup: full } } }).bladeCoast!.bladeSetup).toEqual(full)
         expect(effectivePluginConfig(catalog, { bladeCoast: { enabled: true, options: {} } }).bladeCoast).toEqual({ state: true })
+    })
+})
+
+describe("a build plan", () => {
+    const choice = (name: string, rest: Partial<BuildingChoice> = {}): BuildingChoice => ({
+        name, nameKey: `${name.toLowerCase()}_name`, label: name, category: "CIVIL", maxLevel: 3, maxCount: 0, upgradeOnly: false, all: false,
+        kingdoms: [], notKingdoms: [], areaTypes: [], requires: [[1, 0], [5, 0], [30, 0]], ...rest,
+    })
+    const planDef: PluginOptionDef = {
+        type: "BuildPlan", key: "plan", default: [],
+        buildings: [
+            choice("Farm"), choice("Barracks", { category: "MILITARY", maxCount: 1 }), choice("Stable", { kingdoms: [0, 1, 2, 3], maxCount: 1 }),
+            choice("Keep", { category: "CASTLE", upgradeOnly: true, maxCount: 1, notKingdoms: [10] }),
+            choice("Towers", { category: "CASTLE", upgradeOnly: true, all: true, notKingdoms: [10] }),
+            choice("FactionFlag", { category: "DECO", kingdoms: [10], maxLevel: 1 }),
+        ],
+    }
+    const catalog: PluginCatalogEntry[] = [{ key: "build", force: false, hidden: false, options: [planDef] }]
+    const save = (value: unknown) => normalizePluginSettings(catalog, { build: { enabled: true, options: { plan: value as never } } }).build!.options.plan
+    const castle = (rows: unknown[], rest: Record<string, unknown> = {}) => ({ castle: { kingdom: 0, id: 100 }, useSkips: false, buyExpansions: false, rows, ...rest })
+    const row = (building: string, level = 1, count = 1) => ({ building, level, count })
+    const full: BuildPlan = [
+        { castle: { kingdom: 0, id: 100 }, useSkips: true, buyExpansions: true, rows: [row("Farm", 3, 12), row("Keep", 2), row("Towers", 3)] },
+        { castle: { kingdom: 10, id: 7 }, useSkips: false, buyExpansions: false, rows: [row("FactionFlag", 1, 4)] },
+        { castle: { kingdom: 2, id: -1 }, useSkips: false, buyExpansions: true, rows: [] },
+    ]
+
+    test("saves each castle's rows and switches, and the catalog entry that offers the buildings", () => {
+        expect(save(full)).toEqual(full)
+        expect(save([])).toEqual([])
+        expect(PluginCatalogEntry.parse(catalog[0])).toEqual(catalog[0])
+    })
+
+    test.each([
+        ["something that isn't a plan", "Farm", "PLUGIN_OPTION_ITEM"],
+        ["a castle without its switches", [{ castle: { kingdom: 0, id: 100 }, rows: [] }], "PLUGIN_OPTION_ITEM"],
+        ["a field the plan doesn't have", [castle([], { payRubies: true })], "PLUGIN_OPTION_ITEM"],
+        ["a row field the plan doesn't have", [castle([{ ...row("Farm"), rubies: 1 }])], "PLUGIN_OPTION_ITEM"],
+        ["the same castle twice", [castle([]), castle([])], "PLUGIN_OPTION_CASTLE"],
+        ["a building the catalog doesn't offer", [castle([row("Bakery")])], "PLUGIN_OPTION_ITEM"],
+        ["the same building twice in a castle", [castle([row("Farm"), row("Farm", 2)])], "PLUGIN_OPTION_ITEM"],
+        ["a level past the building's last", [castle([row("Farm", 4)])], "PLUGIN_OPTION_RANGE"],
+        ["a level of 0", [castle([row("Farm", 0)])], "PLUGIN_OPTION_ITEM"],
+        ["more than the game allows of a building", [castle([row("Barracks", 1, 2)])], "PLUGIN_OPTION_RANGE"],
+        ["more than 100 of a building", [castle([row("Farm", 1, 101)])], "PLUGIN_OPTION_RANGE"],
+        ["two of an upgrade-only kind", [castle([row("Keep", 2, 2)])], "PLUGIN_OPTION_RANGE"],
+        ["a building of another kingdom", [castle([row("Stable")], { castle: { kingdom: 4, id: 9 } })], "PLUGIN_OPTION_ITEM"],
+        ["a castle building in the Berimond camp", [castle([row("Farm")], { castle: { kingdom: 10, id: 9 } })], "PLUGIN_OPTION_ITEM"],
+        ["the keep in the Berimond camp", [castle([row("Keep")], { castle: { kingdom: 10, id: 9 } })], "PLUGIN_OPTION_ITEM"],
+        ["a Berimond decoration in a castle", [castle([row("FactionFlag")])], "PLUGIN_OPTION_ITEM"],
+    ])("refuses %s", (_, value, code) => {
+        expect(problemOf(() => save(value))).toMatchObject({ code, params: { where: expect.stringContaining("build.plan") } })
+    })
+
+    test("refuses more castles or rows than a plan holds", () => {
+        const many = Array.from({ length: BUILD_PLAN_MAX_CASTLES + 1 }, (_, id) => castle([], { castle: { kingdom: 0, id } }))
+        expect(problemOf(() => save(many))).toMatchObject({ code: "PLUGIN_OPTION_ROWS", params: { max: BUILD_PLAN_MAX_CASTLES } })
+        expect(() => save(many.slice(1))).not.toThrow()
+    })
+
+    test("says which row was refused", () => {
+        expect(problemOf(() => save([castle([row("Farm"), row("Barracks", 9)])]))).toMatchObject({ params: { where: "build.plan[0].rows[1].level", min: 1, max: 3 } })
+    })
+
+    test("a building fits a kingdom that it names, any castle when it names none, and Berimond only when it names it", () => {
+        const [farm, , stable, keep, , flag] = planDef.type === "BuildPlan" ? planDef.buildings : []
+        expect([0, 4, 10].map(k => buildingFitsKingdom(farm!, k))).toEqual([true, true, false])
+        expect([0, 4, 10].map(k => buildingFitsKingdom(stable!, k))).toEqual([true, false, false])
+        expect([0, 10].map(k => buildingFitsKingdom(keep!, k))).toEqual([true, false])
+        expect([0, 10].map(k => buildingFitsKingdom(flag!, k))).toEqual([false, true])
+    })
+
+    test("reaches the bot as it was saved, and as an empty plan until the player writes one", () => {
+        expect(effectivePluginConfig(catalog, { build: { enabled: true, options: { plan: full } } }).build!.plan).toEqual(full)
+        expect(effectivePluginConfig(catalog, { build: { enabled: true, options: {} } }).build).toEqual({ state: true, plan: [] })
     })
 })

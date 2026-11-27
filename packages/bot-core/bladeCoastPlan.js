@@ -5,6 +5,7 @@
  * reply shapes are in docs/protocol/blade-coast.md.
  */
 const { isTroop } = require("./unitCatalog.js")
+const builder = require("./castleBuilder.js")
 
 /** The maps in the order they are played (Normal, Hard, Hard plus): the space the camp's tents reach and the fewest soldiers it attacks with. */
 const MAPS = Object.freeze({ 22: { space: 350, minSoldiers: 300 }, 27: { space: 400, minSoldiers: 350 }, 28: { space: 450, minSoldiers: 400 } })
@@ -93,8 +94,7 @@ function campNeed(camp, mid) {
     return undefined
 }
 
-/** A row that costs no rubies. Anything with a ruby price is never built. */
-const freeRow = row => Boolean(row) && !(num(row.costC2) > 0)
+const freeRow = builder.rubyFree
 
 /**
  * The next camp step for `need` in this layout (castleLayout's `parseCastleLayout`), first match wins:
@@ -355,7 +355,7 @@ function goodsPlan(camp, castles, { need = {}, foodOnly = false } = {}) {
 
 // ---- What may leave ----
 
-const SKIP_TYPES = new Set(["MS1", "MS2", "MS3", "MS4", "MS5", "MS6", "MS7"])
+const { SKIP_TYPES } = builder
 const zero = value => value === 0
 /**
  * Every request the plugin may send and what its payload must hold. Rubies are the game's C2: `PWR 1` and `OC2 1` pay a
@@ -366,8 +366,7 @@ const ALLOWED = Object.freeze({
     tmp: () => true, jea: () => true, tai: () => true, gas: () => true, dcl: () => true,
     csc: p => p.ID == CAMP_ID && zero(p.PWR) && zero(p.OC2),
     sje: p => Object.keys(p).every(k => k == "MID"),
-    ebu: p => zero(p.PWR), eup: p => zero(p.PWR), ebe: p => p.CT === 1, etc: () => true,
-    msb: p => SKIP_TYPES.has(p.MST),
+    ebu: builder.ALLOWED.ebu, eup: builder.ALLOWED.eup, ebe: builder.ALLOWED.ebe, etc: builder.ALLOWED.etc, msb: builder.ALLOWED.msb,
     tut: () => true, tgt: () => true,
     msm: p => (p.TT === 1 || p.TT === 2) && SKIP_TYPES.has(p.MST),
     ule: p => zero(p.SC) && zero(p.C1) && zero(p.F) && p.SCID === -1,
