@@ -16,6 +16,7 @@ const units = [
     { wodID: 271, role: "melee" }, { wodID: 272, role: "ranged" }, { wodID: 950, toolCategory: "Basic", typ: "Attack" }, { wodID: 10, role: "ranged" },
     { wodID: 220, role: "melee", fightType: "1" }, { wodID: 222, role: "melee", fightType: "1" },
     { wodID: 110, typ: "Defence" }, { wodID: 112, typ: "Defence" }, { wodID: 622, typ: "Defence" },
+    { wodID: 106, typ: "Attack", ragePointBonus: "1" }, { wodID: 563, typ: "Attack", ragePointBonus: "2" },
 ]
 const owners = [{ OID: ME, N: "Ada", AID: 9 }, { OID: 3, N: "Friend", AID: 9 }, { OID: 6, N: "Raider", AID: 4 }]
 
@@ -31,12 +32,12 @@ const march = ({ id, type = 0, from = ME, to = -1, target = [2, 5, 6, 77, -1], s
 const myKeep = [1, 693, 526, 1000001, ME, 8, 8, 7, 7, 2, "Main Keep"]
 
 /** The game's side of a signed-in bot. `report` has the game list its coins, which is when the worker reports its status. */
-function session() {
+function session(items = {}) {
     const bot = fakeBot()
     bot.playerInfo.playerID = ME
     const reports = []
     const parentPort = { on() {}, postMessage: ([type, payload]) => type == ActionType.StatusUser && reports.push(structuredClone(payload.readBack)) }
-    loadModule("protocols.js", { bot, items: { units }, parentPort })
+    loadModule("protocols.js", { bot, items: { units, ...items }, parentPort })
     const emit = (command, payload) => bot.xtHandler.emit(command, payload, 0)
     const report = (coins = 1000, rubies = 50) => {
         emit("gcu", { C1: coins, C2: rubies })
@@ -93,6 +94,7 @@ describe("the read-back snapshot in the worker's status report", () => {
             troops: 35 + 77 + 70 + 56 + 63 + 70,
             totalSeconds: 400,
             arrivesAt: NOW + 397_000,
+            stationedUntil: null,
         }])
     })
 
@@ -100,7 +102,7 @@ describe("the read-back snapshot in the worker's status report", () => {
         const { emit, report } = session()
         emit("gam", { O: owners, M: [
             march({ id: 1 }),
-            march({ id: 2, to: ME, target: myKeep, source: [2, 5, 6, 77, -1] }),
+            march({ id: 2, to: ME, SID: -1, target: myKeep, source: [2, 5, 6, 77, -1] }),
             march({ id: 3, type: 1, from: 3, to: ME, target: myKeep, source: [1, 1, 1, 30, 3, 0, 0, 0, 0, 0, "Friend Hall"], army: { A: [[10, 250]] } }),
             march({ id: 4, from: 6, to: 3 }),
         ] })
@@ -118,6 +120,48 @@ describe("the read-back snapshot in the worker's status report", () => {
         emit("gam", { O: owners, M: [march({ id: 1, type: 1, PT: 600, TT: 600 }), march({ id: 2 })] })
 
         expect(report().movements.map(m => m.id)).toEqual([2])
+    })
+
+    test("reads every kind of attack the game client counts as one, and a march that only supports as support", () => {
+        const { emit, report } = session()
+        const attackTypes = [0, 11, 17, 18, 19, 20, 21, 23, 24, 25, 27, 28, 29, 30, 31, 33, 34]
+        emit("gam", { O: owners, M: [
+            ...attackTypes.map(type => march({ id: 100 + type, type, from: 6, to: ME, target: myKeep })),
+            ...[26, 32].map(type => march({ id: 100 + type, type, from: 3, to: ME, target: myKeep })),
+        ] })
+
+        const byType = Object.fromEntries(report().movements.map(m => [m.id - 100, [m.side, m.kind]]))
+
+        expect(Object.keys(byType)).toHaveLength(attackTypes.length + 2)
+        for (const type of attackTypes)
+            expect(byType[type], `type ${type}`).toEqual(["incoming", "attack"])
+        expect(byType[26]).toEqual(["support", "other"])
+        expect(byType[32]).toEqual(["support", "other"])
+    })
+
+    test("tells market carts and troops moved between the account's castles from marches home", () => {
+        const { emit, report } = session()
+        const goods = { G: [["W", 500], ["F", 0]] }
+        const north = [1, 658, 562, 1000002, ME, 8, 8, 7, 7, 2, "North Post"]
+        emit("gam", { O: owners, M: [
+            march({ id: 1, type: 5, to: ME, target: north, army: goods }),
+            march({ id: 2, type: 5, to: 3, target: [1, 1, 1, 30, 3, 0, 0, 0, 0, 0, "Friend Hall"], army: goods }),
+            march({ id: 3, type: 6, to: ME, target: north, army: { A: [[10, 40]] } }),
+            march({ id: 4, type: 2, to: ME, SID: -1, target: myKeep, source: [2, 5, 6, 77, -1], army: goods }),
+        ] })
+
+        const byId = Object.fromEntries(report().movements.map(m => [m.id, [m.side, m.kind]]))
+
+        expect(byId).toEqual({ 1: ["own", "market"], 2: ["own", "market"], 3: ["own", "transfer"], 4: ["own", "return"] })
+    })
+
+    test("keeps a stationed army on the list until its stay ends, and says when that is", () => {
+        const { emit, report } = session()
+        emit("gam", { O: owners, M: [march({ id: 1, type: 1, from: 3, to: ME, target: myKeep, PT: 600, TT: 600, army: { A: [[10, 250]], UM: { TWD: 3600, PWD: 600, L: {} } } })] })
+
+        expect(report().movements).toMatchObject([{ id: 1, kind: "station", arrivesAt: NOW, stationedUntil: NOW + 3_000_000 }])
+        vi.setSystemTime(NOW + 3_000_000)
+        expect(report().movements).toEqual([])
     })
 
     test("keeps the marches at the account first when there are more than it carries, and says how many there were", () => {
@@ -188,7 +232,7 @@ describe("the main castle's defence in the snapshot", () => {
         expect(defence).toEqual({
             kingdom: 0, id: 1000001, readAt: NOW,
             wall: {
-                level: 8, defence: 315.7, troops: 5031, room: 5031,
+                level: 8, defence: 315.7, troops: 5031, room: 5031, extraFlankSlot: false,
                 sides: {
                     left: { share: 30, slots: Array(4).fill(balistraria(686)) },
                     front: { share: 40, slots: [balistraria(699), { wodID: 622, amount: 303 }, balistraria(699), balistraria(699), { wodID: 622, amount: 303 }, balistraria(699)] },
@@ -198,8 +242,10 @@ describe("the main castle's defence in the snapshot", () => {
             // The capture has no gate figure.
             gate: { level: 7, defence: null },
             moat: { level: 2, defence: 147, sides: { left: [{ wodID: 112, amount: 686 }], front: [{ wodID: 112, amount: 699 }], right: [{ wodID: 112, amount: 686 }] } },
-            courtyard: { troops: 433000, room: 433000, allianceRoom: 252500 },
-            defenders: 959 + 7416,
+            courtyard: { troops: 433000, room: 433000, allianceRoom: 252500, slots: [null, null, null] },
+            // The capture's storage holds tools only.
+            defenders: 0,
+            defenderUnits: [],
             tools: [{ wodID: 110, amount: 50497 }, { wodID: 112, amount: 41263 }, { wodID: 622, amount: 5309 }],
         })
     })
@@ -226,10 +272,11 @@ describe("the main castle's defence in the snapshot", () => {
     })
 
     test("keeps within its caps and stays a snapshot the app accepts", () => {
-        const { emit, report } = session()
+        const tools = Array.from({ length: 60 }, (_, i) => ({ wodID: 3000 + i, typ: "Defence" }))
+        const { emit, report } = session({ units: [...units, ...tools] })
         emit("gcl", castleLists.gcl)
         const many = Array.from({ length: 30 }, () => [110, 999])
-        emit("dfc", { ...dfc, dfw: { ...dfc.dfw, M: { S: many, UP: 40, UC: 0 } }, gui: { I: Array.from({ length: 60 }, (_, i) => [[110, 112, 622][i % 3], 1000 + i]) } })
+        emit("dfc", { ...dfc, dfw: { ...dfc.dfw, M: { S: many, UP: 40, UC: 0 } }, gui: { I: tools.map(({ wodID }, i) => [wodID, 1000 + i]) } })
 
         const snapshot = report()
 
@@ -304,7 +351,7 @@ describe("the Khan rage bar in the snapshot", () => {
         const shared = { ...state }
         require("../khanRage.js").shareKhanRage(() => shared)
 
-        expect(report().khanRage).toEqual(state)
+        expect(report().khanRage, "with no camp figures or storage read to add").toEqual({ ...state, baseRage: null, critChance: null, rageTools: null })
         shared.rage = 2460
         const snapshot = report()
         expect(snapshot.khanRage.rage).toBe(2460)
@@ -318,7 +365,7 @@ describe("the Khan rage bar in the snapshot", () => {
         shareKhanRage(() => undefined)
         expect(report()).not.toHaveProperty("khanRage")
         shareKhanRage(() => ({ rage: 300, needed: NaN, campLevel: null, lastGain: null, lastGainAt: null, eventRunning: true, hold: undefined }))
-        expect(report().khanRage).toEqual({ rage: 300, needed: null, campLevel: null, lastGain: null, lastGainAt: null, eventRunning: true, hold: null })
+        expect(report().khanRage).toEqual({ rage: 300, needed: null, campLevel: null, lastGain: null, lastGainAt: null, eventRunning: true, hold: null, baseRage: null, critChance: null, rageTools: null })
     })
 
     test("names the same taunt holds as the app's schema", () => {
@@ -326,3 +373,222 @@ describe("the Khan rage bar in the snapshot", () => {
     })
 })
 
+
+describe("when the worker reports the snapshot again", () => {
+    test("a second after marches set out, once for a bunch, with no coin report", async () => {
+        const { emit, reports } = session()
+        emit("gam", { O: owners, M: [march({ id: 1 })] })
+        emit("gam", { O: owners, M: [march({ id: 2 })] })
+
+        await vi.advanceTimersByTimeAsync(999)
+        expect(reports).toEqual([])
+        await vi.advanceTimersByTimeAsync(1)
+        expect(reports.map(r => r.movements.map(m => m.id))).toEqual([[1, 2]])
+    })
+
+    test("a second after a march is over, without it", async () => {
+        const { emit, reports } = session()
+        emit("gam", { O: owners, M: [march({ id: 1, TT: 60, PT: 0 })] })
+        await vi.advanceTimersByTimeAsync(1000)
+
+        await vi.advanceTimersByTimeAsync(70_000 + 1000)
+        expect(reports.at(-1).movements).toEqual([])
+        expect(reports.at(-1).at, "the report that leaves it out follows the end by a second").toBe(NOW + 71_000)
+    })
+
+    test("a second after the game lists the castles or the main castle's defence", async () => {
+        const { emit, reports } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castleLists.dcl)
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(reports.at(-1).castles).toHaveLength(3)
+
+        emit("dfc", dfc)
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(reports).toHaveLength(2)
+        expect(reports.at(-1).defence.id).toBe(1000001)
+    })
+})
+
+describe("reading the castle list for the snapshot", () => {
+    const dclSent = bot => bot.sent.filter(([command]) => command == "dcl")
+    function signedIn() {
+        const game = session()
+        game.emit("gcl", castleLists.gcl)
+        game.bot.events.emit("load")
+        return game
+    }
+
+    test("asks the game one to two minutes after sign-in, the way the castle overview does", async () => {
+        const { bot } = signedIn()
+
+        await vi.advanceTimersByTimeAsync(59_000)
+        expect(dclSent(bot)).toEqual([])
+        await vi.advanceTimersByTimeAsync(62_000)
+        expect(dclSent(bot)).toEqual([["dcl", { CD: 1 }]])
+    })
+
+    test("asks again no sooner than five minutes after the last list, and within ten", async () => {
+        const { bot, emit } = signedIn()
+        await vi.advanceTimersByTimeAsync(121_000)
+        emit("dcl", castleLists.dcl)
+
+        await vi.advanceTimersByTimeAsync(5 * 60_000 - 1000)
+        expect(dclSent(bot)).toHaveLength(1)
+        await vi.advanceTimersByTimeAsync(5 * 60_000 + 2000)
+        expect(dclSent(bot)).toHaveLength(2)
+    })
+
+    test("doesn't ask while a list another part of the bot asked for is fresh", async () => {
+        const { bot, emit } = signedIn()
+        await vi.advanceTimersByTimeAsync(50_000)
+        emit("dcl", castleLists.dcl)
+
+        await vi.advanceTimersByTimeAsync(5 * 60_000)
+        expect(dclSent(bot)).toEqual([])
+        await vi.advanceTimersByTimeAsync(5 * 60_000 + 1000)
+        expect(dclSent(bot)).toHaveLength(1)
+    })
+
+    test("stops asking once the worker unloads", async () => {
+        const { bot } = signedIn()
+        bot.events.emit("unload")
+
+        await vi.advanceTimersByTimeAsync(60 * 60_000)
+        expect(dclSent(bot)).toEqual([])
+    })
+})
+
+describe("each castle's troops, tools and order in the snapshot", () => {
+    /** The castle list with the main castle's units, keep troops and order figures. */
+    function castleList(gpa) {
+        const dcl = structuredClone(castleLists.dcl)
+        const main = dcl.C[0].AI[0]
+        main.AC = [[271, 100], [220, 959], [222, 7416], [110, 5], [950, 30], [106, 4], [272, 0]]
+        main.SHI = [[271, 20]]
+        Object.assign(main.gpa, gpa)
+        return dcl
+    }
+
+    test("groups the units by what they do, the largest stocks first, counting the keep's troops too", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castleList({}))
+
+        const [main, north] = report().castles
+
+        expect(main.units).toEqual({
+            defenders: [{ wodID: 222, amount: 7416 }, { wodID: 220, amount: 959 }],
+            attackers: [{ wodID: 271, amount: 120 }],
+            defenceTools: [{ wodID: 110, amount: 5 }],
+            attackTools: [{ wodID: 950, amount: 30 }, { wodID: 106, amount: 4 }],
+        })
+        expect(north.units).toEqual({ defenders: [], attackers: [], defenceTools: [], attackTools: [] })
+    })
+
+    test("reads public order, the productivity it gives, guards and population as the game's overview shows them", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castleList({ NDP: 2700, R: 150, S: 50, GRD: 640, P: 1210 }))
+
+        const [main, north] = report().castles
+
+        // 2,700 decoration less 150 riot and 50 sickness is 2,500 order, and productivity grows by its square root over 50.
+        expect(main).toMatchObject({ publicOrder: 2500, productivity: 200, guards: 640, population: 1210 })
+        expect(north, "a castle the game sent no figures for").toMatchObject({ publicOrder: null, productivity: null, guards: null, population: null })
+    })
+
+    test("shrinks productivity under negative public order", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castleList({ NDP: 0, R: 400, S: 0 }))
+
+        // 1 / (√400 / 50 + 1) = 1 / 1.4
+        expect(report().castles[0]).toMatchObject({ publicOrder: -400, productivity: 71 })
+    })
+
+    test("stays a snapshot the app accepts, and small enough for forty castles", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castleList({ NDP: 2700, R: 150, S: 50, GRD: 640, P: 1210 }))
+
+        const snapshot = report()
+
+        expect(ReadBack.safeParse(snapshot).error).toBeUndefined()
+        expect(JSON.stringify(snapshot.castles[0]).length * READ_BACK_MAX_CASTLES).toBeLessThan(40_000)
+    })
+})
+
+describe("the defence's troops, courtyard and flank slots in the snapshot", () => {
+    const legendskills = [
+        { skillID: "505", effectType: "additionalUnitAmountOnFlank", totalEffectValue: "30" },
+        { skillID: "506", effectType: "additionalDefenseToolSlotFlank", totalEffectValue: "1" },
+    ]
+
+    test("counts the defenders in the defence read's own storage, not in an older castle list", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dcl", castlesWithTroops())
+        emit("dfc", { ...dfc, gui: { I: [[220, 300], [222, 700], [271, 50], [110, 5]] } })
+
+        const { defence } = report()
+
+        expect(defence.defenders).toBe(1000)
+        expect(defence.defenderUnits).toEqual([{ wodID: 222, amount: 700 }, { wodID: 220, amount: 300 }])
+        expect(defence.tools).toEqual([{ wodID: 110, amount: 5 }])
+    })
+
+    test("lists the courtyard's tool slots", () => {
+        const { emit, report } = session()
+        emit("gcl", castleLists.gcl)
+        emit("dfc", { ...dfc, dfk: { ...dfc.dfk, S: [[622, 40], [-1, 0], [-1, 0]] } })
+
+        expect(report().defence.courtyard.slots).toEqual([{ wodID: 622, amount: 40 }, null, null])
+    })
+
+    test("says a flank has its fifth slot once the account has the legendary skill for it", () => {
+        const { emit, report } = session({ legendskills })
+        emit("gcl", castleLists.gcl)
+        emit("dfc", dfc)
+        emit("skl", { SID: [505] })
+        expect(report().defence.wall.extraFlankSlot).toBe(false)
+
+        emit("skl", { SID: [505, 506] })
+        expect(report().defence.wall.extraFlankSlot).toBe(true)
+    })
+})
+
+describe("the Khan camp's figures in the rage bar", () => {
+    const camp = (id, difficulty, rage) => ({ eventAutoScalingCampID: String(id), difficultyID: String(difficulty), camplevel: "113", playerRageCap: "2460", generatedRagePerAttack: String(rage), chanceForCriticalRageGeneration: "12" })
+    // Two difficulties share the captured camp's level and cap and differ in the rage a hit earns.
+    const eventAutoScalingCamps = [camp(1137, 309, 220), camp(1153, 310, 230), { ...camp(1001, 301, 85), camplevel: "105", playerRageCap: "1500", chanceForCriticalRageGeneration: "0" }]
+    const state = { rage: 1426, needed: 2460, campLevel: 113, lastGain: 1426, lastGainAt: NOW - 5000, eventRunning: true, hold: undefined }
+
+    test("reads the rage a hit earns and the chance of a critical hit from the camp on the map", () => {
+        const { emit, report } = session({ eventAutoScalingCamps })
+        require("../khanRage.js").shareKhanRage(() => state)
+        emit("gam", khan.gam[1].payload)
+
+        expect(report().khanRage).toMatchObject({ baseRage: 230, critChance: 12 })
+    })
+
+    test("knows the critical chance before the camp is on the map, which every difficulty of a level shares", () => {
+        const { report } = session({ eventAutoScalingCamps })
+        require("../khanRage.js").shareKhanRage(() => state)
+
+        expect(report().khanRage).toMatchObject({ baseRage: null, critChance: 12 })
+    })
+
+    test("counts the rage tools in the main castle's storage once the defence is read", () => {
+        const { emit, report } = session({ eventAutoScalingCamps })
+        require("../khanRage.js").shareKhanRage(() => state)
+        emit("gcl", castleLists.gcl)
+        expect(report().khanRage.rageTools).toBeNull()
+
+        emit("dfc", { ...dfc, gui: { I: [[106, 40], [563, 2], [110, 9]] } })
+        const snapshot = report()
+
+        expect(snapshot.khanRage.rageTools).toEqual([{ wodID: 106, amount: 40 }, { wodID: 563, amount: 2 }])
+        expect(ReadBack.safeParse(snapshot).error).toBeUndefined()
+    })
+})

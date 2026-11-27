@@ -15,6 +15,21 @@ const FIRST_READ_MS = [2 * 60_000, 6 * 60_000]
 
 let last
 
+/** The legendary skills that give each flank a fifth tool slot, by `skillID`; empty when the game's items lack the table. */
+let flankSlotSkills = []
+try {
+    flankSlotSkills = require("./paths.js").loadItem("legendskills")
+        .filter(skill => skill.effectType == "additionalDefenseToolSlotFlank").map(skill => Number(skill.skillID))
+} catch (error) {
+    console.debug("legendSkillsUnreadable", String(error?.message ?? error))
+}
+/** The account's legendary skills, the highest level of each, as `skl.SID` lists them at sign-in and when they change. */
+let skillIDs = []
+xtHandler.on("skl", reply => {
+    if (Array.isArray(reply?.SID))
+        skillIDs = reply.SID.map(Number)
+})
+
 /**
  * Starts keeping the defence. `mainCastle()` gives the castle as protocols.js keeps it, or undefined until the game has
  * listed it, and `unitOf` turns a `[wodID, amount]` pair of the reply's storage into a unit with its `unitInfo`.
@@ -40,6 +55,9 @@ function watchDefence(mainCastle, unitOf) {
 
 module.exports = {
     watchDefence,
-    /** `{ layout, readAt, stock }` of the last `dfc` reply for the main castle, or undefined before the first. */
-    lastDefence: () => last,
+    /**
+     * `{ layout, readAt, stock, extraFlankSlot }`: the last `dfc` reply for the main castle, or undefined before the
+     * first, and whether the account has the skill that gives each flank a fifth slot, which the reply doesn't say.
+     */
+    lastDefence: () => last && { ...last, extraFlankSlot: skillIDs.some(id => flankSlotSkills.includes(id)) },
 }

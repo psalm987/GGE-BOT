@@ -4,6 +4,7 @@ const NodeCache = require("node-cache")
 const { spiralCoordinates } = require("./mapScan.js")
 const { buildReadBack } = require("./readBack.js")
 const { watchDefence, lastDefence } = require("./defenceRead.js")
+const { watchCastleList } = require("./castleListRead.js")
 const { khanRage } = require("./khanRage.js")
 const { RateLimiter } = require("limiter")
 const { waitForResult, sendXT, xtHandler, events, status, playerInfo } = require("./ggeBot.js")
@@ -1470,12 +1471,29 @@ xtHandler.on("gcu", obj => {
 
 const mainCastle = () => castles.find(castle => castle.kingdomID == KingdomID.greatEmpire && castle.areaInfo?.type == AreaType.mainCastle)
 watchDefence(mainCastle, Unit)
+watchCastleList()
+
+/** The Khan camp rows, for the rage a hit earns; empty when the game's items lack the table. */
+let khanCamps = []
+try {
+    khanCamps = require("./paths.js").loadItem("eventAutoScalingCamps")
+} catch (error) {
+    console.debug("khanCampsUnreadable", String(error?.message ?? error))
+}
+/** The ids of the Khan camps on the bot's map: a camp's area info holds it at `extraData[6]`, as attackKhan.js reads it. */
+const khanCampsOnMap = () => Object.values(map).flatMap(ref => {
+    const area = ref.deref()
+    return area?.type == AreaType.khanCamp ? [Number(area.extraData[6])] : []
+})
 
 function updateStatus() {
+    clearTimeout(reportTimer)
+    reportTimer = undefined
+    const rage = khanRage()
     status.resources = resources
     status.readBack = buildReadBack({
         castles, movements, playerID: playerInfo.playerID,
-        mainCastle: mainCastle(), defence: lastDefence(), khanRage: khanRage(),
+        mainCastle: mainCastle(), defence: lastDefence(), khanRage: rage, khanCamps, khanCampsOnMap: rage ? khanCampsOnMap() : [],
         session: { startedAt: sessionStart.at, coins: resources.coins - sessionStart.coins, rubies: resources.rubies - sessionStart.rubies },
     })
     parentPort.postMessage([ActionType.StatusUser, status])
@@ -1483,6 +1501,19 @@ function updateStatus() {
 
 xtHandler.on("gcu", updateStatus)
 xtHandler.on("sce", updateStatus)
+
+/** Marches, castle lists and defence reads come in bunches, so the snapshot goes out once, this long after the first, in milliseconds. */
+const REPORT_AFTER_MS = 1000
+let reportTimer
+function updateStatusSoon() {
+    reportTimer ??= setTimeout(updateStatus, REPORT_AFTER_MS)
+    reportTimer.unref?.()
+}
+movementEvents.on("outgoing", updateStatusSoon)
+movementEvents.on("ended", updateStatusSoon)
+xtHandler.on("dcl", updateStatusSoon)
+xtHandler.on("dfc", updateStatusSoon)
+events.once("unload", () => clearTimeout(reportTimer))
 
 /** When the game last put the player in an area (`jaa`), asked for or not. */
 let joinedAt = 0

@@ -10,6 +10,8 @@ export const READ_BACK_MAX_MOVEMENTS = 50
 /** The most tool slots one wall side or moat side carries, and the most kinds of defence tool listed from storage. */
 export const READ_BACK_MAX_DEFENCE_SLOTS = 8
 export const READ_BACK_MAX_DEFENCE_TOOLS = 24
+/** The most kinds of unit one castle lists in each group of `ReadBackCastle.units`. */
+export const READ_BACK_MAX_UNIT_KINDS = 24
 
 /** One good in one castle. `perHour` is production less what the castle eats, so it is negative when the stock is running down. */
 export const Stock = z.object({
@@ -19,7 +21,24 @@ export const Stock = z.object({
 })
 export type Stock = z.infer<typeof Stock>
 
-/** A castle's stores as the game last listed them. The castle's name and place are in `BotStatus.castles`, by `kingdom` and `id`. */
+/** Units of one kind. `wodID` is the game's number for the soldier or tool, which the game items catalog names. */
+export const UnitCount = z.object({ wodID: z.number().int(), amount: z.number().int().min(0) })
+export type UnitCount = z.infer<typeof UnitCount>
+/** Tools of one kind. */
+export const ToolCount = UnitCount
+export type ToolCount = UnitCount
+
+const UnitList = z.array(UnitCount).max(READ_BACK_MAX_UNIT_KINDS)
+/** What a castle's units do, in the order the screens list them: soldiers that defend, soldiers that attack, and the tools of each. */
+export const UNIT_GROUPS = ["defenders", "attackers", "defenceTools", "attackTools"] as const
+export type UnitGroup = (typeof UNIT_GROUPS)[number]
+const CastleUnits = z.object({ defenders: UnitList, attackers: UnitList, defenceTools: UnitList, attackTools: UnitList })
+const NO_UNITS = { defenders: [], attackers: [], defenceTools: [], attackTools: [] }
+
+/**
+ * A castle's stores, units and order as the game last listed them. The castle's name and place are in `BotStatus.castles`,
+ * by `kingdom` and `id`. A figure added after the first snapshots has a default, so a stored older snapshot still reads.
+ */
 export const ReadBackCastle = z.object({
     kingdom: z.number().int(),
     id: z.number().int(),
@@ -27,6 +46,14 @@ export const ReadBackCastle = z.object({
     readAt: z.number().int(),
     /** Only the goods the castle holds or makes. */
     stock: z.partialRecord(z.enum(STOCK_KEYS), Stock),
+    /** The castle's units, its keep's troops included, the largest stocks first. */
+    units: CastleUnits.default(NO_UNITS),
+    /** Decoration less riot and sickness. Research and castellan bonuses aren't counted. Null when the game didn't say. */
+    publicOrder: z.number().int().nullable().default(null),
+    /** What public order does to production, in percent: 100 at none, more above it and less below. */
+    productivity: z.number().int().min(0).nullable().default(null),
+    guards: z.number().int().min(0).nullable().default(null),
+    population: z.number().int().min(0).nullable().default(null),
 })
 export type ReadBackCastle = z.infer<typeof ReadBackCastle>
 
@@ -45,7 +72,8 @@ export type MarchPlace = z.infer<typeof MarchPlace>
  */
 export const MarchSide = z.enum(["own", "incoming", "support", "other"])
 export type MarchSide = z.infer<typeof MarchSide>
-export const MarchKind = z.enum(["attack", "station", "return", "other"])
+/** What a march is: a fight, troops sent to stand in a castle, an army coming home, goods on a market cart, troops moved between the account's castles, or anything else. */
+export const MarchKind = z.enum(["attack", "station", "return", "market", "transfer", "other"])
 export type MarchKind = z.infer<typeof MarchKind>
 
 /** A march on the map. How far along it is follows from `arrivesAt` and `totalSeconds`, so a screen can move the bar without a new report. */
@@ -63,6 +91,8 @@ export const ReadBackMovement = z.object({
     totalSeconds: z.number().int().min(0),
     /** Epoch milliseconds. */
     arrivesAt: z.number().int(),
+    /** When an army that stays at its target leaves again, epoch milliseconds; null for a march that doesn't stay. */
+    stationedUntil: z.number().int().nullable().default(null),
 })
 export type ReadBackMovement = z.infer<typeof ReadBackMovement>
 
@@ -75,16 +105,14 @@ export const SessionGains = z.object({
 })
 export type SessionGains = z.infer<typeof SessionGains>
 
-/** Tools of one kind. `wodID` is the game's number for the tool, which the tools catalog names. */
-export const ToolCount = z.object({ wodID: z.number().int(), amount: z.number().int().min(0) })
-export type ToolCount = z.infer<typeof ToolCount>
-
 /** The tool slots of one side, in the game's order. An empty slot is null. */
 const DefenceSlots = z.array(ToolCount.nullable()).max(READ_BACK_MAX_DEFENCE_SLOTS)
 /** A part of the castle's works: its building level and the defence figure the game's defence screen shows for it, in percent. Either is null when the game didn't say. */
 const DefenceWorks = z.object({ level: z.number().int().min(0).nullable(), defence: z.number().min(0).nullable() })
 
 export const DEFENCE_SIDES = ["left", "front", "right"] as const
+/** The front wall's slots that hold gate tools, by place; the others hold wall tools (the game client's `DefenseConst.ITEMS_MIDDLEWALL`). */
+export const FRONT_GATE_SLOTS: readonly number[] = [1, 4]
 export type DefenceSide = (typeof DEFENCE_SIDES)[number]
 const WallSide = z.object({
     /** The share of the wall's troops that stand on this side, in percent. */
@@ -102,14 +130,18 @@ export const ReadBackDefence = z.object({
         /** Troops on the wall and how many it has room for. */
         troops: z.number().int().min(0),
         room: z.number().int().min(0),
+        /** Whether each flank has the fifth tool slot the legendary skill "additional defence tool slot on the flank" gives. */
+        extraFlankSlot: z.boolean().default(false),
         sides: z.object({ left: WallSide, front: WallSide, right: WallSide }),
     }),
     gate: DefenceWorks,
     moat: DefenceWorks.extend({ sides: z.object({ left: DefenceSlots, front: DefenceSlots, right: DefenceSlots }) }),
     /** Troops in the courtyard, its room for the account's own troops, and its extra room for alliance support. */
-    courtyard: z.object({ troops: z.number().int().min(0), room: z.number().int().min(0), allianceRoom: z.number().int().min(0) }),
-    /** Defensive soldiers in the castle, wherever they stand. */
+    courtyard: z.object({ troops: z.number().int().min(0), room: z.number().int().min(0), allianceRoom: z.number().int().min(0), slots: DefenceSlots.default([]) }),
+    /** Defensive soldiers in the castle's storage when the defence was read. */
     defenders: z.number().int().min(0),
+    /** The same soldiers by kind, the largest stocks first. */
+    defenderUnits: UnitList.default([]),
     /** Defence tools in the castle's storage, the largest stocks first, at most READ_BACK_MAX_DEFENCE_TOOLS kinds. */
     tools: z.array(ToolCount).max(READ_BACK_MAX_DEFENCE_TOOLS),
 })
@@ -132,6 +164,12 @@ export const ReadBackKhanRage = z.object({
     lastGainAt: z.number().int().nullable(),
     eventRunning: z.boolean(),
     hold: KhanTauntHold.nullable(),
+    /** The rage a hit on that camp earns before tools and critical hits; null until the camp is on the bot's map. */
+    baseRage: z.number().int().positive().nullable().default(null),
+    /** That camp's chance of a critical hit, in percent; null with `needed`. */
+    critChance: z.number().min(0).max(100).nullable().default(null),
+    /** Rage tools in the main castle's storage when its defence was read; null until the bot has read it. */
+    rageTools: z.array(UnitCount).max(READ_BACK_MAX_DEFENCE_TOOLS).nullable().default(null),
 })
 export type ReadBackKhanRage = z.infer<typeof ReadBackKhanRage>
 

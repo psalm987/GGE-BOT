@@ -12,10 +12,10 @@ import { useSetDesiredState } from "../account-state.ts"
 import { orpc } from "../api.ts"
 import { StartStop } from "../components/StartStop.tsx"
 import {
-    SIDE_FILTERS, countdown, forecastTime, marchesUnderWay, sessionGains, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
+    SIDE_FILTERS, countdown, forecastTime, isStationed, marchesUnderWay, sessionGains, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
 } from "../live-view-model.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
-import { Defence, Rage } from "./LiveViewDefence.tsx"
+import { Defence, Rage, UnitChips } from "./LiveViewDefence.tsx"
 import { ModuleHead, useAccountChoice } from "./Module.tsx"
 import "./module.css"
 import "./live-view.css"
@@ -130,11 +130,46 @@ function Stores({ readBack, castles, now }: { readBack: ReadBack; castles: NonNu
                 <section key={group.kingdom} className="gge-live-kingdom">
                     <h3 className="gge-display gge-live-kingdom-name">{t(`plugins.kingdom.${group.kingdom}`, { defaultValue: t("plugins.kingdom.other", { id: group.kingdom }) })}</h3>
                     <div className="gge-live-castles">
-                        {group.castles.map(stores => <CastleTable key={stores.id} stores={stores} />)}
+                        {group.castles.map(stores => <Castle key={stores.id} stores={stores} />)}
                     </div>
                 </section>
             ))}
         </div>
+    )
+}
+
+/** One castle: its stores, then its public order and the units it holds. */
+function Castle({ stores }: { stores: CastleStores }) {
+    const { t, i18n } = useTranslation("client")
+    const number = new Intl.NumberFormat(i18n.language)
+    const signed = new Intl.NumberFormat(i18n.language, { signDisplay: "exceptZero" })
+    const { publicOrder, productivity, guards, population } = stores.order
+    const figures = [
+        publicOrder !== null && { key: "publicOrder", value: signed.format(publicOrder) },
+        productivity !== null && { key: "productivity", value: `${number.format(productivity)}%` },
+        guards !== null && { key: "guards", value: number.format(guards) },
+        population !== null && { key: "population", value: number.format(population) },
+    ].filter(figure => figure !== false)
+    return (
+        <section className="gge-live-castle">
+            <CastleTable stores={stores} />
+            {figures.length > 0 && (
+                <dl className="gge-live-works gge-live-order">
+                    {figures.map(({ key, value }) => (
+                        <div key={key}>
+                            <dt>{t(`liveView.castles.${key}`)}</dt>
+                            <dd>{value}</dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
+            {stores.units.map(({ group, units }) => (
+                <div key={group} className="gge-live-units">
+                    <h4 className="gge-live-units-head">{t(`liveView.units.${group}`)}</h4>
+                    <UnitChips units={units} fallback={group.endsWith("Tools") ? "tool" : "unit"} />
+                </div>
+            ))}
+        </section>
     )
 }
 
@@ -201,6 +236,7 @@ function Marches({ readBack, now }: { readBack: ReadBack; now: number }) {
                     {shown.length === 0 && <Typography.Paragraph type="secondary" style={{ margin: 0 }}>{t("liveView.marches.noneOfSide")}</Typography.Paragraph>}
                     <ul className="gge-live-marches">
                         {shown.map(march => {
+                            const stationed = isStationed(march, now)
                             const percent = Math.round(marchProgress(march, now) * 100)
                             return (
                                 <li key={march.id} className="gge-live-march" data-side={march.side}>
@@ -214,7 +250,11 @@ function Marches({ readBack, now }: { readBack: ReadBack; now: number }) {
                                         {march.sender && <span>{t("liveView.marches.sender", { sender: march.sender })}</span>}
                                         {march.troops !== null && <span>{t("liveView.marches.troops", { formatted: number.format(march.troops) })}</span>}
                                     </span>
-                                    <span className="gge-live-eta">{t("liveView.marches.landsIn", { time: countdown(march.arrivesAt - now) })}</span>
+                                    <span className="gge-live-eta">
+                                        {stationed && march.stationedUntil !== null
+                                            ? t("liveView.marches.leavesIn", { time: countdown(march.stationedUntil - now) })
+                                            : t("liveView.marches.landsIn", { time: countdown(march.arrivesAt - now) })}
+                                    </span>
                                     <Progress percent={percent} showInfo={false} size="small" className="gge-live-bar" aria-label={t("liveView.marches.progress", { percent })} />
                                 </li>
                             )
