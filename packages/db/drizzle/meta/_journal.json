@@ -197,6 +197,20 @@
       "when": 1795639449342,
       "tag": "0027_game_items_attack_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795766027281,
+      "tag": "0028_plugin_memory",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795767346830,
+      "tag": "0029_plugin_catalog_event_only",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,11 @@
 import { createRequire } from "node:module"
 import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
-import { PROXY_MAX_FAILURES, botChannel, userChannel, type BotChannelEvent, type BotNotice, type NotificationContent, type PluginState, type UserEvent } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
+    PLUGIN_MEMORY_MAX_BYTES, PROXY_MAX_FAILURES, botChannel, userChannel,
+    type BotChannelEvent, type BotNotice, type NotificationContent, type PluginFinishReason, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
+} from "@gge/contracts"
+import {
+    botLogs, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, pluginSettings, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
 import { logTag } from "./log-render.ts"
 
@@ -164,6 +167,41 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             return (row?.resources as { wheelSpins?: unknown } | null | undefined)?.wheelSpins
         },
 
+        /** What each plugin kept on the account in earlier runs, which a starting bot is handed. */
+        async pluginMemory(accountId: string): Promise<PluginMemory> {
+            const rows = await db.select({ plugin: pluginMemory.plugin, data: pluginMemory.data }).from(pluginMemory).where(eq(pluginMemory.accountId, accountId))
+            return Object.fromEntries(rows.map(row => [row.plugin, row.data])) as PluginMemory
+        },
+
+        /**
+         * Keeps one plugin's value under its key, or forgets the key for a null value. Refused, leaving the memory as it
+         * was, when the plugin's memory would pass PLUGIN_MEMORY_MAX_BYTES as JSON text, which the bot measures the same
+         * way. Also false for a deleted account.
+         */
+        async rememberForPlugin(accountId: string, { plugin, key, value }: PluginMemoryWrite): Promise<boolean> {
+            const fits = (data: object) => Buffer.byteLength(JSON.stringify(data)) <= PLUGIN_MEMORY_MAX_BYTES
+            // Checked before the row exists too, so a refused first write leaves no empty memory behind.
+            if (!fits({ [key]: value }))
+                return false
+            try {
+                return await db.transaction(async tx => {
+                    await tx.insert(pluginMemory).values({ accountId, plugin }).onConflictDoNothing()
+                    const [row] = await tx.select({ data: pluginMemory.data }).from(pluginMemory)
+                        .where(and(eq(pluginMemory.accountId, accountId), eq(pluginMemory.plugin, plugin))).for("update")
+                    const { [key]: _, ...rest } = row!.data
+                    const data = value === null ? rest : { ...rest, [key]: value }
+                    if (!fits(data))
+                        return false
+                    await tx.update(pluginMemory).set({ data, updatedAt: new Date() })
+                        .where(and(eq(pluginMemory.accountId, accountId), eq(pluginMemory.plugin, plugin)))
+                    return true
+                })
+            } catch (error) {
+                if (!isMissingAccount(error)) throw error
+                return false
+            }
+        },
+
         /** Merges one plugin's report into the account's states and tells the owner, in one statement and one transaction. */
         async setPluginState(accountId: string, plugin: string, state: PluginState) {
             try {
@@ -229,6 +267,28 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     return
                 const content = { kind, data: { ...data, accountName: account.name, serverLabel: account.label } } as NotificationContent
                 await insertNotification(tx, { ...content, userId: account.ownerId, accountId, dedupKey: `${kind}:${accountId}:${key}` })
+            })
+        },
+
+        /**
+         * An event plugin is done: it is switched off in the account's saved settings, the ones the player edits, and the
+         * owner is told. A plugin that is off already, or a deleted account, is left alone.
+         */
+        async finishPlugin(accountId: string, plugin: string, reason: PluginFinishReason) {
+            await db.transaction(async tx => {
+                const [switched] = await tx.update(pluginSettings).set({ enabled: false })
+                    .where(and(eq(pluginSettings.accountId, accountId), eq(pluginSettings.pluginKey, plugin), eq(pluginSettings.enabled, true)))
+                    .returning({ accountId: pluginSettings.accountId })
+                if (!switched)
+                    return
+                const [account] = await tx.select({ ownerId: gameAccounts.ownerId, name: gameAccounts.name, label: servers.label })
+                    .from(gameAccounts).innerJoin(servers, eq(servers.id, gameAccounts.serverId)).where(eq(gameAccounts.id, accountId))
+                await insertNotification(tx, {
+                    kind: "plugin_finished", data: { plugin, reason, accountName: account!.name, serverLabel: account!.label },
+                    userId: account!.ownerId, accountId,
+                    // Only the write that switched it off gets here, so each switch-off is its own event.
+                    dedupKey: `plugin_finished:${accountId}:${plugin}:${Date.now()}`,
+                })
             })
         },
 

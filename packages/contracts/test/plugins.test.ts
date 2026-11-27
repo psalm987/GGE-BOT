@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, readLegacy } from "../src/index.ts"
+import { PluginCatalogEntry, PluginSettingsError, attackPluginLimit, effectivePluginConfig, normalizePluginSettings, readLegacy, type BladeCoastSetup, type PluginOptionDef } from "../src/index.ts"
 
 const catalog: PluginCatalogEntry[] = [
     {
@@ -296,5 +296,48 @@ describe("a Rows castle column that replaced a kingdom column", () => {
 
     test("a stock of 0 is allowed", () => {
         expect(() => normalizePluginSettings(catalog, { buyTools: { enabled: true, options: { targets: [{ castle: { kingdom: 0, id: 4 }, tool: 614, stock: 0 }] } } })).not.toThrow()
+    })
+})
+
+describe("a Blade Coast setup", () => {
+    const setupDef: PluginOptionDef = {
+        type: "BladeCoastSetup", key: "bladeSetup",
+        troops: [{ type: "MeleeAttacker", nameKey: "meleeattacker_name", name: "Swordsman", recruitGroup: "attackTroops", levels: [3, 5] }],
+        tools: [
+            { type: "Ladder", nameKey: "ladder_name", name: "Ladder", recruitGroup: "attackTools", levels: [1, 2], roles: ["wall"] },
+            { type: "Ram", nameKey: "ram_name", name: "Battering ram", recruitGroup: "attackTools", levels: [1], roles: ["gate"] },
+            { type: "Mantlet", nameKey: "mantlet_name", name: "Mantlet", recruitGroup: "attackTools", levels: [1], roles: ["ranged", "wall"] },
+        ],
+    }
+    const catalog: PluginCatalogEntry[] = [{ key: "bladeCoast", force: false, hidden: false, options: [setupDef], eventOnly: 4 }]
+    const save = (value: unknown) => normalizePluginSettings(catalog, { bladeCoast: { enabled: true, options: { bladeSetup: value as never } } }).bladeCoast!.options.bladeSetup
+    const full: BladeCoastSetup = { castle: { kingdom: 1, id: 1201 }, troop: "MeleeAttacker#5", tools: { wall: "Ladder#2", gate: "Ram#1", ranged: "Mantlet#1" } }
+
+    test("saves a castle, a troop and a tool for each defence, each as a type and level the catalog offers", () => {
+        expect(save(full)).toEqual(full)
+        expect(PluginCatalogEntry.parse(catalog[0])).toEqual(catalog[0])
+    })
+
+    test("saves a setup still being filled in, and none at all", () => {
+        const partial = { castle: null, troop: null, tools: { wall: "Ladder#1", gate: null, ranged: null } }
+        expect(save(partial)).toEqual(partial)
+        expect(save(null)).toBeNull()
+    })
+
+    test.each([
+        ["a castle in Berimond", { ...full, castle: { kingdom: 10, id: 7 } }, "PLUGIN_OPTION_CASTLE"],
+        ["a troop the catalog doesn't offer", { ...full, troop: "Knight#5" }, "PLUGIN_OPTION_ITEM"],
+        ["a level the troop doesn't have", { ...full, troop: "MeleeAttacker#4" }, "PLUGIN_OPTION_ITEM"],
+        ["a troop without a level", { ...full, troop: "MeleeAttacker" }, "PLUGIN_OPTION_ITEM"],
+        ["a tool for a defence it doesn't lower", { ...full, tools: { ...full.tools, gate: "Ladder#1" } }, "PLUGIN_OPTION_ITEM"],
+        ["one tool for two defences", { ...full, tools: { ...full.tools, wall: "Mantlet#1" } }, "PLUGIN_OPTION_ITEM"],
+        ["a missing defence", { ...full, tools: { wall: "Ladder#1", gate: "Ram#1" } }, "PLUGIN_OPTION_ITEM"],
+    ])("refuses %s", (_, value, code) => {
+        expect(problemOf(() => save(value))).toMatchObject({ code, params: { where: expect.stringContaining("bladeCoast.bladeSetup") } })
+    })
+
+    test("reaches the bot as it was saved, and as null until the player sets it up", () => {
+        expect(effectivePluginConfig(catalog, { bladeCoast: { enabled: true, options: { bladeSetup: full } } }).bladeCoast!.bladeSetup).toEqual(full)
+        expect(effectivePluginConfig(catalog, { bladeCoast: { enabled: true, options: {} } }).bladeCoast).toEqual({ state: true })
     })
 })

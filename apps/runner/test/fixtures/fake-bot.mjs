@@ -60,6 +60,20 @@ switch (mode) {
             post([24, { plugin: "", state: "bogus", reasonKey: 5, params: null }])
         }
     // falls through
+    case "memory":
+        if (mode === "memory") {
+            post([26, { plugin: "attack", key: "runs", value: (workerData.pluginMemory?.attack?.runs ?? 0) + 1 }])
+            post([26, { plugin: "notLoaded", key: "runs", value: 1 }])
+            post([26, { plugin: "attack", key: "", value: 1 }])
+        }
+    // falls through
+    case "finish":
+        if (mode === "finish") {
+            post([27, { plugin: "blade", reason: "eventOver" }])
+            post([27, { plugin: "blade", reason: "eventOver" }])
+            post([27, { plugin: "feast" }])
+        }
+    // falls through
     case "notify":
         if (mode === "notify") {
             const notice = { kind: "incoming_attack", key: "0:1001:42", data: { attacker: "Raider", castle: "Keep", arrival: "2031-02-03T04:05:06.000Z" } }

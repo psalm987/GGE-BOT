@@ -25,6 +25,7 @@ export function PluginSection({ entry, state, disabled, castles, accountId, regi
             <div>
                 {i18n.exists(descriptionKey, { ns: "bot" }) && <Typography.Paragraph type="secondary">{tb(descriptionKey)}</Typography.Paragraph>}
                 {entry.breaksPeace && <Alert type="warning" showIcon title={t("plugins.breaksPeace")} description={t("plugins.breaksPeaceBody")} style={{ marginBottom: 16 }} />}
+                {entry.eventOnly !== undefined && <Alert type="info" showIcon title={t("plugins.eventOnly")} description={t("plugins.eventOnlyBody")} style={{ marginBottom: 16 }} />}
                 <Form name={entry.key} form={form} component={inForm ? "div" : undefined} layout="vertical" requiredMark={false} disabled={disabled} initialValues={{ options }}
                     onValuesChange={(_, all) => onOptions({ ...options, ...all.options })}>
                     <PluginFields entry={entry} castles={castles} accountId={accountId} />

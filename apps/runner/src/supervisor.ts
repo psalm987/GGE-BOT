@@ -1,5 +1,5 @@
 import { createRequire } from "node:module"
-import { BotNotice, PluginState } from "@gge/contracts"
+import { BotNotice, PluginFinished, PluginMemoryWrite, PluginState, type PluginFinishReason, type PluginMemory } from "@gge/contracts"
 import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
@@ -96,6 +96,16 @@ class ProbeFailed extends Error {
     }
 }
 
+/**
+ * Whether the account's plugins changed in a way only a new worker can follow: one was turned on, or one was turned off
+ * that is still at work in the current worker. An event plugin that finished sits idle, so turning it off is not.
+ */
+function reloads(bot: Bot, spec: BotSpec) {
+    const before = Object.keys(bot.spec.plugins)
+    return Object.keys(spec.plugins).some(key => !before.includes(key))
+        || before.some(key => !(key in spec.plugins) && !bot.finished?.has(key))
+}
+
 export function blameFor(why: string): Blame {
     return BLAME.get(why) ?? (OUTSIDE_PREFIXES.some(prefix => why.startsWith(prefix)) ? "outside" : "account")
 }
@@ -114,6 +124,10 @@ export const GIVE_UP = { failures: 8, minAgeMs: 30 * 60_000, outageWindowMs: 10 
 type Bot = {
     spec: BotSpec
     worker?: WorkerLike
+    /** The plugins the current worker loaded when it started. */
+    loaded?: Set<string>
+    /** The event plugins of the current worker that said they are done. They sit idle, so switching them off needs no new login. */
+    finished?: Set<string>
     startedAt?: number
     /** When the current worker last sent anything. */
     lastBeat?: number
@@ -143,6 +157,7 @@ export type SupervisorDeps = {
         setStatus(accountId: string, patch: StatusPatch): Promise<void>
         setPluginState(accountId: string, plugin: string, state: PluginState): Promise<void>
         notifyOwner(accountId: string, notice: BotNotice): Promise<void>
+        finishPlugin(accountId: string, plugin: string, reason: PluginFinishReason): Promise<void>
         touchHeartbeat(accountId: string): Promise<void>
         endAccount(accountId: string, ending: AccountEnding): Promise<void>
         proxyOk(proxyId: string): Promise<void>
@@ -152,6 +167,9 @@ export type SupervisorDeps = {
         recentAttacks?(accountId: string): Promise<Record<string, { at: number; tools: number }[]>>
         /** The day's wheel spins in the last status report, which a starting bot counts against its daily spin limit. */
         wheelSpins?(accountId: string): Promise<unknown>
+        /** What each plugin kept on the account in earlier runs, which a starting bot is handed. */
+        pluginMemory?(accountId: string): Promise<PluginMemory>
+        rememberForPlugin(accountId: string, write: PluginMemoryWrite): Promise<boolean>
     }
     /** Opens a sealed game password or proxy URL. */
     openSealed: (sealed: Buffer) => string
@@ -320,7 +338,7 @@ export class Supervisor {
                 this.atCapacity.delete(spec.accountId)
                 this.bots.set(spec.accountId, { spec, reconnects: [] })
                 this.enqueue(spec.accountId)
-            } else if (bot.spec.restartKey !== spec.restartKey) {
+            } else if (bot.spec.restartKey !== spec.restartKey || reloads(bot, spec)) {
                 bot.spec = spec
                 bot.reconnects = []
                 this.track(this.restart(bot))
@@ -474,7 +492,7 @@ export class Supervisor {
         await this.deps.store.setStatus(id, { actualState: "starting", lastError: null, bannedUntil: null, pluginStates: {} })
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        const [attackHistory, wheelSpins] = await Promise.all([
+        const [attackHistory, wheelSpins, pluginMemory] = await Promise.all([
             this.deps.store.recentAttacks?.(id).catch(error => {
                 this.log.warn("reading the last 24 hours of attacks failed; the daily limits start from nothing", error)
                 return undefined
@@ -483,13 +501,19 @@ export class Supervisor {
                 this.log.warn("reading the day's wheel spins failed; the daily spin limit starts from nothing", error)
                 return undefined
             }),
+            this.deps.store.pluginMemory?.(id).catch(error => {
+                this.log.warn("reading the plugins' memory failed; they start from nothing", error)
+                return undefined
+            }),
         ])
         if (this.bots.get(id) !== bot || bot.worker)
             return
-        workerData = { ...workerData, ...(attackHistory && { attackHistory }), ...(wheelSpins !== undefined && { wheelSpins }) }
+        workerData = { ...workerData, ...(attackHistory && { attackHistory }), ...(wheelSpins !== undefined && { wheelSpins }), ...(pluginMemory && { pluginMemory }) }
 
         const worker = this.deps.spawn(workerData)
         bot.worker = worker
+        bot.loaded = new Set(Object.keys(spec.plugins))
+        bot.finished = new Set()
         bot.startedAt = bot.lastBeat = this.now()
         this.lastStart.set(id, bot.startedAt)
         bot.terminal = undefined
@@ -534,6 +558,25 @@ export class Supervisor {
                     this.track(store.setPluginState(id, plugin, state.data))
                 else
                     this.log.warn("dropped an invalid plugin status", id)
+                break
+            }
+            case Action.PluginMemory: {
+                const write = PluginMemoryWrite.safeParse(payload)
+                if (write.success && bot.loaded?.has(write.data.plugin))
+                    this.track(store.rememberForPlugin(id, write.data).then(kept => {
+                        if (!kept) this.log.warn("refused a plugin memory write over the size cap", id, write.data.plugin)
+                    }))
+                else
+                    this.log.warn("dropped an invalid plugin memory write", id)
+                break
+            }
+            case Action.PluginFinished: {
+                const finished = PluginFinished.safeParse(payload)
+                if (finished.success && bot.spec.plugins[finished.data.plugin]?.eventOnly !== undefined) {
+                    bot.finished?.add(finished.data.plugin)
+                    this.track(store.finishPlugin(id, finished.data.plugin, finished.data.reason))
+                } else
+                    this.log.warn("dropped a PluginFinished from a plugin that isn't event-only", id)
                 break
             }
             case Action.Notify: {
@@ -614,7 +657,8 @@ export class Supervisor {
     /** A start or run failed: retry it, unless this account has now failed often enough to give up on. */
     private async failed(bot: Bot, why: string) {
         const now = this.now()
-        const { accountId, restartKey } = bot.spec
+        const { accountId } = bot.spec
+        const restartKey = bot.spec.restartKey + JSON.stringify(Object.keys(bot.spec.plugins).sort())
         bot.failure = undefined
         // While most of the fleet is failing, the cause is more likely the game or the network than every proxy at once.
         if (bot.proxyId && why.startsWith(PROXY_FAILURE))
@@ -629,7 +673,7 @@ export class Supervisor {
         const policy = this.policies[blame]
         if (policy.counts) {
             let streak = this.streaks.get(accountId)
-            // A changed login is a new thing to try, so what failed before it doesn't count.
+            // A changed login or set of plugins is a new thing to try, so what failed before it doesn't count.
             if (streak?.restartKey !== restartKey)
                 this.streaks.set(accountId, streak = { count: 0, since: now, restartKey })
             streak.count++

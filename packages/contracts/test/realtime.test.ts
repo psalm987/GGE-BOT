@@ -16,14 +16,14 @@ describe("realtime channels", () => {
 describe("realtime events", () => {
     test("a status event read off the wire has real dates again", () => {
         const heartbeatAt = new Date("2031-02-03T04:05:06.789Z")
-        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null } }
+        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null } }
         expect(UserEvent.parse(overTheWire(event))).toEqual(event)
     })
 
     test("a status event's figures get a real report time again", () => {
         const reportedAt = new Date("2031-02-03T04:05:06.789Z")
         const resources = { food: 1, mead: null, cash: 2, gold: null, aquamarine: 3, attackDailyCount: 4, reportedAt }
-        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt: null, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources, readBack: null } }
+        const event = { v: 1, kind: "status", accountId, status: { actualState: "running", heartbeatAt: null, lastError: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources, readBack: null, bladeCoast: null } }
         expect(UserEvent.parse(overTheWire(event))).toEqual(event)
     })
 
@@ -79,9 +79,9 @@ describe("notification events", () => {
 })
 
 describe("email preferences", () => {
-    const plan = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true, incoming_attack: false, station_result: false }
+    const plan = { trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true, incoming_attack: false, station_result: false, plugin_finished: false }
 
-    test("a kind the player never chose takes its default: shutoff and Auto Station emails start off, the rest on", () => {
+    test("a kind the player never chose takes its default: shutoff, Auto Station and finished-plugin emails start off, the rest on", () => {
         expect(notificationPrefs({})).toEqual({ banned: true, auth_failed: true, crash_loop: true, shutoff: false, ...plan })
         expect(notificationPrefs({ banned: false, shutoff: true })).toEqual({ banned: false, auth_failed: true, crash_loop: true, shutoff: true, ...plan })
     })
@@ -93,7 +93,7 @@ describe("email preferences", () => {
 
     test("preferences stored before the Auto Station kinds existed get those kinds off, since attacks can come often", () => {
         const stored = { banned: false, auth_failed: true, crash_loop: true, shutoff: true, trial_started: false, plan_expiring: true, plan_expired: true, purchase_completed: true }
-        expect(notificationPrefs(stored)).toEqual({ ...stored, incoming_attack: false, station_result: false })
+        expect(notificationPrefs(stored)).toEqual({ ...stored, incoming_attack: false, station_result: false, plugin_finished: false })
     })
 
     test("a stored value that isn't preferences falls back to the defaults", () => {

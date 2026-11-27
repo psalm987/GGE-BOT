@@ -2,6 +2,7 @@ import * as z from "zod"
 import { LOCALE_CODES } from "@gge/i18n"
 import { PLAN_IDS } from "./plans.ts"
 import { GamePreset } from "./army.ts"
+import { BladeCoastStatus } from "./blade-coast.ts"
 import { AccountCastle, PluginStates } from "./plugin-checks.ts"
 import { AttackPluginCap, PluginSettings } from "./plugins.ts"
 import { ReadBack } from "./read-back.ts"
@@ -70,6 +71,8 @@ export const BotStatus = z.object({
     resources: AccountResources.nullable().default(null),
     /** Castle stores, marches and session gains from the worker's last report; null until it has made one that carries them. */
     readBack: ReadBack.nullable().default(null),
+    /** The Blade Coast camp from the worker's last report; null while the Blade Coast plugin isn't running in the event. */
+    bladeCoast: BladeCoastStatus.nullable().default(null),
 })
 
 export const PublicAccount = z.object({

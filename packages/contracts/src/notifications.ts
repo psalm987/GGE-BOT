@@ -1,5 +1,6 @@
 import * as z from "zod"
 import type { Translate } from "@gge/i18n"
+import { PluginFinishReason } from "./worker-messages.ts"
 
 export type { Translate }
 
@@ -9,6 +10,7 @@ export const WireDate = z.union([z.date(), z.iso.datetime().pipe(z.coerce.date()
 /** Why a bot stopped in a way only its owner can undo, news about the owner's plan, or what Auto Station saw and did. */
 export const NotificationKind = z.enum([
     "banned", "auth_failed", "crash_loop", "shutoff", "trial_started", "plan_expiring", "plan_expired", "purchase_completed", "incoming_attack", "station_result",
+    "plugin_finished",
 ])
 export type NotificationKind = z.infer<typeof NotificationKind>
 export const NOTIFICATION_KINDS = NotificationKind.options
@@ -51,6 +53,8 @@ const contents = [
     aboutPlan("purchase_completed", { packageId: z.string(), seats: z.number().int(), points: z.number().int(), codes: z.number().int() }),
     aboutAccount("incoming_attack", botNoticeData.incoming_attack),
     aboutAccount("station_result", botNoticeData.station_result),
+    /** An event plugin switched itself off in the account's settings; `plugin` is its key. */
+    aboutAccount("plugin_finished", { plugin: z.string().max(64), reason: PluginFinishReason }),
 ] as const
 
 /** What happened, as stored in notifications.kind and notifications.data. */
@@ -64,11 +68,11 @@ const delivery = {
     createdAt: WireDate,
     readAt: WireDate.nullable(),
 }
-const [banned, authFailed, crashLoop, shutoff, trialStarted, planExpiring, planExpired, purchaseCompleted, incomingAttack, stationResult] = contents
+const [banned, authFailed, crashLoop, shutoff, trialStarted, planExpiring, planExpired, purchaseCompleted, incomingAttack, stationResult, pluginFinished] = contents
 export const Notification = z.discriminatedUnion("kind", [
     banned.extend(delivery), authFailed.extend(delivery), crashLoop.extend(delivery), shutoff.extend(delivery),
     trialStarted.extend(delivery), planExpiring.extend(delivery), planExpired.extend(delivery), purchaseCompleted.extend(delivery),
-    incomingAttack.extend(delivery), stationResult.extend(delivery),
+    incomingAttack.extend(delivery), stationResult.extend(delivery), pluginFinished.extend(delivery),
 ])
 export type Notification = z.infer<typeof Notification>
 
@@ -89,7 +93,7 @@ export type EmailState = z.infer<typeof EmailState>
 export const NotificationPrefs = z.object({
     banned: z.boolean(), auth_failed: z.boolean(), crash_loop: z.boolean(), shutoff: z.boolean(),
     trial_started: z.boolean(), plan_expiring: z.boolean(), plan_expired: z.boolean(), purchase_completed: z.boolean(),
-    incoming_attack: z.boolean(), station_result: z.boolean(),
+    incoming_attack: z.boolean(), station_result: z.boolean(), plugin_finished: z.boolean(),
 })
 export type NotificationPrefs = z.infer<typeof NotificationPrefs>
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -97,6 +101,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
     trial_started: true, plan_expiring: true, plan_expired: true, purchase_completed: true,
     // Attacks can come many times a day, so these stay under the bell unless the player asks.
     incoming_attack: false, station_result: false,
+    plugin_finished: false,
 }
 
 /** The stored preferences with the default for every kind the player never chose. */
@@ -133,6 +138,10 @@ export function notificationText(translate: Translate, { kind, data }: Notificat
         case "incoming_attack": return {
             title: t("incoming_attack.title", { attacker: data.attacker, castle: data.castle, accountName: data.accountName }),
             body: t("incoming_attack.body", { arrival: data.arrival }),
+        }
+        case "plugin_finished": return {
+            title: t("plugin_finished.title", { plugin: translate(data.plugin, { ns: "bot", defaultValue: data.plugin }), accountName: data.accountName }),
+            body: t(`plugin_finished.body.${data.reason}`),
         }
         case "station_result": {
             const where = { castle: data.castle, accountName: data.accountName }

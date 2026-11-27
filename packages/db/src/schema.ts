@@ -219,6 +219,8 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     checks: jsonb("checks").notNull().default([]),
     /** Running it ends the account's beginner or peace protection. */
     breaksPeace: boolean("breaks_peace").notNull().default(false),
+    /** The game event the plugin works in, by event id; null for a plugin that works any time. */
+    eventOnly: integer("event_only"),
     updatedAt: updatedAt(),
 })
 
@@ -253,6 +255,17 @@ export const botStatus = pgTable("bot_status", {
     pluginStates: jsonb("plugin_states").notNull().default({}),
     heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }),
 })
+
+/**
+ * What one plugin keeps on one account across runs, such as the event levels it has finished: a `PluginMemory` entry,
+ * key by key. The runner hands it to a starting bot and caps it at PLUGIN_MEMORY_MAX_BYTES.
+ */
+export const pluginMemory = pgTable("plugin_memory", {
+    accountId: uuid("account_id").notNull().references(() => gameAccounts.id, { onDelete: "cascade" }),
+    plugin: text("plugin").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    updatedAt: updatedAt(),
+}, t => [primaryKey({ columns: [t.accountId, t.plugin] })])
 
 export const botLogs = pgTable("bot_logs", {
     id: bigserial("id", { mode: "number" }).primaryKey(),

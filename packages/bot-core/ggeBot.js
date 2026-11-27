@@ -672,3 +672,5 @@ for (const [, val] of Object.entries(botConfig.plugins)) {
         console.warn(e)
     }
 }
+
+require("./eventPlugins.js")

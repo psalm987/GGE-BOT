@@ -4,7 +4,7 @@ import { needsAttention } from "../src/attention.ts"
 
 type Status = NonNullable<PublicAccount["status"]>
 const withState = (actualState: Status["actualState"], sleepingUntil: Date | null = null): Pick<PublicAccount, "status" | "sleepingUntil"> =>
-    ({ status: { actualState, lastError: null, heartbeatAt: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null }, sleepingUntil })
+    ({ status: { actualState, lastError: null, heartbeatAt: null, bannedUntil: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null }, sleepingUntil })
 
 test.each(["error", "crash_loop", "banned", "auth_failed"] as const)("an account in state %s needs attention", state => {
     expect(needsAttention(withState(state))).toBe(true)

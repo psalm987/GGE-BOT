@@ -105,6 +105,7 @@ function insertResources({ accountName, resources }) {
                 food: figure(stored.food), mead: figure(stored.mead), cash: figure(stored.cash), gold: figure(stored.gold),
                 aquamarine: figure(stored.aquamarin_name), attackDailyCount: figure(stored.attackDailyCount), reportedAt: stored.reportedAt,
             },
+            readBack: stored?.readBack ?? null, bladeCoast: stored?.bladeCoast ?? null,
         }
         await publish(db, `personal:user#${account.owner_id}`, { v: 1, kind: "status", accountId: account.id, status })
         return status

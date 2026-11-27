@@ -5,7 +5,8 @@
 // GGE_DEV_PORT_SHIFT=10 moves every port up by 10, for when the usual ones are taken.
 import { spawn, type ChildProcess } from "node:child_process"
 import { randomBytes } from "node:crypto"
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { homedir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -51,6 +52,11 @@ const totpKey = process.env.TOTP_ENCRYPTION_KEY ?? generateEncryptionKey()
 const dataDir = [process.env.GGE_DATA_DIR, path.join(root, "data"), path.join(homedir(), ".cache/gge-bot-verify/seed")]
     .find(d => d && existsSync(path.join(d, "1.xml")))
 
+const { bladeCoastSetupOption } = createRequire(import.meta.url)("@gge/bot-core/unitCatalog.js") as {
+    bladeCoastSetupOption(key: string, units: unknown[], lang: Record<string, string>): Parameters<typeof publishCatalog>[1][number]["options"][number]
+}
+const readData = (file: string, fallback: unknown) => dataDir && existsSync(path.join(dataDir, file)) ? JSON.parse(readFileSync(path.join(dataDir, file), "utf8")) : fallback
+
 /** Exercises every settings control. Only the dev database has it; a runner started with --runner drops it again. */
 const DEV_SETTINGS_PREVIEW: Parameters<typeof publishCatalog>[1][number] = {
     key: "devSettingsPreview", force: false, hidden: false, category: null, breaksPeace: true,
@@ -66,6 +72,7 @@ const DEV_SETTINGS_PREVIEW: Parameters<typeof publishCatalog>[1][number] = {
             columns: [{ key: "castle", type: "castle" }, { key: "tool", type: "tool" }, { key: "target", type: "number", min: 0, max: 100000 }],
         },
         { type: "Checkbox", key: "dryRun", default: false },
+        bladeCoastSetupOption("bladeSetup", readData("items/units.json", []), readData("lang/en.json", {})),
     ],
 }
 

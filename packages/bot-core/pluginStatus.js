@@ -30,4 +30,18 @@ function notifyOwner(kind, data, key) {
     parentPort.postMessage([ActionType.Notify, { kind, data, key }])
 }
 
-module.exports = { statusReporter, notifyOwner }
+const finished = new Set()
+/**
+ * The plugin in `filename` is done until its event comes round again: "done" with all it can do, or "eventOver". The
+ * runner switches it off in the account's settings and tells the owner. Only a plugin its catalog marks `eventOnly` may
+ * do this; the runner ignores others.
+ */
+function finishPlugin(filename, reason = "done") {
+    const plugin = path.basename(filename, ".js")
+    if (finished.has(plugin))
+        return
+    finished.add(plugin)
+    parentPort.postMessage([ActionType.PluginFinished, { plugin, reason }])
+}
+
+module.exports = { statusReporter, notifyOwner, finishPlugin }

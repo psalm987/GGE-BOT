@@ -66,6 +66,7 @@ const everyKind: Record<NotificationContent["kind"], NotificationContent> = {
     purchase_completed: { kind: "purchase_completed", data: { packageId: "team5_28", seats: 5, points: 5, codes: 5 } },
     incoming_attack: { kind: "incoming_attack", data: { ...snapshot, attacker: "Raider", castle: "Alpha Keep", arrival: at } },
     station_result: { kind: "station_result", data: { ...snapshot, castle: "Alpha Keep", outcome: "stationed", destination: "Ally Keep (310:402)", rubies: null } },
+    plugin_finished: { kind: "plugin_finished", data: { ...snapshot, plugin: "bladeCoast", reason: "done" } },
 }
 
 describe("notificationText", () => {
@@ -118,6 +119,19 @@ describe("notificationText", () => {
         const exposed = notificationText(en, { kind: "station_result", data: { ...snapshot, castle: "Alpha Keep", outcome: "unprotected" } })
         expect(exposed.title).toBe("Auto Station couldn't move the troops out of Alpha Keep on Alpha")
         expect(exposed.body).toBe("No alliance castle could take them and the gates stayed shut. The logs say why.")
+    })
+
+    test("a plugin that switched itself off says which, on which account, and why", () => {
+        const names = createServerI18n({ en: { bot: { bladeCoast: "Blade Coast" } } })
+        const named = (key: string, options?: Record<string, unknown>) => options?.ns === "bot" ? names.getFixedT("en")(key, options) : en(key, options)
+        expect(notificationText(named as typeof en, everyKind.plugin_finished)).toEqual({
+            title: "Blade Coast switched off on Alpha",
+            body: "It finished everything it can do this event. Switch it on again when the event comes back.",
+        })
+        expect(notificationText(en, { kind: "plugin_finished", data: { ...snapshot, plugin: "bladeCoast", reason: "eventOver" } })).toEqual({
+            title: "bladeCoast switched off on Alpha",
+            body: "Its event isn't running. Switch it on again when the event comes back.",
+        })
     })
 
     test("reads in the player's language, with dates in its own format and English where a text is missing", () => {

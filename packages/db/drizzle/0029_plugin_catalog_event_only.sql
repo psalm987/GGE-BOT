@@ -1,0 +1,1 @@
+ALTER TABLE "plugin_catalog" ADD COLUMN "event_only" integer;

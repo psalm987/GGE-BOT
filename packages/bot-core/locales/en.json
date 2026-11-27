@@ -1018,5 +1018,6 @@
     "campOutOfSkips": "No skips are left for a camp's wait, so for now the plugin attacks only camps that are ready on their own.",
     "outOfFeathersCoinHorse": "No fast horse feathers are left, so the troops ride the coin horse instead.",
     "khanTaunted": "The Khan was taunted: the rage bar emptied.",
-    "khanTauntNotConfirmed": "The Khan taunt was not confirmed: the rage bar did not empty, so the next full bar tries again."
+    "khanTauntNotConfirmed": "The Khan taunt was not confirmed: the rage bar did not empty, so the next full bar tries again.",
+    "bladeSetup": "Blade Coast setup"
 }

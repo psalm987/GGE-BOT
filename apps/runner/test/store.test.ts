@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
-import { BotChannelEvent, Notification, UserEvent, botChannel, userChannel } from "@gge/contracts"
+import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, UserEvent, botChannel, userChannel } from "@gge/contracts"
 import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
 import { createStore, type Store } from "../src/store.ts"
 
@@ -46,7 +46,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -104,7 +104,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -225,6 +225,20 @@ test("a status carries the read-back snapshot of the worker's last report, and n
     expect(events[1]).toMatchObject({ status: { readBack: null, resources: { cash: 1200 } } })
 })
 
+test("a status carries the Blade Coast camp of the worker's last report, and none when the report's is malformed or gone", async () => {
+    const bladeCoast = {
+        map: 22, phase: "filling",
+        camp: { space: 300, spaceTarget: 350, soldiers: 120, minSoldiers: 300, storehouses: 4, storehousesTarget: 4, wood: 5000, stone: 4000, food: 9000, storage: 20000 },
+        morale: { value: 120, bonus: 132, target: 350 }, warship: { level: 1, max: 4 }, islands: { won: 0, total: 9, krakenWon: false },
+        nextIsland: { id: 3, level: 1, kraken: false }, trips: [{ kind: "troops", amount: 180, endsAt: 1_800_000_100_000 }],
+    }
+    await store.setStatus(accountId, { resources: { cash: 1200, bladeCoast } })
+    await store.setStatus(accountId, { resources: { cash: 1200, bladeCoast: { ...bladeCoast, map: 99 } } })
+    await store.setStatus(accountId, { resources: { cash: 1200 } })
+    const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(events.map(event => event.kind === "status" && event.status.bladeCoast)).toEqual([bladeCoast, null, null])
+})
+
 test("starting a worker clears the plugin states, and so does recovering from a crash", async () => {
     await store.setPluginState(accountId, "attack", attackState)
     await store.setStatus(accountId, { actualState: "starting", pluginStates: {} })
@@ -272,4 +286,36 @@ test("a starting bot gets each tower plugin's attacks of the last 24 hours, with
     expect(history.attackBarronsGreatEmpire!.map(attack => attack.tools)).toEqual([30, 20])
     expect(history.attackBarronsGreatEmpire![0]!.at).toBe(ago(23 * 60).getTime())
     expect(now - history.attackBarronsGreatEmpire![1]!.at).toBeLessThan(5000)
+})
+
+test("plugin memory outlives the run: each plugin's keys merge, a null forgets one, and a start reads them all back", async () => {
+    expect(await store.pluginMemory(accountId)).toEqual({})
+    expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "closedMaps", value: [22] })).toBe(true)
+    expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "eventEndsAt", value: 1_900_000_000_000 })).toBe(true)
+    expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "closedMaps", value: [22, 27] })).toBe(true)
+    expect(await store.rememberForPlugin(accountId, { plugin: "wheelSpin", key: "day", value: { n: 3 } })).toBe(true)
+    expect(await store.rememberForPlugin(accountId, { plugin: "wheelSpin", key: "day", value: null })).toBe(true)
+    await store.setStatus(accountId, { actualState: "starting", pluginStates: {} })
+    await store.recoverFromLastRun()
+
+    expect(await store.pluginMemory(accountId)).toEqual({ bladeCoast: { closedMaps: [22, 27], eventEndsAt: 1_900_000_000_000 }, wheelSpin: {} })
+})
+
+test("a plugin memory write that would pass the size cap is refused and leaves the memory as it was", async () => {
+    await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "a", value: "x".repeat(PLUGIN_MEMORY_MAX_BYTES / 2) })
+    expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "b", value: "y".repeat(PLUGIN_MEMORY_MAX_BYTES / 2) })).toBe(false)
+    expect(await store.rememberForPlugin(accountId, { plugin: "other", key: "b", value: "y".repeat(PLUGIN_MEMORY_MAX_BYTES) })).toBe(false)
+
+    expect(Object.keys((await store.pluginMemory(accountId)).bladeCoast!)).toEqual(["a"])
+    expect(await store.pluginMemory(accountId)).not.toHaveProperty("other")
+})
+
+test("writes to one plugin's memory at the same moment all land", async () => {
+    await Promise.all(Array.from({ length: 8 }, (_, i) => store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: `k${i}`, value: i })))
+    expect(Object.keys((await store.pluginMemory(accountId)).bladeCoast!).sort()).toEqual(["k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7"])
+})
+
+test("plugin memory for an account that was deleted is dropped", async () => {
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
+    expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "a", value: 1 })).toBe(false)
 })
