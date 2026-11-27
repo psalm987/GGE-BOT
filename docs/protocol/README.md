@@ -17,6 +17,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [battle-reports.md](battle-reports.md) | The `sne` push that announces a battle report, reading it with `bls`, and the glory and loot of one hit |
 | [castle-state.md](castle-state.md) | The castle the player is in, when the bot joins again, the production lists in a join, and which castle updates keep old values |
 | [castle-layout.md](castle-layout.md) | The ground plan in a castle's `gca` block: buildings, ground and expansion pieces, free and expansion spots, and build times |
+| [build.md](build.md) | Building and upgrading in a castle with `ebu`, `eup` and `eud`, expansions with `ebe`, the chest, time skips, which buildings a plan may name, the requests never sent and the hook for Build Supply, from Lazy Lord's source |
 | [commander-bonuses.md](commander-bonuses.md) | Where a commander's bonuses come from (gear, relics, gems, sets, its own effects, its general) and how they are totalled per target |
 | [event-list.md](event-list.md) | The running events from `sei`, `eventStart` and `eventStop`, the end-time backstop and the event gate for event-only plugins |
 | [movements.md](movements.md) | How a march ends: the `mrm` push, when the bot counts a march as over, and why `dms` is not a movement command |
