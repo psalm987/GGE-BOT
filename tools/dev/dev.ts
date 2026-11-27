@@ -3,11 +3,12 @@
 // --runner also starts the bot runner. Without it nothing contacts the game.
 // Centrifugo (live updates) starts too when CENTRIFUGO_BIN names its binary or `centrifugo` is on PATH.
 // GGE_DEV_PORT_SHIFT=10 moves every port up by 10, for when the usual ones are taken.
+// First, so bot-core finds the game data when the imports below load it.
+import { dataDir } from "./data-dir.ts"
 import { spawn, type ChildProcess } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import { homedir } from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { sql } from "drizzle-orm"
@@ -49,8 +50,6 @@ const keys = process.env.SEAL_PRIVATE_KEY && process.env.SEAL_PUBLIC_KEY
     : generateSealKeyPair()
 const totpKey = process.env.TOTP_ENCRYPTION_KEY ?? generateEncryptionKey()
 
-const dataDir = [process.env.GGE_DATA_DIR, path.join(root, "data"), path.join(homedir(), ".cache/gge-bot-verify/seed")]
-    .find(d => d && existsSync(path.join(d, "1.xml")))
 
 const { bladeCoastSetupOption } = createRequire(import.meta.url)("@gge/bot-core/unitCatalog.js") as {
     bladeCoastSetupOption(key: string, units: unknown[], lang: Record<string, string>): Parameters<typeof publishCatalog>[1][number]["options"][number]

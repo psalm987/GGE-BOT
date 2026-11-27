@@ -30,7 +30,7 @@ export const sidebar: Group[] = [
         translations: { de: "Hilfsmittel", ar: "أدوات مساعدة" },
         items: [{ slug: "modules/recruit-tools-heal" }, { slug: "modules/refinery-toolsmith" }, { slug: "modules/auto-feast" }, { slug: "modules/equip-sell" }, { slug: "modules/daily-chores" },
             { slug: "modules/troop-transfer" }, { slug: "modules/alliance-donations" }, { slug: "modules/native-village" },
-            { slug: "modules/send-resources" }],
+            { slug: "modules/send-resources" }, { slug: "modules/castle-builder" }],
     },
     { label: "PvP", translations: { de: "PvP", ar: "PvP" }, items: [{ slug: "modules/alert-autostation" }] },
     { label: "Discord", translations: { de: "Discord", ar: "Discord" }, items: [{ slug: "modules/discord-attacks" }, { slug: "modules/discord-events" }] },

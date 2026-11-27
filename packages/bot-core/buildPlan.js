@@ -141,6 +141,8 @@ for (const [name, { first, pool, command = "eup", category, nameKey, all = false
 /** Whether a building of the layout is of the plan's kind. */
 const isOfKind = (building, kind) => kind.upgradeOnly ? kind.wods.has(building.wodID) :
     planName(byWod.get(building.wodID)) == kind.name && byWod.get(building.wodID)?.group == "Building"
+/** The plan name of a building of the layout, for log lines. */
+const nameOf = building => String(planName(byWod.get(building.wodID)) ?? building.wodID)
 const levelOf = building => num(byWod.get(building.wodID)?.level)
 const nextLevel = building => byWod.get(Number(byWod.get(building.wodID)?.upgradeWodID))
 /** The castle's buildings of a kind, the highest level first. */
@@ -515,7 +517,7 @@ const READS = new Set(["jca"])
 const mayLeave = (cmd, payload) => Object.hasOwn(ALLOWED, cmd) && ALLOWED[cmd](payload ?? {})
 
 module.exports = {
-    BERIMOND, RESOURCE_COSTS, CURRENCY_COSTS, kinds, catalogChoices, buildPlanOption, readPlan,
+    BERIMOND, RESOURCE_COSTS, CURRENCY_COSTS, kinds, nameOf, catalogChoices, buildPlanOption, readPlan,
     missingRequirement, shortOf, nextStep, nextExpansion, lookAt, supplyNeed, nothingPayable,
     ALLOWED, READS, mayLeave,
 }

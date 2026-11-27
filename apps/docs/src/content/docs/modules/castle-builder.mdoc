@@ -1,0 +1,99 @@
+---
+title: Castle builder
+description: Write a build plan for each castle, and the bot upgrades and builds to it, buys expansions with wood and stone, and never pays with rubies.
+appRoute: /m/castle-builder
+plugin: build
+sources:
+  - packages/bot-core/plugins/build.js
+  - packages/bot-core/buildPlan.js
+  - packages/bot-core/castleBuilder.js
+  - packages/contracts/src/modules.ts
+---
+
+{% icon id="stone-wall" size=32 /%}Build while you are away. The Castle builder {% term id="module" %}module{% /term %} brings each castle in your plan to the buildings, levels and counts you write. It takes one step at a time and waits for resources and for the build queue.
+
+{% terms_on_page /%}
+
+It is not an attack {% term id="plugin" %}plugin{% /term %}, so it does not count toward your {% term id="attack-cap" %}attack cap{% /term %}.
+
+## How it works {% #how-it-works %}
+
+A minute or two after your bot signs in, the bot looks at each castle in your plan. It enters the castle and reads its buildings, its ground, its build queue and its resources. Then it takes the first step that applies:
+
+1. It collects the treasure chest an expansion leaves.
+2. It finishes a build with {% term id="time-skip" %}time skips{% /term %}, if you ticked **Finish builds with time skips** for the castle.
+3. It buys an expansion, if you ticked **Buy expansions with wood and stone** for the castle.
+4. If the build queue is full, it waits until the first build ends.
+5. It goes through the castle's buildings in the order of your plan. The first one that can act is upgraded a level or built.
+
+A few seconds later it reads the castle again and takes the next step. It checks each step before it sends it: your level, the castle's {% term id="kingdom" %}kingdom{% /term %} and type, the game's limit for the building, the price, a free spot and a free slot in the queue.
+
+## Write your plan {% #plan %}
+
+**Build plan** has a card for each castle.
+
+1. Choose **Add a castle** and pick a castle or an {% term id="outpost" %}outpost{% /term %}.
+2. In the castle's card, choose **Add a building** and pick one. The list shows only what that castle's kingdom and type can have.
+3. Set **Level** and **Count**. The castle should end up with that many of the building at that level or higher.
+4. Save.
+
+The bot upgrades the best buildings first. When those are at the level and the castle still has too few, it builds new ones at level 1 on the first free spot.
+
+Some buildings have no count:
+
+| Building | Count |
+|---|---|
+| The Keep, the castle wall, the castle gate and the moat | **One per castle**. The bot upgrades them and never builds one. |
+| Tower | **All of them**. Every tower the castle has is upgraded. Empty tower spots are left alone. |
+| A building the game allows once, such as the barracks | **One per castle** |
+
+Under a row, the plan says which player level its level needs.
+
+A castle whose plan is done stays in your plan. The status counts it as done and the bot leaves it alone. When you save a changed plan, the bot starts on it within a few seconds.
+
+## Expansions {% #expansions %}
+
+With **Buy expansions with wood and stone** ticked, the bot buys the castle's next expansion whenever the castle holds its wood and stone and your level allows another. It never buys one with {% term id="ruby" %}rubies{% /term %}. An expansion that needs a legendary skill or legendary materials is not bought.
+
+## Time skips {% #skips %}
+
+With **Finish builds with time skips** ticked, the bot spends skips on each build in that castle until it is done, then goes on with the plan. **Time skips the bot may use** picks the skip lengths. Leave it on your account's Skips settings, or pick the lengths for this plugin alone.
+
+## Keep coins and resources {% #floors %}
+
+- **Keep at least this many coins** stops a building that costs coins when it would take you under that amount. The default is 100,000.
+- **Keep at least this much of each resource** stops a step that would take one of the castle's resources under that amount. The default is 0.
+
+## When the game refuses a step {% #refusals %}
+
+The bot leaves that building alone for an hour and goes on with the rest of the castle's plan. The {% term id="log" %}log{% /term %} names the building, the castle and the game's reason.
+
+## Test with Log only {% #log-only %}
+
+Turn on **Log only: write the builds to the log instead of sending them**. The bot reads each castle and writes its next step to the log, but sends nothing and spends no skips. It looks again an hour later.
+
+## What it never does {% #never %}
+
+- It never pays with rubies. A building or level with a ruby price is not offered, and every request is checked before it leaves.
+- It never takes your coins or a castle's resources under what you keep.
+- It never tears down or moves a building.
+- It never changes your saved plan.
+
+## Read the status {% #status %}
+
+The {% ui key="client:module.status" /%} card says what the plugin is doing and how many castles of the plan are done:
+
+- **Building.**
+- **Waiting for resources.**
+- **Waiting for a build to finish.**
+- **Nothing can be built right now.** The log says why for each building.
+- **The plan is done.**
+- **Log only.** Each castle's next step is in the log.
+
+## Settings {% #settings %}
+
+{% settings plugin="build" /%}
+
+## Not yet checked in the game {% #live-check %}
+
+The build requests come from another bot's code, based on its captures of the game client. Run the plan with **Log only** first. Then check one cheap upgrade on a spare account before you rely on it.

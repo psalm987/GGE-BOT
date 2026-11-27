@@ -372,7 +372,8 @@ function BuildPlanField({ buildings, castles, value = [], onChange, id }: {
                     </section>
                 )
             })}
-            <CastleSelect castles={unplannedCastles(castles, value)} aria-label={t("plugins.buildPlan.addCastle")} placeholder={t("plugins.buildPlan.addCastle")}
+            {/* A new picker after each pick: one that keeps no value of its own would go on showing the castle just added. */}
+            <CastleSelect key={value.length} castles={unplannedCastles(castles, value)} aria-label={t("plugins.buildPlan.addCastle")} placeholder={t("plugins.buildPlan.addCastle")}
                 onChange={castle => castle && onChange?.(addCastle(value, castle))} />
             {castles.length === 0 && <Typography.Text type="secondary">{t("plugins.castle.none")}</Typography.Text>}
         </div>
