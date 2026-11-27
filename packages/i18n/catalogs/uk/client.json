@@ -998,7 +998,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Зупиняє атаки події, коли одну з них програно, доки ти її не переглянеш.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Радник кочівників",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Дозволити ігровому раднику кочівників проходити табори кочівників за тебе.",
-  "modules.recruit-tools-heal.soon.heal.name": "Лікування",
-  "modules.recruit-tools-heal.soon.heal.description": "Лікуй поранених у своїх замках за планом, який ти задаєш.",
   "module.soon.title": "Що ще буде"
 }

@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stop et events angreb, når et af dem tabes, indtil du har set på det.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadrådgiver",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lad spillets Nomadrådgiver klare nomadelejrene for dig.",
-  "modules.recruit-tools-heal.soon.heal.name": "Helbredelse",
-  "modules.recruit-tools-heal.soon.heal.description": "Helbred de sårede i dine borge efter en plan, du sætter.",
   "module.soon.title": "Mere på vej"
 }

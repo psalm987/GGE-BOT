@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Leállítja egy esemény támadásait, ha egy elveszik, amíg meg nem nézed.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomád tanácsadó",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "A játék Nomád tanácsadója intézze helyetted a nomádtáborokat.",
-  "modules.recruit-tools-heal.soon.heal.name": "Gyógyítás",
-  "modules.recruit-tools-heal.soon.heal.description": "Gyógyítsd a sebesülteket a kastélyaidban a megadott terv szerint.",
   "module.soon.title": "Ami még jön"
 }

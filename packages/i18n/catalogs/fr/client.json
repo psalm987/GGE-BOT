@@ -967,7 +967,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Arrêter les attaques d'un événement quand l'une d'elles est perdue, le temps que vous l'examiniez.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Conseiller nomade",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laisser le Conseiller nomade du jeu gérer les camps nomades pour vous.",
-  "modules.recruit-tools-heal.soon.heal.name": "Soins",
-  "modules.recruit-tools-heal.soon.heal.description": "Soignez les blessés de vos châteaux selon un plan que vous fixez.",
   "module.soon.title": "À venir"
 }

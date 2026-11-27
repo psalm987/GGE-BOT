@@ -998,7 +998,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Sustabdyti renginio puolimus, kai vienas pralaimimas, kol jį peržiūrėsite.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadų patarėjas",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Leisti žaidimo Nomadų patarėjui pulti klajoklių stovyklas už jus.",
-  "modules.recruit-tools-heal.soon.heal.name": "Gydymas",
-  "modules.recruit-tools-heal.soon.heal.description": "Gydykite sužeistuosius pilyse pagal savo nustatytą planą.",
   "module.soon.title": "Kas dar laukia"
 }

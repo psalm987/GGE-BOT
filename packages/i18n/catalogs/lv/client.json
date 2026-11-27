@@ -967,7 +967,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Aptur pasākuma uzbrukumus, kad kāds tiek zaudēts, līdz tu to apskati.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadu padomnieks",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Ļauj spēles Nomadu padomniekam tavā vietā uzbrukt Nomadu nometnēm.",
-  "modules.recruit-tools-heal.soon.heal.name": "Dziedināšana",
-  "modules.recruit-tools-heal.soon.heal.description": "Dziedini ievainotos savās pilīs pēc tevis iestatīta plāna.",
   "module.soon.title": "Vēl gaidāms"
 }

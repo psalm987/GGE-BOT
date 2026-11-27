@@ -1060,7 +1060,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "يوقف هجمات الحدث عند خسارة إحداها، حتى تراجعها.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "مستشار البدوي",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "دع مستشار البدوي في اللعبة يدير معسكرات البدو نيابةً عنك.",
-  "modules.recruit-tools-heal.soon.heal.name": "العلاج",
-  "modules.recruit-tools-heal.soon.heal.description": "عالج الجرحى في قلاعك وفق خطة تحددها.",
   "module.soon.title": "قادم لاحقًا"
 }

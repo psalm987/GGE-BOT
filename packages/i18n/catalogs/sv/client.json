@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stoppa ett events anfall när ett förloras, tills du har tittat på det.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadrådgivare",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Låt spelets nomadrådgivare sköta nomadlägren åt dig.",
-  "modules.recruit-tools-heal.soon.heal.name": "Läkning",
-  "modules.recruit-tools-heal.soon.heal.description": "Läk de sårade i dina slott enligt en plan du anger.",
   "module.soon.title": "Mer på väg"
 }

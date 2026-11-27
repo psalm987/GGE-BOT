@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "De aanvallen van een event stoppen als er een verloren gaat, tot je ernaar hebt gekeken.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadenadviseur",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Laat de Nomadenadviseur van het spel de Nomadenkampen voor je spelen.",
-  "modules.recruit-tools-heal.soon.heal.name": "Genezen",
-  "modules.recruit-tools-heal.soon.heal.description": "Genees de gewonden in je kastelen volgens een plan dat je instelt.",
   "module.soon.title": "Wat er nog komt"
 }

@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Спира атаките на събитие, когато една бъде загубена, докато не я прегледате.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Номадски съветник",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Оставете Номадския съветник на играта да води лагерите на номадите вместо Вас.",
-  "modules.recruit-tools-heal.soon.heal.name": "Лечение",
-  "modules.recruit-tools-heal.soon.heal.description": "Лекувайте ранените в замъците си по зададен от Вас план.",
   "module.soon.title": "Още предстои"
 }

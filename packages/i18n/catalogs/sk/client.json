@@ -998,7 +998,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Zastaví útoky eventu, keď sa jeden prehrá, kým sa naň nepozrieš.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomádsky poradca",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Nechaj Nomádskeho poradcu z hry spravovať tábory Nomádov za teba.",
-  "modules.recruit-tools-heal.soon.heal.name": "Liečenie",
-  "modules.recruit-tools-heal.soon.heal.description": "Lieč ranených vo svojich hradoch podľa plánu, ktorý nastavíš.",
   "module.soon.title": "Čo ešte príde"
 }

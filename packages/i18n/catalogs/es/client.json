@@ -967,7 +967,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Detiene los ataques de un evento cuando se pierde uno, hasta que lo revises.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Asesor nómada",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Deja que el Asesor nómada del juego se encargue de los campamentos nómadas por ti.",
-  "modules.recruit-tools-heal.soon.heal.name": "Curación",
-  "modules.recruit-tools-heal.soon.heal.description": "Cura a los heridos de tus castillos según un plan que fijes.",
   "module.soon.title": "Lo que viene"
 }

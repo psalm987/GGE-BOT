@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Pysäyttää tapahtuman hyökkäykset, kun yksi hävitään, kunnes olet katsonut sen.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadi-neuvoja",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Anna pelin Nomadi-neuvojan hoitaa paimentolaisleirit puolestasi.",
-  "modules.recruit-tools-heal.soon.heal.name": "Parannus",
-  "modules.recruit-tools-heal.soon.heal.description": "Paranna linnojesi haavoittuneet asettamasi suunnitelman mukaan.",
   "module.soon.title": "Vielä tulossa"
 }

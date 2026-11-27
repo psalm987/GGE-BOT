@@ -967,7 +967,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Zaustavi napade događaja kad se jedan izgubi, dok ga ne pogledaš.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadski savjetnik",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Neka Nomadski savjetnik iz igre vodi logore Nomada umjesto tebe.",
-  "modules.recruit-tools-heal.soon.heal.name": "Liječenje",
-  "modules.recruit-tools-heal.soon.heal.description": "Liječi ranjene u svojim dvorcima po planu koji postaviš.",
   "module.soon.title": "U pripremi"
 }

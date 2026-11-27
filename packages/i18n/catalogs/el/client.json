@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Σταματά τις επιθέσεις ενός γεγονότος όταν χαθεί μία, μέχρι να την εξετάσετε.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Σύμβουλος Νομάδων",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Αφήστε τον Σύμβουλο Νομάδων του παιχνιδιού να χειρίζεται τους καταυλισμούς των Νομάδων για εσάς.",
-  "modules.recruit-tools-heal.soon.heal.name": "Θεραπεία",
-  "modules.recruit-tools-heal.soon.heal.description": "Θεραπεύστε τους τραυματίες στα κάστρα σας με ένα πλάνο που ορίζετε.",
   "module.soon.title": "Ακολουθούν"
 }

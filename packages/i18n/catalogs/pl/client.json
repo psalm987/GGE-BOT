@@ -998,7 +998,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Wstrzymuje ataki w wydarzeniu po przegranym ataku, dopóki tego nie sprawdzisz.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Doradca nomadów",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Pozwala, by Doradca nomadów z gry prowadził za Ciebie obozy nomadów.",
-  "modules.recruit-tools-heal.soon.heal.name": "Leczenie",
-  "modules.recruit-tools-heal.soon.heal.description": "Lecz rannych w Twoich zamkach według ustawionego przez Ciebie planu.",
   "module.soon.title": "W przygotowaniu"
 }

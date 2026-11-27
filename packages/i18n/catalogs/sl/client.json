@@ -998,7 +998,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Ustavi napade dogodka, ko je eden izgubljen, dokler si ga ne ogledaš.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Svetovalec Nomadov",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Prepusti tabore Nomadov Svetovalcu Nomadov iz igre.",
-  "modules.recruit-tools-heal.soon.heal.name": "Zdravljenje",
-  "modules.recruit-tools-heal.soon.heal.description": "Zdravi ranjene v svojih gradovih po načrtu, ki ga nastaviš.",
   "module.soon.title": "Kaj še prihaja"
 }

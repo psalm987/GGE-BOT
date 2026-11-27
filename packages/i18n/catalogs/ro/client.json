@@ -967,7 +967,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Oprește atacurile unui eveniment când unul este pierdut, până te uiți la el.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Consilierul Nomazilor",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lasă Consilierul Nomazilor din joc să se ocupe de taberele Nomazilor pentru tine.",
-  "modules.recruit-tools-heal.soon.heal.name": "Vindecare",
-  "modules.recruit-tools-heal.soon.heal.description": "Vindecă răniții din castelele tale după un plan setat de tine.",
   "module.soon.title": "Ce urmează"
 }

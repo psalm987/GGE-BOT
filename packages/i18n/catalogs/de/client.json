@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Stoppt die Angriffe eines Events, wenn einer verloren geht, bis Ihr ihn angesehen habt.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomadenberater",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lasst den Nomadenberater des Spiels die Nomadenlager für Euch spielen.",
-  "modules.recruit-tools-heal.soon.heal.name": "Heilen",
-  "modules.recruit-tools-heal.soon.heal.description": "Heilt die Verwundeten in Euren Burgen nach einem Plan, den Ihr festlegt.",
   "module.soon.title": "Was noch kommt"
 }

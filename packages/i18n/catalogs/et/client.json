@@ -936,7 +936,5 @@
   "modules.nom-sam-daimyo.soon.stopAfterDefeat.description": "Peatab sündmuse rünnakud, kui üks kaotatakse, kuni oled selle üle vaadanud.",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.name": "Nomaadide nõuandja",
   "modules.nom-sam-daimyo.soon.nomadAdvisor.description": "Lase mängu nomaadide nõuandjal nomaadide laagreid sinu eest hallata.",
-  "modules.recruit-tools-heal.soon.heal.name": "Ravi",
-  "modules.recruit-tools-heal.soon.heal.description": "Ravi oma losside haavatuid enda seatud plaani järgi.",
   "module.soon.title": "Veel tulekul"
 }
