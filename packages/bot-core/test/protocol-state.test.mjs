@@ -210,13 +210,33 @@ describe("which castle the bot is in", () => {
 })
 
 describe("a movement with no map position", () => {
-    test("reads as an empty place, and the rest of the movement list is still read", () => {
+    test("a source with no position reads as an empty place, and the rest of the movement list is still read", () => {
         const { mod, gam } = movementsBot()
 
-        gam(march({ id: 1, TA: undefined, SA: undefined }), march({ id: 2 }))
+        gam(march({ id: 1, SA: undefined }), march({ id: 2 }))
 
         expect(mod.movements.map(m => m.id)).toEqual([1, 2])
-        expect(mod.movements[0].targetAttack.extraData).toEqual([])
+        expect(mod.movements[0].sourceAttack.extraData).toEqual([])
+    })
+
+    test("a target with no position is a Blade Coast island attack: kept apart, so no plugin and no march list sees it", async () => {
+        vi.useFakeTimers({ now: 1_800_000_000_000 })
+        const { mod, bot, gam } = movementsBot()
+        const blade = require("../bladeMovements.js")
+        const outgoing = []
+        mod.movementEvents.on("outgoing", movement => outgoing.push(movement.id))
+
+        gam(march({ id: 1, TA: undefined, SA: undefined }), march({ id: 2 }), march({ id: 3, TA: undefined, TT: 600, PT: 0 }))
+
+        expect(mod.movements.map(m => m.id)).toEqual([2])
+        await vi.advanceTimersByTimeAsync(0)
+        expect(outgoing).toEqual([2])
+        expect(blade.underway()).toEqual([{ id: 1, landsAt: 1_800_000_030_000 }, { id: 3, landsAt: 1_800_000_600_000 }])
+
+        bot.xtHandler.emit("mrm", { MID: 3 }, 0)
+        expect(blade.underway().map(m => m.id)).toEqual([1])
+        await vi.advanceTimersByTimeAsync(30_000)
+        expect(blade.underway()).toEqual([])
     })
 })
 

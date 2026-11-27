@@ -24,6 +24,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [attacks.md](attacks.md) | The attack screen (`adi`, `abi`, `aci`), the daily count, what each refusal means, how targets are judged ready, the commander safety net, difficulty unlocks, wave plan limits and spy reports |
 | [heal.md](heal.md) | The hospital: opening it with `hfl`, healing with `hru`, the `PIDL` slots and which troops heal for coins |
 | [alliance-help.md](alliance-help.md) | Asking the alliance for help with `ahr` (no reply on success, confirmed by `ahh`), and the `ahl`/`ahh`/`ahd` help list |
+| [blade-coast.md](blade-coast.md) | Blade Coast (event 4): the maps, the camp, troop and goods transfers, ports, island attacks and the requests never sent, all from Lazy Lord's capture |
 | [capture-backlog.md](capture-backlog.md) | What the 2026-11-21 trace captured, the features that still need a capture, and a checklist for the next trace |
 
 ## How the findings were obtained
