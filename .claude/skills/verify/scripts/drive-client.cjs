@@ -2774,6 +2774,75 @@ async function driveUxStartStop(page, browser) {
 }
 
 /** Account settings moved out of the sidebar into a cog on each Overview row and a tab of the account's side panel. */
+/**
+ * The gge-tracker.com consent on the Account settings tab: two checkboxes, both off, the name box shown only under a
+ * ticked first box, help text that names what is sent, and both saved through the API. Puts Ironhold's consent back.
+ */
+async function driveGgeTracker(page) {
+    const find = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const ironhold = await find()
+    const original = ironhold.plugins.ggeTracker ?? { enabled: true, options: {} }
+    const drawer = page.getByRole("dialog")
+    const row = page.getByRole("row", { name: /^Select row\s+Ironhold/ })
+    const card = drawer.locator(".ant-card").filter({ has: page.locator(".ant-card-head-title", { hasText: "gge-tracker.com" }) })
+    const timetables = card.getByRole("checkbox", { name: "Use gge-tracker.com timetables" })
+    const playerName = card.getByRole("checkbox", { name: "Include my player name" })
+    const saveBar = page.locator(".gge-savebar")
+    const stored = async () => (await find()).plugins.ggeTracker?.options ?? {}
+    const save = async () => {
+        await saveBar.getByRole("button", { name: "Save" }).click()
+        await saveBar.waitFor({ state: "detached" })
+    }
+    const open = async () => {
+        await page.goto(CLIENT_URL)
+        await row.getByRole("button", { name: "Account settings for Ironhold" }).click()
+        await timetables.waitFor()
+    }
+    try {
+        await storePluginSettings({ accountName: "Ironhold", plugin: "ggeTracker", enabled: true, options: {} })
+        await page.setViewportSize(WIDE_VIEW)
+        await open()
+        assert(!await timetables.isChecked(), "Use gge-tracker.com timetables starts off")
+        assert(!await playerName.isVisible(), "Include my player name is hidden while the first box is off")
+        const help = await card.innerText()
+        assert(help.includes("for example IN1") && help.includes("never sent"), `the help text names what is sent and says stats are never sent: ${help}`)
+        await axe(page, "gge-tracker consent off 1440")
+        await page.screenshot({ path: `${out}/99-gge-tracker-off-1440.png` })
+
+        await timetables.check()
+        await playerName.waitFor()
+        assert(!await playerName.isChecked(), "Include my player name shows under the ticked first box, and is off")
+        assert((await card.innerText()).includes("Also sends your player name"), "the second box's help says it sends the player name")
+        await save()
+        let options = await stored()
+        assert(options.useTimetables === true && options.includePlayerName !== true, `ticking the first box saves it alone: ${JSON.stringify(options)}`)
+
+        await playerName.check()
+        await axe(page, "gge-tracker consent on 1440")
+        await page.screenshot({ path: `${out}/99-gge-tracker-on-1440.png` })
+        await save()
+        options = await stored()
+        assert(options.useTimetables === true && options.includePlayerName === true, `ticking the second box saves it: ${JSON.stringify(options)}`)
+
+        await page.setViewportSize(PHONE_VIEW)
+        await open()
+        assert(await timetables.isChecked() && await playerName.isChecked(), "after a reload both boxes are still ticked")
+        await card.scrollIntoViewIfNeeded()
+        await axe(page, "gge-tracker consent 390")
+        assert(await overflowOf(page) <= 0, "no horizontal overflow on the tab at 390")
+        await page.screenshot({ path: `${out}/99-gge-tracker-390.png` })
+
+        await timetables.uncheck()
+        assert(!await playerName.isVisible(), "unticking the first box hides the second")
+        await save()
+        options = await stored()
+        assert(options.useTimetables !== true, `unticking saves the consent off: ${JSON.stringify(options)}`)
+    } finally {
+        await page.setViewportSize(WIDE_VIEW)
+        await storePluginSettings({ accountName: "Ironhold", plugin: "ggeTracker", enabled: original.enabled, options: original.options })
+    }
+}
+
 async function driveUxAccountSettings(page) {
     const find = async () => (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
     const ironhold = await find()
@@ -3610,6 +3679,17 @@ async function driveRefinery(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxCommanderMap(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "gge-tracker") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveGgeTracker(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

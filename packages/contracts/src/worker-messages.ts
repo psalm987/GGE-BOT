@@ -34,3 +34,41 @@ export type PluginFinished = z.infer<typeof PluginFinished>
  */
 export const GameRefusal = z.object({ plugin: name, command: z.string().min(1).max(32), error: z.string().min(1).max(64), at: z.number().int() })
 export type GameRefusal = z.infer<typeof GameRefusal>
+
+/**
+ * The account setting that holds the player's consent to gge-tracker.com: the plugin key and its two checkboxes, both off
+ * by default. `timetables` lets the runner read the site's timetables for the account's game server; `playerName` also
+ * sends the player's name, so the fortress times include the player's own cooldowns.
+ */
+export const GGE_TRACKER_CONSENT = { plugin: "ggeTracker", timetables: "useTimetables", playerName: "includePlayerName" } as const
+
+/** The kingdoms with fortresses: Burning Sands, Everwinter Glacier and Fire Peaks. */
+export const FORTRESS_KINGDOMS = [1, 2, 3] as const
+
+/**
+ * A worker's GgeTracker message: a plugin asks the runner for a gge-tracker.com timetable. The runner answers with a
+ * GgeTrackerReply of the same `id`, and fetches nothing unless the account opted in.
+ */
+export const GgeTrackerRequest = z.discriminatedUnion("kind", [
+    z.object({ id: z.number().int(), kind: z.literal("fortresses"), kingdom: z.union(FORTRESS_KINGDOMS.map(k => z.literal(k))) }),
+    z.object({ id: z.number().int(), kind: z.literal("stormForts") }),
+])
+export type GgeTrackerRequest = z.infer<typeof GgeTrackerRequest>
+
+/** A fortress as the timetable gives it. `availableAt` is when it can be attacked next, epoch milliseconds. */
+export type TrackerFortress = { x: number; y: number; availableAt: number }
+/** A Storm fort as the timetable gives it: `isleID` is its type, the game's extraData[2]. Times are epoch milliseconds. */
+export type TrackerStormFort = { x: number; y: number; isleID: number; victories: number; visible: boolean; availableAt: number; updatedAt: number }
+
+/**
+ * Why the runner has no timetable for a request: `off` the account has not opted in, `noServer` the site has no such
+ * data for the account's game server, `unavailable` the site could not be read, `badRequest` the request was malformed.
+ */
+export type GgeTrackerError = "off" | "noServer" | "unavailable" | "badRequest"
+
+/** The runner's answer to a GgeTrackerRequest. `withName` says the fortress times include the player's own cooldowns. */
+export type GgeTrackerReply = { id: number } & (
+    | { ok: true; kind: "fortresses"; server: string; fetchedAt: number; withName: boolean; fortresses: TrackerFortress[] }
+    | { ok: true; kind: "stormForts"; server: string; fetchedAt: number; forts: TrackerStormFort[] }
+    | { ok: false; error: GgeTrackerError }
+)

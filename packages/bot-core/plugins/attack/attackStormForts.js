@@ -84,6 +84,7 @@ const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, choice } = requ
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const stormClosing = require("../../stormClosing.js")
+const { askTracker } = require("../ggeTracker.js")
 
 const err = require("../../err.json")
 const pretty = require('pretty-time')
@@ -93,6 +94,10 @@ const minTroopCount = 100
 const NOT_READY_HOLD_MS = 5 * 60_000
 /** Fort -> when a refusal's hold on it ends. */
 const heldUntil = new Map()
+/** With the gge-tracker timetable, the runner is asked again once no ticked fort comes free later than this from now... */
+const TIMETABLE_NEAR_END_MS = 30 * 60_000
+/** ...and not sooner than this after the last ask. The runner keeps its own limits on reading the site. */
+const TIMETABLE_ASK_GAP_MS = 15 * 60_000
 
 const pluginOptions =
     readLegacy([decorationOption()], botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
@@ -238,7 +243,13 @@ events.once("load", async () => {
                     if ((heldUntil.get(`${areaInfo.x}:${areaInfo.y}`) ?? 0) > timeSinceEpoch)
                         continue
 
-                    await ClientCommands.preSpyInfo(areaInfo.x, areaInfo.y, kingdomID, false)
+                    const look = await ClientCommands.preSpyInfo(areaInfo.x, areaInfo.y, kingdomID, false)
+                    if (look?.areaInfo?.extraData && look.areaInfo !== areaInfo)
+                        Object.assign(areaInfo, { extraData: look.areaInfo.extraData, timeSinceRequest: look.areaInfo.timeSinceRequest })
+                    else if (look?.result) {
+                        heldUntil.set(`${areaInfo.x}:${areaInfo.y}`, timeSinceEpoch + NOT_READY_HOLD_MS)
+                        continue
+                    }
 
                     if (!allowedLevels.includes(areaInfo.extraData[2]))
                         continue
@@ -246,8 +257,11 @@ events.once("load", async () => {
                     if (areaInfo.extraData[3] > 0)
                         continue
                     
-                    if (areaInfo.extraData[5] != 0)
+                    // Not shown on the map yet, as a timetable fort can be: looked at again after the hold, not on every pass.
+                    if (areaInfo.extraData[5] != 0) {
+                        heldUntil.set(`${areaInfo.x}:${areaInfo.y}`, timeSinceEpoch + NOT_READY_HOLD_MS)
                         continue
+                    }
 
                     if (!stormWatch.lands(marchDistance(castle.areaInfo, areaInfo))) {
                         tooLate++
@@ -414,25 +428,79 @@ events.once("load", async () => {
         return 0
     }
 
-    if (mapGrid) {
-        areas.push(...(await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort(byDistance))
-        queueForts()
-        while (await sendHit());
-    }
-    if (areas.length == 0) {
-        for (const rect of wholeMapRects(castle.areaInfo.x, castle.areaInfo.y)) {
-            areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h))
-                .areaInfo.filter(ai => ai.type == type).sort(byDistance))
+    const keyOf = areaInfo => `${areaInfo.x}:${areaInfo.y}`
+    const underAttack = areaInfo => movements.some(movement =>
+        movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
+    const readyAt = areaInfo => Math.max(areaInfo.timeSinceRequest + areaInfo.extraData[3] * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0)
 
-            if (areas.every(ai => ![7, 8, 9].includes(ai.extraData[2]))) //Find and hit a good one before continuing scanning
-                continue
-
+    async function scanMap() {
+        areas = []
+        if (mapGrid) {
+            areas.push(...(await scanGrid(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, ai => ai.type == type)).sort(byDistance))
             queueForts()
             while (await sendHit());
         }
+        if (areas.length == 0) {
+            for (const rect of wholeMapRects(castle.areaInfo.x, castle.areaInfo.y)) {
+                areas.push(...(await ClientCommands.getAreaInfo(kingdomID, rect.x, rect.y, rect.w, rect.h))
+                    .areaInfo.filter(ai => ai.type == type).sort(byDistance))
+
+                if (areas.every(ai => ![7, 8, 9].includes(ai.extraData[2]))) //Find and hit a good one before continuing scanning
+                    continue
+
+                queueForts()
+                while (await sendHit());
+            }
+        }
     }
 
+    /**
+     * Fills the list from the gge-tracker timetable, when the player opted in and the runner has it: every fort of a ticked
+     * level, also the ones not shown yet, in the shape the game's map data has. A fort the bot has newer game data on keeps
+     * it, and a fort an army is on the way to stays. False when there is no timetable.
+     */
+    let usingTimetable = false
+    let askedAt = 0
+    async function useTimetable() {
+        askedAt = Date.now()
+        const timetable = await askTracker({ kind: "stormForts" })
+        if (!timetable.ok) {
+            if (timetable.error != "off")
+                console.info("stormTimetableUnavailable", timetable.error)
+            return false
+        }
+        const known = new Map(areas.map(areaInfo => [keyOf(areaInfo), areaInfo]))
+        const now = Date.now()
+        const listed = timetable.forts.filter(fort => allowedLevels.includes(fort.isleID)).map(fort => {
+            const old = known.get(keyOf(fort))
+            return old && old.timeSinceRequest > fort.updatedAt ? old : {
+                type, x: fort.x, y: fort.y,
+                extraData: [0, 0, fort.isleID, Math.max(0, (fort.availableAt - now) / 1000), fort.victories, fort.visible ? 0 : 1],
+                timeSinceRequest: now,
+            }
+        })
+        const listedKeys = new Set(listed.map(keyOf))
+        areas = listed.concat(areas.filter(areaInfo => !listedKeys.has(keyOf(areaInfo)) && underAttack(areaInfo)))
+        queueForts()
+        if (!usingTimetable)
+            console.info("stormTimetableUsed", listed.length)
+        usingTimetable = true
+        return true
+    }
+    /** No fort of a ticked level that nobody of ours is attacking comes free later than TIMETABLE_NEAR_END_MS from now. */
+    const timetableNearEnd = () => !areas.some(areaInfo =>
+        allowedLevels.includes(areaInfo.extraData[2]) && !underAttack(areaInfo) && readyAt(areaInfo) > Date.now() + TIMETABLE_NEAR_END_MS)
+
+    if (await useTimetable())
+        while (await sendHit());
+    else
+        await scanMap()
+
     while (!closing) {
+        if (usingTimetable && timetableNearEnd() && Date.now() - askedAt >= TIMETABLE_ASK_GAP_MS && !await useTimetable()) {
+            usingTimetable = false
+            await scanMap()
+        }
         let minimumTimeTillHit = Infinity
 
         for (let i = 0; i < areas.length; i++) {
@@ -442,12 +510,10 @@ events.once("load", async () => {
                 if (((areaInfo.timeSinceRequest + areaInfo.extraData[3] * 1000) - Date.now()) <= 0)
                     continue
 
-            if (movements.find(movement =>
-                movement.kingdomID == kingdomID &&
-                movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y))
+            if (underAttack(areaInfo))
                 continue
 
-            minimumTimeTillHit = Math.min(minimumTimeTillHit, (areaInfo.timeSinceRequest + areaInfo.extraData[3] * 1000))
+            minimumTimeTillHit = Math.min(minimumTimeTillHit, readyAt(areaInfo))
         }
 
         let time = (Math.max(0, minimumTimeTillHit - Date.now()))

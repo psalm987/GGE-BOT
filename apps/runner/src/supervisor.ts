@@ -4,6 +4,7 @@ import type { BotSpec, Wanted } from "./specs.ts"
 import type { AccountEnding, EndNotice, StatusPatch } from "./store.ts"
 import { resolveEventServer, type EventData } from "./event-server.ts"
 import { countReport, sessionToCount, type StoredSession } from "./farm-session.ts"
+import type { GgeTracker } from "./gge-tracker.ts"
 
 const require = createRequire(import.meta.url)
 const Action = require("@gge/bot-core/actions.json") as Record<string, number>
@@ -208,6 +209,8 @@ export type SupervisorDeps = {
         request(port: Pick<WorkerLike, "postMessage">, payload: unknown): void
         release(port: Pick<WorkerLike, "postMessage">): void
     }
+    /** The shared gge-tracker.com timetables: answers each worker's Action.GgeTracker requests for its account. */
+    ggeTracker?: Pick<GgeTracker, "answer">
 }
 
 export function workerDataFor(spec: BotSpec, password: string, ggeConfig: Record<string, unknown>, proxyUrl?: string) {
@@ -564,6 +567,12 @@ export class Supervisor {
                 break
             case Action.Discord:
                 this.deps.discord?.request(worker, payload)
+                break
+            case Action.GgeTracker:
+                void this.deps.ggeTracker?.answer(bot.spec, payload).then(reply => {
+                    if (reply && bot.worker === worker)
+                        worker.postMessage([Action.GgeTracker, reply])
+                }, error => this.log.warn("a gge-tracker request failed", id, error))
                 break
             case Action.StatusUser:
                 bot.session &&= countReport(bot.session, payload)

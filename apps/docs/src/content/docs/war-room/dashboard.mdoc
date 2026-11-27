@@ -74,12 +74,27 @@ Choose the pencil on a row, or the account's name in {% ui key="client:dashboard
 
 - {% ui key="client:drawer.overview" /%}: six tiles with what the bot last read from the game: {% ui key="client:overview.figure.cash" /%}, {% ui key="client:overview.figure.gold" /%}, {% ui key="client:overview.figure.food" /%}, {% ui key="client:overview.figure.mead" /%}, {% ui key="client:overview.figure.aquamarine" /%} and {% ui key="client:overview.figure.attackDailyCount" /%}. Food, {% term id="mead" %}mead{% /term %} and {% term id="aquamarine" %}aquamarine{% /term %} are the {% term id="storm-islands" %}Storm Islands{% /term %} castle's. Below the tiles, {% ui key="client:overview.problems.title" /%} lists what the game refused the bot lately, in plain words, with the plugin that asked, how often and when. Each row is marked {% ui key="client:overview.errors.severe" /%}, {% ui key="client:overview.errors.notNow" /%} or {% ui key="client:overview.errors.other" /%}. The list keeps the last 100 kinds of refusal, also after the bot stops.
 - {% ui key="common:nav.settings" /%}: the account name, the server, the game password, the event switch and the plugin list. Leave the password empty to keep the current one. {% ui key="client:drawer.openSettings" /%} next to a plugin takes you to its {% term id="module" %}module{% /term %} page. Choose {% ui key="client:drawer.saveChanges" /%} when you are done.
-- {% ui key="client:drawer.accountSettings" /%}: the pause between attacks, the **Daily attack limit**, which {% term id="time-skip" %}time skips{% /term %} the bot may use, and the **Shutoff timer**. This tab has its own save bar. The gear on the roster opens it directly.
+- {% ui key="client:drawer.accountSettings" /%}: the pause between attacks, the **Daily attack limit**, which {% term id="time-skip" %}time skips{% /term %} the bot may use, the **Shutoff timer**, and whether the bot may read [gge-tracker.com timetables](#gge-tracker). This tab has its own save bar. The gear on the roster opens it directly.
 - {% ui key="client:drawer.schedule" /%}: turn on {% ui key="client:schedule.toggle" /%} to let the bot work only inside the windows you set.
 - {% ui key="client:nav.logs" /%}: this account's log lines, live. See [the Logs page](/war-room/logs/#account-logs).
 - {% ui key="client:drawer.runHistory" /%}: the last 20 runs, with when each started, how long it ran and why it ended.
 
 If you change the game password, the server, the event switch or which plugins are on, a running bot signs in again. A change to a plugin's options reaches the running bot without a new sign-in.
+
+## Use gge-tracker.com timetables {% #gge-tracker %}
+
+gge-tracker.com is a community website. Goodgame does not run it. It lists when each {% term id="fortress" %}fortress{% /term %} and Storm fort can be attacked again. With your permission, the Fortress and Storm forts plugins read those times instead of scanning the map. Your bot then finds targets all over the {% term id="kingdom" %}kingdom{% /term %}, not only near your castle.
+
+Both boxes are on the account's {% ui key="client:drawer.accountSettings" /%} tab. Both are off until you tick them.
+
+- **Use gge-tracker.com timetables**: the bot asks the site for your game server's timetables. It sends only the name of your game server, for example IN1.
+- **Include my player name**: this box shows under the first one. The bot also sends your player name. The fortress times then include your own wait after each of your hits. Without your name, the site gives the times for every player.
+
+The bot never sends your stats, your attacks or your account details. Only GGE Command's own server reads the site, once for all players on the same game server.
+
+The site's times are a hint. Your bot still checks each target in the game before it attacks. If the site can't be read, the bot scans the map as before.
+
+{% settings plugin="ggeTracker" /%}
 
 ## Remove an account {% #remove-account %}
 

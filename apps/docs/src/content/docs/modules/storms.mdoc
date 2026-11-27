@@ -21,7 +21,7 @@ You need the Storm Islands unlocked in the game and a castle there.
 
 This tab attacks the fortresses around your Storm Islands castle.
 
-1. The bot reads the map around your Storm Islands castle and lists the fortresses.
+1. The bot reads the map around your Storm Islands castle and lists the fortresses. If you allowed [gge-tracker.com timetables](/war-room/dashboard/#gge-tracker), it takes the fortresses and their times from the site instead, also the ones the map does not show yet, and still checks each one in the game before it attacks.
 2. It puts them in **Fort order**. **Highest level first** tries the highest level and the fewest hits left first, nearest first among equals. **Nearest first** goes by distance alone.
 3. It skips fortresses whose level you did not tick, fortresses that are still waiting, and fortresses one of your armies is marching to.
 4. It takes a free {% term id="commander-game" %}commander{% /term %}. If you picked an order on the {% ui key="client:plugins.commanderPicker.title" /%} card, it follows it. Otherwise it takes the free commander with the best loot bonus.

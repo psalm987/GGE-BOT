@@ -13,6 +13,7 @@ const { parseAutofill, readArmy, fillFromPlan, orderUnits, eats, choice, HORSES 
 const { presetsListed } = require("../../gamePresets.js")
 const { statusReporter } = require("../../pluginStatus.js")
 const { pickSourceCastle, castleName } = require("../../towers.js")
+const { askTracker } = require("../ggeTracker.js")
 
 const bossDungeons = require("../../paths.js").loadItem("bossdungeons")
 
@@ -25,6 +26,8 @@ const SCAN_RADIUS = 50
 const NOT_READY_HOLD_MS = 5 * 60_000
 /** With every fortress under attack the plugin looks again after the first; it never sleeps longer than the second. */
 const IDLE_RECHECK_MS = [60_000, 10 * 60_000]
+/** How often the runner is asked for the timetable again. It reads gge-tracker.com only once a day per kingdom. */
+const TIMETABLE_ASK_GAP_MS = 30 * 60_000
 
 /**
  * `fallbackLevel` is the level used when a fortress's map data has none. `filename` is the plugin's file, which its
@@ -45,11 +48,12 @@ async function fortressHit(kingdomID, fallbackLevel, options, filename) {
     // The game client reads a fortress's level from its map data (Lazy Lord; medium confidence).
     const levelOf = areaInfo => Number(areaInfo.extraData[1]) > 0 ? Number(areaInfo.extraData[1]) : fallbackLevel
 
-    const areas = []
+    let areas = []
     const keyOf = areaInfo => `${areaInfo.x}:${areaInfo.y}`
     /** Fortress -> when this player may hit it again: after their own cooldown, or a refusal's hold. */
     const heldUntil = new Map()
-    const readyAt = areaInfo => Math.max(areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0)
+    /** The latest of the game's cooldown as last seen, a hold, and the timetable's time (`availableAt`), which is only a hint. */
+    const readyAt = areaInfo => Math.max(areaInfo.timeSinceRequest + areaInfo.extraData[2] * 1000, heldUntil.get(keyOf(areaInfo)) ?? 0, areaInfo.availableAt ?? 0)
     const underAttack = areaInfo => movements.some(movement =>
         movement.kingdomID == kingdomID && movement.targetAttack.x == areaInfo.x && movement.targetAttack.y == areaInfo.y)
 
@@ -176,11 +180,40 @@ async function fortressHit(kingdomID, fallbackLevel, options, filename) {
         (Math.pow(castle.areaInfo.x - a.x, 2) + Math.pow(castle.areaInfo.y - a.y, 2)) -
         (Math.pow(castle.areaInfo.x - b.x, 2) + Math.pow(castle.areaInfo.y - b.y, 2))
 
-    areas.push(...await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, e => e.type == type, { radius: SCAN_RADIUS }))
-    areas.sort(byDistance)
+    /**
+     * Where the fortresses come from: the gge-tracker.com timetable when the player opted in and the runner has it, else
+     * the map around the castle. A fortress already known keeps the game's data on it and takes the timetable's time.
+     */
+    let listFrom
+    let askedAt = 0
+    async function findFortresses() {
+        askedAt = Date.now()
+        const timetable = await askTracker({ kind: "fortresses", kingdom: kingdomID })
+        if (timetable.ok) {
+            const known = new Map(areas.map(areaInfo => [keyOf(areaInfo), areaInfo]))
+            const listed = timetable.fortresses.map(fortress => Object.assign(
+                known.get(keyOf(fortress)) ?? { type, x: fortress.x, y: fortress.y, extraData: [0, 0, 0], timeSinceRequest: 0 },
+                { availableAt: fortress.availableAt }))
+            const listedKeys = new Set(listed.map(keyOf))
+            areas = listed.concat(areas.filter(areaInfo => !listedKeys.has(keyOf(areaInfo)) && underAttack(areaInfo)))
+            if (listFrom != "timetable")
+                console.info("fortressTimetableUsed", KingdomID[kingdomID], ' ', listed.length)
+            listFrom = "timetable"
+        } else if (listFrom != "map") {
+            if (timetable.error != "off")
+                console.info("fortressTimetableUnavailable", KingdomID[kingdomID], ' ', timetable.error)
+            areas = await areasAround(ClientCommands.getAreaInfo, kingdomID, castle.areaInfo, e => e.type == type, { radius: SCAN_RADIUS })
+            listFrom = "map"
+        }
+        areas.sort(byDistance)
+    }
+
+    await findFortresses()
     while (await sendHit());
 
     while (true) {
+        if (Date.now() - askedAt >= TIMETABLE_ASK_GAP_MS)
+            await findFortresses()
         let minimumTimeTillHit = Infinity
         for (const areaInfo of areas)
             if (!underAttack(areaInfo))

@@ -27,5 +27,6 @@
     "Notify": 25,
     "PluginMemory": 26,
     "PluginFinished": 27,
-    "GameRefusal": 28
+    "GameRefusal": 28,
+    "GgeTracker": 29
 }

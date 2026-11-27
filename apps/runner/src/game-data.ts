@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { XMLParser } from "fast-xml-parser"
+import type { ServerNames } from "./gge-tracker.ts"
 
 const BASE = "https://empire-html5.goodgamestudios.com"
 const exists = (p: string) => access(p).then(() => true, () => false)
@@ -65,8 +66,11 @@ export async function fetchClientBuild({ fetch = globalThis.fetch } = {}) {
     }
 }
 
-/** `zoneId` names the server in the game's maintenance file (./gameMaintenance.ts). */
-export type ServerRow = { id: number; label: string; wsHost: string; zone: string; zoneId?: string }
+/**
+ * `zoneId` names the server in the game's maintenance file (./gameMaintenance.ts). `names` are 1.xml's own names for it,
+ * from which gge-tracker.com's name is found (./gge-tracker.ts).
+ */
+export type ServerRow = { id: number; label: string; wsHost: string; zone: string; zoneId?: string; names?: ServerNames }
 
 /** Servers players can pick, labelled the way the game names them ("Germany 1"). */
 export async function readServers(dataDir: string, locale = "en"): Promise<ServerRow[]> {
@@ -74,7 +78,7 @@ export async function readServers(dataDir: string, locale = "en"): Promise<Serve
         .parse(await readFile(path.join(dataDir, "1.xml"), "utf8"))
     const lang = JSON.parse(await readFile(path.join(dataDir, "lang", `${locale}.json`), "utf8").catch(() => "{}")) as Record<string, string>
     const instances = [xml?.network?.instances?.instance ?? []].flat() as Record<string, string | number>[]
-    const servers = instances
+    const servers: ServerRow[] = instances
         .filter(i => i.instanceLocaId)
         .map(i => ({
             id: Number(i.value),
@@ -82,6 +86,7 @@ export async function readServers(dataDir: string, locale = "en"): Promise<Serve
             wsHost: String(i.server),
             zone: String(i.zone),
             ...(i.zoneId !== undefined && { zoneId: String(i.zoneId) }),
+            names: { locaId: String(i.instanceLocaId), instanceName: String(i.instanceName ?? "") },
         }))
     // Not in 1.xml; the legacy panel always offered it.
     servers.push({ id: 103, label: "SP 3", wsHost: "ep-live-mz-nw2-game.goodgamestudios.com", zone: "EmpireExSP_3" })

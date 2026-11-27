@@ -21,7 +21,7 @@ Use it when you have a castle in a kingdom and want its fortresses attacked as s
 Each kingdom that is on runs on its own:
 
 1. The attacks leave from **Castle to attack from**, which lists your castles in that kingdom, a capital included. Left empty, that is your castle in that kingdom. If the castle you picked is gone, the bot uses your castle in that kingdom and the status tells you.
-2. The bot reads the map around the castle the attacks leave from and lists the fortresses, nearest first.
+2. The bot reads the map around the castle the attacks leave from and lists the fortresses, nearest first. If you allowed [gge-tracker.com timetables](/war-room/dashboard/#gge-tracker), it takes the whole kingdom's fortresses and their times from the site instead, and still checks each one in the game before it attacks.
 3. It takes a free {% term id="commander-game" %}commander{% /term %}. If you picked commanders in an order on the {% ui key="client:plugins.commanderPicker.title" /%} card, it follows your order. If you picked none, or all of them, it takes the fastest free commander.
 4. It attacks the nearest fortress whose wait is over and that none of your armies is marching to.
 5. When every fortress is waiting, the bot waits until the next one is ready, and then goes on.
