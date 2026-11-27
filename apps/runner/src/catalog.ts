@@ -5,7 +5,7 @@ import { pluginCatalog, type Db } from "@gge/db"
 export async function publishCatalog(db: Db, catalog: PluginCatalogEntry[]) {
     await db.transaction(async tx => {
         for (const entry of catalog) {
-            const row = { force: entry.force, hidden: entry.hidden, options: entry.options, category: entry.category ?? null, checks: entry.checks ?? [], breaksPeace: entry.breaksPeace ?? false, eventOnly: entry.eventOnly ?? null }
+            const row = { force: entry.force, hidden: entry.hidden, options: entry.options, category: entry.category ?? null, checks: entry.checks ?? [], breaksPeace: entry.breaksPeace ?? false, eventOnly: entry.eventOnly ?? null, targets: entry.targets ?? null }
             await tx.insert(pluginCatalog).values({ key: entry.key, ...row, updatedAt: new Date() })
                 .onConflictDoUpdate({ target: pluginCatalog.key, set: { ...row, updatedAt: sql`now()` } })
         }

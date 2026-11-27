@@ -72,6 +72,17 @@ describe("Auto-buy from the armoury", () => {
         expect(live.protocols.resources.coins).toBe(1_000_000 - 6000)
     })
 
+    test("with a source castle picked that isn't the main one, the bot buys from inside it and the tools land there", async () => {
+        const home = castles()
+        const watch = castleAt(0, 2, 610, 600, { type: 4, name: "Ironhold Watch", inventory: [melee(601, 500_000), ranged(603, 500_000), tool(LADDER, 400, { wallBonus: "10" })] })
+        const live = game({ ...AUTOBUY, sourceCastle: { kingdom: 0, id: 2 } }, { castles: [...home, watch] })
+        await run(MINUTE)
+        expect(live.orders.map(order => order.AMT)).toEqual([600])
+        expect(live.joins).toEqual([2])
+        expect(ownedBy([watch], LADDER)).toBeGreaterThan(900)
+        expect(ownedBy(home, LADDER)).toBe(100_000)
+    })
+
     test("at or above the minimum it buys nothing", async () => {
         const full = game({ ...AUTOBUY, dryRun: true }, { stock: { ladders: 1000 } })
         await run(MINUTE)

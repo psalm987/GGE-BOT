@@ -65,6 +65,7 @@ async function runEvent(plugin, options, {
         resources: { pegasusTicket: 5, coins: 0, ...resources },
         KingdomSkipType: { sendResource: 2, sendTroops: 1 },
         unlockInfoList: [{ kingdomID: 4, isUnlocked: true }],
+        shopTurn: task => task(),
         ClientCommands: {
             preSpyInfo: async () => {},
             getNextMapObject: async () => (found.push(areas[0]), { areaInfo: areas[0] }),

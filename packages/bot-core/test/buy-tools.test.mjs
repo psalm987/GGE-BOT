@@ -102,6 +102,13 @@ describe("the catalog entry", () => {
         for (const key of ["Starting", "NoTargets", "NoAnswer", "NoCastle", "NotArrived", "NoOffer", "CoinFloor", "CapReached", "StorageFull", "Refused", "TargetsMet", "Bought"])
             expect(en[`statusBuyTools${key}`]).toEqual(expect.any(String))
     })
+
+    test("the English words say the bot buys inside the castle, not that the game sends a purchase to the kingdom", () => {
+        for (const key of ["statusBuyToolsNotArrived", "buyTools.targets.help"]) {
+            expect(en[key]).not.toMatch(/delivers a purchase to the kingdom/)
+            expect(en[key]).toMatch(/inside/)
+        }
+    })
 })
 
 describe("buying the deficit", () => {

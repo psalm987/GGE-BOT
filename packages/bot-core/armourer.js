@@ -61,7 +61,7 @@ function liveOffers() {
  *
  * `sbp` names no castle, so the bot first joins the castle and opens its armourer (`gbc`), as the game's client does.
  * The reply names no purchase either: the armourer's buys wait their turn in `shopTurn`, and a success whose `grc`
- * is another kingdom's castle, such as a Storm shop buy that `attackStormForts.js` sends outside the turn, is not ours.
+ * is another kingdom's castle, such as the late reply to a Storm shop buy that timed out, is not ours.
  */
 async function buy(offer, packagesToBuy, castle, dryRun) {
     const kingdom = castle.kingdomID
@@ -89,14 +89,13 @@ async function buy(offer, packagesToBuy, castle, dryRun) {
 }
 
 /**
- * Tops up tools that have run low in `kingdom`'s main castle, one batch each: a row is `{ tool, keep, have, batch? }`,
+ * Tops up tools that have run low in `castle`, or else in `kingdom`'s main castle, one batch each: a row is `{ tool, keep, have, batch? }`,
  * and a tool with `have` below `keep` gets its row's `batch` or else `batch` more, or as many as `maxPerClick` allows.
  * Nothing is bought that would take the coins under `coinFloor` or the run's spending over `spendCap`. Resolves to
  * `{ bought, spent }` in tools and coins.
  */
-async function topUp(rows, { kingdom, batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
+async function topUp(rows, { kingdom, castle = mainCastle(kingdom), batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
     const offers = liveOffers()
-    const castle = mainCastle(kingdom)
     let coins = resources.coins, spent = 0, bought = 0
     if (!Number.isFinite(coins) || !castle)
         return { bought, spent }

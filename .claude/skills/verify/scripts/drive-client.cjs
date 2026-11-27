@@ -1418,6 +1418,42 @@ function armyHelpers(page) {
     return { pick, segment, saveBar, save, openFortress }
 }
 
+/**
+ * The wave editor offers only the tools that can attack what the module attacks: the catalog names the Burning Sands
+ * fortress plugin's targets, and on Ironhold's Fortress a wave's tool picker finds a tool allowed there and not one that
+ * is barred. It saves nothing.
+ */
+async function driveWaveTargets(page) {
+    const plugin = "attackFortressesBurningSands"
+    const { targets } = (await rpc(page, "plugins/catalog")).find(entry => entry.key === plugin)
+    assert(Array.isArray(targets) && targets.length > 0 && targets.every(target => target.kingdom === 1), `the catalog names what ${plugin} attacks: ${JSON.stringify(targets)}`)
+    const hits = item => !item.attackTargets || item.attackTargets.some(a => targets.some(b => a.kingdom === b.kingdom && a.areaType === b.areaType))
+    const tools = await rpc(page, "catalog/gameItems", { kind: "tool" })
+    const barred = tools.find(item => !hits(item)), allowed = tools.find(item => item.attackTargets && hits(item)) ?? tools.find(hits)
+    assert(barred && allowed, `the dev items hold a tool barred at the fortress (#${barred?.id} ${barred?.name}) and one allowed there (#${allowed?.id} ${allowed?.name})`)
+
+    const { segment, openFortress } = armyHelpers(page)
+    await page.setViewportSize(WIDE_VIEW)
+    const form = await openFortress()
+    await segment(form, "Army", "Waves").click()
+    await form.locator(".ant-collapse-header").first().click()
+    await segment(form, "Wave 1 comes from", "Custom slots").click()
+    const name = "Wave 1, Left flank, tool 1"
+    const found = async id => {
+        const dropdown = await openSelect(page, form.getByRole("combobox", { name, exact: true }), name)
+        await page.keyboard.type(`#${id}`)
+        await page.waitForTimeout(300)
+        const texts = await dropdown.locator(".ant-select-item-option").allInnerTexts()
+        if (id === barred.id)
+            await page.screenshot({ path: `${out}/93-wave-targets-barred-1440.png` })
+        await page.keyboard.press("Escape")
+        await page.keyboard.press("Escape")
+        return texts.some(text => new RegExp(`#${id}\\b`).test(text))
+    }
+    assert(await found(allowed.id), `the tool picker offers ${allowed.name} (#${allowed.id}), which can attack the fortress`)
+    assert(!(await found(barred.id)), `the tool picker leaves out ${barred.name} (#${barred.id}), which can't`)
+}
+
 /** Sets the in-game presets Ironhold's bot last saw the game list, keeping the rest of its last report. */
 const setGamePresets = gamePresets => withDatabase(db => db.query(
     `insert into bot_status (account_id, resources) select id, jsonb_build_object('gamePresets', $1::jsonb) from game_accounts where name = 'Ironhold'
@@ -3310,6 +3346,17 @@ async function driveBladeCoast(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveUxWaves(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "wave-targets") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveWaveTargets(demo)
         await browser.close()
         return console.log(`evidence: ${out}`)
     }

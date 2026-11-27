@@ -24,6 +24,7 @@ export async function loadCatalog(db: Db): Promise<PluginCatalogEntry[]> {
             ...checks?.length && { checks },
             ...r.breaksPeace && { breaksPeace: true },
             ...r.eventOnly !== null && { eventOnly: r.eventOnly },
+            ...r.targets !== null && { targets: r.targets as PluginCatalogEntry["targets"] },
         }
     })
 }

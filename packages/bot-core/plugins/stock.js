@@ -1,8 +1,8 @@
 if (require('node:worker_threads').isMainThread)
     return module.exports = { hidden: true }
 
-const { castles, movements } = require("../protocols.js")
-const { playerInfo } = require("../ggeBot.js")
+const { castles, movements, castleQueue } = require("../protocols.js")
+const { playerInfo, xtHandler } = require("../ggeBot.js")
 const { ask } = require("../chores.js")
 
 const { UNITS_LIST, TOOLS_LIST } = require("../orderable.js")
@@ -15,6 +15,18 @@ const queueKey = (castle, list) => `${list}:${castleKey(castle)}`
 
 /** @type {Map<String, {readAt: Number, orders: Map<Number, Number>}>} */
 const queues = new Map()
+
+/**
+ * When each list last changed: the bot queued an order, or the game sent an `spl` for it. A join's copy of a list from
+ * before that is stale. Any castle's change counts, since the bot joins again on its way back to another castle.
+ * @type {Map<Number, Number>}
+ */
+const changedAt = new Map()
+// An `spl` that names no list may be either list.
+xtHandler.on("spl", reply => {
+    for (const list of reply?.LID === undefined ? LISTS : [Number(reply.LID)])
+        changedAt.set(list, Date.now())
+})
 
 /**
  * An order the queue lists, as `{ wodID, amount }`, or undefined when its shape is unknown. The order in production
@@ -73,25 +85,35 @@ function parseQueue(reply) {
     return { orders, freeSlots, emptySlots, psIdle: !busy, unknown, seconds: Number.isFinite(Number(reply.TCT)) ? Number(reply.TCT) : undefined }
 }
 
-/**
- * Reads `castle`'s production queue for `list` (the tools' by default). The queue belongs to the castle the bot is in,
- * so call this from inside setCastle. Resolves to `{ freeSlots, emptySlots, psIdle, seconds, unknown }`, or undefined
- * when the game doesn't answer.
- */
-async function readQueue(castle, list = TOOLS_LIST) {
+/** The list as the game sends it for the castle the bot is in, or undefined when it doesn't answer. */
+async function askQueue(list) {
     const { reply, result } = await ask("spl", { LID: list })
     // The game also pushes an `spl` when a list finishes an order, and `ask` takes the first one it sees.
-    if (result !== 0 || reply.LID !== undefined && Number(reply.LID) != list)
+    return result !== 0 || reply.LID !== undefined && Number(reply.LID) != list ? undefined : reply
+}
+
+/**
+ * Reads `castle`'s production queue for `list` (the tools' by default). The queue belongs to the castle the bot is in,
+ * so call this from inside setCastle. The castle's join carries its lists, as Lazy Lord reads them, so the bot asks
+ * with `spl` only when the join didn't carry this one or the list changed since. Resolves to
+ * `{ freeSlots, emptySlots, psIdle, seconds, unknown }`, or undefined when the game doesn't answer.
+ */
+async function readQueue(castle, list = TOOLS_LIST) {
+    const joined = castleQueue(castle.kingdomID, castle.id, list)
+    const fresh = joined && joined.at > (changedAt.get(list) ?? -Infinity)
+    const reply = fresh ? joined.spl : await askQueue(list)
+    if (!reply)
         return
     const { orders, freeSlots, emptySlots, psIdle, seconds, unknown } = parseQueue(reply)
     if (unknown)
         console.warn("stockQueueUnknown", castleKey(castle), JSON.stringify(reply))
-    queues.set(queueKey(castle, list), { readAt: Date.now(), orders })
+    queues.set(queueKey(castle, list), { readAt: fresh ? joined.at : Date.now(), orders })
     return { freeSlots, emptySlots, psIdle, seconds, unknown }
 }
 
 /** Counts an order the bot just queued, until the next read of that queue replaces it. */
 function noteQueued(castle, wodID, amount, list = TOOLS_LIST) {
+    changedAt.set(list, Date.now())
     const entry = queues.get(queueKey(castle, list)) ?? { readAt: Date.now(), orders: new Map() }
     entry.orders.set(wodID, (entry.orders.get(wodID) ?? 0) + amount)
     queues.set(queueKey(castle, list), entry)

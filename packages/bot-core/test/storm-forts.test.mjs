@@ -18,7 +18,7 @@ const storm = (stored, game = {}) => runEvent("attackStormForts", { commanderWhi
 })
 /** The packages the shop was asked for with `aqua` in a store that holds `max`. No commander is free, so no fort is attacked. */
 async function shop(stored, aqua, max = aqua) {
-    const { frames } = await storm({ buyCoins: false, ...stored }, { castle: { aqua, getProductionData: { maxAmountAqua: max } }, sends: 0 })
+    const { frames } = await storm({ buyCoins: false, ...stored }, { castle: { aqua, getProductionData: { maxAmountAqua: max } }, sends: 0, answer: command => command == "sbp" ? [{}, 0] : undefined })
     await new Promise(resolve => setTimeout(resolve, 20))
     return frames.filter(([command]) => command == "sbp").map(([, order]) => order.PID)
 }

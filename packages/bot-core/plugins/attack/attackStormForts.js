@@ -73,7 +73,8 @@ if (require('node:worker_threads').isMainThread) {
 }
 
 
-const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles } = require("../../protocols.js")
+const { movementEvents, ClientCommands, AreaType, KingdomID, movements, castles, shopTurn } = require("../../protocols.js")
+const { ask } = require("../../chores.js")
 const { mapGrid, scanGrid, wholeMapRects } = require("../../mapScan.js")
 const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, getAmountSoldiersFlank, getAmountSoldiersFront, getTotalAmountToolsFlank, getTotalAmountToolsFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
@@ -170,7 +171,7 @@ events.once("load", async () => {
                     if (pluginOptions.dryRun)
                         console.log("dryRunSbp", JSON.stringify(order))
                     else
-                        await sendXT("sbp", JSON.stringify(order))
+                        await shopTurn(() => ask("sbp", order))
                     castle.aqua -= cost
                     bought++
                     console.info(log)
