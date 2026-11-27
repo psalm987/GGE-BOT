@@ -8,6 +8,7 @@ sources:
   - packages/bot-core/khan.js
   - packages/bot-core/khanDefence.js
   - packages/bot-core/eventDifficulty.js
+  - packages/bot-core/spyFill.js
   - packages/contracts/src/modules.ts
 ---
 
@@ -70,6 +71,19 @@ To keep storage full, set the tools under **Defence tools to keep in stock**: **
 **Troop supply** limits the troops that go to those that eat food, or those that eat {% term id="mead" %}mead{% /term %}. {% term id="autofill" %}Autofill{% /term %} waits until the castle holds at least 100 troops.
 
 For the horse, **Use a coin horse** is on by default and needs a stable. **Use fast horse feathers** spends one {% term id="horse-feather" %}feather{% /term %} on each attack.
+
+## Wave 1 from a spy report {% #spy-wave %}
+
+**Fill wave 1 from a spy report** spies the camp before each attack and builds the first {% term id="wave" %}wave{% /term %} from what the spies saw. It works with {% ui key="client:army.mode.autofill" /%} and with {% ui key="client:army.mode.waves" /%}. The other waves stay as those build them.
+
+1. The bot sends every spy in the castle. Your other attacks go on while the spies travel.
+2. When they land, it opens the attack screen again and reads the report.
+3. Wave 1 gets one ranged troop on every side: the strongest one the castle has enough of.
+4. Each side gets just enough {% term id="tool" %}tools{% /term %} to break its wall, the front's gate and the defenders' ranged defence, with event and elite tools first. Wave 1 takes them before the other waves.
+
+A feather goes only when **Use fast horse feathers** is on and you have one. Otherwise the spies ride the {% term id="coin-horse" %}coin horse{% /term %} with the best spy speed when either horse option is on.
+
+If 10 spy trips bring no report, or the castle has no spies, the bot waits 10 minutes and tries again. If the castle lacks the tools to break a wall or a gate, the bot stops and says so.
 
 ## Test with Log only {% #log-only %}
 

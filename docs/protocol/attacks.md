@@ -43,6 +43,8 @@ The game sends `gai {AC, ACTH}` at login. `AC` is the attacks counted today. The
 | `NOT_ENOUGH_CURRENCY1` | The plugin waits 10 minutes, then tries again. |
 | `WONT_REACH_IN_TIME` | The target is held 5 minutes. |
 | `COOLING_DOWN`, a refused screen | The target is held 5 minutes (glory castles: see below). |
+| `NO_SPY_REPORT` (the bot's own, see [Spy-filled wave 1](#spy-filled-wave-1)) | The plugin waits 10 minutes, then tries again. |
+| `NOT_ENOUGH_TOOLS` from a spy-filled wave 1 | The plugin stops, with a status saying why. |
 
 Before, any 3 refusals from any plugin paused every plugin for 5 to 60 minutes.
 
@@ -106,6 +108,43 @@ A tier counts as unlocked when it is not locked (`isLocked`), or when the achiev
 
 `sne` entries are `[id, type, header, sender, playerID, age in seconds, read, archived, forwarded]`. Types 3 and 4 are spy reports, on a player's target and on an NPC's. Their header reads `spyKind+result[+areaType]#kingdomID+ownerID[+name]`. Our Bloodcrow capture's `1+0+34#0+-1002+` fits it. With "Delete reports" on, the report of the bot's own spies (an accepted `csm`) is deleted when they got through (result 0), and kept when they were caught (2). An archived or forwarded report is never deleted, battle or spy.
 
+## Spy-filled wave 1
+
+Foreign Lords (21), Bloodcrow (34), Khan camp (35) and Daimyo (37) plugins have the option "Fill wave 1 from a spy report". The bot spies the target before each attack and fills wave 1 from the report, as the game's own "Fill waves" does. Everything in this section is from Lazy Lord's source (`be/waveOneAutofill.js` and `be/plugins/attack/attack.js`, MIT) unless it names our own evidence. The bot code is `spyTarget` and `spyWave` in `plugins/attack/attack.js` and the planner in `spyFill.js`.
+
+### Spying
+
+1. `ssi {TX, TY, KID}`. The reply's `AS` is the spies in the castle. With none, nothing is sent.
+2. `csm {SID: castle id, TX, TY, SC: AS, ST: 0, SE: 100, HBW, KID, PTT, SD: 0}` sends every spy at 100 % accuracy. Lazy Lord rides a feather whenever the account has one. The bot rides one only when the plugin's own horse setting is the feather and one is left. Otherwise it takes the coin horse with the best `spyBoost` when the plugin rides any horse, and `HBW` -1 when it rides none. A horse paid in rubies is never taken.
+3. The reply's movement is at `A.M`, `AAM.M` or `M`. The spies land after `TT - PT` seconds. The bot waits that long plus 5 to 10 seconds, 15 minutes at most. `NOT_ENOUGH_SPIES` (105) means no spies are left.
+4. The bot opens the attack screen again. Its reply carries the report in `S` and the target's bonuses in `B.AIE`.
+
+The other attacks in the queue go on while the spies travel. The attack steps out of the queue for the wait (`turn.outsideQueue` in `waitToAttack`) and carries on ahead of the queued attacks once the spies land. While the screen shows no report the bot spies again. After 10 trips without one it gives up with `NO_SPY_REPORT`.
+
+### What the screen shows
+
+| Field | Meaning |
+|---|---|
+| `S[0]`, `S[1]`, `S[2]`, `S[3]` | The left flank, front, right flank and courtyard, each `[[wodID, count]]`. A side counts as reported when one of the first three has an entry. |
+| `B.AIE` | The target's bonuses, `[[effectID, [value]]]`: 10000 wall, 10001 gate, 10002 moat, 10004 ranged defence, 10007 defence. |
+| `gaa.AI` 6 to 8 | A castle's own wall, gate and moat. Khan camps have them at 10 to 12 and Daimyo castles at 9 to 11. Our Daimyo capture (`daimyo-20261120.json`) holds 110, 110 and 0 there. |
+
+### Filling wave 1
+
+1. One troop fills every side: the ranged troop with the most `rangeAttack` times the commander's ranged bonus, among those the castle has enough of for both flanks and the front, else the strongest. A side takes as many as it has room for.
+2. Each side, left, front, right, cancels in order its wall, then its gate (front only), then the defenders' ranged defence. The moat is left alone.
+   - Wall or gate: the target's own value, plus its bonus, plus the spied tools' `wallBonus` or `gateBonus`, minus the commander's `wallReduction` or `gateReduction`.
+   - Ranged defence: 100, plus 10004 and 10007, plus the spied tools' `defRangeBonus`, the same on every side.
+3. For each, the tool kind with the highest bonus that cancels it alone goes first, event and elite tools ahead at the same bonus. When none can, the one kind that cancels the most fills the room. A tool that lowers two defences counts for both.
+4. A side never takes more tool kinds than it has tool slots (2 on a flank, 3 on the front at level 37 and up), more tools than its room, or more of a tool than its `amountPerWave` across the wave. A tool `allowedToAttack` or `canBeUsedToAttackNPC` bars from the target is left out.
+5. A wall or gate left standing is `NOT_ENOUGH_TOOLS`. Ranged defence left over is allowed.
+
+Wave 1 takes its troops and tools before the plugin builds its other waves, so they go to wave 1 first. The plugin's own wave 1 goes back to the castle, and the plan takes its place. With Waves, the plan's first wave is not filled at all.
+
+Lazy Lord also counts the account's legendary skills in the wall and gate reduction at Foreign Lords and Bloodcrow castles. The bot does not read legendary skills yet, so it may send a few more tools than needed there.
+
+A dry run sends no spies and opens no screen. It writes the `csm` it would send to the log, and plans wave 1 against the target's map entry alone.
+
 ## Evidence and confidence
 
 | Fact | Confidence | Confirm with |
@@ -128,3 +167,7 @@ A tier counts as unlocked when it is not locked (`isLocked`), or when the achiev
 | `amountPerWave`, `canBeUsedToAttackNPC`, effect type 156 | medium | Lazy Lord's reading of the client |
 | Spy report types 3 and 4 and their header | medium | One spy report in a trace |
 | `sne` entry fields 7 and 8 are archived and forwarded | low | Archive one report while recording |
+| The attack screen's `S` and `B.AIE` after a spy, and their sections | medium | Lazy Lord's source; one spy and attack screen on a Khan camp on the test account |
+| Wall, gate and moat at `gaa.AI` 6 to 8, 10 to 12 (Khan) and 9 to 11 (Daimyo) | medium | Lazy Lord's source; our Daimyo capture fits. One Khan camp `adi` |
+| The ranged defence base of 100 and the bonuses 10004 and 10007 | low | Lazy Lord's source, checked by them against the game with two commanders |
+| The `csm` movement's `TT - PT` is the spies' trip | medium | Our Berimond capture's `TT` 1 s; one home-kingdom spy on the test account |
