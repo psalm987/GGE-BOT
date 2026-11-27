@@ -1,19 +1,23 @@
 ---
-title: Toolsmith
-description: Build tools in your workshops until each one reaches the stock you set, for all your castles together or for one castle.
+title: Refinery and Toolsmith
+description: Build tools in your workshops up to the stock you set, and keep your Refinery and Toolsmith crafting the components you pick.
 appRoute: /m/refinery-toolsmith
 plugin: toolsmith
 sources:
   - packages/bot-core/plugins/toolsmith.js
+  - packages/bot-core/plugins/refineryToolsmith.js
   - packages/bot-core/plugins/stock.js
   - packages/contracts/src/modules.ts
 ---
 
-{% icon id="stone-crafting" size=32 /%}Keep your {% term id="tool" %}tool{% /term %} stores full. The Toolsmith {% term id="plugin" %}plugin{% /term %} builds tools in your workshops until each tool reaches the stock you set. You can set a target for all your castles together, or for one castle.
+{% icon id="stone-crafting" size=32 /%}Keep your {% term id="tool" %}tool{% /term %} stores full and your crafting buildings busy. This {% term id="module" %}module{% /term %} has two tabs, one for each {% term id="plugin" %}plugin{% /term %}:
+
+- **Toolsmith** builds siege and defence tools in your workshops until each tool reaches the stock you set.
+- **Refinery and Toolsmith components** keeps your Refinery and Toolsmith buildings crafting refined wood, screws, black powder and the other components you pick. See [Craft components](#components).
 
 {% terms_on_page /%}
 
-Use it to keep ladders, rams and defence tools ready for the next fight.
+Use the first tab to keep ladders, rams and defence tools ready for the next fight. The rest of this section is about that tab.
 
 ## How it works {% #how-it-works %}
 
@@ -63,8 +67,99 @@ The {% ui key="client:module.status" /%} card on the module page tells you what 
 - **Not enough resources to build** the tool. The bot waits until the castle has resources above your floor.
 - **The workshop queue is full.** The bot waits for a free slot.
 
+## Craft components {% #components %}
+
+The **Refinery and Toolsmith components** plugin fills the crafting and queue slots of the buildings you pick. It makes your picked products in turn, and it can keep extra slots rented for coins. It never spends {% term id="ruby" %}rubies{% /term %}.
+
+### How it works {% #components-how %}
+
+1. A few minutes after your bot signs in, and then about every 10 minutes, the bot asks the game for your crafting buildings. Once an hour it also reads your research, which unlocks higher recipe levels.
+2. For each building in your rows, it first rents the slots you asked for that are locked now, in order.
+3. Then it fills each free slot with the next product in turn. After a restart, the turn carries on after the last product the building shows. It starts at most 6 crafts in one round.
+4. For each product it picks the highest recipe level you have unlocked, of the length you chose. It skips a product the castle can't pay for and makes the next one.
+5. When a rented slot runs out, the bot checks again 30 seconds to 3 minutes later and rents it again.
+
+### Pick what to craft {% #components-rows %}
+
+Choose **Add row** and fill in every column. Add one row for each product a castle makes. The **Product number** column takes these numbers:
+
+| Number | Product | Building |
+|---|---|---|
+| 1 | Refined wood | Refinery |
+| 2 | Refined stone | Refinery |
+| 3 | Steel | Refinery, level 5 |
+| 4 | Dragon glass | Refinery, level 5 |
+| 5 | Screws | Toolsmith |
+| 6 | Black powder | Toolsmith |
+| 7 | Saw | Toolsmith |
+| 8 | Drill | Toolsmith |
+| 9 | Crowbar | Toolsmith |
+| 10 | Leather strips | Toolsmith |
+| 11 | Chains | Toolsmith |
+| 12 | Metal plates | Toolsmith |
+
+The product names its building, so the rows of one castle with Refinery products share the castle's Refinery. A building makes its products in the order of your rows, one after another.
+
+**Length (0 short, 1 long)** picks the short recipe (1 hour) or the long one (5 hours).
+
+The settings page has no tick list of products for each castle yet, so the product is a number column with this table as its key.
+
+### Rent extra slots {% #components-rent %}
+
+A Refinery and a Toolsmith each have one crafting slot and one queue slot for good. You can rent one more crafting slot and three more queue slots for a week, for coins:
+
+| Slot | Price for a week |
+|---|---|
+| Crafting slot 2 | 5,000,000 coins |
+| Queue slot 2 | 500,000 coins |
+| Queue slot 3 | 3,000,000 coins |
+| Queue slot 4 | 6,500,000 coins |
+
+**Crafting slots to rent (0 or 1)** and **Queue slots to rent (0 to 3)** say how many to keep rented. The game rents slots in order, so 2 queue slots means queue slots 2 and 3. If two rows of one building ask for different numbers, the higher number counts.
+
+Two settings limit what renting spends:
+
+- **Most coins to spend on renting slots each round** is the most the bot rents for in one round. The default is 10,000,000. Set 0 to never rent.
+- **Keep at least this many coins** is your coin floor. A rental never takes your coins below it. The default is 1,000,000.
+
+### Test with Log only {% #components-log-only %}
+
+Turn on **Log only: write the orders to the log instead of sending them**. The bot still reads your buildings, then writes each craft and rental to your {% term id="log" %}log{% /term %} and sends neither.
+
+### What it never does {% #components-never %}
+
+- It never makes a ruby recipe, and never makes a recipe that has a ruby price.
+- It never rents a slot for rubies, never spends more than your cap in a round, and never goes below your coin floor.
+- It never cancels or speeds up a craft.
+- It sends nothing to a building that is being built, moved or taken down.
+
+### When the game refuses {% #components-refusals %}
+
+- When every slot is full, the bot waits for the next round. This is normal.
+- When the castle is short of resources after all, the bot waits for the next round.
+- After any other refusal, the bot leaves that building alone: for one round, then two, then more, never longer than an hour.
+
+### Component settings {% #components-settings %}
+
+{% settings plugin="refineryToolsmith" /%}
+
+### Read the component status {% #components-status %}
+
+- **Started** a number of crafts **and rented** a number of slots.
+- **Every crafting and queue slot is busy.**
+- **Not enough resources to craft** a product **yet.**
+- **No product you picked is unlocked in that building yet.** Steel and dragon glass need a level 5 Refinery.
+- **Renting the next slot you picked would pass your coin cap for a round or your coin floor.**
+- **A castle in your rows has no Refinery or Toolsmith for its product**, or the game hasn't listed it yet.
+- **The game refused a crafting request**, so that building waits before it tries again.
+
+### Not yet checked in the game {% #components-live-check %}
+
+The crafting requests come from another bot's code, based on its reading of the game client. One short recipe was tried on a test account. The building states that mean "not working" come from that code too. If the bot never crafts in a building that works in the game, check the status and tell us.
+
 ## Related errors {% #errors %}
 
 - [PLUGIN_OPTION_CASTLE](/errors/#plugin-option-castle) means a row names a castle that isn't on this account.
 - [PLUGIN_OPTION_ITEM](/errors/#plugin-option-item) means a row names a tool that isn't in the list.
+- [PLUGIN_OPTION_RANGE](/errors/#plugin-option-range) means a number in a row is outside its range, such as a product number above 12.
 - [PLUGIN_OPTION_ROWS](/errors/#plugin-option-rows) means a table has too many rows.

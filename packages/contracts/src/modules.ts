@@ -142,7 +142,7 @@ export const MODULES: readonly ModuleDef[] = [
     soon("or-storms", "bth", "tornado"),
     soon("mp-builder", "bth", "tower-bridge"),
     live("recruit-tools-heal", "utility", "healing-shield", ["recruitTools", "healTroops"], "per-plugin"),
-    live("refinery-toolsmith", "utility", "stone-crafting", ["toolsmith"]),
+    live("refinery-toolsmith", "utility", "stone-crafting", ["toolsmith", "refineryToolsmith"], "per-plugin"),
     live("auto-feast", "utility", "steak", ["feast"]),
     live("equip-sell", "utility", "banknote", ["sellStoredEquipment"]),
     live("daily-chores", "utility", "calendar", ["loginBonus", "taxCollector", "helpRequests"], "sections"),
