@@ -315,7 +315,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         const held = tool => castle.unitInventory.reduce((total, unit) => unit.unitInfo.wodID == tool ? total + unit.amount : total, 0)
         const rows = buyTools.map(tool => ({ tool, keep: minimum, have: held(tool), batch: minimum - held(tool) }))
         const { bought, spent } = await topUp(rows, {
-            kingdom: kingdomID, dryRun: Boolean(options.dryRun), coinFloor: Number(options.armourerCoinFloor) || 0, spendCap: Number(options.armourerSpendCap) || 0,
+            castle, dryRun: Boolean(options.dryRun), coinFloor: Number(options.armourerCoinFloor) || 0, spendCap: Number(options.armourerSpendCap) || 0,
         })
         if (bought > 0) {
             console.info("stormToolsBought", bought, " ", "stormToolsCoins", spent)

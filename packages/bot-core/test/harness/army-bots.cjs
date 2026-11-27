@@ -125,8 +125,8 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * game leaves a map request unanswered, and `sendResult(cra)` may return an error name for the game to refuse a send with.
  * `screenRefusal(area)` refuses the attack screen on a tower, and `looks` and `screens` hold each tower looked at with
  * `ssi` and each attack screen opened. `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
- * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and, as the game does, delivers its tools to
- * the player's castle in that kingdom. `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
+ * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and delivers its tools to the castle the bot joined for it,
+ * which `joins` lists by id. `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
  * `attackOptions` are the account's attack settings.
  */
 function startTowers(options, {
@@ -147,6 +147,7 @@ function startTowers(options, {
     const screens = []
     const startedAt = Date.now()
     const orders = []
+    const joins = []
     const protocols = {
         castles, movements: [], movementEvents, resources: { pegasusTicket: 5, coins: 0, ...resources }, ClassTypes: {},
         AreaType: { barron: BARON, fortress: FORTRESS, mainCastle: MAIN, externalKingdom: OUTPOST },
@@ -172,15 +173,15 @@ function startTowers(options, {
     }
     if (armourer) {
         protocols.activeEvent = () => ({ PIDS: armourer.live })
-        protocols.setCastle = (castle, callback) => callback()
+        let inside
+        protocols.setCastle = (castle, callback) => { joins.push(castle.id); inside = castle; return callback() }
         protocols.shopTurn = task => task()
         bot.sendXT = async (command, params) => {
             const order = JSON.parse(params)
             if (command == "sbp") {
                 orders.push(order)
                 const pack = armourer.packages.find(pack => Number(pack.packageID) == order.PID)
-                const home = castles.find(castle => castle.kingdomID == order.KID)
-                const held = home.unitInventory.find(unit => unit.unitInfo.wodID == Number(pack.unitID))
+                const held = inside.unitInventory.find(unit => unit.unitInfo.wodID == Number(pack.unitID))
                 if (held)
                     held.amount += order.AMT * Number(pack.unitAmount)
                 protocols.resources.coins -= order.AMT * Number(pack.packagePriceC1)
@@ -256,7 +257,7 @@ function startTowers(options, {
     // The plugin's attack lines, as the runner would store them, for a test to feed back as a restart's history.
     console.info = (...parts) => { logged.push(["[12:00] ", "[", "sharedBarronAttackLogic", "] ", ...parts]); info(...parts) }
     Promise.resolve(mod(BARON, kingdomID, options, TOP_LEVELS[kingdomID], file)).catch(error => stopped.push(error))
-    return { sent, statuses, requests, looks, screens, map, stopped, protocols, bot, logged, orders }
+    return { sent, statuses, requests, looks, screens, map, stopped, protocols, bot, logged, orders, joins }
 }
 
 module.exports = { firstCra, barons, fortress, startTowers, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }

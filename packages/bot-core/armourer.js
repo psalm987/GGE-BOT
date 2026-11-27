@@ -89,14 +89,13 @@ async function buy(offer, packagesToBuy, castle, dryRun) {
 }
 
 /**
- * Tops up tools that have run low in `kingdom`'s main castle, one batch each: a row is `{ tool, keep, have, batch? }`,
+ * Tops up tools that have run low in `castle`, or else in `kingdom`'s main castle, one batch each: a row is `{ tool, keep, have, batch? }`,
  * and a tool with `have` below `keep` gets its row's `batch` or else `batch` more, or as many as `maxPerClick` allows.
  * Nothing is bought that would take the coins under `coinFloor` or the run's spending over `spendCap`. Resolves to
  * `{ bought, spent }` in tools and coins.
  */
-async function topUp(rows, { kingdom, batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
+async function topUp(rows, { kingdom, castle = mainCastle(kingdom), batch = 0, coinFloor, spendCap, dryRun, active = () => true }) {
     const offers = liveOffers()
-    const castle = mainCastle(kingdom)
     let coins = resources.coins, spent = 0, bought = 0
     if (!Number.isFinite(coins) || !castle)
         return { bought, spent }
