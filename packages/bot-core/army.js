@@ -301,6 +301,12 @@ function fillFromPlan(attackInfo, plan, inventory, room, target) {
 }
 
 /**
+ * `plan` with its first wave sending nothing, for an attack whose wave 1 is filled from a spy report. Its last wave
+ * still repeats for the waves after it.
+ */
+const withoutFirstWave = plan => ({ ...plan, waves: [{ kind: "preset", preset: 0 }, ...plan.waves.length > 1 ? plan.waves.slice(1) : plan.waves] })
+
+/**
  * The army options of a plugin: the Autofill or Waves switch and the wave plan. `source` says which of the plugin's
  * options make up its autofill (@gge/contracts' AutofillSource).
  */
@@ -320,7 +326,7 @@ const fortressOptions = waves => [
 
 module.exports = {
     ARMY_MODES, UNIT_ORDERS, TROOP_SUPPLIES, HORSES, ArmyProblem,
-    orderUnits, eats, choice, parseAutofill, parseArmy, readArmy, isManualPlan, fillFromPlan,
+    orderUnits, eats, choice, parseAutofill, parseArmy, readArmy, isManualPlan, fillFromPlan, withoutFirstWave,
     presetsNamed, presetsOf, rememberPresets, knownPresets,
     unitOrderOption, supplyOption, horseOption, SUPPLY_SWITCHES, armyOptions, fortressOptions,
 }

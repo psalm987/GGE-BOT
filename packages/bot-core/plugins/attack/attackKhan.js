@@ -49,6 +49,7 @@ if (require('node:worker_threads').isMainThread)
                 key: "useCoin",
                 default: true
             },
+            { type: "Checkbox", key: "spyWaveOne", default: false },
             {
                 type: "Checkbox",
                 key: "noChests",
@@ -75,7 +76,7 @@ if (require('node:worker_threads').isMainThread)
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
 const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands, ClassTypes } = require("../../protocols.js")
-const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops, spyTarget, spyWave, NO_SPY_REPORT_WAIT_MS } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander.js")
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
@@ -86,7 +87,7 @@ const { pickSourceCastle, castleName } = require("../../towers.js")
 
 const nomadCampsClassic = require("../../paths.js").loadItem("nomadCamps")
 
-const { readArmy, fillFromPlan, parseAutofill, orderUnits, eats, supplyOption, SUPPLY_SWITCHES } = require("../../army.js")
+const { readArmy, fillFromPlan, withoutFirstWave, parseAutofill, orderUnits, eats, supplyOption, SUPPLY_SWITCHES } = require("../../army.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { readLegacy } = require("../../legacyOptions.js")
 const { khanWaveOptions, parseKhan, waveKind, isTaunt, incomingTaunts, tauntHold, defenceGate, defendersIn, defenceResult, tauntLandings, DEFENCE_TOOLS } = require("../../khan.js")
@@ -470,7 +471,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
         reportRunning()
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
         try {
-            const attackInfo = await waitToAttack(async () => {
+            const attackInfo = await waitToAttack(async turn => {
                 // The camp moves after a win, so it is found again before each attack, as Lazy Lord's plugin does.
                 const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
                 if (!areaInfo?.extraData)
@@ -480,24 +481,32 @@ events.on("eventStart", async ({ EID, EDID }) => {
                 campReadyAt = (areaInfo.timeSinceRequest ?? Date.now()) + (Number(areaInfo.extraData[2]) || 0) * 1000
                 if (areaInfo.extraData[2] > 0 && !pluginOptions.dryRun)
                     return
-                const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: pluginOptions.dryRun })
+                let lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: pluginOptions.dryRun })
                 if (areaInfo.extraData[2] > 0 && !pluginOptions.dryRun)
                     return
+                let report
+                if (pluginOptions.spyWaveOne) {
+                    ({ lord, report } = await spyTarget(turn, { castle, areaInfo, kingdomID, commander, horse: pluginOptions, dryRun: pluginOptions.dryRun }))
+                    if (areaInfo.extraData[2] > 0 && !pluginOptions.dryRun)
+                        return
+                }
 
                 const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[6] == obj.eventAutoScalingCampID)
 
                 const level = Number(classic ? (80 + campInfo.countVictory) : campInfo.camplevel)
                 const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun }
+                const firstWave = report && spyWave(report, { inventory: castle.unitInventory, level, effects: lord.getEffects(type) })
 
                 if (army.mode == "waves") {
                     const effects = lord.getEffects(type)
                     const planned = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, pluginOptions, effects.additionalWaves)
-                    fillFromPlan(planned, army.waves, castle.unitInventory, {
+                    fillFromPlan(planned, firstWave ? withoutFirstWave(army.waves) : army.waves, castle.unitInventory, {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
                         courtyard: courtyardRoom(level, effects),
                     }, { kingdom: kingdomID, areaType: type })
+                    firstWave?.place(planned)
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                 }
 
@@ -704,6 +713,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         Math.floor(maxTroops / 2) - 1)
                 })
 
+                firstWave?.place(attackInfo)
                 return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
             }, __filename)
             if (!attackInfo) {
@@ -738,6 +748,14 @@ events.on("eventStart", async ({ EID, EDID }) => {
                     break
                 case "ATTACK_LIMIT_REACHED":
                     await waitOutDailyLimit(reportStatus)
+                    break
+                case "NO_SPY_REPORT":
+                    reportStatus("waiting", "statusSpyNoReport", { minutes: NO_SPY_REPORT_WAIT_MS / 60_000 })
+                    await new Promise(resolve => setTimeout(resolve, NO_SPY_REPORT_WAIT_MS).unref())
+                    break
+                case "NOT_ENOUGH_TOOLS":
+                    reportStatus("error", "statusSpyToolsShort")
+                    quit = true
                     break
                 default:
                     console.error(e)
