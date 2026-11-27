@@ -23,6 +23,7 @@ These pages describe the game commands that four planned plugins need: Foreign L
 | [presets.md](presets.md) | The player's in-game army presets: listing them with `gas`, saving with `sas`, and how a preset becomes the slots of a `cra` |
 | [attacks.md](attacks.md) | The attack screen (`adi`, `abi`, `aci`), the daily count, what each refusal means, how targets are judged ready, the commander safety net, difficulty unlocks, wave plan limits and spy reports |
 | [troop-transfer.md](troop-transfer.md) | Sending troops and tools between kingdoms with `kut`, skipping the transfer with `msk`, and the one-transfer-per-kingdom rule |
+| [alliance-donation.md](alliance-donation.md) | Giving resources and coins to the alliance's funds with `gdr` and `ado`, and the refusals that end a round |
 | [capture-backlog.md](capture-backlog.md) | What the 2026-11-21 trace captured, the features that still need a capture, and a checklist for the next trace |
 
 ## How the findings were obtained
