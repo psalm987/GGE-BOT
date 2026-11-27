@@ -963,7 +963,8 @@ const Feast = e => ({
 async function clientStartFeast(type, areaID, kingdomID) {
     await sendXT("bfs", JSON.stringify({ T: type, CID: areaID, KID: kingdomID, PO: -1, PWR: 0 }))
 
-    const [obj, result] = await waitForResult("bfs", 1000 * 10)
+    // ALREADY_PURCHASED means the running feast can't be extended: the feast plugin expects it and says so itself.
+    const [obj, result] = await waitForResult("bfs", 1000 * 10, undefined, ["ALREADY_PURCHASED"])
 
     return Feast({ ...obj, result: result })
 }
