@@ -126,6 +126,12 @@ async function nextTower() {
     if (queue.find)
         return findTower()
     while (!over && !queue.stop) {
+        const free = plan.firstFree(queue, Date.now())
+        queue = free.queue
+        if (free.waitMs > 0) {
+            await sleep(free.waitMs)
+            return undefined
+        }
         const tower = queue.towers[0]
         const { areaInfo, result } = await ClientCommands.preSpyInfo(tower.x, tower.y, KINGDOM, false).catch(() => ({ result: -1 }))
         const look = result == 0 ? (Number(areaInfo?.type) == AreaType.watchTower ? "tower" : "notTower")
@@ -225,6 +231,11 @@ async function afterError(error, towerInfo, lordID) {
                 stopFor(queue.stop)
             return pause(10 * SECOND, 20 * SECOND)
         }
+        case "cooling":
+            if (!queue.find)
+                queue = plan.holdTower(queue, `${towerInfo.x}:${towerInfo.y}`, Date.now())
+            console.debug("[berimond] not ready, held", `${towerInfo.x}:${towerInfo.y}`)
+            return pause(10 * SECOND, 20 * SECOND)
         case "tooMany": {
             const next = plan.cutAfterTooMany({ cut: cuts.get(lordID) ?? 0, allCut })
             cuts.set(lordID, next.cut)

@@ -53,14 +53,17 @@ describe("the Berimond Kingdom plugin", () => {
         expect(statuses(messages).find(s => s.reasonKey == "statusBerimondAttacking")).toMatchObject({ state: "running", params: { tower: "1409:110", attacks: 1, points: 2446751 } })
     })
 
-    test("a refused tower is taken off the list for this event and the next tower is attacked", async () => {
+    test("a tower that isn't ready waits at the back of the list, the next tower is attacked, and it is looked at again later", async () => {
         const { bot, game, messages } = await started({ freeSpace: 0, refuse: (cmd, p) => cmd == "aci" && p.TX == 1409 ? "COOLING_DOWN" : undefined })
 
         await runFor(3 * MINUTE)
 
         expect(game.attacks.map(a => `${a.TX}:${a.TY}`)[0]).toBe("1420:123")
-        expect(sent(bot, "ssi").filter(p => p.TX == 1409)).toHaveLength(1)
-        expect(memoryWrites(messages, "dropped").at(-1)).toEqual(["1409:110"])
+        expect(memoryWrites(messages, "dropped").flat()).not.toContain("1409:110")
+        expect(statuses(messages).map(s => s.reasonKey)).not.toContain("statusBerimondTwoRefusals")
+
+        await runFor(6 * MINUTE)
+        expect(sent(bot, "ssi").filter(p => p.TX == 1409).length).toBeGreaterThan(1)
     })
 
     test("a destroyed tower is dropped without counting as a refusal", async () => {

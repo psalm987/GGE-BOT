@@ -51,7 +51,7 @@ function readTowers(options, dropped = []) {
  * dropped and the list never runs out. `stop` is set once the plugin is done for this event.
  */
 function newQueue(towers, { find = false } = {}) {
-    return { towers: [...towers], find, seen: [], lookFails: {}, refusedInARow: 0, stop: !find && towers.length == 0 ? "towersDone" : undefined }
+    return { towers: [...towers], order: towers.map(t => t.key), find, seen: [], lookFails: {}, refusedInARow: 0, stop: !find && towers.length == 0 ? "towersDone" : undefined }
 }
 
 function drop(queue, key, reason) {
@@ -59,6 +59,31 @@ function drop(queue, key, reason) {
     const { [key]: _, ...lookFails } = queue.lookFails
     const stop = queue.stop ?? (!queue.find && towers.length == 0 ? "towersDone" : undefined)
     return { queue: { ...queue, towers, lookFails, stop }, effect: { drop: key, reason } }
+}
+
+/** How long a tower that isn't ready waits before the plugin looks at it again. */
+const HOLD_MS = 5 * 60_000
+
+/** The tower `key` isn't ready: it moves to the back of the list and waits until `now` + HOLD_MS. No refusal is counted. */
+function holdTower(queue, key, now) {
+    const tower = queue.towers.find(t => t.key == key)
+    if (!tower)
+        return queue
+    return { ...queue, towers: [...queue.towers.filter(t => t.key != key), tower], heldUntil: { ...queue.heldUntil, [key]: now + HOLD_MS } }
+}
+
+/**
+ * How long until the first tower may be looked at: 0 when it may now. Towers whose wait is over go back to the order
+ * the player typed them in, ahead of the towers still waiting.
+ */
+function firstFree(queue, now) {
+    const held = key => (queue.heldUntil?.[key] ?? 0) > now
+    const typed = key => { const i = queue.order?.indexOf(key) ?? -1; return i < 0 ? Infinity : i }
+    const free = queue.towers.filter(t => !held(t.key)).sort((a, b) => typed(a.key) - typed(b.key))
+    const waiting = queue.towers.filter(t => held(t.key))
+    if (free.length)
+        return { queue: { ...queue, towers: [...free, ...waiting] }, waitMs: 0 }
+    return { queue, waitMs: Math.min(...waiting.map(t => queue.heldUntil[t.key] - now)) }
 }
 
 /**
@@ -97,7 +122,9 @@ function afterAttack(queue, key, outcome) {
  * the tower, as Lazy Lord's plugin reads it.
  */
 const ATTACK_OUTCOMES = Object.freeze({
-    ATTACK_SCREEN_REFUSED: "refused",
+    // The tower isn't ready: another hit is landing or it is cooling down. It waits at the back of the list, as the other
+    // attack plugins hold a target that isn't ready, and is no refusal. A tower that fell is dropped by its next look.
+    ATTACK_SCREEN_REFUSED: "cooling", COOLING_DOWN: "cooling",
     MISSING_UNITS: "retry", LORD_IS_USED: "retry", TIMED_OUT: "retry", CASTLE_LOCKED: "retry", CANT_START_NEW_ARMIES: "retry",
     ATTACK_TOO_MANY_UNITS: "tooMany",
     WONT_REACH_IN_TIME: "eventOver", EVENT_ALREADY_ENDED: "eventOver",
@@ -225,7 +252,7 @@ function resupplyPlan({ freeSpace, threshold, held }) {
 const resupplyBackoffMs = failures => Math.min(RESUPPLY_MAX_WAIT_MS, RESUPPLY_FIRST_WAIT_MS * 2 ** (failures - 1))
 
 module.exports = {
-    EVENT, KINGDOM, TARGET, TOWER_BOXES, WAVE_ONE_MIN, TOOL_ROOM, NO_CUT, ATTACK_OUTCOMES,
+    EVENT, KINGDOM, TARGET, TOWER_BOXES, WAVE_ONE_MIN, TOOL_ROOM, NO_CUT, ATTACK_OUTCOMES, HOLD_MS, holdTower, firstFree,
     parseTower, readTowers, newQueue, afterLook, afterAttack, attackOutcome,
     towerLevel, troopRoom, cutAfterTooMany, autofillWave, waveOneSoldiers,
     isSendable, resupplyPlan, resupplyBackoffMs,

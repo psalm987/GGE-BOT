@@ -104,9 +104,26 @@ describe("after an attack", () => {
     })
 })
 
+describe("a tower that isn't ready", () => {
+    const towers = () => plan.newQueue(plan.readTowers({ berimondTower1: "1409:110", berimondTower2: "1420:123" }).towers)
+
+    test("waits at the back of the list for five minutes, and counts as no refusal", () => {
+        const held = plan.holdTower(towers(), "1409:110", 0)
+        expect(held.towers.map(t => t.key)).toEqual(["1420:123", "1409:110"])
+        expect(held.refusedInARow).toBe(0)
+        expect(plan.firstFree(held, 60_000).queue.towers[0].key).toBe("1420:123")
+    })
+
+    test("comes back first once its wait is over, and only all towers held means waiting", () => {
+        const both = plan.holdTower(plan.holdTower(towers(), "1409:110", 0), "1420:123", 60_000)
+        expect(plan.firstFree(both, 120_000)).toMatchObject({ waitMs: plan.HOLD_MS - 120_000 })
+        expect(plan.firstFree(both, plan.HOLD_MS).queue.towers[0].key).toBe("1409:110")
+    })
+})
+
 describe("what a refusal means", () => {
     test.each([
-        ["ATTACK_SCREEN_REFUSED", "refused"], ["FACTION_NPC_OBJECT_IS_PROTECTED", "refused"],
+        ["ATTACK_SCREEN_REFUSED", "cooling"], ["COOLING_DOWN", "cooling"], ["FACTION_NPC_OBJECT_IS_PROTECTED", "refused"],
         ["MISSING_UNITS", "retry"], ["LORD_IS_USED", "retry"], ["TIMED_OUT", "retry"], ["CASTLE_LOCKED", "retry"],
         ["ATTACK_TOO_MANY_UNITS", "tooMany"], ["WONT_REACH_IN_TIME", "eventOver"], ["NOT_ENOUGH_CURRENCY1", "coins"],
         ["ATTACK_LIMIT_REACHED", "dailyLimit"], ["NO_MORE_TROOPS", "troops"],
