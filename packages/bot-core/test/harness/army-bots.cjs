@@ -158,6 +158,8 @@ function startTowers(options, {
     }
     if (armourer) {
         protocols.activeEvent = () => ({ PIDS: armourer.live })
+        protocols.setCastle = (castle, callback) => callback()
+        protocols.shopTurn = task => task()
         bot.sendXT = async (command, params) => {
             const order = JSON.parse(params)
             if (command == "sbp") {

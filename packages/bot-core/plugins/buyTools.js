@@ -61,11 +61,11 @@ if (require('node:worker_threads').isMainThread)
     return module.exports = { pluginOptions: optionDefs }
 
 const { events, botConfig } = require("../ggeBot.js")
-const { resources, castles, AreaType } = require("../protocols.js")
+const { resources, castles } = require("../protocols.js")
 const { readLegacy, MAIN_CASTLE } = require("../legacyOptions.js")
 const { chore } = require("../chores.js")
 const { boxMullerRandom, pause } = require("../pacing.js")
-const { units, liveOffers, buy } = require("../armourer.js")
+const { units, mainCastle, liveOffers, buy } = require("../armourer.js")
 const stock = require("./stock.js")
 
 const pluginOptions = readLegacy(optionDefs, botConfig.plugins[require("path").basename(__filename).slice(0, -3)] ?? {})
@@ -73,10 +73,12 @@ const reportStatus = require("../pluginStatus.js").statusReporter(__filename)
 reportStatus("waiting", "statusBuyToolsStarting")
 
 const NOT_ENOUGH_COINS = 10
-const STORAGE_FULL = 154
+/** STORAGE_CAPACITY_REACHED and TOO_MANY_TOOLS. */
+const STORAGE_FULL = [154, 240]
 /**
- * A buy names the kingdom, and the game picks the castle (docs/protocol/tools.md). For a castle that is not the kingdom's
- * main one, the count the row had when the bot last bought for it, so a row whose purchases never show up stops buying.
+ * A buy joins the row's castle first, as the client does, but no live test has shown the tools land there rather than
+ * in the kingdom's main castle (docs/protocol/tools.md). So for a castle that is not the main one, the count the row
+ * had when the bot last bought for it, so a row whose purchases never show up stops buying.
  */
 const sentAt = new Map()
 /** The most packages the overflow burn buys in one run, so a refusal it can't read ends it. */
@@ -84,13 +86,10 @@ const MAX_BURN_ORDERS = 20
 
 const option = (key, fallback) => Number.isFinite(Number(pluginOptions[key])) && pluginOptions[key] !== "" && pluginOptions[key] !== null ? Number(pluginOptions[key]) : fallback
 
-const MAIN_TYPES = [AreaType.mainCastle, AreaType.externalKingdom, AreaType.beriCastle]
-
 /** The account's castle a row names, with its kingdom and whether it is that kingdom's main castle. A row of the main castle marker finds it by area type. */
 function castleOf(ref) {
-    const own = castles.filter(castle => castle.kingdomID == ref.kingdom && castle.areaInfo)
-    const castle = ref.id == MAIN_CASTLE ? own.find(c => MAIN_TYPES.includes(c.areaInfo.type)) : own.find(c => c.id == ref.id)
-    return castle && { id: castle.id, kingdom: castle.kingdomID, main: MAIN_TYPES.includes(castle.areaInfo.type) }
+    const castle = ref.id == MAIN_CASTLE ? mainCastle(ref.kingdom) : castles.find(c => c.kingdomID == ref.kingdom && c.id == ref.id && c.areaInfo)
+    return castle && { id: castle.id, kingdom: castle.kingdomID, main: castle == mainCastle(castle.kingdomID), area: castle }
 }
 
 /** The rows with a castle, a known tool and a stock above 0. A row with no stock, or a stock of 0, never buys. */
@@ -114,7 +113,7 @@ async function burnOverflow(rows, offers, coins, dryRun, active) {
             const count = Math.min(Math.floor(excess / offer.price), offer.maxPerClick)
             if (!(count > 0))
                 break
-            const result = await buy(offer, count, row.castle.kingdom, dryRun)
+            const result = await buy(offer, count, row.castle.area, dryRun)
             orders++
             if (result !== 0)
                 break
@@ -180,9 +179,9 @@ async function cycle(active) {
         }
         if (!active())
             return
-        const result = await buy(offer, count, row.castle.kingdom, dryRun)
+        const result = await buy(offer, count, row.castle.area, dryRun)
         if (result !== 0) {
-            outcomes[i].add(result == STORAGE_FULL ? "storageFull" : result == NOT_ENOUGH_COINS ? "coinFloor" : "refused")
+            outcomes[i].add(STORAGE_FULL.includes(result) ? "storageFull" : result == NOT_ENOUGH_COINS ? "coinFloor" : "refused")
             continue
         }
         const cost = count * offer.price

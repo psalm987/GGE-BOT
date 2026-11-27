@@ -83,7 +83,7 @@ The armourer is a package event, event 27 (`EVENTTYPE_ARMORER`, D@2595230). The 
 
 `attackStormForts.js` already sends `sbp`, with `BT: 3`.
 
-The reply is `{gcu, gui, grc, cpi, sin, vip, ...}` (`SBPCommand`, G@14367138). The errors are 10 (`NOT_ENOUGH_CURRENCY1`), 154 (`STORAGE_CAPACITY_REACHED`) and 327 (`NOT_ENOUGH_SPECIAL_CURRENCY`).
+The reply is `{gcu, gui, grc, cpi, sin, vip, ...}` (`SBPCommand`, G@14367138). The errors are 10 (`NOT_ENOUGH_CURRENCY1`), 154 (`STORAGE_CAPACITY_REACHED`) and 327 (`NOT_ENOUGH_SPECIAL_CURRENCY`). Lazy Lord reads 240 (`TOO_MANY_TOOLS`) as full tool storage.
 
 ### Which castle receives a package
 
@@ -96,7 +96,7 @@ Nothing in the client lets a player choose a castle for a tool package. This was
 
 So `KID` picks the kingdom and the server picks the castle. Which castle that is, the active castle, the main castle or one the server chooses, is **not known**. The bot sends what the client sends and does not set `AID` for tools.
 
-How the Armourer module uses this. A row names a castle. The bot counts that castle's tools and compares them with the row's stock, then buys into the castle's kingdom with `AID` -1. For a kingdom's main castle this is the best-supported case. For any other castle, the bot checks that the purchase raised that castle's count, and stops buying for that row if it did not (log key `buyToolsNotArrived`).
+How the Armourer module uses this. A row names a castle. The bot counts that castle's tools and compares them with the row's stock. Then, as the client does, it joins the castle, opens its armourer with `gbc {CID, KID}` and sends `sbp` with `AID` -1 (after Lazy Lord's `armorerTools.js`). For any castle that is not the kingdom's main castle, the bot also checks that the purchase raised that castle's count, and stops buying for that row if it did not (log key `buyToolsNotArrived`). The debug line `armourerBuyReply` logs the castle the bot joined and the `grc.AID` of the reply.
 
 | Fact | Confidence | Confirm with |
 |---|---|---|

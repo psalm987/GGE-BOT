@@ -443,16 +443,21 @@ describe("defence tools from the armourer", () => {
             bot.sent.push([command, JSON.parse(params)])
             setTimeout(() => bot.xtHandler.emit(command, {}, 0), 1)
         }
-        const { mod } = loadModule("armourer.js", { bot, items: { units, packages }, extra: { "protocols.js": { resources: { coins }, activeEvent: () => ({ PIDS: [2476, 2472] }) }, "pacing.js": { pause: async () => {} } } })
+        const protocols = {
+            resources: { coins }, activeEvent: () => ({ PIDS: [2476, 2472] }),
+            castles: [{ id: 3, kingdomID: 0, areaInfo: { type: 4 } }, { id: 1, kingdomID: 0, areaInfo: { type: 1 } }], AreaType: { mainCastle: 1 },
+            setCastle: (castle, callback) => { bot.sent.push(["join", castle.id]); return callback() }, shopTurn: task => task(),
+        }
+        const { mod } = loadModule("armourer.js", { bot, items: { units, packages }, extra: { "protocols.js": protocols, "pacing.js": { pause: async () => {} } } })
         return { bot, topUp: mod.topUp }
     }
     const rows = [{ tool: 629, keep: 500, have: 499 }, { tool: 637, keep: 500, have: 500 }]
     const limits = { kingdom: 0, batch: 1000, coinFloor: 0, spendCap: 5_000_000 }
 
-    test("a tool below its stock gets one batch of 1,000, and a tool at its stock gets none", async () => {
+    test("a tool below its stock gets one batch of 1,000 in the main castle, and a tool at its stock gets none", async () => {
         const { bot, topUp } = armourer(10_000_000)
         expect(await topUp(rows, limits)).toEqual({ bought: 1000, spent: 642_000 })
-        expect(bot.sent).toEqual([["sbp", { PID: 2476, BT: 0, TID: 27, AMT: 1000, KID: 0, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 }]])
+        expect(bot.sent).toEqual([["join", 1], ["gbc", { CID: 1, KID: 0 }], ["sbp", { PID: 2476, BT: 0, TID: 27, AMT: 1000, KID: 0, AID: -1, PC2: -1, BA: 0, PWR: 0, _PO: -1 }]])
     })
     test("the spending cap and the coin floor each cut the batch short", async () => {
         const capped = armourer(10_000_000)
