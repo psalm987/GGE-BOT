@@ -96,12 +96,21 @@ export const ReadBackMovement = z.object({
 })
 export type ReadBackMovement = z.infer<typeof ReadBackMovement>
 
-/** What the account gained since the bot signed in; a figure is null until the game has reported it. */
+/**
+ * What the bot gained for the account from when the player started it until they stopped it. Reconnects and restarts
+ * stay in one session. Only rises count, so spending takes nothing off. The runner keeps it, so it outlives the worker.
+ */
 export const SessionGains = z.object({
     /** Epoch milliseconds. */
     startedAt: z.number().int(),
-    coins: z.number().int().nullable(),
-    rubies: z.number().int().nullable(),
+    /** When the player stopped the bot, epoch milliseconds; null while the session goes on. */
+    endedAt: z.number().int().nullable(),
+    coins: z.number().int().min(0),
+    rubies: z.number().int().min(0),
+    /** Aquamarine in the Storm Islands castle. */
+    aqua: z.number().int().min(0),
+    /** Each event's points as the game last reported them this session, by event id. Totals, not gains. */
+    eventPoints: z.record(z.string().regex(/^\d+$/), z.number().int().min(0)).default({}),
 })
 export type SessionGains = z.infer<typeof SessionGains>
 
@@ -182,7 +191,6 @@ export const ReadBack = z.object({
     movements: z.array(ReadBackMovement).max(READ_BACK_MAX_MOVEMENTS),
     /** How many marches the game listed, which can be more than `movements` holds. */
     movementCount: z.number().int().min(0),
-    session: SessionGains,
     /** Absent until the game has listed the main castle's defence this session. */
     defence: ReadBackDefence.optional(),
     /** Absent while the Khan plugin is off, or on with no Khan event seen this session. */

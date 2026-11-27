@@ -62,7 +62,7 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
 
 afterEach(async () => {
     await supervisor.stopAll("deploy")
-    await store.flushLogs()
+    await store.flush()
     await db.delete(users).where(eq(users.id, ownerId))
     await db.delete(proxies)
 })

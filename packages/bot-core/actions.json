@@ -26,5 +26,6 @@
     "PluginStatus": 24,
     "Notify": 25,
     "PluginMemory": 26,
-    "PluginFinished": 27
+    "PluginFinished": 27,
+    "GameRefusal": 28
 }

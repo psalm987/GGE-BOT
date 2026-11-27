@@ -4,7 +4,7 @@ const path = require("node:path")
 const pw = process.env.HOME + "/.cache/gge-bot-verify/pw/node_modules/"
 const { chromium } = require(pw + "playwright")
 const { adminSessionCookie } = require("./dev-totp.cjs")
-const { insertLogLine, insertNotification, insertResources, storePluginSettings, withDatabase } = require("./dev-db.cjs")
+const { insertLogLine, insertNotification, insertResources, storePluginSettings, storeProblems, storeSession, withDatabase } = require("./dev-db.cjs")
 const axeSource = require("fs").readFileSync(pw + "axe-core/axe.min.js", "utf8")
 const CLIENT_URL = process.env.CLIENT_URL ?? "http://localhost:5173"
 const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:5174"
@@ -1857,7 +1857,7 @@ async function driveOverview(page) {
     await drawer.getByRole("log", { name: "Bot log" }).waitFor()
     await drawer.getByRole("tab", { name: "Overview" }).click()
     await tiles.first().waitFor()
-    assert(await drawer.locator(".gge-top-errors").count() === 1, "the Logs tab opens beside the Overview without breaking either, though both read the same account's lines")
+    assert(await drawer.locator(".gge-problems").count() === 1, "the Logs tab opens beside the Overview without breaking either")
 
     await page.setViewportSize(WIDE_VIEW)
     await insertResources({ accountName: "Ironhold", resources: { castles, cash: 49_000_001, gold: 1_300, food: 4_000_000, aquamarin_name: 5_300, attackDailyCount: 38 } })
@@ -1890,7 +1890,47 @@ async function driveOverview(page) {
     await drawerClosed(page)
 }
 
-/** Errors split in two: the Overview's top errors say how serious each is in words, and the Logs page filters the lines the game said "not now" to. */
+/**
+ * The Overview's Problems list: the game's refusals in plain words, each with the plugin that asked, how serious it is
+ * in words and an icon, how often and when last, with 50 identical refusals as one row. Then the Logs page filters the
+ * lines the game said "not now" to.
+ */
+async function driveProblems(page) {
+    await storeProblems({
+        accountName: "Ironhold", problems: [
+            { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", count: 50, minutesAgo: 2 },
+            { plugin: "ggeBot", command: "jca", error: "INVALID_PARAMETER_VALUE", count: 3, minutesAgo: 10 },
+            { plugin: "feast", command: "bfs", error: "ALREADY_PURCHASED", count: 1, minutesAgo: 30 },
+            { plugin: "attackNomads", command: "zzz", error: "SOMETHING_NEW", count: 2, minutesAgo: 90 },
+        ],
+    })
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    const kept = await rpc(page, "accounts/problems", { id: ironhold.id })
+    assert(kept.length === 4 && kept[0].count === 50, "the API returns the account's problems, the latest first, with 50 identical refusals as one")
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(CLIENT_URL)
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    const drawer = page.getByRole("dialog")
+    const list = drawer.getByRole("list", { name: "Game refusals" }).locator(".gge-problem")
+    await list.first().waitFor()
+    assert(await list.count() === 4, "each kind of refusal is one row")
+    const first = await list.first().innerText()
+    assert(first.includes("An attack was refused because the commander was still away.") && first.includes("Attack Khan") && /50 times/.test(first) && /2 minutes ago/.test(first),
+        `the latest refusal says in words what was asked and why, with its plugin, count and time (${first.replace(/\n/g, " | ")})`)
+    const severe = list.filter({ hasText: "INVALID_PARAMETER_VALUE" })
+    assert(/Severe/.test(await severe.innerText()) && await severe.getAttribute("data-class") === "severe", "a severe refusal says Severe, not only a colour")
+    assert(/A request was refused because the game answered SOMETHING_NEW\./.test(await list.last().innerText()), "a command and error with no words of their own still read as a sentence that names the error")
+    assert(await drawer.locator(".gge-problem-class svg").count() === 4, "every problem has an icon beside its class word")
+    assert(/The last 100 kinds of refusal are kept/.test(await drawer.locator(".gge-problems").innerText()), "the list says how many it keeps")
+    await atBothWidths(page, "problems", "the Overview with problems")
+    await storeProblems({ accountName: "Ironhold", problems: [] })
+    await page.reload()
+    await page.getByRole("button", { name: "Edit Ironhold" }).click()
+    await drawer.getByText("The game hasn't refused this bot anything lately.").waitFor()
+    assert(true, "with no problems the Overview says so")
+}
+
+/** The Logs page filters the lines the game said "not now" to. */
 async function driveErrorSplit(page) {
     const refusal = (level, code) => insertLogLine({ accountName: "Ironhold", level, plugin: "ggeBot", parts: ["cra", code] })
     for (let i = 0; i < 3; i++) await refusal(3, "COOLING_DOWN")
@@ -1900,17 +1940,6 @@ async function driveErrorSplit(page) {
     await page.goto(CLIENT_URL)
     await page.getByRole("button", { name: "Edit Ironhold" }).click()
     const drawer = page.getByRole("dialog")
-    const list = drawer.locator(".gge-top-error")
-    await list.first().waitFor()
-    const first = await list.first().innerText()
-    assert(/Game said not now/.test(first) && first.includes("COOLING_DOWN") && /\d+ times?/.test(first), `the Overview lists the most frequent refusal first, with its class in words and a count (${first.replace(/\n/g, " | ")})`)
-    const severe = list.filter({ hasText: "INVALID_PARAMETER_VALUE" })
-    assert(/Severe/.test(await severe.innerText()) && await severe.getAttribute("data-class") === "severe", "a severe code says Severe, not only a colour")
-    assert(await drawer.locator(".gge-top-error-class svg").count() === await list.count(), "every top error has an icon beside its class word")
-    assert(/Counted from the latest \d+ warning and error lines/.test(await drawer.locator(".gge-top-errors").innerText()), "the Overview says how many lines the top errors were counted from")
-    await axe(page, "overview with top errors")
-    await atBothWidths(page, "overview-top-errors", "the Overview with top errors")
-    await page.setViewportSize(WIDE_VIEW)
     await drawer.getByRole("link", { name: "See the logs" }).click()
     await page.waitForURL(/\/logs\?account=/)
     const facets = await rpc(page, "logs/facets")
@@ -2272,7 +2301,7 @@ async function driveLiveView(page) {
     const units = { defenders: [{ wodID: 222, amount: 7416 }, { wodID: 220, amount: 959 }], attackers: [{ wodID: 271, amount: 120 }], defenceTools: [{ wodID: 110, amount: 5000 }], attackTools: [{ wodID: 950, amount: 30 }] }
     const tool = (wodID, amount) => ({ wodID, amount })
     const readBack = {
-        at: now, movementCount: 5, session: { startedAt: now - 2 * 3_600_000, coins: 44_400, rubies: 2 },
+        at: now, movementCount: 5,
         movements: [
             march(1, "incoming", "attack", camp, keep, 300_000, { sender: null, troops: null }),
             march(2, "own", "market", keep, watch, 400_000),
@@ -2343,6 +2372,50 @@ async function driveLiveView(page) {
     await page.screenshot({ path: `${out}/live-view-390.png`, fullPage: true })
     await page.setViewportSize(WIDE_VIEW)
     await insertResources({ accountName: "Ironhold", resources: { castles } })
+}
+
+/**
+ * The Live view's session card, from a session written the way the runner keeps it: gains that only count rises, with
+ * hourly rates, aquamarine, each event's points total named by its event, and the length; once the player stopped the
+ * bot it reads as the last session, with when it ended.
+ */
+async function driveSessionGains(page) {
+    const before = await withDatabase(async db => (await db.query(
+        "select s.resources, s.session from bot_status s join game_accounts a on a.id = s.account_id where a.name = 'Ironhold' order by a.created_at limit 1")).rows[0])
+    const now = Date.now()
+    const readBack = { at: now, castles: [], movements: [], movementCount: 0 }
+    await insertResources({ accountName: "Ironhold", resources: { ...before?.resources, readBack } })
+    const gains = { startedAt: now - 2 * 3_600_000, endedAt: null, coins: 44_400, rubies: 12, aqua: 9_000, eventPoints: { "72": 3_500, "999": 10 } }
+    await storeSession({ accountName: "Ironhold", session: { ...gains, last: { coins: 48_294_710 } } })
+    const ironhold = (await rpc(page, "accounts/list")).find(a => a.name === "Ironhold")
+    assert(JSON.stringify(ironhold.status.session) === JSON.stringify(gains), "the API returns the session's gains without the readings the runner counts from")
+
+    await page.setViewportSize(WIDE_VIEW)
+    await page.goto(`${CLIENT_URL}/m/live-view?account=${ironhold.id}`)
+    const card = page.locator(".ant-card", { has: page.getByRole("list", { name: "Session gains" }) })
+    await card.waitFor()
+    assert(await card.locator(".ant-card-head-title").innerText() === "This session", "an open session is This session")
+    const tile = label => card.locator(".gge-kpi", { has: page.locator(".gge-kpi-label", { hasText: new RegExp(`^${label}$`) }) })
+    const tileText = async label => (await tile(label).innerText()).replace(/\s+/g, " ")
+    assert(/\+44,400 \+22,\d{3} an hour/.test(await tileText("Coins gained")), `coins gained count up with an hourly rate: ${await tileText("Coins gained")}`)
+    assert(/\+12 \+6 an hour/.test(await tileText("Rubies gained")), "rubies gained count up with an hourly rate")
+    assert(/\+9,000 \+4,\d{3} an hour/.test(await tileText("Aquamarine gained")), "aquamarine gained has its own tile")
+    assert(/3,500 Points so far in the event/.test(await tileText("Nomad invasion points")), "an event's points show as a total, named by the event")
+    assert(/^Event 999 points 10/.test(await tileText("Event 999 points")), "an event the app has no name for is named by its number")
+    assert(/^Session length 2:00:\d\d/.test(await tileText("Session length")), "the session's length counts from when the player started the bot")
+    assert(/Counted from when you started the bot, through reconnects and restarts\. Only rises count/.test(await card.innerText()), "the card says how the gains are counted")
+    await atBothWidths(page, "session", "the Live view's session card")
+
+    await storeSession({ accountName: "Ironhold", session: { ...gains, endedAt: now - 30 * 60_000, last: {} } })
+    await page.reload()
+    await card.waitFor()
+    assert(await card.locator(".ant-card-head-title").innerText() === "Last session", "an ended session is the Last session")
+    assert(/^Session length 1:30:00 Ended 30 minutes ago\./.test(await tileText("Session length")), "the last session lasts until the player stopped it, and says when that was")
+    await axe(page, "the Live view's last session 1440")
+    await page.screenshot({ path: `${out}/session-ended-1440.png`, fullPage: true })
+
+    await storeSession({ accountName: "Ironhold", session: before?.session ?? null })
+    await insertResources({ accountName: "Ironhold", resources: before?.resources ?? null })
 }
 
 /**
@@ -3441,6 +3514,28 @@ async function driveRefinery(page) {
         await browser.close()
         return console.log(`evidence: ${out}`)
     }
+    if (process.env.DRIVE_ONLY === "session") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveSessionGains(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
+    if (process.env.DRIVE_ONLY === "problems") {
+        const demo = await browser.newPage({ viewport: WIDE_VIEW })
+        await demo.goto(`${CLIENT_URL}/login`)
+        await demo.getByLabel("Username or email").fill("demo")
+        await demo.getByLabel("Password").fill("demo-password")
+        await demo.getByRole("button", { name: "Sign in" }).click()
+        await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
+        await driveProblems(demo)
+        await browser.close()
+        return console.log(`evidence: ${out}`)
+    }
     if (process.env.DRIVE_ONLY === "live-view") {
         const demo = await browser.newPage({ viewport: WIDE_VIEW })
         await demo.goto(`${CLIENT_URL}/login`)
@@ -3619,6 +3714,7 @@ async function driveRefinery(page) {
         await demo.getByRole("button", { name: "Sign in" }).click()
         await demo.getByRole("button", { name: "Edit Ironhold" }).waitFor()
         await driveOverview(demo)
+        await driveProblems(demo)
         await driveErrorSplit(demo)
         await driveDashboardHome(demo, browser)
         await drivePalette(demo, browser)
@@ -4048,6 +4144,7 @@ async function driveRefinery(page) {
     await seeded.getByRole("button", { name: "Edit Ironhold" }).waitFor()
     await driveLogs(seeded)
     await driveOverview(seeded)
+    await driveProblems(seeded)
     await driveErrorSplit(seeded)
     await driveDashboardHome(seeded, browser)
     await drivePalette(seeded, browser)

@@ -21,13 +21,15 @@ The page has no {% term id="plugin" %}plugin{% /term %} of its own and no settin
 
 ## This session {% #session %}
 
-The first card counts from the moment the bot signed in.
+The first card counts from the moment you start the bot until you stop it. If the bot reconnects, or waits out a game maintenance, it is still the same session.
 
-- {% ui key="client:liveView.session.coins" /%} and {% ui key="client:liveView.session.rubies" /%} are the change since sign-in. A minus sign means the account spent more than it gained.
-- Each figure shows an hourly rate after the session is 5 minutes old. Before that the rate would be a guess.
-- {% ui key="client:liveView.session.length" /%} is how long the session had run at the last report.
+- {% ui key="client:liveView.session.coins" /%} and {% ui key="client:liveView.session.rubies" /%} count only what came in. Spending, such as buying a feast, takes nothing off.
+- {% ui key="client:liveView.session.aqua" /%} shows for an account with a {% term id="storm-islands" %}Storm Islands{% /term %} castle. It counts what the castle's {% term id="aquamarine" %}aquamarine{% /term %} rose by.
+- For each event the bot reads points in, a tile shows the event's points total so far, such as {% ui key="client:liveView.session.event.72" /%}.
+- Each gain shows an hourly rate after the session is 5 minutes old. Before that the rate would be a guess.
+- {% ui key="client:liveView.session.length" /%} is how long the session has run.
 
-The line under the figures says how old the report is. When the bot is stopped, the card is named {% ui key="client:liveView.session.lastTitle" /%} and the page keeps the last report, so you can still read it.
+When you stop the bot, the card is named {% ui key="client:liveView.session.lastTitle" /%}, keeps the figures and says when the session ended. The next time you start the bot, a new session starts from nothing.
 
 ## Marches {% #marches %}
 

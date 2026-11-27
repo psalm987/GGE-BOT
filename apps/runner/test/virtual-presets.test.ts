@@ -57,7 +57,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
     await supervisor.stopAll("deploy")
-    await store.flushLogs()
+    await store.flush()
     await db.delete(users).where(eq(users.id, ownerId))
 })
 

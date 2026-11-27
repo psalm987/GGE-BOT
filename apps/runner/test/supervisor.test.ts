@@ -5,7 +5,7 @@ import { asc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, inject, test } from "vitest"
 import { UserEvent, userChannel, type PluginCatalogEntry, type Schedule } from "@gge/contracts"
 import { generateSealKeyPair, openSealed, sealFor } from "@gge/crypto"
-import { appSettings, botLogs, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, planPeriods, pluginSettings, servers, users, type Db } from "@gge/db"
+import { appSettings, botLogs, botProblems, botRuns, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, planPeriods, pluginSettings, servers, users, type Db } from "@gge/db"
 import type { PluginRegistry } from "@gge/bot-core/pluginRegistry.mts"
 import { DiscordHub } from "../src/discord-hub.ts"
 import { humanizeFor, parseEnv, workerConfig } from "../src/env.ts"
@@ -79,7 +79,7 @@ function makeSupervisor(overrides: Partial<ConstructorParameters<typeof Supervis
 
 afterEach(async () => {
     await supervisor.stopAll("deploy")
-    await store.flushLogs()
+    await store.flush()
     await db.delete(users).where(eq(users.id, ownerId))
 })
 
@@ -155,6 +155,47 @@ describe("notices from a running bot", () => {
         expect(row).toMatchObject({ kind: "incoming_attack", emailState: "pending", data: { accountName: "notify-a", serverLabel: expect.any(String), attacker: "Raider", castle: "Keep" } })
         expect(await notified(id)).toHaveLength(1)
         expect(warnings[0]).toEqual(["dropped an invalid notice", id])
+    })
+})
+
+describe("game refusals", () => {
+    test("each one reaches the account's problems, repeats counted as one, and a malformed one is dropped with a warning", async () => {
+        const warnings: unknown[][] = []
+        supervisor = makeSupervisor({ logger: { warn: (...args) => void warnings.push(args), error() {} } })
+        const id = await addAccount("refusal-a")
+        await reconcile()
+
+        await until(async () => (await db.select().from(botProblems).where(eq(botProblems.accountId, id)))[0]?.count === 2)
+        expect(await db.select({ plugin: botProblems.plugin, command: botProblems.command, error: botProblems.error }).from(botProblems).where(eq(botProblems.accountId, id)))
+            .toEqual([{ plugin: "attackKhan", command: "cra", error: "LORD_IS_USED" }])
+        expect(warnings).toEqual([["dropped an invalid game refusal", id]])
+    })
+})
+
+describe("session gains", () => {
+    const sessionOf = async (id: string) => (await status(id))?.session as { startedAt: number; endedAt: number | null; coins: number; eventPoints: Record<string, number> } | null | undefined
+
+    test("count rises across a reconnect in one session, end when the player stops the bot, and start again from nothing", async () => {
+        const id = await addAccount("gainscrash-a")
+        await reconcile()
+        const first = (await until(async () => {
+            const session = await sessionOf(id)
+            return spawned.length >= 2 && session?.coins === 1_000 ? session : undefined
+        }))!
+        expect(first).toMatchObject({ endedAt: null, eventPoints: { "72": 300 } })
+
+        await db.update(gameAccounts).set({ desiredState: "stopped" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        const ended = await until(async () => (await sessionOf(id))?.endedAt ? await sessionOf(id) : undefined)
+        expect(ended).toMatchObject({ startedAt: first.startedAt, coins: 1_000 })
+
+        await db.update(gameAccounts).set({ desiredState: "running" }).where(eq(gameAccounts.id, id))
+        await reconcile()
+        const next = await until(async () => {
+            const session = await sessionOf(id)
+            return session && session.startedAt !== first.startedAt && session.coins === 500 ? session : undefined
+        })
+        expect(next).toMatchObject({ endedAt: null })
     })
 })
 

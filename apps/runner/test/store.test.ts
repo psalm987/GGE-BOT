@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto"
-import { asc, eq, sql } from "drizzle-orm"
+import { asc, desc, eq, sql } from "drizzle-orm"
 import { afterAll, afterEach, beforeAll, beforeEach, expect, inject, test } from "vitest"
-import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, UserEvent, botChannel, userChannel } from "@gge/contracts"
-import { botLogs, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
+import { BotChannelEvent, Notification, PLUGIN_MEMORY_MAX_BYTES, PROBLEMS_KEPT, UserEvent, botChannel, userChannel } from "@gge/contracts"
+import { botLogs, botProblems, botStatus, centrifugoOutbox, createDb, gameAccounts, notifications, servers, users, type Db } from "@gge/db"
+import { countReport, startSession } from "../src/farm-session.ts"
 import { createStore, type Store } from "../src/store.ts"
 
 let db: Db
@@ -46,7 +47,7 @@ test("a status change is published to the owner with the whole status", async ()
     const [saved] = await db.select().from(botStatus).where(eq(botStatus.accountId, accountId))
     expect(events).toEqual([{
         v: 1, kind: "status", accountId,
-        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null },
+        status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: saved!.heartbeatAt, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null, session: null },
     }])
     expect(saved!.heartbeatAt).toBeInstanceOf(Date)
 })
@@ -62,7 +63,7 @@ test("a later partial change still publishes every status field", async () => {
 test("flushed log lines are published to the account's channel with their parts", async () => {
     store.log(accountId, 0, ["[12:00] ", "[", "attackNomads", "] ", "started ", 3], "[12:00] [attackNomads] started 3")
     store.log(accountId, 2, "not a list", "plain")
-    await store.flushLogs()
+    await store.flush()
 
     const saved = await db.select().from(botLogs).where(eq(botLogs.accountId, accountId)).orderBy(asc(botLogs.id))
     const events = (await published(botChannel(accountId))).map(data => BotChannelEvent.parse(data))
@@ -80,7 +81,7 @@ test("nothing is published for a deleted account, and its lines don't cost other
     await store.endAccount(gone, { actualState: "banned", notification: { kind: "shutoff", runId: 1 } })
     store.log(gone, 0, ["x"], "from a deleted account")
     store.log(accountId, 0, ["y"], "from a live account")
-    await store.flushLogs()
+    await store.flush()
 
     expect(await mentions(gone)).toBe(0)
     expect(await published(botChannel(accountId))).toHaveLength(1)
@@ -104,7 +105,7 @@ test("ending an account saves why, stops it and notifies its owner, in that orde
     })
     const events = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
     expect(events).toEqual([
-        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null } },
+        { v: 1, kind: "status", accountId, status: { actualState: "banned", lastError: "IS_BANNED", bannedUntil, heartbeatAt: null, pluginStates: {}, castles: [], commanders: null, gamePresets: [], resources: null, readBack: null, bladeCoast: null, session: null } },
         { v: 1, kind: "account", accountId, desiredState: "stopped" },
         { v: 1, kind: "notification", notification: Notification.parse({ id: row!.id, kind: "banned", data: row!.data, accountId, createdAt: row!.createdAt, readAt: null }) },
     ])
@@ -208,7 +209,6 @@ test("a status carries the read-back snapshot of the worker's last report, and n
             sender: "Raider", troops: 1500, totalSeconds: 600, arrivesAt: 1_800_000_500_000,
         }],
         movementCount: 1,
-        session: { startedAt: 1_799_999_000_000, coins: 44_400, rubies: null },
         defence: {
             kingdom: 0, id: 1001, readAt: 1_799_999_990_000,
             wall: { level: 8, defence: 315.7, troops: 5031, room: 5031, sides: { left: { share: 30, slots: [{ wodID: 110, amount: 686 }, null] }, front: { share: 40, slots: [] }, right: { share: 30, slots: [] } } },
@@ -318,4 +318,76 @@ test("writes to one plugin's memory at the same moment all land", async () => {
 test("plugin memory for an account that was deleted is dropped", async () => {
     await db.delete(gameAccounts).where(eq(gameAccounts.id, accountId))
     expect(await store.rememberForPlugin(accountId, { plugin: "bladeCoast", key: "a", value: 1 })).toBe(false)
+})
+
+const problemsOf = (id: string) => db.select().from(botProblems).where(eq(botProblems.accountId, id)).orderBy(desc(botProblems.lastAt), desc(botProblems.id))
+
+test("the game refusing one plugin's request with one error is kept as one problem with how often, the latest first", async () => {
+    const at = 1_800_000_000_000
+    for (let i = 0; i < 50; i++)
+        store.noteRefusal(accountId, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: at + i })
+    store.noteRefusal(accountId, { plugin: "feast", command: "bfs", error: "ALREADY_PURCHASED", at: at + 10 })
+    await store.flush()
+    store.noteRefusal(accountId, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: at + 100 })
+    await store.flush()
+
+    expect((await problemsOf(accountId)).map(({ plugin, command, error, count, firstAt, lastAt }) => ({ plugin, command, error, count, firstAt: firstAt.getTime(), lastAt: lastAt.getTime() }))).toEqual([
+        { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", count: 51, firstAt: at, lastAt: at + 100 },
+        { plugin: "feast", command: "bfs", error: "ALREADY_PURCHASED", count: 1, firstAt: at + 10, lastAt: at + 10 },
+    ])
+})
+
+test(`only the ${PROBLEMS_KEPT} problems seen most lately are kept for an account`, async () => {
+    const at = 1_800_000_000_000
+    for (let i = 0; i < PROBLEMS_KEPT + 5; i++)
+        store.noteRefusal(accountId, { plugin: "attack", command: `c${i}`, error: "COOLING_DOWN", at: at + i })
+    await store.flush()
+
+    const kept = await problemsOf(accountId)
+    expect(kept).toHaveLength(PROBLEMS_KEPT)
+    expect(kept.at(-1)!.command).toBe("c5")
+})
+
+test("a refusal for an account deleted meanwhile is dropped, and the others are kept", async () => {
+    const [gone] = await db.insert(gameAccounts).values({ ownerId, name: `gone-${randomUUID()}`, serverId: 26, passwordSealed: Buffer.from("x") }).returning()
+    store.noteRefusal(gone!.id, { plugin: "attack", command: "cra", error: "COOLING_DOWN", at: 1 })
+    store.noteRefusal(accountId, { plugin: "attack", command: "cra", error: "COOLING_DOWN", at: 1 })
+    await db.delete(gameAccounts).where(eq(gameAccounts.id, gone!.id))
+    await store.flush()
+    expect(await problemsOf(accountId)).toHaveLength(1)
+})
+
+const T0 = Date.now() - 3_600_000
+const sessionOf = async (id: string) => (await db.select({ session: botStatus.session }).from(botStatus).where(eq(botStatus.accountId, id)))[0]?.session
+
+test("a status write keeps the session with its readings, and the owner sees the gains without them", async () => {
+    const session = countReport(countReport(startSession(T0), { cash: 1_000 }), { cash: 1_500 })
+    await store.setStatus(accountId, { resources: { cash: 1_500 }, session })
+
+    expect(await store.session(accountId)).toEqual(session)
+    const [event] = (await published(userChannel(ownerId))).map(data => UserEvent.parse(data))
+    expect(event).toMatchObject({ status: { session: { startedAt: T0, endedAt: null, coins: 500, rubies: 0, aqua: 0, eventPoints: {} } } })
+    expect(event!.kind === "status" && event!.status.session).not.toHaveProperty("last")
+})
+
+test("ending the session stamps when once, a late write of the same session can't reopen it, and a new session replaces it", async () => {
+    const session = countReport(startSession(T0), { cash: 1_000 })
+    await store.setStatus(accountId, { session })
+    await store.setStatus(accountId, { actualState: "stopped", endSession: true })
+    const ended = (await sessionOf(accountId)) as { endedAt: number }
+    expect(ended.endedAt).toBeGreaterThan(T0)
+
+    await store.setStatus(accountId, { endSession: true })
+    await store.setStatus(accountId, { session: countReport(session, { cash: 9_000 }) })
+    expect(await sessionOf(accountId)).toEqual({ ...session, endedAt: ended.endedAt })
+
+    const next = startSession(T0 + 3_600_000)
+    await store.setStatus(accountId, { session: next })
+    expect(await sessionOf(accountId)).toEqual(next)
+})
+
+test("the runner stopping an account for good ends its session", async () => {
+    await store.setStatus(accountId, { session: startSession(T0) })
+    await store.endAccount(accountId, { actualState: "banned", lastError: "IS_BANNED", notification: { kind: "banned", bannedUntil: null, runId: 1 } })
+    expect(((await sessionOf(accountId)) as { endedAt: number | null }).endedAt).not.toBeNull()
 })

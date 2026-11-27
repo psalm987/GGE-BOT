@@ -1,7 +1,7 @@
 import { asc, eq, inArray } from "drizzle-orm"
 import { notificationPrefs, type DataExport } from "@gge/contracts"
 import {
-    auditLog, botLogs, botRuns, botStatus, gameAccounts, licenseCodes, notifications, packages, planPeriods, pluginMemory, pluginSettings, pointsLedger, publicStatus, purchases, servers,
+    auditLog, botLogs, botProblems, botRuns, botStatus, gameAccounts, licenseCodes, notifications, packages, planPeriods, pluginMemory, pluginSettings, pointsLedger, publicStatus, purchases, servers,
     toNotification, users, virtualPresets,
 } from "@gge/db"
 import type { Ctx } from "../context.ts"
@@ -35,9 +35,11 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
     const ids = accounts.map(account => account.id)
     const ofAccounts = <T>(query: () => Promise<T[]>) => ids.length ? query() : Promise.resolve([])
 
-    const [settings, memory, presets, runs, logs, notified, audit, periods, bought, codesBought, codesRedeemed, points] = await Promise.all([
+    const [settings, memory, problems, presets, runs, logs, notified, audit, periods, bought, codesBought, codesRedeemed, points] = await Promise.all([
         ofAccounts(() => db.select().from(pluginSettings).where(inArray(pluginSettings.accountId, ids)).orderBy(asc(pluginSettings.accountId), asc(pluginSettings.pluginKey))),
         ofAccounts(() => db.select().from(pluginMemory).where(inArray(pluginMemory.accountId, ids)).orderBy(asc(pluginMemory.accountId), asc(pluginMemory.plugin))),
+        ofAccounts(() => db.select({ accountId: botProblems.accountId, plugin: botProblems.plugin, command: botProblems.command, error: botProblems.error, count: botProblems.count, firstAt: botProblems.firstAt, lastAt: botProblems.lastAt })
+            .from(botProblems).where(inArray(botProblems.accountId, ids)).orderBy(asc(botProblems.accountId), asc(botProblems.id))),
         ofAccounts(() => db.select().from(virtualPresets).where(inArray(virtualPresets.accountId, ids)).orderBy(asc(virtualPresets.accountId), asc(virtualPresets.createdAt), asc(virtualPresets.id))),
         ofAccounts(() => db.select({ id: botRuns.id, accountId: botRuns.accountId, startedAt: botRuns.startedAt, endedAt: botRuns.endedAt, endReason: botRuns.endReason, error: botRuns.error })
             .from(botRuns).where(inArray(botRuns.accountId, ids)).orderBy(asc(botRuns.id))),
@@ -61,6 +63,7 @@ export async function exportData(ctx: Pick<Ctx, "db" | "limits">, userId: string
         accounts: accounts.map(({ status, ...account }) => ({ ...account, status: status ? publicStatus(status) : null })),
         pluginSettings: settings,
         pluginMemory: memory,
+        problems,
         virtualPresets: presets.map(toVirtualPreset),
         runs,
         logs,

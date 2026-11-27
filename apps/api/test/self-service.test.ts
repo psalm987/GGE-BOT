@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm"
 import pg from "pg"
 import { afterAll, beforeAll, describe, expect, inject, test } from "vitest"
-import { auditLog, botLogs, botRuns, centrifugoOutbox, emailTokens, gameAccounts, insertNotification, pluginMemory, purchases, sessions, users } from "@gge/db"
+import { auditLog, botLogs, botProblems, botRuns, centrifugoOutbox, emailTokens, gameAccounts, insertNotification, pluginMemory, purchases, sessions, users } from "@gge/db"
 import { redeemCode } from "../src/services/codes.ts"
 import { adjustPoints } from "../src/services/points.ts"
 import { recordPurchase } from "../src/services/purchases.ts"
@@ -170,6 +170,7 @@ describe("downloading your data", () => {
         await api.db.insert(botRuns).values({ accountId: account.id, endedAt: new Date(), endReason: "stopped" })
         await api.db.insert(botLogs).values({ accountId: account.id, level: 1, message: `${accountName} logged in` })
         await api.db.insert(pluginMemory).values({ accountId: account.id, plugin: "bladeCoast", data: { closedMaps: [22] } })
+        await api.db.insert(botProblems).values({ accountId: account.id, plugin: "attackNomads", command: "cra", error: "COOLING_DOWN", count: 3, firstAt: new Date(), lastAt: new Date() })
         await insertNotification(api.db, { userId, accountId: account.id, dedupKey: `ban-${account.id}`, kind: "banned", data: { accountName, serverLabel: "India 1", bannedUntil: null } })
         return { player, userId, account }
     }
@@ -187,6 +188,7 @@ describe("downloading your data", () => {
         expect(data.runs).toMatchObject([{ accountId: account.id, endReason: "stopped" }])
         expect(data.logs).toMatchObject([{ accountId: account.id, message: "LenaKeep logged in" }])
         expect(data.pluginMemory).toMatchObject([{ accountId: account.id, plugin: "bladeCoast", data: { closedMaps: [22] } }])
+        expect(data.problems).toMatchObject([{ accountId: account.id, plugin: "attackNomads", command: "cra", error: "COOLING_DOWN", count: 3 }])
         expect(data.notifications).toMatchObject([{ kind: "banned", accountId: account.id }])
         expect(data.audit.map(entry => entry.action)).toEqual(expect.arrayContaining(["auth.signup", "account.create"]))
 

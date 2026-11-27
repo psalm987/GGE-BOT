@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest"
 import { READ_BACK_MAX_MOVEMENTS, ReadBack, hourlyRate, marchProgress, stockForecast } from "../src/read-back.ts"
 
 const march = { id: 1, side: "own", kind: "attack", kingdom: 0, from: { type: 1, x: 1, y: 2, name: "Keep" }, to: { type: 2, x: 3, y: 4, name: null }, sender: null, troops: null, totalSeconds: 600, arrivesAt: 1_000_000 }
-const snapshot = { at: 0, castles: [], movements: [march], movementCount: 1, session: { startedAt: 0, coins: null, rubies: null } }
+const snapshot = { at: 0, castles: [], movements: [march], movementCount: 1 }
 
 describe("the read-back snapshot", () => {
     test("is refused when it carries more marches than a status report may", () => {

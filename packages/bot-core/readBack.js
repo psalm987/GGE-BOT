@@ -1,6 +1,6 @@
 /**
  * What the bot last read from the game, shaped for the screens that show it back to the player: each castle's stores,
- * units and order, the marches on the map, what the account gained since sign-in, the main castle's defence and the
+ * units and order, the marches on the map, the main castle's defence and the
  * Khan rage bar.
  * Pure, so it runs outside the worker.
  * The shape is `ReadBack` in packages/contracts/src/read-back.ts, which also caps its size.
@@ -220,7 +220,6 @@ function rageOf(state, { khanCamps, khanCampsOnMap, defence }) {
  * @param {Array} read.castles the castles as protocols.js keeps them
  * @param {Array} read.movements the marches as protocols.js keeps them
  * @param {Number} read.playerID
- * @param {{startedAt: Number, coins: Number|null, rubies: Number|null}} read.session
  * @param {Object} [read.mainCastle] the castle `read.defence` is of
  * @param {Object} [read.defence] the last defence read, from defenceRead.js
  * @param {Object} [read.khanRage] the rage bar, from khanRage.js
@@ -228,7 +227,7 @@ function rageOf(state, { khanCamps, khanCampsOnMap, defence }) {
  * @param {Number[]} [read.khanCampsOnMap] the ids of the Khan camps on the bot's map
  * @param {Number} [read.now] epoch milliseconds
  */
-function buildReadBack({ castles, movements, playerID, session, mainCastle, defence, khanRage, khanCamps = [], khanCampsOnMap = [], now = Date.now() }) {
+function buildReadBack({ castles, movements, playerID, mainCastle, defence, khanRage, khanCamps = [], khanCampsOnMap = [], now = Date.now() }) {
     // A stationed army stays on the list until its stay is over, as the game's own overview keeps it.
     const underway = movements.filter(movement => Number.isFinite(movement.arrivesAt) && Math.max(movement.arrivesAt, movement.endsAt || 0) > now)
         .map(movement => marchOf(movement, playerID))
@@ -239,11 +238,8 @@ function buildReadBack({ castles, movements, playerID, session, mainCastle, defe
         castles: castles.flatMap(castle => castleOf(castle, now)).slice(0, MAX_CASTLES),
         movements: underway.slice(0, MAX_MOVEMENTS),
         movementCount: underway.length,
-        session: { startedAt: Math.round(session.startedAt), coins: gained(session.coins), rubies: gained(session.rubies) },
         ...Object.fromEntries(Object.entries(sections).filter(([, section]) => section)),
     }
 }
-
-const gained = value => Number.isFinite(value) ? Math.round(value) : null
 
 module.exports = { buildReadBack, MAX_CASTLES, MAX_MOVEMENTS, MAX_DEFENCE_SLOTS, MAX_DEFENCE_TOOLS, MAX_UNIT_KINDS }

@@ -1510,13 +1510,6 @@ xtHandler.on("msd", (obj, r) => {
     MapObject(areaInfo, getKingdomID(areaInfo))
 })
 
-/** The coins and rubies the account had when the game first reported them this run, which the session's gains count from. */
-const sessionStart = { at: Date.now(), coins: NaN, rubies: NaN }
-xtHandler.on("gcu", obj => {
-    if (isNaN(sessionStart.coins))
-        Object.assign(sessionStart, { coins: Number(obj.C1), rubies: Number(obj.C2) })
-})
-
 const mainCastle = () => castles.find(castle => castle.kingdomID == KingdomID.greatEmpire && castle.areaInfo?.type == AreaType.mainCastle)
 watchDefence(mainCastle, Unit)
 watchCastleList()
@@ -1542,7 +1535,6 @@ function updateStatus() {
     status.readBack = buildReadBack({
         castles, movements, playerID: playerInfo.playerID,
         mainCastle: mainCastle(), defence: lastDefence(), khanRage: rage, khanCamps, khanCampsOnMap: rage ? khanCampsOnMap() : [],
-        session: { startedAt: sessionStart.at, coins: resources.coins - sessionStart.coins, rubies: resources.rubies - sessionStart.rubies },
     })
     parentPort.postMessage([ActionType.StatusUser, status])
 }

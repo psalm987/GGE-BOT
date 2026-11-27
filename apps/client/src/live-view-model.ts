@@ -1,7 +1,7 @@
 import {
     DEFENCE_SIDES, FRONT_GATE_SLOTS, STOCK_KEYS, UNIT_GROUPS, hourlyRate, rageProgress, stockForecast,
     type AccountCastle, type DefenceSide, type MarchSide, type ReadBack, type ReadBackCastle, type ReadBackDefence, type ReadBackKhanRage, type ReadBackMovement,
-    type Stock, type StockForecast, type StockKey, type ToolCount, type UnitCount, type UnitGroup,
+    type SessionGains, type Stock, type StockForecast, type StockKey, type ToolCount, type UnitCount, type UnitGroup,
 } from "@gge/contracts"
 
 const HOUR_MS = 3_600_000
@@ -59,12 +59,17 @@ export function countdown(ms: number) {
 }
 
 export type Gain = { gain: number; perHour: number | null }
+export type EventTotal = { eventId: number; points: number }
 
-/** What the session gained up to the report, and how long it had run by then. A figure the game hasn't reported is null. */
-export function sessionGains(readBack: ReadBack): { elapsedMs: number; coins: Gain | null; rubies: Gain | null } {
-    const elapsedMs = Math.max(0, readBack.at - readBack.session.startedAt)
-    const gainOf = (gain: number | null) => gain === null ? null : { gain, perHour: hourlyRate(gain, elapsedMs) }
-    return { elapsedMs, coins: gainOf(readBack.session.coins), rubies: gainOf(readBack.session.rubies) }
+/**
+ * What the session gained, with hourly rates, and how long it has run: until `now` while it goes on, until the player
+ * stopped the bot once it has ended. Event points are totals, by event id.
+ */
+export function sessionFigures(session: SessionGains, now: number): { elapsedMs: number; coins: Gain; rubies: Gain; aqua: Gain; events: EventTotal[] } {
+    const elapsedMs = Math.max(0, (session.endedAt ?? now) - session.startedAt)
+    const gainOf = (gain: number) => ({ gain, perHour: hourlyRate(gain, elapsedMs) })
+    const events = Object.entries(session.eventPoints).map(([id, points]) => ({ eventId: Number(id), points })).sort((a, b) => a.eventId - b.eventId)
+    return { elapsedMs, coins: gainOf(session.coins), rubies: gainOf(session.rubies), aqua: gainOf(session.aqua), events }
 }
 
 export const DEFENCE_PARTS = ["wall", "gate", "moat"] as const

@@ -12,7 +12,7 @@ import { myPlan } from "../services/plans.ts"
 import { myPurchases } from "../services/purchases.ts"
 import { pointsSummary, redeemPoints } from "../services/points.ts"
 import {
-    accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, loadGameItems, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
+    accountProblems, accountRuns, createAccount, getOwnedAccount, listOwnedAccounts, attackLimitFor, loadCatalog, loadGameItems, ownedBy, removeAccounts, setDesiredState, startAccounts, updateAccount,
 } from "../services/accounts.ts"
 import { getNotificationPrefs, listNotifications, markNotificationsRead, setNotificationPrefs } from "../services/notifications.ts"
 import { logActivity, logFacets, logFeed } from "../services/logs.ts"
@@ -114,6 +114,10 @@ export const clientRouter = os.router({
         runs: os.accounts.runs.use(verified).handler(async ({ context: { db, user }, input }) => {
             await getOwnedAccount(db, user.id, input.id)
             return accountRuns(db, input.id, input.limit)
+        }),
+        problems: os.accounts.problems.use(verified).handler(async ({ context: { db, user }, input }) => {
+            await getOwnedAccount(db, user.id, input.id)
+            return accountProblems(db, input.id)
         }),
     },
     virtualPresets: {

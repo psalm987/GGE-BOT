@@ -82,10 +82,27 @@ switch (mode) {
             post([25, { kind: "banned", key: "k", data: { bannedUntil: null } }])
         }
     // falls through
+    case "refusal":
+        if (mode === "refusal") {
+            post([28, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: Date.now() }])
+            post([28, { plugin: "attackKhan", command: "cra", error: "LORD_IS_USED", at: Date.now() }])
+            post([28, { plugin: "attackKhan", command: "", error: 5 }])
+        }
+    // falls through
     case "ok":
     case "event":
         later(10, () => post([14]))
         beat("running")
+        break
+    case "gains":
+    case "gainscrash":
+        later(10, () => post([14]))
+        beat("running")
+        // The wheel spins ride in every report and come back to the next worker, which tells it the first one crashed already.
+        later(20, () => post([7, { cash: 1_000, wheelSpins: { crashed: true } }]))
+        later(30, () => post([7, { cash: 1_500, eventPoints: { 72: 300 }, wheelSpins: { crashed: true } }]))
+        if (mode === "gainscrash" && !workerData.wheelSpins)
+            later(60, () => process.exit(1))
         break
     case "crash":
         later(10, () => post([14]))

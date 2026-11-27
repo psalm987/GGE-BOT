@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 import type { ReadBack, ReadBackCastle, ReadBackDefence, ReadBackKhanRage, ReadBackMovement } from "@gge/contracts"
-import { castleUnits, countdown, defencePanel, forecastTime, isStationed, marchesUnderWay, rageMeter, sessionGains, sideCounts, storesByKingdom } from "../src/live-view-model.ts"
+import { castleUnits, countdown, defencePanel, forecastTime, isStationed, marchesUnderWay, rageMeter, sessionFigures, sideCounts, storesByKingdom } from "../src/live-view-model.ts"
 
 const AT = 1_800_000_000_000
 const HOUR = 3_600_000
@@ -15,7 +15,7 @@ const castle = (kingdom: number, id: number, stock: ReadBackCastle["stock"], ove
     ({ kingdom, id, readAt: AT, stock, units: NO_UNITS, publicOrder: null, productivity: null, guards: null, population: null, ...over })
 
 const readBack = (over: Partial<ReadBack> = {}): ReadBack => ({
-    at: AT, castles: [], movements: [], movementCount: 0, session: { startedAt: AT - HOUR / 2, coins: 44_400, rubies: null }, ...over,
+    at: AT, castles: [], movements: [], movementCount: 0, ...over,
 })
 
 describe("castle stores", () => {
@@ -102,9 +102,19 @@ describe("marches", () => {
 })
 
 describe("session gains", () => {
+    const session = { startedAt: AT - HOUR / 2, endedAt: null, coins: 44_400, rubies: 0, aqua: 9_000, eventPoints: { "80": 90, "72": 3_500 } }
+
     test("come with an hourly rate once the session is old enough for one", () => {
-        expect(sessionGains(readBack())).toEqual({ elapsedMs: HOUR / 2, coins: { gain: 44_400, perHour: 88_800 }, rubies: null })
-        expect(sessionGains(readBack({ session: { startedAt: AT - 60_000, coins: 500, rubies: 0 } }))).toEqual({ elapsedMs: 60_000, coins: { gain: 500, perHour: null }, rubies: { gain: 0, perHour: null } })
+        expect(sessionFigures(session, AT)).toEqual({
+            elapsedMs: HOUR / 2,
+            coins: { gain: 44_400, perHour: 88_800 }, rubies: { gain: 0, perHour: 0 }, aqua: { gain: 9_000, perHour: 18_000 },
+            events: [{ eventId: 72, points: 3_500 }, { eventId: 80, points: 90 }],
+        })
+        expect(sessionFigures({ ...session, startedAt: AT - 60_000 }, AT).coins).toEqual({ gain: 44_400, perHour: null })
+    })
+
+    test("of an ended session last until the player stopped the bot, however long ago that was", () => {
+        expect(sessionFigures({ ...session, endedAt: AT - HOUR / 4 }, AT + 5 * HOUR).elapsedMs).toBe(HOUR / 4)
     })
 })
 

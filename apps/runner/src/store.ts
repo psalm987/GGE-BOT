@@ -1,12 +1,13 @@
 import { createRequire } from "node:module"
-import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm"
+import { and, asc, eq, gt, gte, inArray, isNull, sql } from "drizzle-orm"
 import {
-    PLUGIN_MEMORY_MAX_BYTES, PROXY_MAX_FAILURES, botChannel, userChannel,
-    type BotChannelEvent, type BotNotice, type NotificationContent, type PluginFinishReason, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
+    PLUGIN_MEMORY_MAX_BYTES, PROBLEMS_KEPT, PROXY_MAX_FAILURES, botChannel, userChannel,
+    type BotChannelEvent, type BotNotice, type GameRefusal, type NotificationContent, type PluginFinishReason, type PluginMemory, type PluginMemoryWrite, type PluginState, type UserEvent,
 } from "@gge/contracts"
 import {
-    botLogs, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, pluginSettings, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
+    botLogs, botProblems, botRuns, botStatus, gameAccounts, insertNotification, pluginMemory, pluginSettings, proxies, publicStatus, publish, publishMany, runnerHeartbeat, servers, type Db,
 } from "@gge/db"
+import type { StoredSession } from "./farm-session.ts"
 import { logTag } from "./log-render.ts"
 
 const { TOWER_LOG_TAG, readTowerAttack } = createRequire(import.meta.url)("@gge/bot-core/attackLog.js") as {
@@ -27,6 +28,10 @@ export type StatusPatch = {
     /** Only ever `{}`: a new run starts with no plugin states. */
     pluginStates?: Record<string, never>
     heartbeat?: boolean
+    /** The session as the supervisor counts it. A write never reopens the same session once it has ended. */
+    session?: StoredSession
+    /** The player stopped the bot, or the runner did for good: the open session ends now. */
+    endSession?: true
 }
 
 type Detail<C> = C extends { kind: infer K; data: infer D } ? { kind: K } & Omit<D, "accountName" | "serverLabel"> : never
@@ -46,13 +51,20 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0]
 
 const logParts = (parts: unknown) => Array.isArray(parts) ? parts as (string | number)[] : null
 
+/** One plugin's request refused with one error, as often as it came between two flushes. */
+type ProblemRow = Omit<GameRefusal, "at"> & { accountId: string; count: number; firstAt: Date; lastAt: Date }
+type Batch = { logs: { accountId: string; level: number; message: string; parts: unknown }[]; problems: Map<string, ProblemRow> }
+const emptyBatch = (): Batch => ({ logs: [], problems: new Map() })
+
 export function createStore(db: Db, { flushMs = 500 } = {}) {
-    let pending: { accountId: string; level: number; message: string; parts: unknown }[] = []
+    let pending = emptyBatch()
     let timer: NodeJS.Timeout | undefined
 
-    async function insertLogs(batch: typeof pending) {
-        const ids = new Set((await db.select({ id: gameAccounts.id }).from(gameAccounts)
-            .where(inArray(gameAccounts.id, [...new Set(batch.map(l => l.accountId))]))).map(r => r.id))
+    const existing = async (accountIds: string[]) => new Set((await db.select({ id: gameAccounts.id }).from(gameAccounts)
+        .where(inArray(gameAccounts.id, [...new Set(accountIds)]))).map(r => r.id))
+
+    async function insertLogs(batch: Batch["logs"]) {
+        const ids = await existing(batch.map(l => l.accountId))
         const rows = batch.filter(l => ids.has(l.accountId)).map(l => ({ ...l, plugin: logTag(l.parts) }))
         if (!rows.length)
             return
@@ -68,34 +80,71 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         })
     }
 
-    async function writeBatch(batch: typeof pending) {
-        if (!batch.length)
+    /** Adds the batch's counts to each account's problems, then forgets all but the PROBLEMS_KEPT seen most lately. */
+    async function upsertProblems(batch: Batch["problems"]) {
+        const ids = await existing([...batch.values()].map(p => p.accountId))
+        const rows = [...batch.values()].filter(p => ids.has(p.accountId))
+        if (!rows.length)
             return
+        await db.transaction(async tx => {
+            await tx.insert(botProblems).values(rows).onConflictDoUpdate({
+                target: [botProblems.accountId, botProblems.plugin, botProblems.command, botProblems.error],
+                set: { count: sql`${botProblems.count} + excluded.count`, lastAt: sql`greatest(${botProblems.lastAt}, excluded.last_at)` },
+            })
+            const ranked = tx.select({ id: botProblems.id, rank: sql<number>`row_number() over (partition by ${botProblems.accountId} order by ${botProblems.lastAt} desc, ${botProblems.id} desc)`.as("rank") })
+                .from(botProblems).where(inArray(botProblems.accountId, [...new Set(rows.map(p => p.accountId))])).as("ranked")
+            await tx.delete(botProblems).where(inArray(botProblems.id, tx.select({ id: ranked.id }).from(ranked).where(gt(ranked.rank, PROBLEMS_KEPT))))
+        })
+    }
+
+    /** Writes one part of a batch. An account deleted after the existence check fails it once; the retry leaves that account out. */
+    async function write<T>(what: string, part: T, insert: (part: T) => Promise<void>) {
         try {
-            await insertLogs(batch)
+            await insert(part)
         } catch (error) {
-            // An account was deleted after the existence check; drop its lines, keep the rest.
             if (!isMissingAccount(error))
-                return console.error("log flush failed", error)
-            await insertLogs(batch).catch(e => console.error("log flush failed", e))
+                return console.error(`${what} flush failed`, error)
+            await insert(part).catch(e => console.error(`${what} flush failed`, e))
         }
     }
 
-    // Flushes run one after another, so a caller that awaits flushLogs (recentAttacks, shutdown) also waits for a
-    // flush the timer already started, instead of reading the table before those lines are committed.
+    async function writeBatch({ logs, problems }: Batch) {
+        if (logs.length)
+            await write("log", logs, insertLogs)
+        if (problems.size)
+            await write("problem", problems, upsertProblems)
+    }
+
+    // Flushes run one after another, so a caller that awaits flush (recentAttacks, shutdown) also waits for a
+    // flush the timer already started, instead of reading the tables before those rows are committed.
     let flushing: Promise<void> = Promise.resolve()
-    function flushLogs() {
+    function flush() {
         clearTimeout(timer)
         timer = undefined
         const batch = pending
-        pending = []
+        pending = emptyBatch()
         flushing = flushing.then(() => writeBatch(batch))
         return flushing
+    }
+    const flushSoon = () => {
+        if (pending.logs.length >= 200)
+            void flush()
+        else
+            timer ??= setTimeout(() => void flush(), flushMs)
     }
 
     /** A worker's report with the time it arrived, so the dashboard can say how old the figures are. */
     const stamped = (resources: unknown) =>
         resources && typeof resources === "object" && !Array.isArray(resources) ? { ...resources, reportedAt: new Date().toISOString() } : resources
+
+    /** The stored session, unless it is this same session already ended: a report still in flight when the bot stopped doesn't reopen it. */
+    const sessionWrite = (session: StoredSession) => sql`case
+        when ${botStatus.session}->>'endedAt' is not null and (${botStatus.session}->>'startedAt')::bigint = ${session.startedAt} then ${botStatus.session}
+        else excluded.session end`
+    /** The open session ended now; an ended one, or none, stays as it is. */
+    const sessionEnd = () => sql`case
+        when ${botStatus.session} is not null and ${botStatus.session}->>'endedAt' is null then jsonb_set(${botStatus.session}, '{endedAt}', to_jsonb(${Date.now()}::bigint))
+        else ${botStatus.session} end`
 
     const upsertStatus = (tx: Tx, accountId: string, patch: StatusPatch) => {
         const set = {
@@ -106,7 +155,9 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
             ...(patch.pluginStates && { pluginStates: patch.pluginStates }),
             ...(patch.heartbeat && { heartbeatAt: new Date() }),
         }
-        return tx.insert(botStatus).values({ accountId, ...set }).onConflictDoUpdate({ target: botStatus.accountId, set }).returning()
+        const session = patch.endSession ? sessionEnd() : patch.session && sessionWrite(patch.session)
+        return tx.insert(botStatus).values({ accountId, ...set, ...(patch.session && !patch.endSession && { session: patch.session }) })
+            .onConflictDoUpdate({ target: botStatus.accountId, set: { ...set, ...(session && { session }) } }).returning()
     }
     const statusEvent = (status: typeof botStatus.$inferSelect): UserEvent => ({
         v: 1, kind: "status", accountId: status.accountId,
@@ -145,7 +196,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
          * log's retention has dropped are not counted.
          */
         async recentAttacks(accountId: string, now = Date.now()): Promise<AttackHistory> {
-            await flushLogs()
+            await flush()
             const rows = await db.select({ ts: botLogs.ts, parts: botLogs.parts }).from(botLogs)
                 .where(and(eq(botLogs.accountId, accountId), eq(botLogs.plugin, TOWER_LOG_TAG), gte(botLogs.ts, new Date(now - HISTORY_MS))))
                 .orderBy(asc(botLogs.id))
@@ -156,6 +207,12 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                     (history[attack.plugin] ??= []).push({ at: row.ts.getTime(), tools: attack.tools })
             }
             return history
+        },
+
+        /** The account's stored session with its readings; the supervisor decides whether a starting bot carries on with it. */
+        async session(accountId: string): Promise<unknown> {
+            const [row] = await db.select({ session: botStatus.session }).from(botStatus).where(eq(botStatus.accountId, accountId))
+            return row?.session
         },
 
         /**
@@ -239,6 +296,7 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
                 if (!account)
                     return
                 const channel = userChannel(account.ownerId)
+                await tx.update(botStatus).set({ session: sessionEnd() }).where(eq(botStatus.accountId, accountId))
                 if (status.actualState)
                     await publish(tx, channel, statusEvent((await upsertStatus(tx, accountId, status))[0]!))
                 await publish(tx, channel, { v: 1, kind: "account", accountId, desiredState: "stopped" } satisfies UserEvent)
@@ -316,13 +374,24 @@ export function createStore(db: Db, { flushMs = 500 } = {}) {
         },
 
         log(accountId: string, level: number, parts: unknown, message: string) {
-            pending.push({ accountId, level, parts, message })
-            if (pending.length >= 200)
-                void flushLogs()
-            else
-                timer ??= setTimeout(() => void flushLogs(), flushMs)
+            pending.logs.push({ accountId, level, parts, message })
+            flushSoon()
         },
-        flushLogs,
+
+        /** The game refused one of the account's requests. Repeats before the next flush are counted, not written one by one. */
+        noteRefusal(accountId: string, { plugin, command, error, at }: GameRefusal) {
+            const key = JSON.stringify([accountId, plugin, command, error])
+            const when = new Date(at)
+            const known = pending.problems.get(key)
+            if (known) {
+                known.count++
+                if (when > known.lastAt) known.lastAt = when
+                if (when < known.firstAt) known.firstAt = when
+            } else
+                pending.problems.set(key, { accountId, plugin, command, error, count: 1, firstAt: when, lastAt: when })
+            flushSoon()
+        },
+        flush,
 
         async beat(startedAt: Date, version: string, running: number) {
             await db.insert(runnerHeartbeat).values({ id: 1, startedAt, beatAt: new Date(), version, running })

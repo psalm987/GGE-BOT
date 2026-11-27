@@ -3,7 +3,7 @@ import { VirtualPreset } from "./army.ts"
 import { LicenseCode, Period, PointsEntry, Purchase } from "./billing.ts"
 import { Notification, NotificationPrefs } from "./notifications.ts"
 import { PLAN_IDS } from "./plans.ts"
-import { BotStatus, DesiredState, LocaleCode, Role, Run } from "./schemas.ts"
+import { AccountProblem, BotStatus, DesiredState, LocaleCode, Role, Run } from "./schemas.ts"
 
 /**
  * Everything the app holds about one player, for them to download. Game passwords, the panel password hash,
@@ -39,6 +39,8 @@ export const DataExport = z.object({
     logs: z.array(z.object({ accountId: z.uuid(), ts: z.date(), level: z.number().int(), message: z.string() })),
     /** What the accounts' plugins keep across runs, such as the event levels they have finished. */
     pluginMemory: z.array(z.object({ accountId: z.uuid(), plugin: z.string(), data: z.unknown(), updatedAt: z.date() })),
+    /** The game's refusals the runner keeps per account. */
+    problems: z.array(AccountProblem.extend({ accountId: z.uuid() })),
     /** The wave plans of the accounts above, by `accountId`. */
     virtualPresets: z.array(VirtualPreset),
     notifications: z.array(Notification),

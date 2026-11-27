@@ -6,14 +6,14 @@ import relativeTime from "dayjs/plugin/relativeTime"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
-import { marchProgress, type MarchPlace, type ModuleDef, type PublicAccount, type ReadBack, type StockForecast, type StockKey } from "@gge/contracts"
+import { marchProgress, type MarchPlace, type ModuleDef, type PublicAccount, type ReadBack, type SessionGains, type StockForecast, type StockKey } from "@gge/contracts"
 import { CrestEmpty, ParchmentCard } from "@gge/ui"
 import { useSetDesiredState } from "../account-state.ts"
 import { orpc } from "../api.ts"
 import { BladeCoastCard } from "../components/BladeCoastCard.tsx"
 import { StartStop } from "../components/StartStop.tsx"
 import {
-    SIDE_FILTERS, countdown, forecastTime, isStationed, marchesUnderWay, sessionGains, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
+    SIDE_FILTERS, countdown, forecastTime, isStationed, marchesUnderWay, sessionFigures, sideCounts, storesByKingdom, type CastleStores, type Gain, type SideFilter,
 } from "../live-view-model.ts"
 import { pollInterval, useRealtimeState } from "../realtime.ts"
 import { Defence, Rage, UnitChips } from "./LiveViewDefence.tsx"
@@ -70,13 +70,17 @@ export function LiveView({ module }: { module: ModuleDef }) {
 function Snapshot({ account, readBack }: { account: PublicAccount; readBack: ReadBack }) {
     const { t } = useTranslation("client")
     const running = account.status?.actualState === "running"
+    const session = account.status?.session ?? null
     const now = useNow(1000, readBack.movements.length > 0)
     const reported = new Date(readBack.at)
     return (
         <>
-            <ParchmentCard title={t(running ? "liveView.session.title" : "liveView.session.lastTitle")} extra={<StartStop account={account} />}>
-                <Session readBack={readBack} />
+            <ParchmentCard title={t(session && session.endedAt === null ? "liveView.session.title" : "liveView.session.lastTitle")} extra={<StartStop account={account} />}>
+                {session
+                    ? <Session session={session} showAqua={session.aqua > 0 || account.status?.resources?.aquamarine != null} />
+                    : <Typography.Paragraph type="secondary">{t("liveView.session.none")}</Typography.Paragraph>}
                 <Typography.Paragraph type="secondary" className="gge-overview-note gge-live-note">
+                    {session && <>{t("liveView.session.basis")} </>}
                     <time dateTime={reported.toISOString()} title={dayjs(reported).format("D MMM YYYY HH:mm:ss")}>
                         {t(running ? "overview.updated" : "overview.lastKnown", { when: dayjs(reported).fromNow() })}
                     </time>
@@ -93,31 +97,32 @@ function Snapshot({ account, readBack }: { account: PublicAccount; readBack: Rea
     )
 }
 
-function Session({ readBack }: { readBack: ReadBack }) {
+/** The session's gains as tiles, each with its hourly rate; each event's points as a running total; and how long the session has run. */
+function Session({ session, showAqua }: { session: SessionGains; showAqua: boolean }) {
     const { t, i18n } = useTranslation("client")
-    const { elapsedMs, coins, rubies } = sessionGains(readBack)
+    const now = useNow(30_000, session.endedAt === null)
+    const { elapsedMs, coins, rubies, aqua, events } = sessionFigures(session, now)
     const signed = new Intl.NumberFormat(i18n.language, { signDisplay: "exceptZero" })
-    const tile = (label: string, gain: Gain | null) => (
-        <li>
+    const number = new Intl.NumberFormat(i18n.language)
+    const tile = (label: string, value: string, note: string) => (
+        <li key={label}>
             <div className="gge-kpi">
                 <span className="gge-kpi-label">{label}</span>
-                {gain === null
-                    ? <span className="gge-kpi-value" data-missing><span aria-hidden>{"—"}</span><span className="gge-sr-only">{t("overview.notReported")}</span></span>
-                    : <span className="gge-kpi-value">{signed.format(gain.gain)}</span>}
-                {gain && <span className="gge-kpi-note">{gain.perHour === null ? t("liveView.session.rateSoon") : t("liveView.session.rate", { rate: signed.format(gain.perHour) })}</span>}
+                <span className="gge-kpi-value">{value}</span>
+                <span className="gge-kpi-note">{note}</span>
             </div>
         </li>
     )
+    const gain = (label: string, { gain, perHour }: Gain) =>
+        tile(label, signed.format(gain), perHour === null ? t("liveView.session.rateSoon") : t("liveView.session.rate", { rate: signed.format(perHour) }))
     return (
         <ul className="gge-kpis" aria-label={t("liveView.session.figures")}>
-            {tile(t("liveView.session.coins"), coins)}
-            {tile(t("liveView.session.rubies"), rubies)}
-            <li>
-                <div className="gge-kpi">
-                    <span className="gge-kpi-label">{t("liveView.session.length")}</span>
-                    <span className="gge-kpi-value">{countdown(elapsedMs)}</span>
-                </div>
-            </li>
+            {gain(t("liveView.session.coins"), coins)}
+            {gain(t("liveView.session.rubies"), rubies)}
+            {showAqua && gain(t("liveView.session.aqua"), aqua)}
+            {events.map(({ eventId, points }) =>
+                tile(t(`liveView.session.event.${eventId}`, { defaultValue: t("liveView.session.event.other", { id: eventId }) }), number.format(points), t("liveView.session.eventTotal")))}
+            {tile(t("liveView.session.length"), countdown(elapsedMs), session.endedAt === null ? "" : t("liveView.session.ended", { when: dayjs(session.endedAt).fromNow() }))}
         </ul>
     )
 }
