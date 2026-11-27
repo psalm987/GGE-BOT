@@ -6,6 +6,7 @@ plugin: attackBarronsGreatEmpire
 sources:
   - packages/bot-core/plugins/attack/attackBarrons*.js
   - packages/bot-core/plugins/attack/sharedBarronAttackLogic.js
+  - packages/bot-core/baronCoordinator.js
   - packages/bot-core/towers.js
   - packages/contracts/src/modules.ts
 ---
@@ -32,12 +33,20 @@ For each kingdom that is on, the bot does this:
 
 1. It picks the castle the attacks leave from. That is **Castle to attack from**, or the kingdom's {% term id="main-castle" %}main castle{% /term %} when you leave it empty. If the castle you picked is gone, the bot uses the main castle and the status tells you.
 2. It reads the map around that castle, out to **Search radius**. It keeps the towers that pass **Tower filter**, nearest first. It reads the map again every 30 to 40 minutes, so new towers come in.
-3. It takes the next free {% term id="commander-game" %}commander{% /term %} from the list on the {% ui key="client:plugins.commanderPicker.title" /%} card.
+3. It takes the next free {% term id="commander-game" %}commander{% /term %} from the list on the {% ui key="client:plugins.commanderPicker.title" /%} card. If another kingdom may send the same commander and its march there and back is clearly shorter, under 85% of this kingdom's, the commander goes to that kingdom instead. See [Kingdoms that share commanders](#shared-commanders).
 4. It attacks the nearest tower whose wait is over and that none of your armies is already marching to.
 5. When a march comes home, the bot knows the tower's new level and its new wait. With **Use time skips** on, it spends time skips on that wait instead of waiting.
 6. It stops for a while when a limit is reached, and the status says which limit and for how long.
 
 The levels at which towers count as maxed are 81 in the Great Empire, 61 in Burning Sands, 51 in Everwinter Glacier and 71 in Fire Peaks. **Maxed only** attacks those towers. **Non-maxed only** attacks the others, which still level up.
+
+## Kingdoms that share commanders {% #shared-commanders %}
+
+When two or more kingdoms are on, they work together. They send nothing to the game for this.
+
+- **A shared commander goes where the march is shortest.** Each kingdom offers the round trip to its nearest tower that it can attack now. A kingdom held by a limit, or waiting for troops, offers nothing. The kingdom that holds the commander hands it over only when another kingdom's round trip is under 85% of its own. A commander only one kingdom may send stays with that kingdom.
+- **Each kingdom learns its march speed.** After each attack the game accepts, the kingdom notes how long the march takes per {% term id="click" %}click{% /term %}. Until a kingdom has attacked once, it uses the average of the kingdoms that have, or 60 seconds a click.
+- **One kingdom widens when all of them wait.** With **Widen search when nothing is found** on, when no kingdom has a tower to attack and commanders have waited at home for 5 minutes, one kingdom widens its search by 10 clicks, up to 100. It is the kingdom with the smallest search, then the one with the fastest marches. A kingdom held by a limit or waiting for troops does not widen. After 5 more minutes of waiting, the next kingdom widens. This step stays until the bot restarts, and the status says when it happens.
 
 ## Limits {% #limits %}
 
@@ -108,7 +117,7 @@ Turn on one kingdom first and watch the [logs](/war-room/logs/) for an hour. Whe
 {% /aside %}
 
 - A small **Search radius** finds fewer towers, but the marches are short.
-- **Widen search when nothing is found** is off by default. When a scan finds no tower, it widens the radius by 10 {% term id="click" %}clicks{% /term %}, up to 100, and scans again within a few minutes. When towers are in the nearer range again, it narrows back a step at each scan, down to your **Search radius**. The status says when the search is widened.
+- **Widen search when nothing is found** is off by default. When a scan finds no tower, it widens the radius by 10 {% term id="click" %}clicks{% /term %}, up to 100, and scans again within a few minutes. When towers are in the nearer range again, it narrows back a step at each scan, down to your **Search radius**. It also widens one kingdom at a time while commanders wait, as [Kingdoms that share commanders](#shared-commanders) explains. That step does not narrow back. The status says when the search is widened.
 - Set **Most attacks a day** for each kingdom, so one kingdom cannot use up the account's whole daily cap.
 - Towers has no **Log only** setting. To test, start with one kingdom and a low **Most attacks a day**.
 

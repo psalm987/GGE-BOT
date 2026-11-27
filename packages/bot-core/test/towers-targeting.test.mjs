@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url)
 const { startTowers, tower, castleAt, melee, ranged, tool } = require("./harness/army-bots.cjs")
 const { towerLevel, matchesFilter, pickSourceCastle, TOP_LEVELS, BASE_LEVELS } = require("../towers.js")
 const { rectsAround } = require("../mapScan.js")
+const { createBaronCoordinator } = require("../baronCoordinator.js")
 
 const inventory = () => [melee(601, 50_000), ranged(603, 50_000), tool(614, 50_000, { wallBonus: "10" })]
 const MINUTE = 60_000
@@ -289,8 +290,10 @@ describe("widening the search", () => {
         expect(last(game)).toMatchObject({ state: "waiting", reasonKey: "statusTowersNoneInRange", params: { radius: 100 } })
     })
 
-    test("narrows back a step per scan once a nearer tower is in range", async () => {
-        const game = startTowers({ widenSearch: true }, { castles: castles(), map: [tower(670, 600)], cooldown: 6 * 3600 })
+    test("narrows back a step per scan once a nearer tower is in range, while another kingdom has a tower to attack", async () => {
+        const coordinator = createBaronCoordinator()
+        startTowers({}, { kingdomID: 1, castles: [castleAt(1, 2, 600, 600, { inventory: inventory() })], map: [tower(610, 600)], commanders: 0, coordinator })
+        const game = startTowers({ widenSearch: true }, { castles: castles(), map: [tower(670, 600)], cooldown: 6 * 3600, coordinator })
         await run(5 * MINUTE)
         expect(radiusOf(game)).toBe(70)
         game.map.push(tower(640, 600))

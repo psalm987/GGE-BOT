@@ -110,6 +110,27 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
     ({ id, kingdomID, areaInfo: { type, x, y, extraData: Object.assign([], { 7: name }) }, unlockedHorses: [1, 2], unitInventory: inventory })
 
 /**
+ * A stand-in commander pool of `count` commanders (lord ids 1 on), first come first served. Kingdoms given the same
+ * pool share its commanders and may send each of them; `freeCommander` hands one to the longest waiter.
+ */
+function standInCommanders(count, effects = {}) {
+    const lords = Array.from({ length: count }, (_, i) => ({ lordID: i + 1, lordPosition: i, getEffects: () => effects }))
+    const free = [...lords]
+    const waiting = []
+    return {
+        waitForCommanderAvailable: () => free.length ? Promise.resolve(free.shift()) : new Promise(resolve => waiting.push(resolve)),
+        freeCommander(lordID) {
+            const lord = lords.find(lord => lord.lordID == lordID)
+            if (waiting.length) waiting.shift()(lord)
+            else if (!free.includes(lord)) free.push(lord)
+        },
+        commanderRefused() {},
+        mayUse: (whitelist, plugin, lord) => lords.includes(lord),
+        freeCommanderCount: () => free.length,
+    }
+}
+
+/**
  * Starts a kingdom's tower plugin against a stand-in game and lets it run: a map of towers the real scan reads through
  * `getAreaInfo`, the player's castles, and marches that come home. The real attack engine builds each frame; the
  * attack queue and the send are stood in. Nothing here waits, so a test moves the clock itself (fake timers) and
@@ -127,12 +148,13 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * `ssi` and each attack screen opened. `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
  * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and delivers its tools to the castle the bot joined for it,
  * which `joins` lists by id. `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
- * `attackOptions` are the account's attack settings.
+ * `attackOptions` are the account's attack settings. Kingdoms started with the same `coordinator` (a createBaronCoordinator())
+ * and the same `sharedCommanders` (a standInCommanders()) run as one account's kingdoms do.
  */
 function startTowers(options, {
     kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, attackOptions = {}, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
     resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false, armourer, pool = false,
-    screenRefusal = () => false,
+    screenRefusal = () => false, coordinator, sharedCommanders,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
@@ -193,13 +215,7 @@ function startTowers(options, {
     const engine = loadModule("plugins/attack/attack.js", { bot, items: { horses: stable }, extra: { protocols } }).mod
     const sent = []
     const statuses = []
-    const free = Array.from({ length: commanders }, (_, i) => ({ lordID: i + 1, lordPosition: i, getEffects: () => effects }))
-    const waiting = []
-    const freeCommander = lordID => {
-        const lord = { lordID, lordPosition: lordID - 1, getEffects: () => effects }
-        if (waiting.length) waiting.shift()(lord)
-        else if (!free.some(other => other.lordID == lordID)) free.push(lord)
-    }
+    const standIn = sharedCommanders ?? standInCommanders(commanders, effects)
     const attack = {
         ...engine,
         waitToAttack: job => job(),
@@ -230,7 +246,7 @@ function startTowers(options, {
                 movementEvents.emit("returning", home)
                 setTimeout(() => {
                     protocols.movements.splice(protocols.movements.indexOf(home), 1)
-                    freeCommander(attackInfo.LID)
+                    standIn.freeCommander(attackInfo.LID)
                     movementEvents.emit("return", home)
                 }, travelSeconds * 1000)
             }, travelSeconds * 1000)
@@ -244,11 +260,9 @@ function startTowers(options, {
         extra: {
             protocols, "protocols.js": protocols,
             "./attack.js": attack, "./attack": attack,
-            "../commander": pool ? commanderPool(bot, movementEvents, commanders, effects) : {
-                waitForCommanderAvailable: () => free.length ? Promise.resolve(free.shift()) : new Promise(resolve => waiting.push(resolve)),
-                freeCommander, commanderRefused() {},
-            },
+            "../commander": pool ? commanderPool(bot, movementEvents, commanders, effects) : standIn,
             "../skips.js": { spendSkip() {}, haveEnoughSkips: () => false },
+            ...coordinator && { "baronCoordinator.js": { baronCoordinator: coordinator } },
         },
     })
     const stopped = []
@@ -260,4 +274,4 @@ function startTowers(options, {
     return { sent, statuses, requests, looks, screens, map, stopped, protocols, bot, logged, orders, joins }
 }
 
-module.exports = { firstCra, barons, fortress, startTowers, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }
+module.exports = { firstCra, barons, fortress, startTowers, standInCommanders, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }
