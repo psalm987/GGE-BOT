@@ -25,6 +25,7 @@ test("the account setting is two checkboxes, both off, the name shown only under
     expect(mod.force).toBe(true)
     expect(mod.pluginOptions).toEqual([
         { type: "Checkbox", key: "useTimetables", default: false },
+        { type: "" },
         { type: "Checkbox", key: "includePlayerName", default: false, showWhen: { key: "useTimetables", in: [1] } },
     ])
 })

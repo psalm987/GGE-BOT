@@ -8,6 +8,8 @@ if (isMainThread)
         force: true,
         pluginOptions: [
             { type: "Checkbox", key: "useTimetables", default: false },
+            // Puts the name box on its own row, under the first.
+            { type: "" },
             { type: "Checkbox", key: "includePlayerName", default: false, showWhen: { key: "useTimetables", in: [1] } },
         ],
     }
