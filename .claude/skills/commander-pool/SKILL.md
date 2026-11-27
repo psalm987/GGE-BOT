@@ -56,6 +56,7 @@ These files and functions were last confirmed to match the model at sync commit 
 | `plugins/attack/attack.js`: `waitToAttack` (one callback at a time; sleep only after a truthy result) | `Run`, `queueSleeping`, `QueueWakes` |
 | `attackKhan.js:205-458`, `attackNomads.js:171-415`, `attackSamurai.js:161-403`, `attackBerimondInvasion.js:113-355` (loop shape) | `LoopPlugins`, the loop branch of `React` |
 | `sharedBarronAttackLogic.js:85-310`, `sharedFortressAttackLogic.js:25-152`, `attackStormForts.js:161-310` (sendHit shape) | the other branches of `React`, `Reacquire` |
+| `sharedBarronAttackLogic.js` `sendHit`: a commander handed to a kingdom with a clearly shorter trip (`baronCoordinator.js` `handOverTo`), freed before any attack is queued | `HandOver` |
 | `protocols.js:1176-1215` (`newMovement`, "outgoing"/"return" emits), `protocols.js:1291-1295` (`cra` handler) | `Respond`, `MarchReturns` |
 | `ggeBot.js:89-104` (`checkForIssues`) | the harm behind `NoBusyLordSent` |
 

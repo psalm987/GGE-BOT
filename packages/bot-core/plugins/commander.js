@@ -265,6 +265,15 @@ function takeFreeCommander(commanderWhitelist, plugin) {
     return lord
 }
 
+/** Whether `plugin` may send `lord`: by the commander map, or with no map by its commander list. Never takes it. */
+const mayUse = (commanderWhitelist, plugin, lord) => drawFor(commanderWhitelist, plugin).allows(lord)
+
+/** How many of the commanders `plugin` may send are free right now. Never takes one. */
+function freeCommanderCount(commanderWhitelist, plugin) {
+    const { allows } = drawFor(commanderWhitelist, plugin)
+    return commanders.filter(e => allows(e) && !usedCommanders.includes(e.lordID)).length
+}
+
 /**
  * Holds a commander for `plugin` ahead of need: a free one now, else the first to come home, before any attack
  * waiting for it. `onHeld` gets the commander once it is held, and the caller frees it with `freeCommander`. Returns
@@ -364,6 +373,8 @@ module.exports = {
     waitForCommanderAvailable,
     takeFreeCommander,
     reserveCommander,
+    mayUse,
+    freeCommanderCount,
     mappedOut,
     parseWhitelist,
     useCommander,

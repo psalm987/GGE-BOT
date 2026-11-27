@@ -20,7 +20,11 @@ const TOOL_SETS = ["none", "ladders", "all"]
 const AUTO_BUY_TOOLS = { none: [], ladders: [614], all: [614, 611, 620] }
 /** The stock is looked at again no sooner than this, in milliseconds, so a refused or capped buy is not tried at every attack. */
 const AUTO_BUY_RECHECK_MS = 5 * 60_000
-/** With Widen search on, the radius grows by this many clicks after each scan that finds no tower, and shrinks by as many once the nearer ring has towers again. */
+/**
+ * With Widen search on, the radius grows by this many clicks after each scan that finds no tower, and shrinks by as
+ * many once the nearer ring has towers again. It also grows a step when the coordinator picks this kingdom while
+ * commanders wait (baronCoordinator.js), and that step stays.
+ */
 const WIDEN_STEP = 10
 const WAVE_COUNTS = ["All waves", "1 wave", "2 waves", "3 waves", "4 waves"]
 
@@ -90,7 +94,8 @@ const {
     getAmountSoldiersFront,
     courtyardRoom,
     getTotalAmountToolsFlank, getTotalAmountToolsFront, sendAttack, openAttackScreen, waitForTroops, accountLimits } = require("./attack.js")
-const { waitForCommanderAvailable, freeCommander, commanderRefused } = require("../commander")
+const { waitForCommanderAvailable, freeCommander, commanderRefused, mayUse, freeCommanderCount } = require("../commander")
+const { baronCoordinator: coordinator } = require("../../baronCoordinator.js")
 const { sendXT, waitForResult, botConfig, playerInfo } = require("../../ggeBot.js")
 const { presetsListed } = require("../../gamePresets.js")
 const { areasAround, MAX_RADIUS } = require("../../mapScan.js")
@@ -130,9 +135,12 @@ const LOOK_AGAIN_AFTER_MS = 2 * 60_000
 const NOT_READY_HOLD_MS = 5 * 60_000
 /** Short of coins, the plugin waits this long before it tries again. */
 const COINS_WAIT_MS = 10 * 60_000
+/** After handing a commander to a kingdom with a clearly shorter trip, the plugin waits this long, or until it is handed one itself. */
+const HANDED_OVER_WAIT_MS = 5_000
 
 /** `filename` is the plugin's file, which its status goes by. */
 async function barronHit(type, kingdomID, stored, maxLevel, filename) {
+    const pluginKey = require("node:path").basename(filename, ".js")
     const options = readLegacy(baronOptions({ kingdom: kingdomID }), stored)
     const reportStatus = statusReporter(filename)
     const toolSet = choice(TOOL_SETS, options.tools, "ladders")
@@ -157,7 +165,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     const caps = { day: Number(options.maxPerDay) || 0, hour: Number(options.attacksPerHour) || 0 }
     const sentInDay = new RollingWindow(DAY), sentInHour = new RollingWindow(HOUR)
     // What the runner kept of this kingdom's last 24 hours, so a restart doesn't hand the limits back.
-    for (const { at } of botConfig.attackHistory?.[require("node:path").basename(filename, ".js")] ?? []) {
+    for (const { at } of botConfig.attackHistory?.[pluginKey] ?? []) {
         sentInDay.add(at)
         sentInHour.add(at)
     }
@@ -195,6 +203,8 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     const filter = choice(TOWER_FILTERS, options.towerFilter, "all")
     const baseRadius = Math.min(Number(options.searchRadius) || 50, MAX_RADIUS)
     let radius = baseRadius
+    /** The narrowest the search goes back to: the radius the settings name, or wider after the coordinator widened it. */
+    let floorRadius = baseRadius
     const getLevel = victorys => towerLevel(victorys, kingdomID)
     const wanted = areaInfo => areaInfo.type == type && matchesFilter(filter, getLevel(areaInfo.extraData[1]), maxLevel)
 
@@ -216,7 +226,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
     /**
      * With Widen search on: a scan that found no tower widens the radius one step, up to the largest a scan reaches, and
      * the next scan follows soon. A scan with a tower within one step less than the radius narrows it back, down
-     * to the radius the settings name.
+     * to `floorRadius`.
      */
     function adjustRadius() {
         if (areas.length == 0 && radius < MAX_RADIUS) {
@@ -226,8 +236,8 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
             console.info("towersSearchWidened", before, "towersSearchWidenedTo", radius)
             reportStatus("waiting", "statusTowersWidened", { castle: from, before, radius })
         }
-        else if (areas.length > 0 && radius > baseRadius && areas.some(areaInfo => tilesApart(castle.areaInfo, areaInfo) <= radius - WIDEN_STEP))
-            radius = Math.max(baseRadius, radius - WIDEN_STEP)
+        else if (areas.length > 0 && radius > floorRadius && areas.some(areaInfo => tilesApart(castle.areaInfo, areaInfo) <= radius - WIDEN_STEP))
+            radius = Math.max(floorRadius, radius - WIDEN_STEP)
     }
     /** Looks at the map again. Towers that appeared since the last look come in, and every wait and level is fresh. */
     async function scan() {
@@ -324,8 +334,37 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         }
     }
 
+    let waitingForTroops = false
+    const readyNow = areaInfo => wanted(areaInfo) && !inFlight(areaInfo) && readyAt(areaInfo) <= Date.now()
+    coordinator.register(pluginKey, {
+        nearestReady: () => {
+            if (waitingForTroops || limitInForce())
+                return undefined
+            const nearest = areas.find(readyNow)
+            return nearest && marchDistance(castle.areaInfo, nearest)
+        },
+        mayUse: lord => mayUse(options.commanderWhiteList, filename, lord),
+        freeCommanders: () => freeCommanderCount(options.commanderWhiteList, filename),
+        radius: () => radius,
+        canWiden: () => Boolean(options.widenSearch) && radius < MAX_RADIUS && !waitingForTroops && !limitInForce(),
+        widen: () => {
+            const before = radius
+            radius = floorRadius = Math.min(radius + WIDEN_STEP, MAX_RADIUS)
+            nextScanAt = 0
+            console.info("towersSearchWidened", before, "towersSearchWidenedTo", radius)
+            reportStatus("waiting", "statusTowersWidenedIdle", { castle: from, before, radius })
+        },
+    })
+
     const sendHit = async () => {
         const commander = await waitForCommanderAvailable(options.commanderWhiteList, undefined, undefined, filename)
+        const better = coordinator.handOverTo(pluginKey, commander)
+        if (better) {
+            freeCommander(commander.lordID)
+            coordinator.wake(better)
+            await coordinator.sleep(pluginKey, HANDED_OVER_WAIT_MS)
+            return true
+        }
         let target
         try {
             const attackInfo = await waitToAttack(async () => {
@@ -367,6 +406,7 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                 /** Sends the frame and counts the attack against the kingdom's limits. */
                 const sendFrame = async attackInfo => {
                     const sent = await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, { level, extraData: areaInfo.extraData, deleteReports: options.deleteReports })
+                    coordinator.learnSpeed(pluginKey, marchDistance(castle.areaInfo, areaInfo), Number(sent.AAM?.M?.TT))
                     const now = Date.now()
                     sentInDay.add(now)
                     sentInHour.add(now)
@@ -560,7 +600,12 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
                     }
                     console.log("[", KingdomID[kingdomID], "] ", "waitingForMoreTroops")
                     reportStatus("waiting", "statusTowersNoTroops", { castle: from })
-                    await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id, TROOPS_RECHECK_MS)
+                    waitingForTroops = true
+                    try {
+                        await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id, TROOPS_RECHECK_MS)
+                    } finally {
+                        waitingForTroops = false
+                    }
                     return true
                 case "LORD_IS_USED":
                 case "ATTACK_SCREEN_REFUSED":
@@ -605,8 +650,10 @@ async function barronHit(type, kingdomID, stored, maxLevel, filename) {
         else
             reportStatus("waiting", "statusTowersAllOut", progress())
         const wait = Math.min(nextReady, nextScanAt) - Date.now()
-        await sleep(Math.min(Math.max(wait, IDLE_MS[0]), IDLE_MS[1]))
+        await coordinator.sleep(pluginKey, Math.min(Math.max(wait, IDLE_MS[0]), IDLE_MS[1]))
     }
 }
 
-module.exports = barronHit
+/** A kingdom that stops no longer takes part in the coordination between kingdoms. */
+module.exports = (type, kingdomID, stored, maxLevel, filename) => barronHit(type, kingdomID, stored, maxLevel, filename)
+    .finally(() => coordinator.unregister(require("node:path").basename(filename, ".js")))

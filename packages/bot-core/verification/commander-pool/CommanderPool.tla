@@ -210,6 +210,21 @@ React(p) ==
     /\ outcome' = [outcome EXCEPT ![p] = "none"]
     /\ UNCHANGED <<away, queueSleeping>>
 
+(* Microtask: a baron loop that holds a commander hands it to a kingdom    *)
+(* with a clearly shorter trip before it queues an attack                  *)
+(* (sharedBarronAttackLogic.js sendHit, baronCoordinator.js handOverTo).   *)
+(* It frees the commander and sleeps on a timer, so it re-enters at Start. *)
+(* The code decides this in the run that hands it the commander; letting   *)
+(* it happen at any later point too only adds interleavings.               *)
+HandOver(p) ==
+    /\ NoneWoken
+    /\ p \notin LoopPlugins
+    /\ pool.pc[p] = "queued"
+    /\ LET freed == FreeState(pool, pool.lord[p]) IN
+       pool' = [freed EXCEPT !.lord = [@ EXCEPT ![p] = NoLord],
+                             !.pc   = [@ EXCEPT ![p] = "parked"]]
+    /\ UNCHANGED <<away, outcome, queueSleeping>>
+
 (* Macrotask: a commander's return movement arrives (protocols.js:1201-    *)
 (* 1215) and commander.js:40-47 frees it.                                  *)
 MarchReturns(l) ==
@@ -242,6 +257,7 @@ Next ==
     \/ \E p \in Plugins : Run(p)
     \/ \E p \in Plugins : Respond(p)
     \/ \E p \in Plugins : React(p)
+    \/ \E p \in Plugins : HandOver(p)
     \/ \E l \in Lords : MarchReturns(l)
     \/ QueueWakes
 
