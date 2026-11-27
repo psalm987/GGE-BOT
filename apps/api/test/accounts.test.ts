@@ -98,6 +98,13 @@ describe("a player's accounts", () => {
         expect((await p.api.plugins.catalog()).map(e => e.key)).toEqual(["attack", "attackNomads"])
         expect(await p.api.servers.list()).toEqual([{ id: 27, label: "Germany 1" }, { id: 26, label: "India 1" }])
     })
+
+    test("the catalog says what each attack plugin attacks, and leaves targets out for a plugin that names none", async () => {
+        const p = await api.player()
+        const byKey = Object.fromEntries((await p.api.plugins.catalog()).map(e => [e.key, e]))
+        expect(byKey.attackNomads!.targets).toEqual([{ kingdom: 0, areaType: 29 }])
+        expect(byKey.attack).not.toHaveProperty("targets")
+    })
 })
 
 describe("run schedules", () => {

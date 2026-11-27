@@ -1,0 +1,1 @@
+ALTER TABLE "plugin_catalog" ADD COLUMN "targets" jsonb;

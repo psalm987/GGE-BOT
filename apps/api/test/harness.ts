@@ -23,7 +23,7 @@ export const currentStep = () => stepAt(Date.now())
 
 export const catalog = [
     { key: "attack", force: true, hidden: false, options: [{ type: "Text", key: "attackDelaySeconds", default: "4.5" }] },
-    { key: "attackNomads", force: false, hidden: false, options: [
+    { key: "attackNomads", force: false, hidden: false, targets: [{ kingdom: 0, areaType: 29 }], options: [
         { type: "Checkbox", key: "lowValueChests", default: false },
         { type: "Select", key: "eventDifficulty", selection: ["Classic", "Easy", "Hard"], default: "1" },
     ] },

@@ -221,6 +221,8 @@ export const pluginCatalog = pgTable("plugin_catalog", {
     breaksPeace: boolean("breaks_peace").notNull().default(false),
     /** The game event the plugin works in, by event id; null for a plugin that works any time. */
     eventOnly: integer("event_only"),
+    /** What an attack plugin attacks, as `AttackTarget`s; null for a plugin that names none. */
+    targets: jsonb("targets"),
     updatedAt: updatedAt(),
 })
 

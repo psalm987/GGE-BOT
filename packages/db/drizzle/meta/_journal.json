@@ -211,6 +211,13 @@
       "when": 1795767346830,
       "tag": "0029_plugin_catalog_event_only",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795775388671,
+      "tag": "0030_plugin_catalog_targets",
+      "breakpoints": true
     }
   ]
 }
