@@ -131,7 +131,7 @@ export const MODULES: readonly ModuleDef[] = [
     soon("equipment-manager", "bth", "mail-shirt"),
     soon("or-storms", "bth", "tornado"),
     soon("mp-builder", "bth", "tower-bridge"),
-    { ...live("recruit-tools-heal", "utility", "healing-shield", ["recruitTools"]), soon: ["heal"] },
+    live("recruit-tools-heal", "utility", "healing-shield", ["recruitTools", "healTroops"], "per-plugin"),
     live("refinery-toolsmith", "utility", "stone-crafting", ["toolsmith"]),
     live("auto-feast", "utility", "steak", ["feast"]),
     live("equip-sell", "utility", "banknote", ["sellStoredEquipment"]),
