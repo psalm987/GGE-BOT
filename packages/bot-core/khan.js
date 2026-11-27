@@ -136,23 +136,26 @@ const defendersIn = inventory =>
 
 /**
  * Whether the main castle may be taunted into a Khan attack. `layout` is a `dfc` reply, `defenders` the troops from
- * `defendersIn`, and `minDefenders` the troops it needs (0 turns the gate off). A wall side is defended when any of its
- * slots holds a tool, and every slot of a defended side needs `WALL_SLOT_TOOLS` tools. Returns undefined when the
- * castle passes, else the hold with the counts that explain it.
+ * `defendersIn`, `minDefenders` the troops it needs (0 turns the gate off), and `armies` the Khan attacks already on
+ * their way. A wall side is defended when it has a troop share (`UP` above 0), and every slot of a defended side needs
+ * `WALL_SLOT_TOOLS` tools for each of those armies and the new one, since each landing uses about that many (Lazy
+ * Lord's attackKhan.js weakSlots; medium confidence). Returns undefined when the castle passes, else the hold with the
+ * counts that explain it.
  */
-function defenceGate(layout, defenders, minDefenders) {
+function defenceGate(layout, defenders, minDefenders, armies = 0) {
     if (!(minDefenders > 0))
         return undefined
     if (defenders < minDefenders)
         return { hold: "defendersShort", have: defenders, need: minDefenders }
+    const need = WALL_SLOT_TOOLS * (armies + 1)
     let short = 0
     for (const side of ["L", "M", "R"]) {
-        const slots = layout?.dfw?.[side]?.S ?? []
-        if (slots.every(([tool]) => tool == -1))
+        const wall = layout?.dfw?.[side]
+        if (!(Number(wall?.UP) > 0))
             continue
-        short += slots.filter(([tool, amount]) => tool == -1 || amount < WALL_SLOT_TOOLS).length
+        short += (wall.S ?? []).filter(([tool, amount]) => tool == -1 || amount < need).length
     }
-    return short > 0 ? { hold: "toolsShort", short, need: WALL_SLOT_TOOLS } : undefined
+    return short > 0 ? { hold: "toolsShort", short, need } : undefined
 }
 
 /** The first reason taunts are held, or undefined when the bar may be spent. */

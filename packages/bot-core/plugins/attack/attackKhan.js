@@ -74,8 +74,8 @@ if (require('node:worker_threads').isMainThread)
 
 const { spendSkip } = require("../skips.js")
 const { oneSkipPerCamp } = require("../../campSkips.js")
-const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands } = require("../../protocols.js")
-const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, getMaxUnitsInReinforcementWave, sendAttack } = require("./attack.js")
+const { movementEvents, movements, castles, AreaType, KingdomID, ClientCommands, ClassTypes } = require("../../protocols.js")
+const { waitToAttack, waitOutDailyLimit, getAttackInfo, assignUnit, fillEventTools, getTotalAmountToolsFlank, getTotalAmountToolsFront, getAmountSoldiersFlank, getAmountSoldiersFront, courtyardRoom, sendAttack, openAttackScreen, waitForTroops } = require("./attack.js")
 const { waitForCommanderAvailable, freeCommander, useCommander } = require("../commander.js")
 const { sendXT, xtHandler, events, playerInfo, botConfig } = require("../../ggeBot.js")
 const { settleDifficulty } = require("../../eventDifficulty.js")
@@ -116,19 +116,29 @@ function learnCamp(camp) {
 /** The defence keeper, started with the first run of the event. */
 let defence
 
+let saidOutOfSkips = false
+/** Skips the camp's wait. With no skip left the camp is attacked when it is ready on its own, instead of the plugin stopping. */
 const skipTarget = oneSkipPerCamp(async areaInfo => {
     while (areaInfo.extraData[2] > 0) {
-        let skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
-
-        if (skip == undefined)
-            throw new Error("couldntFindSkip")
+        const skip = spendSkip(areaInfo.extraData[2], pluginOptions.skipTypes)
+        if (skip == undefined) {
+            if (!saidOutOfSkips)
+                console.warn("campOutOfSkips")
+            saidOutOfSkips = true
+            break
+        }
 
         const { result } = await ClientCommands.skipTarget(type, areaInfo.x, areaInfo.y, kingdomID, skip)
 
         if (result != 0)
             break
+        saidOutOfSkips = false
     }
 })
+/** With no attack to send now, the plugin looks again after this long at least and at most, in milliseconds. */
+const IDLE_MS = [5_000, 60_000]
+/** Short of coins, the plugin waits this long before it tries again. */
+const COINS_WAIT_MS = 10 * 60_000
 /** While hits are paused for incoming taunts, the count is looked at again after this long, in milliseconds. */
 const TAUNT_RECHECK_MS = 20_000
 
@@ -206,6 +216,16 @@ function reportRunning() {
         reportStatus("running", ...runningFallback)
 }
 
+/**
+ * The defensive troops a `dfc` reply's storage (`gui.I`) holds, as Lazy Lord reads them (low confidence: our own capture's
+ * `gui.I` listed tools only), or the castle's own count when the reply has none.
+ */
+function defendersFrom(reply, castle) {
+    if (!Array.isArray(reply?.gui?.I) || !ClassTypes.UnitInventory)
+        return defendersIn(castle.unitInventory)
+    return defendersIn(new ClassTypes.UnitInventory(reply.gui).unitInventory)
+}
+
 /** Looks at the main castle's defence and holds the taunt while it has too few troops or tools. Runs again after a hold. */
 async function checkGate() {
     if (gateChecking)
@@ -215,7 +235,9 @@ async function checkGate() {
     try {
         const castle = castles.find(e => e.kingdomID == kingdomID && e.areaInfo.type == AreaType.mainCastle)
         const { reply, result } = await ask("dfc", { CX: castle.areaInfo.x, CY: castle.areaInfo.y, AID: castle.id, KID: -1 })
-        verdict = result == 0 ? defenceGate(reply, defendersIn(castle.unitInventory), khan.tauntMinDefenders) : { hold: "defenceUnread" }
+        verdict = result == 0
+            ? defenceGate(reply, defendersFrom(reply, castle), khan.tauntMinDefenders, incomingTaunts(movements, playerInfo.playerID, type))
+            : { hold: "defenceUnread" }
     } catch (error) {
         console.warn(error)
         verdict = { hold: "defenceUnread" }
@@ -240,17 +262,59 @@ shareKhanRage(() => eventOpen || rageSeen
     : undefined)
 events.once("unload", () => shareKhanRage())
 
+/**
+ * The game does not answer a taunt that works: it empties the rage bar (`rpr` below the cap) within a second, as our own
+ * capture shows, and answers `lta` only with an error. No drop within this long means the taunt is not confirmed.
+ */
+const TAUNT_CONFIRM_MS = 15_000
+/** Set from an `lta` until its outcome is known, so a second full bar meanwhile sends no second taunt. */
+let tauntSent = false
+
+/** Resolves true once the rage bar drops below `cap`, false on an `lta` error or after TAUNT_CONFIRM_MS. */
+const tauntOutcome = cap => new Promise(resolve => {
+    const done = taunted => {
+        clearTimeout(timer)
+        xtHandler.off("rpr", onRage)
+        xtHandler.off("lta", onReply)
+        resolve(taunted)
+    }
+    const onRage = (obj, result) => {
+        if (Number(result) == 0 && obj?.EID == eventID && Number(obj.PCRP) < cap)
+            done(true)
+    }
+    const onReply = (_, result) => {
+        if (Number(result) != 0)
+            done(false)
+    }
+    const timer = setTimeout(() => done(false), TAUNT_CONFIRM_MS)
+    timer.unref?.()
+    xtHandler.on("rpr", onRage)
+    xtHandler.on("lta", onReply)
+})
+
 /** Spends the full rage bar on a taunt unless something holds it. Called with each `rpr` and whenever a hold clears. */
-function tryTaunt() {
+async function tryTaunt() {
     const hold = currentHold()
     announce(hold, gate)
-    if (hold || !(rage >= campRageNeeded))
+    if (hold || tauntSent || !(rage >= campRageNeeded))
         return
     if (gated && !(gate && Date.now() - gate.at <= GATE_FRESH_MS))
         return void checkGate()
     console.info("rageTrigger")
-    rage = 0
-    sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
+    tauntSent = true
+    const taunted = tauntOutcome(Number(campRageNeeded))
+    try {
+        await sendXT("lta", JSON.stringify({ AV: 0, EID: eventID }))
+        if (await taunted)
+            console.info("khanTaunted")
+        else
+            console.warn("khanTauntNotConfirmed")
+    } catch (error) {
+        console.warn("khanTauntNotConfirmed")
+        console.debug("lta", error)
+    } finally {
+        tauntSent = false
+    }
 }
 
 xtHandler.on("rpr", ({ EID, PCRP, PTRP }) => {
@@ -394,8 +458,8 @@ events.on("eventStart", async ({ EID, EDID }) => {
     }
     tryTaunt()
 
-    const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
-
+    /** When the camp the plugin last saw is ready, for the wait when there is nothing to send. */
+    let campReadyAt = 0
     while (!quit) {
         const taunts = incomingTaunts(movements, playerInfo.playerID, type)
         if (khan.pauseAtTaunts > 0 && taunts >= khan.pauseAtTaunts) {
@@ -407,8 +471,18 @@ events.on("eventStart", async ({ EID, EDID }) => {
         const commander = await waitForCommanderAvailable(pluginOptions.commanderWhiteList, undefined, undefined, __filename)
         try {
             const attackInfo = await waitToAttack(async () => {
+                // The camp moves after a win, so it is found again before each attack, as Lazy Lord's plugin does.
+                const { areaInfo } = await ClientCommands.getNextMapObject(type, kingdomID)
+                if (!areaInfo?.extraData)
+                    return
                 if (!pluginOptions.dryRun)
                     await skipTarget(areaInfo)
+                campReadyAt = (areaInfo.timeSinceRequest ?? Date.now()) + (Number(areaInfo.extraData[2]) || 0) * 1000
+                if (areaInfo.extraData[2] > 0 && !pluginOptions.dryRun)
+                    return
+                const lord = await openAttackScreen(castle, areaInfo, kingdomID, commander, { dryRun: pluginOptions.dryRun })
+                if (areaInfo.extraData[2] > 0 && !pluginOptions.dryRun)
+                    return
 
                 const campInfo = classic ? nomadCampsClassic.find(obj => areaInfo.extraData[1] == obj.id) :
                     eventAutoScalingCamps.find(obj => areaInfo.extraData[6] == obj.eventAutoScalingCampID)
@@ -417,12 +491,12 @@ events.on("eventStart", async ({ EID, EDID }) => {
                 const context = { level, extraData: areaInfo.extraData, campID: campInfo?.eventAutoScalingCampID ?? campInfo?.id, dryRun: pluginOptions.dryRun }
 
                 if (army.mode == "waves") {
-                    const effects = commander.getEffects()
-                    const planned = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, effects.additionalWaves)
+                    const effects = lord.getEffects(type)
+                    const planned = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, pluginOptions, effects.additionalWaves)
                     fillFromPlan(planned, army.waves, castle.unitInventory, {
                         flankUnits: getAmountSoldiersFlank(level, effects.attackUnitAmountFlank), frontUnits: getAmountSoldiersFront(level, effects.attackUnitAmountFront),
                         flankTools: getTotalAmountToolsFlank(level, 0), frontTools: getTotalAmountToolsFront(level),
-                        courtyard: getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | effects.attackUnitAmountReinforcementBonus),
+                        courtyard: courtyardRoom(level, effects),
                     }, { kingdom: kingdomID, areaType: type })
                     return await sendAttack(planned, kingdomID, areaInfo.x, areaInfo.y, context)
                 }
@@ -520,8 +594,8 @@ events.on("eventStart", async ({ EID, EDID }) => {
                 attackerWallNomadTools.push(...attackerWallTools)
                 attackerShieldNomadTools.push(...attackerShieldTools)
 
-                const commanderStats = commander.getEffects()
-                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, commander, level, undefined, pluginOptions, commanderStats.additionalWaves)
+                const commanderStats = lord.getEffects(type)
+                const attackInfo = getAttackInfo(kingdomID, castle, areaInfo, lord, level, undefined, pluginOptions, commanderStats.additionalWaves)
                 const maxToolsFlank = getTotalAmountToolsFlank(level, 0)
                 const maxToolsFront = getTotalAmountToolsFront(level)
                 const maxTroopFront = getAmountSoldiersFront(level, commanderStats.attackUnitAmountFront)
@@ -620,7 +694,7 @@ events.on("eventStart", async ({ EID, EDID }) => {
                         maxTroops -= assignUnit(unitSlot, attackerRangeTroops.length <= 0 ?
                             attackerMeleeTroops : attackerRangeTroops, maxTroops))
                 })
-                let maxTroops = getMaxUnitsInReinforcementWave(playerInfo.level, level) + Number(0 | commanderStats.attackUnitAmountReinforcementBonus)
+                let maxTroops = courtyardRoom(level, commanderStats)
                 attackInfo.RW.forEach((unitSlot, i) => {
                     let attacker = i & 1 ?
                         (attackerMeleeTroops.length > 0 ? attackerMeleeTroops : attackerRangeTroops) :
@@ -631,8 +705,13 @@ events.on("eventStart", async ({ EID, EDID }) => {
                 })
 
                 return await sendAttack(attackInfo, kingdomID, areaInfo.x, areaInfo.y, context)
-            })
-            if (!attackInfo || attackInfo.dryRun) {
+            }, __filename)
+            if (!attackInfo) {
+                freeCommander(commander.lordID)
+                await new Promise(resolve => setTimeout(resolve, Math.min(Math.max(campReadyAt - Date.now(), IDLE_MS[0]), IDLE_MS[1])).unref())
+                continue
+            }
+            if (attackInfo.dryRun) {
                 freeCommander(commander.lordID)
                 continue
             }
@@ -641,17 +720,16 @@ events.on("eventStart", async ({ EID, EDID }) => {
             freeCommander(commander.lordID)
             console.warn(e)
             switch (e) {
+                case "NOT_ENOUGH_CURRENCY1":
+                    await new Promise(resolve => setTimeout(resolve, COINS_WAIT_MS).unref())
+                    break
                 case "NO_MORE_TROOPS":
-                    await new Promise(resolve => movementEvents.on("return", function self(/** @type {import("../../protocols.js").ClassTypes.Movement} */ movement) {
-                        if (movement.kingdomID != kingdomID || movement.targetAttack.extraData[0] != castle.id)
-                            return
-
-                        movementEvents.off("return", self)
-                        resolve()
-                    }))
+                    await waitForTroops(movement => movement.kingdomID == kingdomID && movement.targetAttack.extraData[0] == castle.id)
                     break
                 case "LORD_IS_USED":
                     useCommander(commander.lordID)
+                case "ATTACK_SCREEN_REFUSED":
+                case "WONT_REACH_IN_TIME":
                 case "ATTACK_TOO_MANY_UNITS":
                 case "COOLING_DOWN":
                 case "TIMED_OUT":

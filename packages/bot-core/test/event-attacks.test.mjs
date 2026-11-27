@@ -29,6 +29,7 @@ async function firstAttack(plugin, { eventID, start = {}, target, inventory, pro
             "./attack.js": {
                 ...engine,
                 waitToAttack: job => job(),
+                openAttackScreen: async (castle, areaInfo, kingdomID, commander) => commander,
                 sendAttack: async attackInfo => {
                     sent.push(attackInfo)
                     bot.events.emit("eventStop", { EID: eventID })

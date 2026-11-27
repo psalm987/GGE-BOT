@@ -999,5 +999,7 @@
     "attackErrorRepeated": "The game refused this plugin the same way again, so it waits longer before its next attack. The reason and the wait in seconds: ",
     "attackScreenRefused": "The game would not open the attack screen, so the target is not ready yet. The reason and the target: ",
     "campOutOfSkips": "No skips are left for a camp's wait, so for now the plugin attacks only camps that are ready on their own.",
-    "outOfFeathersCoinHorse": "No fast horse feathers are left, so the troops ride the coin horse instead."
+    "outOfFeathersCoinHorse": "No fast horse feathers are left, so the troops ride the coin horse instead.",
+    "khanTaunted": "The Khan was taunted: the rage bar emptied.",
+    "khanTauntNotConfirmed": "The Khan taunt was not confirmed: the rage bar did not empty, so the next full bar tries again."
 }

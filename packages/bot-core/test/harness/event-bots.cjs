@@ -32,13 +32,15 @@ const horses = [
  * sent, as [command, params]), `requests` (the map rectangles it asked for) and the stand-ins a test may drive.
  * `openAttackScreen` stands in for the attack screen, which by default hands back the commander unchanged. A skip is refused
  * with `skipRefusal(area)` when that returns an error code, and an attack with `sendRefusal(cra)` when that returns an
- * error name; the names land in `refused`.
+ * error name; the names land in `refused`. `found` holds each area `fnm` handed out, and `classTypes` stands in for
+ * protocols.js' ClassTypes.
  */
 async function runEvent(plugin, options, {
     areas, inventory, start = {}, items = {}, effects = {}, playerLevel = 70, sends = 1, movements = [], resources = {},
     castle: castleFields = {}, castles: otherCastles = [], spendSkip = () => "MS3", extra = {}, wait = 50, waitToAttack = async job => job(),
     movementEvents = new EventEmitter(), skipLands = async () => {}, answer = () => undefined,
     openAttackScreen = async (castle, areaInfo, kingdomID, commander) => commander, skipRefusal = () => 0, sendRefusal = () => undefined,
+    classTypes = {},
 }) {
     const { path, eventID, kingdomID } = PLUGINS[plugin]
     const bot = fakeBot()
@@ -57,14 +59,15 @@ async function runEvent(plugin, options, {
     })
     const skipped = []
     const requests = []
+    const found = []
     const protocols = {
-        castles: [castle, ...otherCastles], movements, movementEvents, ClassTypes: {}, AreaType, KingdomID,
+        castles: [castle, ...otherCastles], movements, movementEvents, ClassTypes: classTypes, AreaType, KingdomID,
         resources: { pegasusTicket: 5, coins: 0, ...resources },
         KingdomSkipType: { sendResource: 2, sendTroops: 1 },
         unlockInfoList: [{ kingdomID: 4, isUnlocked: true }],
         ClientCommands: {
             preSpyInfo: async () => {},
-            getNextMapObject: async () => ({ areaInfo: areas[0] }),
+            getNextMapObject: async () => (found.push(areas[0]), { areaInfo: areas[0] }),
             getAreaInfo: async (kid, x1, y1, x2, y2) => {
                 requests.push([x1, y1, x2, y2])
                 return { areaInfo: areas.filter(area => area.x >= x1 && area.x <= x2 && area.y >= y1 && area.y <= y2) }
@@ -125,7 +128,7 @@ async function runEvent(plugin, options, {
     bot.events.emit(eventID ? "eventStart" : "load", { EID: eventID, ...start })
     for (let i = 0; i < wait && sent.length < sends; i++)
         await new Promise(resolve => setTimeout(resolve, 1))
-    return { cra: sent[0], sent, refused, statuses, skipped, requests, frames: bot.sent, bot, castle, protocols, movementEvents }
+    return { cra: sent[0], sent, refused, statuses, skipped, requests, found, frames: bot.sent, bot, castle, protocols, movementEvents }
 }
 
 module.exports = { runEvent, AreaType, KingdomID }

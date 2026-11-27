@@ -123,7 +123,8 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
  * seconds, and the commander is free again. `commanders` is how many the player has; with `pool` the real commander
  * pool hands them out (lord ids 101 on), as the plugin's commander list asks. While `scanFails()` is true the
  * game leaves a map request unanswered, and `sendResult(cra)` may return an error name for the game to refuse a send with.
- * `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
+ * `screenRefusal(area)` refuses the attack screen on a tower, and `looks` and `screens` hold each tower looked at with
+ * `ssi` and each attack screen opened. `armourer` stands in for the armourer: `{ units, packages, live }` are the game items and the package ids on offer, and
  * the coins come from `resources.coins`. Every `sbp` is kept in `orders` and, as the game does, delivers its tools to
  * the player's castle in that kingdom. `history` is the kingdom's attacks of the last 24 hours as the runner hands them to a starting bot, and
  * `attackOptions` are the account's attack settings.
@@ -131,6 +132,7 @@ const castleAt = (kingdomID, id, x, y, { type = MAIN, name, inventory = [] } = {
 function startTowers(options, {
     kingdomID = 0, castles, map = [], mapGrid = false, commanders = 1, attackOptions = {}, travelSeconds = 60, cooldown = 3600, effects = {}, playerLevel = 70,
     resources = {}, horses: stable = horses, history, sendResult = () => undefined, scanFails = () => false, armourer, pool = false,
+    screenRefusal = () => false,
 }) {
     const bot = fakeBot()
     bot.playerInfo.level = playerLevel
@@ -141,13 +143,24 @@ function startTowers(options, {
         bot.botConfig.attackHistory = { [TOWER_PLUGINS[kingdomID]]: history }
     const movementEvents = new EventEmitter()
     const requests = []
+    const looks = []
+    const screens = []
+    const startedAt = Date.now()
     const orders = []
     const protocols = {
         castles, movements: [], movementEvents, resources: { pegasusTicket: 5, coins: 0, ...resources }, ClassTypes: {},
         AreaType: { barron: BARON, fortress: FORTRESS, mainCastle: MAIN, externalKingdom: OUTPOST },
         KingdomID: { greatEmpire: 0, burningSands: 1, everWinterGlacier: 2, firePeaks: 3, 0: "greatEmpire", 1: "burningSands", 2: "everWinterGlacier", 3: "firePeaks" },
         ClientCommands: {
-            preSpyInfo: async () => {},
+            preSpyInfo: async (x, y) => {
+                looks.push([x, y])
+                const area = map.find(area => area.x == x && area.y == y)
+                if (!area)
+                    return { result: 0 }
+                // The wait a look shows runs down from when the tower's wait was last set.
+                const left = Math.max(0, area.extraData[2] - Math.floor((Date.now() - (area.waitSince ?? startedAt)) / 1000))
+                return { areaInfo: { ...area, extraData: [area.extraData[0], area.extraData[1], left], timeSinceRequest: Date.now() }, result: 0 }
+            },
             skipTarget: async () => ({ result: 1 }),
             getAreaInfo: async (kid, x1, y1, x2, y2) => {
                 requests.push([x1, y1, x2, y2])
@@ -187,6 +200,12 @@ function startTowers(options, {
     const attack = {
         ...engine,
         waitToAttack: job => job(),
+        openAttackScreen: async (castle, areaInfo, kid, commander) => {
+            screens.push([areaInfo.x, areaInfo.y])
+            if (screenRefusal(areaInfo))
+                throw "ATTACK_SCREEN_REFUSED"
+            return commander
+        },
         sendAttack: async (attackInfo, kid, x, y) => {
             const refused = sendResult(attackInfo)
             if (refused)
@@ -198,6 +217,7 @@ function startTowers(options, {
             protocols.movements.push(march)
             setTimeout(() => {
                 target.extraData = [0, target.extraData[1] + 1, cooldown]
+                target.waitSince = Date.now()
                 const home = {
                     kingdomID: kid, lord: march.lord, targetOwner: { ownerID: bot.playerInfo.playerID },
                     targetAttack: { type: source.areaInfo.type, x: source.areaInfo.x, y: source.areaInfo.y, extraData: [source.id] },
@@ -234,7 +254,7 @@ function startTowers(options, {
     // The plugin's attack lines, as the runner would store them, for a test to feed back as a restart's history.
     console.info = (...parts) => { logged.push(["[12:00] ", "[", "sharedBarronAttackLogic", "] ", ...parts]); info(...parts) }
     Promise.resolve(mod(BARON, kingdomID, options, TOP_LEVELS[kingdomID], file)).catch(error => stopped.push(error))
-    return { sent, statuses, requests, map, stopped, protocols, bot, logged, orders }
+    return { sent, statuses, requests, looks, screens, map, stopped, protocols, bot, logged, orders }
 }
 
 module.exports = { firstCra, barons, fortress, startTowers, tower, castleAt, unit, melee, ranged, tool, BARON, FORTRESS }
