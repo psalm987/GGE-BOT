@@ -22,7 +22,7 @@ First researched 2026-11-16. Deep pass with persisted screenshots on 2026-11-17.
 | Site | What it is | What could be seen |
 |---|---|---|
 | [CitadelOps](competitors/citadelops.md) (citadelops.app) | Hosted cloud bot for GGE and Empire: Four Kingdoms | Public site, Account Center, and the full signed-in setup guide (17 sections, about 25 routines) with its 42 screenshots. Command Center gated. |
-| [The Squire Bot](competitors/squirebot.md) (thesquirebot.com) | Hosted cloud bot | About 30 modules. Main-realm config dialogs render on the trial. Per-account and BTH/Outers forms were read from the client JS. 128 screenshots. |
+| [The Squire Bot](competitors/squirebot.md) (thesquirebot.com) | Hosted cloud bot | About 30 modules. Main-realm config dialogs render on the trial. Per-account and BTH/Outers forms were read from the client JS (full re-read 2026-11-28: teams with licence grants, six-capability sharing, bulk fleet tools, E4K servers). 128 screenshots plus a 2026-11-28 recapture. |
 | [Bot Config Builder](competitors/netlify-config-builder.md) (netlify) | Static config generator for an unpublished self-hosted Python bot | Everything, because there is no backend. Settings only, nothing about runtime behaviour. 48 screenshots. |
 | [EmpireBot](competitors/empirebot.md) (empirebot.win) | Small Italian hosted bot, about 13 users. **A fork of GGE-BOT** | The full bot dashboard of a paying account: castle page, every plugin's option dialog, attack builder, Info hub. About 70 screenshots. |
 
@@ -178,7 +178,7 @@ Nobody has a self-serve checkout. Payment and a free trial are an open opportuni
 ## Where GGE-BOT is ahead
 
 - **Email and in-app bot alerts.** Competitors only use Discord, and E's bell does nothing visible.
-- **Pacing and humanization.** Box–Muller or log-normal delays, a send rate of 5 per second, ping jitter, the real client build at login, and a nearest-first map scan. Squire and the Config Builder expose no humanization. E has an `antiBan` plugin with no visible options.
+- **Pacing and humanization.** Box–Muller or log-normal delays, a send rate of 5 per second, ping jitter, the real client build at login, and a nearest-first map scan. Squire and the Config Builder expose no humanization (Squire has a server-side per-account proxy and login cooldowns, with no user controls). E has an `antiBan` plugin with no visible options.
 - **Proxies and run windows with daily jitter.** No competitor offers proxies. C and E have calendars, but without jitter.
 - **Security and operations.**
   - Game passwords are sealed so only the runner can read them.
